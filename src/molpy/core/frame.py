@@ -10,7 +10,7 @@ from typing import Any, Sequence, Literal
 >>>>>>> 5116935 (Restore frame helpers with xarray)
 import numpy as np
 import xarray as xr
-from datatree import DataTree
+from xarray import DataTree
 
 from .arraydict import ArrayDict  # legacy helper
 from .utils import TagApplyer
