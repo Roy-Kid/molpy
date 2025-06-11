@@ -32,6 +32,7 @@ class Frame(MutableMapping):
     def __init__(self, data: dict[str, Any] | None = None, *_, **__):
         self._tree = DataTree(name="root")
         self.box = None
+        self._scalars: dict[str, Any] = {}
         if data:
             for key, value in data.items():
                 self[key] = value
@@ -40,7 +41,9 @@ class Frame(MutableMapping):
     def __getitem__(self, key: str):
         if key == "box":
             return self.box
-        return self._tree[key].ds
+        if key in self._tree:
+            return self._tree[key].ds
+        return self._scalars[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
         if key == "box":
@@ -50,6 +53,9 @@ class Frame(MutableMapping):
             ds = value
         elif isinstance(value, dict):
             ds = _dict_to_dataset(value)
+        elif np.isscalar(value):
+            self._scalars[key] = value
+            return
         else:
             raise TypeError("Frame values must be xarray.Dataset or mapping")
         self._tree[key] = DataTree(ds, name=key)
@@ -57,17 +63,21 @@ class Frame(MutableMapping):
     def __delitem__(self, key: str) -> None:
         if key == "box":
             self.box = None
-        else:
+        elif key in self._tree:
             del self._tree[key]
+        else:
+            del self._scalars[key]
 
     def __iter__(self):
         for k in self._tree.keys():
+            yield k
+        for k in self._scalars.keys():
             yield k
         if self.box is not None:
             yield "box"
 
     def __len__(self) -> int:  # number of datasets + box if present
-        n = len(self._tree)
+        n = len(self._tree) + len(self._scalars)
         if self.box is not None:
             n += 1
         return n
@@ -106,7 +116,11 @@ class Frame(MutableMapping):
         for mask in groups:
             f = self.__class__()
             for key in self._tree.keys():
-                f[key] = self[key].sel(index=mask)
+                ds = self[key]
+                if "index" in ds.dims:
+                    f[key] = ds.sel(index=mask)
+                else:
+                    f[key] = ds.copy()
             if self.box is not None:
                 f.box = self.box
             frames.append(f)
@@ -117,13 +131,13 @@ class Frame(MutableMapping):
         import molpy as mp
 
         struct = Struct()
-        atoms_df = self["atoms"].to_pandas()
+        atoms_df = self["atoms"].to_dataframe()
         for _, atom in atoms_df.iterrows():
             struct.def_atom(**atom.to_dict())
 
         if "bonds" in self._tree:
             struct["bonds"] = Entities()
-            for _, bond in self["bonds"].to_pandas().iterrows():
+            for _, bond in self["bonds"].to_dataframe().iterrows():
                 i, j = int(bond.pop("i")), int(bond.pop("j"))
                 itom = struct["atoms"].get_by(lambda a: a["id"] == i)
                 jtom = struct["atoms"].get_by(lambda a: a["id"] == j)

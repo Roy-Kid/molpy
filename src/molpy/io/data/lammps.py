@@ -144,7 +144,7 @@ class LammpsDataReader(DataReader):
                         lambda t: masses[str(t)]
                     )
 
-                frame["atoms"] = atom_table
+                frame["atoms"] = atom_table.to_xarray()
 
             elif line.startswith("Bonds"):
                 bond_lines = list(islice(lines, props["n_bonds"]))
@@ -153,7 +153,7 @@ class LammpsDataReader(DataReader):
                     names=["id", type_key, "i", "j"],
                     delimiter=" ",
                 )
-                frame["bonds"] = bond_table
+                frame["bonds"] = bond_table.to_xarray()
 
             elif line.startswith("Angles"):
                 angle_lines = list(islice(lines, props["n_angles"]))
@@ -162,7 +162,7 @@ class LammpsDataReader(DataReader):
                     names=["id", type_key, "i", "j", "k"],
                     delimiter=" ",
                 )
-                frame["angles"] = angle_table
+                frame["angles"] = angle_table.to_xarray()
 
             elif line.startswith("Dihedrals"):
                 dihedral_lines = list(islice(lines, props["n_dihedrals"]))
@@ -171,7 +171,7 @@ class LammpsDataReader(DataReader):
                     names=["id", type_key, "i", "j", "k", "l"],
                     delimiter=" ",
                 )
-                frame["dihedrals"] = dihedral_table
+                frame["dihedrals"] = dihedral_table.to_xarray()
 
             elif line.startswith("Impropers"):
                 improper_lines = list(islice(lines, props["n_impropers"]))
@@ -180,7 +180,7 @@ class LammpsDataReader(DataReader):
                     names=["id", type_key, "i", "j", "k", "l"],
                     delimiter=" ",
                 )
-                frame["impropers"] = improper_table
+                frame["impropers"] = improper_table.to_xarray()
 
             elif line.startswith("Atom Type Labels"):
                 type_key = "type"
@@ -254,7 +254,9 @@ class LammpsDataReader(DataReader):
             atomtype["mass"] = m
 
             per_atom_mass[frame["atoms"][type_key] == t] = m  # todo: type mapping
-        frame["atoms"]["mass"] = per_atom_mass
+        atoms_ds = frame["atoms"].copy()
+        atoms_ds["mass"] = ("index", per_atom_mass)
+        frame["atoms"] = atoms_ds
 
         box = mp.Box(
             np.diag(
