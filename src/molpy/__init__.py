@@ -7,5 +7,8 @@ from . import reacter
 from . import polymerizer
 from . import typifier
 from . import builder
-from . import packer
+try:
+    from . import packer  # optional dependency
+except Exception:  # pragma: no cover - optional
+    packer = None
 from .core.units import Unit

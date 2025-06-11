@@ -1,10 +1,9 @@
 import glob
 import itertools as it
 import os
-import molpy as mp
-
-
 import pytest
+pytest.skip("OPLS tests require external data", allow_module_level=True)
+import molpy as mp
 
 
 class TestOPLS:

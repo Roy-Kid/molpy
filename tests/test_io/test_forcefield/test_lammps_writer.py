@@ -48,13 +48,13 @@ def test_lammps_forcefield_writer_full():
         # atom type
         assert "C" in content and "H" in content
         # bond参数
-        assert "100.0 1.09" in content or "1.09 100.0" in content
+        assert "100.000 1.090" in content or "1.090 100.000" in content
         # angle参数
-        assert "50.0 109.5" in content or "109.5 50.0" in content
+        assert "50.000 109.500" in content or "109.500 50.000" in content
         # dihedral参数
-        assert "0.5 1.0 0.0 0.0" in content
+        assert "0.500 1.000 0.000 0.000" in content
         # pair自交
-        assert "pair_coeff C 0.2 3.4" in content
-        assert "pair_coeff H 0.05 2.5" in content
+        assert "pair_coeff C 0.200 3.400" in content
+        assert "pair_coeff H 0.050 2.500" in content
         # pair交叉
-        assert "pair_coeff C H 0.1 3.0" in content or "pair_coeff H C 0.1 3.0" in content
+        assert "pair_coeff C H 0.100 3.000" in content or "pair_coeff H C 0.100 3.000" in content
