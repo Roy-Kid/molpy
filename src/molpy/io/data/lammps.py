@@ -282,10 +282,12 @@ class LammpsDataWriter(DataWriter):
 
         ff = frame.forcefield
 
-        n_atoms = frame["atoms"].array_length
-        n_bonds = frame["bonds"].array_length if "bonds" in frame else 0
-        n_angles = frame["angles"].array_length if "angles" in frame else 0
-        n_dihedrals = frame["dihedrals"].array_length if "dihedrals" in frame else 0
+        n_atoms = frame["atoms"].sizes.get("index", 0)
+        n_bonds = frame["bonds"].sizes.get("index", 0) if "bonds" in frame else 0
+        n_angles = frame["angles"].sizes.get("index", 0) if "angles" in frame else 0
+        n_dihedrals = (
+            frame["dihedrals"].sizes.get("index", 0) if "dihedrals" in frame else 0
+        )
 
         with open(self._path, "w") as f:
 
