@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-<<<<<<< HEAD
-from xarray import DataTree
-import xarray as xr
-=======
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Sequence, Literal
 
->>>>>>> 5116935 (Restore frame helpers with xarray)
-import numpy as np
+from xarray import DataTree
 import xarray as xr
+import numpy as np
 from xarray import DataTree
 
 from .arraydict import ArrayDict  # legacy helper
