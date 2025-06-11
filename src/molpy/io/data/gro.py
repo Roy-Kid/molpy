@@ -1,4 +1,5 @@
-from molpy.core.arraydict import ArrayDict
+import numpy as np
+import xarray as xr
 from .base import DataReader
 from pathlib import Path
 from molpy import Element
@@ -66,4 +67,5 @@ class GroReader(DataReader):
                 atom["vz"] = float(line[62:71])
 
             atoms.append(atom)
-        frame["atoms"] = ArrayDict.from_dicts(atoms)
+        atoms_ds = {k: ("index", np.array([a[k] for a in atoms])) for k in atoms[0]}
+        frame["atoms"] = xr.Dataset(atoms_ds)

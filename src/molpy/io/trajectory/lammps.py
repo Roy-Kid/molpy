@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import List, Sequence, Union
 
 import numpy as np
-from molpy.core.arraydict import ArrayDict
+import pandas as pd
+import xarray as xr
 import molpy as mp
 
 from .base import TrajectoryReader
@@ -75,9 +76,8 @@ class LammpsTrajectoryReader(TrajectoryReader):
                 data_start = i + 1
                 break
 
-        df = ArrayDict.from_csv(
-            StringIO("\n".join(frame_lines[data_start:])), header=header, delimiter=" "
-        )
+        table = pd.read_csv(StringIO("\n".join(frame_lines[data_start:])), delim_whitespace=True, names=header)
+        df = xr.Dataset.from_dataframe(table)
         box_bounds = np.array(box_bounds)
 
         if box_bounds.shape == (3, 2):

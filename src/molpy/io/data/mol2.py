@@ -1,7 +1,9 @@
 from pathlib import Path
 
 from molpy import Element
-from molpy.core.arraydict import ArrayDict
+from .base import DataReader
+import numpy as np
+import xarray as xr
 
 class Mol2Reader(DataReader):
 
@@ -38,12 +40,10 @@ class Mol2Reader(DataReader):
 
         self.assign_atomic_numbers(self.atoms, None)
 
-        frame["atoms"] = ArrayDict.from_dicts(
-            self.atoms,
-        )
-        frame["bonds"] = ArrayDict.from_dicts(
-            self.bonds
-        )
+        atoms_ds = {k: ("index", np.array([a[k] for a in self.atoms])) for k in self.atoms[0]}
+        frame["atoms"] = xr.Dataset(atoms_ds)
+        bonds_ds = {k: ("index", np.array([b[k] for b in self.bonds])) for k in self.bonds[0]}
+        frame["bonds"] = xr.Dataset(bonds_ds)
 
         return frame
 
