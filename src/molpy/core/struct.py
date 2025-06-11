@@ -4,10 +4,10 @@ from copy import deepcopy
 from typing import Callable, Generic, Protocol, Sequence, TypeVar
 
 import numpy as np
-from . import ArrayDict
 from numpy.typing import ArrayLike
 
 from molpy.op import rotate_by_rodrigues
+from .frame import Frame, _dataset_from_dicts
 
 T = TypeVar("entity")
 
@@ -704,9 +704,11 @@ class Struct(Entity, Atomistic, Spatial):
         for i, atom in enumerate(self["atoms"]):
             atom_name_idx_mapping[atom] = i
 
-        frame["atoms"] = ArrayDict.from_dicts(
-            [atom.to_dict() for atom in self["atoms"]], include=atom_keys
+        frame["atoms"] = _dataset_from_dicts(
+            [atom.to_dict() for atom in self["atoms"]]
         )
+        if atom_keys is not None:
+            frame["atoms"] = frame["atoms"][atom_keys]
         if "bonds" in self:
             bdicts = []
             for i, bond in enumerate(self["bonds"]):
@@ -715,7 +717,9 @@ class Struct(Entity, Atomistic, Spatial):
                 bdict["i"] = atom_name_idx_mapping[bond.itom]
                 bdict["j"] = atom_name_idx_mapping[bond.jtom]
                 bdicts.append(bdict)
-            frame["bonds"] = ArrayDict.from_dicts(bdicts, bond_keys)
+            frame["bonds"] = _dataset_from_dicts(bdicts)
+            if bond_keys is not None:
+                frame["bonds"] = frame["bonds"][bond_keys]
 
         # if "angles" in self and len(self["angles"]) > 0:
         #     angle_dict = [angle.to_dict() for angle in self["angles"]]

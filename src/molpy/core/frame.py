@@ -4,10 +4,6 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, Sequence, Literal
 
 from xarray import DataTree
-import xarray as xr
-import numpy as np
-from xarray import DataTree
-
 from .arraydict import ArrayDict  # legacy helper
 from .utils import TagApplyer
 from .box import Box
