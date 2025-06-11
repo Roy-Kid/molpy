@@ -1,5 +1,6 @@
 from .base import TrajectoryWriter
 from molpy.core import Frame
+import xarray as xr
 
 class XYZTrajectoryWriter(TrajectoryWriter):
 
@@ -22,14 +23,14 @@ class XYZTrajectoryWriter(TrajectoryWriter):
         self.fobj.write(f"{n_atoms}\n")
         self.fobj.write(f"Step={frame.get('step')} Lattic\"{box.matrix.tolist()}\"\n")
 
-        for _, atom in atoms.iterrows():
-
-            x = atom["x"]
-            y = atom["y"]
-            z = atom["z"]
-            elem = atom.get("element", "X")
-
-            self.fobj.write(f"{elem} {x} {y} {z}\n")
+        n = atoms.sizes.get("index", 0)
+        elem = atoms.get("element", xr.DataArray(["X"] * n))
+        for i in range(n):
+            x = atoms["x"].values[i]
+            y = atoms["y"].values[i]
+            z = atoms["z"].values[i]
+            e = elem.values[i]
+            self.fobj.write(f"{e} {x} {y} {z}\n")
 
     def write_traj(self, trajectory):
 

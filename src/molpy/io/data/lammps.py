@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from itertools import islice
 from pathlib import Path
+import xarray as xr
 from molpy.core.arraydict import ArrayDict
 
 import numpy as np
@@ -133,17 +134,20 @@ class LammpsDataReader(DataReader):
                                 if comment:
                                     header.append("seq")
                                     header.append("name")
-                atom_table = ArrayDict.from_csv(
-                    io.StringIO("\n".join(atom_lines)),
-                    header=header,
+                atom_ds = xr.Dataset.from_dataframe(atom_table)
+                    atom_ds = atom_ds.assign(
+                        mass=("index", atom_table[type_key].map(
+                            lambda t: masses[str(t)]
+                        ).to_numpy())
+                frame["atoms"] = atom_ds
                     delimiter=" ",
                 )
-                if masses:
-                    atom_table["mass"] = np.array(list(map(lambda t: masses[str(t)], atom_table[type_key])))
+                frame["bonds"] = xr.Dataset.from_dataframe(bond_table)
+                frame["angles"] = xr.Dataset.from_dataframe(angle_table)
 
-                frame["atoms"] = atom_table
+                frame["dihedrals"] = xr.Dataset.from_dataframe(dihedral_table)
 
-            elif line.startswith("Bonds"):
+                frame["impropers"] = xr.Dataset.from_dataframe(improper_table)
                 bond_lines = list(islice(lines, props["n_bonds"]))
                 bond_table = ArrayDict.from_csv(
                     io.StringIO("\n".join(bond_lines)),
@@ -277,10 +281,10 @@ class LammpsDataWriter(DataWriter):
 
         ff = frame.forcefield
 
-        n_atoms = frame["atoms"].array_length
-        n_bonds = frame["bonds"].array_length if "bonds" in frame else 0
-        n_angles = frame["angles"].array_length if "angles" in frame else 0
-        n_dihedrals = frame["dihedrals"].array_length if "dihedrals" in frame else 0
+        n_atoms = frame["atoms"].sizes.get("index", 0)
+        n_bonds = frame["bonds"].sizes.get("index", 0) if "bonds" in frame else 0
+        n_angles = frame["angles"].sizes.get("index", 0) if "angles" in frame else 0
+        n_dihedrals = frame["dihedrals"].sizes.get("index", 0) if "dihedrals" in frame else 0
 
         with open(self._path, "w") as f:
 
@@ -458,27 +462,31 @@ class LammpsMoleculeReader(DataReader):
             elif line.startswith("Corrds"):
                 header = ["id", "x", "y", "z"]
                 atom_lines = list(islice(self.lines, props["n_atoms"]))
-                atom_table = ArrayDict.from_csv(
-                    io.StringIO("\n".join(atom_lines)),
-                    header=header,
-                    delimiter=" ",
+                atom_df = pd.read_csv(
+                atoms_df = atom_df
+                atoms_df = atoms_df.merge(atomtype_table, on="id")
                 )
-                frame["atoms"] = atom_table
+                atoms_df = atoms_df.merge(charge_table, on="id")
 
-            elif line.startswith("Types"):
-                header = ["id", "type"]
-                atomtype_lines = list(islice(self.lines, props["n_atoms"]))
-                atomtype_table = ArrayDict.from_csv(
-                    io.StringIO("\n".join(atomtype_lines)),
-                    header=header,
-                    delimiter=" ",
-                )
-                # join atom table and type table
-                frame["atoms"] = frame["atoms"].join(atomtype_table, on="id")
-                self._read_line(line, frame)
+                atoms_df = atoms_df.merge(molid_table, on="id")
+                frame["bonds"] = xr.Dataset.from_dataframe(bond_table)
+                frame["angles"] = xr.Dataset.from_dataframe(angle_table)
+                frame["dihedrals"] = xr.Dataset.from_dataframe(dihedral_table)
+                frame["impropers"] = xr.Dataset.from_dataframe(improper_table)
 
-            elif line.startswith("Charges"):
-                header = ["id", "charge"]
+        if 'atoms_df' in locals():
+            frame["atoms"] = xr.Dataset.from_dataframe(atoms_df)
+
+        return frame
+                bonds_df = frame["bonds"].to_dataframe()
+                for i, bond in bonds_df.iterrows():
+                angles_df = frame["angles"].to_dataframe()
+                for i, angle in angles_df.iterrows():
+                dihedrals_df = frame["dihedrals"].to_dataframe()
+                for i, dihedral in dihedrals_df.iterrows():
+
+                impropers_df = frame["impropers"].to_dataframe()
+                for i, improper in impropers_df.iterrows():
                 charge_lines = list(islice(self.lines, props["n_atoms"]))
                 charge_table = ArrayDict.from_csv(
                     io.StringIO("\n".join(charge_lines)),

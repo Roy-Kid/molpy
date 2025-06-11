@@ -1,6 +1,7 @@
 from .base import DataReader
 from pathlib import Path
-import pandas as pd
+import numpy as np
+import xarray as xr
 from molpy import Element
 
 
@@ -41,21 +42,16 @@ class TopReader(DataReader):
             if section == "[ dihedrals ]":
                 self._parse_dihedral_section(line)
 
-        frame["atoms"] = pd.DataFrame.from_records(
-            self.atoms,
-        )
-        frame["bonds"] = pd.DataFrame.from_records(
-            self.bonds, columns=["id", "i", "j", "type"]
-        )
-        frame["pairs"] = pd.DataFrame.from_records(
-            self.pairs, columns=["id", "i", "j", "type"]
-        )
-        frame["angles"] = pd.DataFrame.from_records(
-            self.angles, columns=["id", "i", "j", "k", "type"]
-        )
-        frame["dihedrals"] = pd.DataFrame.from_records(
-            self.dihedrals, columns=["id", "i", "j", "k", "l", "type"]
-        )
+        atoms_ds = {k: ("index", np.array([a[k] for a in self.atoms])) for k in self.atoms[0]}
+        frame["atoms"] = xr.Dataset(atoms_ds)
+        bonds_ds = {k: ("index", np.array([b[k] for b in self.bonds])) for k in ["id", "i", "j", "type"]}
+        frame["bonds"] = xr.Dataset(bonds_ds)
+        pairs_ds = {k: ("index", np.array([p[k] for p in self.pairs])) for k in ["id", "i", "j", "type"]}
+        frame["pairs"] = xr.Dataset(pairs_ds)
+        angles_ds = {k: ("index", np.array([a[k] for a in self.angles])) for k in ["id", "i", "j", "k", "type"]}
+        frame["angles"] = xr.Dataset(angles_ds)
+        dihedrals_ds = {k: ("index", np.array([d[k] for d in self.dihedrals])) for k in ["id", "i", "j", "k", "l", "type"]}
+        frame["dihedrals"] = xr.Dataset(dihedrals_ds)
 
         self.assign_atomic_numbers(self.atoms, None)
 

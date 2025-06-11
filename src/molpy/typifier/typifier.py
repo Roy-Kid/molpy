@@ -207,9 +207,11 @@ class AmberToolsTypifier:
 
             frame = mp.io.read_amber_ac(dir / ac_name, frame=mp.Frame())
 
-            for satom, fatom in zip(struct["atoms"], frame["atoms"].iterrows()):
+            atom_df = frame["atoms"].to_dataframe()
+            for satom, (_, fatom) in zip(struct["atoms"], atom_df.iterrows()):
                 satom["type"] = fatom["type"]
                 satom["q"] = fatom["q"]
-            for sbond, fbond in zip(struct["bonds"], frame["bonds"].iterrows()):
+            bond_df = frame["bonds"].to_dataframe()
+            for sbond, (_, fbond) in zip(struct["bonds"], bond_df.iterrows()):
                 sbond["type"] = fbond["type"]
         return struct

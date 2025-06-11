@@ -568,14 +568,16 @@ class Struct(Entity, Atomistic, Spatial):
     def from_frame(cls, frame, name=""):
 
         struct = cls(name=name)
-        atoms = frame["atoms"]
-        for atom in atoms.iterrows():
+        atoms_ds = frame["atoms"]
+        for i in range(atoms_ds.sizes.get("index", 0)):
+            atom = {k: atoms_ds[k].values[i] for k in atoms_ds.data_vars}
             struct.def_atom(**atom)
 
         if "bonds" in frame:
             struct["bonds"] = Entities()
-            bonds = frame["bonds"]
-            for bond in bonds.iterrows():
+            bonds_ds = frame["bonds"]
+            for i_idx in range(bonds_ds.sizes.get("index", 0)):
+                bond = {k: bonds_ds[k].values[i_idx] for k in bonds_ds.data_vars}
                 i, j = bond.pop("i"), bond.pop("j")
                 itom = struct["atoms"].get_by(lambda atom: atom["id"] == i)
                 jtom = struct["atoms"].get_by(lambda atom: atom["id"] == j)
@@ -589,8 +591,9 @@ class Struct(Entity, Atomistic, Spatial):
 
         if "angles" in frame:
             struct["angles"] = Entities()
-            angles = frame["angles"]
-            for _, angle in angles.iterrows():
+            angles_ds = frame["angles"]
+            for i_idx in range(angles_ds.sizes.get("index", 0)):
+                angle = {k: angles_ds[k].values[i_idx] for k in angles_ds.data_vars}
                 i, j, k = angle.pop("i"), angle.pop("j"), angle.pop("k")
                 itom = struct["atoms"].get_by(lambda atom: atom["id"] == i)
                 jtom = struct["atoms"].get_by(lambda atom: atom["id"] == j)
@@ -606,8 +609,9 @@ class Struct(Entity, Atomistic, Spatial):
 
         if "dihedrals" in frame:
             struct["dihedrals"] = Entities()
-            dihedrals = frame["dihedrals"]
-            for _, dihedral in dihedrals.iterrows():
+            dihedrals_ds = frame["dihedrals"]
+            for i_idx in range(dihedrals_ds.sizes.get("index", 0)):
+                dihedral = {k: dihedrals_ds[k].values[i_idx] for k in dihedrals_ds.data_vars}
                 i, j, k, l = (
                     dihedral.pop("i"),
                     dihedral.pop("j"),
