@@ -4,9 +4,10 @@ import molpy as mp
 class TestGMXTopReader:
     
     def test_read(self, test_data_path):
-
-        ff = mp.io.read_top(
-            test_data_path / "forcefield/gromacs/1-bromobutane.top", mp.ForceField())
+        top_file = test_data_path / "forcefield/gromacs/1-bromobutane.top"
+        if not top_file.exists():
+            pytest.skip("gromacs test data not available")
+        ff = mp.io.read_top(top_file, mp.ForceField())
         
         atomstyle = ff.get_atomstyle("full")
         assert atomstyle is not None

@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from molpy import Element
-from molpy.core.arraydict import ArrayDict
+from molpy.core.frame import _dict_to_dataset
+from .base import DataReader
 
 class Mol2Reader(DataReader):
 
@@ -38,12 +39,12 @@ class Mol2Reader(DataReader):
 
         self.assign_atomic_numbers(self.atoms, None)
 
-        frame["atoms"] = ArrayDict.from_dicts(
-            self.atoms,
-        )
-        frame["bonds"] = ArrayDict.from_dicts(
-            self.bonds
-        )
+        if self.atoms:
+            keys = self.atoms[0].keys()
+            frame["atoms"] = _dict_to_dataset({k: [d[k] for d in self.atoms] for k in keys})
+        if self.bonds:
+            keys = self.bonds[0].keys()
+            frame["bonds"] = _dict_to_dataset({k: [d[k] for d in self.bonds] for k in keys})
 
         return frame
 

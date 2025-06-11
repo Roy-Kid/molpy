@@ -1,4 +1,4 @@
-from molpy.core.arraydict import ArrayDict
+from molpy.core.frame import _dict_to_dataset
 from .base import DataReader
 from pathlib import Path
 from molpy import Element
@@ -66,4 +66,6 @@ class GroReader(DataReader):
                 atom["vz"] = float(line[62:71])
 
             atoms.append(atom)
-        frame["atoms"] = ArrayDict.from_dicts(atoms)
+        if atoms:
+            keys = atoms[0].keys()
+            frame["atoms"] = _dict_to_dataset({k: [d[k] for d in atoms] for k in keys})

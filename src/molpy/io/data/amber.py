@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import molpy as mp
-from molpy.core.arraydict import ArrayDict
+from molpy.core.frame import _dict_to_dataset
 
 class AmberInpcrdReader:
 
@@ -35,7 +35,7 @@ class AmberInpcrdReader:
             y_coords = coordinates[1::3]
             z_coords = coordinates[2::3]
 
-            table = ArrayDict({
+            table = _dict_to_dataset({
                 'id': np.arange(num_atoms) + 1,
                 'x': x_coords,
                 'y': y_coords,

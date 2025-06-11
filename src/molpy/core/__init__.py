@@ -1,6 +1,4 @@
 from .element import Element
-from .arraydict import ArrayDict
-from .nestdict import NestDict
 from .units import *
 from .box import *
 from .forcefield import *
