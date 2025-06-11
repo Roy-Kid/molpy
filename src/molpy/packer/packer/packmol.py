@@ -1,7 +1,8 @@
 from pathlib import Path
 import shutil
 import molpy as mp
-from molpy.core.arraydict import ArrayDict
+import xarray as xr
+from molpy.core.frame import _dict_to_dataset
 import molpy.packer as mpk
 import subprocess
 import tempfile
@@ -146,14 +147,14 @@ class Packmol(Packer):
                 n_atom_types += a["type"].max()  # assume start with 1 always
 
             n_struct_added += target.number
-        _atoms = ArrayDict.concat(atoms)
+        _atoms = xr.concat(atoms, dim="index")
         _atoms[["x", "y", "z"]] = optimized_frame["atoms"][["x", "y", "z"]]
         frame["atoms"] = _atoms
         ## WARNING: assume all targets has/dont have bonds, angles, dihedrals
         if "bonds" in target.frame:
-            frame["bonds"] = ArrayDict.concat(bonds)
+            frame["bonds"] = xr.concat(bonds, dim="index")
         if "angles" in target.frame:
-            frame["angles"] = ArrayDict.concat(angles)
+            frame["angles"] = xr.concat(angles, dim="index")
         if "dihedrals" in target.frame:
-            frame["dihedrals"] = ArrayDict.concat(dihedrals)
+            frame["dihedrals"] = xr.concat(dihedrals, dim="index")
         return frame

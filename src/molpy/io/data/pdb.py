@@ -5,7 +5,7 @@ import numpy as np
 
 import molpy as mp
 from collections import defaultdict
-from nesteddict import ArrayDict
+from molpy.core.frame import _dict_to_dataset
 
 
 class PDBReader(DataReader):
@@ -70,11 +70,11 @@ class PDBReader(DataReader):
                     if atom_name_counter[name] > 1:
                         atoms["name"][i] = f"{name}{atom_name_counter[name]}"
 
-            frame["atoms"] = ArrayDict(atoms)
+            frame["atoms"] = _dict_to_dataset(atoms)
             frame["box"] = mp.Box()
 
             if len(bonds):
-                frame["bonds"] = ArrayDict(
+                frame["bonds"] = _dict_to_dataset(
                     {
                         "i": bonds[:, 0],
                         "j": bonds[:, 1],

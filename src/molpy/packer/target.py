@@ -1,5 +1,10 @@
 import molpy as mp
-import molpack as mpk
+try:
+    import molpack as mpk
+except ImportError:  # fallback for environments without molpack
+    class _MPK:
+        class Constraint: ...
+    mpk = _MPK()
 
 
 class Target:

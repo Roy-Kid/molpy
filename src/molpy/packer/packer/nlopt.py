@@ -1,5 +1,8 @@
 from .base import Packer
-import nlopt
+try:
+    import nlopt
+except ImportError:  # allow running without nlopt
+    nlopt = None
 import numpy as np
 
 class ObjectiveFunction:
@@ -26,6 +29,8 @@ class ObjectiveFunction:
 class NloptPacker(Packer):
 
     def __init__(self, method="LD_MMA"):
+        if nlopt is None:
+            raise ImportError("nlopt is required for NloptPacker")
         super().__init__()
         self.method = getattr(nlopt, method)
         self.opt = nlopt.opt(self.method, 3 * N)

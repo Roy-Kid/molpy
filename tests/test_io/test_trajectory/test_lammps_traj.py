@@ -9,8 +9,8 @@ def test_read_frame_fcc_orth(test_data_path):
 
     assert frame["timestep"] == 0
     assert frame["box"].matrix.shape == (3, 3)
-    assert frame["atoms"].array_length == 4  # 4 atoms, 5 columns (id, type, x, y, z)
-    assert len(frame["atoms"]) == 5
+    assert frame["atoms"].sizes["index"] == 4  # 4 atoms
+    assert len(frame["atoms"].data_vars) == 5
     expected_box_matrix = [
         [1.5377619196572583, 0, 0],
         [0, 1.5377619196572583, 0],
@@ -25,8 +25,8 @@ def test_read_frame_fcc_tric(test_data_path):
 
     assert frame["timestep"] == 0
     assert frame["box"].matrix.shape == (3, 3)
-    assert frame["atoms"].array_length == 1  # 1 atom, 5 columns (id, type, x, y, z)
-    assert len(frame["atoms"]) == 5
+    assert frame["atoms"].sizes["index"] == 1  # 1 atom
+    assert len(frame["atoms"].data_vars) == 5
 
     lx = 1.1922736280710971e+02 - 5.1509317718250820e+01
     ly = 1.1937795684789540e+02 - 5.3089558100317952e+01
@@ -47,7 +47,7 @@ def test_read_multi_traj(test_data_path):
     assert reader.n_frames == 2
     frame0 = reader.read_frame(0)
     assert frame0["timestep"] == 0
-    assert frame0["atoms"].array_length == 4
+    assert frame0["atoms"].sizes["index"] == 4
     frame1 = reader.read_frame(1)
     assert frame1["timestep"] == 0
-    assert frame1["atoms"].array_length == 1
+    assert frame1["atoms"].sizes["index"] == 1

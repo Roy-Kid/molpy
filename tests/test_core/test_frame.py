@@ -1,64 +1,71 @@
 import pytest
 import molpy as mp
 import numpy.testing as npt
-from nesteddict import ArrayDict
+import xarray as xr
 
 class TestFrame:
 
     @pytest.fixture()
     def frame(self):
-        return mp.Frame({
-            'atoms': ArrayDict({
-                'id': [1, 2, 3, 4],
-                'type': [1, 2, 3, 4],
-                'x': [0, 1, 2, 3],
-                'y': [0, 1, 2, 3],
-                'z': [0, 1, 2, 3],
-            })
-        }, style="atomic")
+        atoms = xr.Dataset(
+            {
+                'id': ('index', [1, 2, 3, 4]),
+                'type': ('index', [1, 2, 3, 4]),
+                'x': ('index', [0, 1, 2, 3]),
+                'y': ('index', [0, 1, 2, 3]),
+                'z': ('index', [0, 1, 2, 3]),
+            }
+        )
+        return mp.Frame({'atoms': atoms}, style="atomic")
     
     def test_slice(self, frame):
-        assert isinstance(frame['atoms'], ArrayDict)
-        assert len(frame['atoms']) == 5
-        assert frame['atoms']['id'].tolist() == [1, 2, 3, 4]
+        assert isinstance(frame['atoms'], xr.Dataset)
+        assert set(frame['atoms'].data_vars.keys()) == {'id','type','x','y','z'}
+        assert frame['atoms']['id'].to_numpy().tolist() == [1, 2, 3, 4]
         
     def test_init_with_dataframe(self):
         data = {
-            'atoms': ArrayDict({
-                'id': [1, 2],
-                'type': [1, 2],
-                'x': [0.0, 1.0],
-                'y': [0.0, 1.0],
-                'z': [0.0, 1.0],
-            })
+            'atoms': xr.Dataset(
+                {
+                    'id': ('index', [1, 2]),
+                    'type': ('index', [1, 2]),
+                    'x': ('index', [0.0, 1.0]),
+                    'y': ('index', [0.0, 1.0]),
+                    'z': ('index', [0.0, 1.0]),
+                }
+            )
         }
         frame = mp.Frame(data)
         assert 'atoms' in frame
-        assert isinstance(frame['atoms'], ArrayDict)
+        assert isinstance(frame['atoms'], xr.Dataset)
 
     def test_init_with_dict(self):
         data = {
-            'atoms': ArrayDict({
-                'id': [1, 2],
-                'type': [1, 2],
-                'x': [0.0, 1.0],
-                'y': [0.0, 1.0],
-                'z': [0.0, 1.0],
-            })
+            'atoms': xr.Dataset(
+                {
+                    'id': ('index', [1, 2]),
+                    'type': ('index', [1, 2]),
+                    'x': ('index', [0.0, 1.0]),
+                    'y': ('index', [0.0, 1.0]),
+                    'z': ('index', [0.0, 1.0]),
+                }
+            )
         }
         frame = mp.Frame(data)
         assert 'atoms' in frame
-        assert isinstance(frame['atoms'], ArrayDict)
+        assert isinstance(frame['atoms'], xr.Dataset)
 
     def test_concat(self, frame):
         frame2 = mp.Frame({
-            'atoms': ArrayDict({
-                'id': [5, 6],
-                'type': [5, 6],
-                'x': [4, 5],
-                'y': [4, 5],
-                'z': [4, 5],
-            })
+            'atoms': xr.Dataset(
+                {
+                    'id': ('index', [5, 6]),
+                    'type': ('index', [5, 6]),
+                    'x': ('index', [4, 5]),
+                    'y': ('index', [4, 5]),
+                    'z': ('index', [4, 5]),
+                }
+            )
         })
         concatenated = mp.Frame.from_frames([frame, frame2])
         npt.assert_equal(concatenated['atoms']['id'],  [1, 2, 3, 4, 5, 6])
@@ -78,7 +85,7 @@ class TestFrame:
         assert frame.box is None
 
     def test_to_struct(self, frame):
-        frame['bonds'] = ArrayDict({'i': [1], 'j': [2]})
+        frame['bonds'] = xr.Dataset({'i': ('index', [1]), 'j': ('index', [2])})
         struct = frame.to_struct()
         assert 'atoms' in struct
         assert 'bonds' in struct
@@ -92,13 +99,15 @@ class TestFrame:
 
     def test_add_operator(self, frame):
         frame2 = mp.Frame({
-            'atoms': ArrayDict({
-                'id': [5, 6],
-                'type': [5, 6],
-                'x': [4, 5],
-                'y': [4, 5],
-                'z': [4, 5],
-            })
+            'atoms': xr.Dataset(
+                {
+                    'id': ('index', [5, 6]),
+                    'type': ('index', [5, 6]),
+                    'x': ('index', [4, 5]),
+                    'y': ('index', [4, 5]),
+                    'z': ('index', [4, 5]),
+                }
+            )
         })
         combined = frame + frame2
         assert combined['atoms']['id'].tolist() == [1, 2, 3, 4, 5, 6]

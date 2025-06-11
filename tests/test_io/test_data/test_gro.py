@@ -7,8 +7,8 @@ class TestGMXGroReader:
         fpath = test_data_path / "data/gro/cod_4020641.gro"
         frame = mp.io.read_gro(fpath, frame=mp.Frame())
 
-        assert frame["atoms"].array_length == 81
-        atom0 = frame["atoms"][0]
+        assert frame["atoms"].sizes["index"] == 81
+        atom0 = frame["atoms"].isel(index=0)
         assert atom0["res_number"] == "1"
         assert atom0["res_name"] == "LIG"
         assert atom0["name"] == "S"
