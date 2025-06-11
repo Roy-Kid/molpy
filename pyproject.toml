@@ -41,7 +41,9 @@ dependencies = [
   "igraph",  # https://github.com/igraph/python-igraph
   "pint",  # https://github.com/hgrecco/pint
   "pandas",
-  "lark"
+  "lark",
+  "xarray",
+  "datatree"
 ]
 
 [project.optional-dependencies]

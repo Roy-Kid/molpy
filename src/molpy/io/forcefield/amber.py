@@ -3,7 +3,7 @@ import molpy as mp
 import numpy as np
 from typing import Callable, Iterator
 import math
-from molpy.core.arraydict import ArrayDict
+import xarray as xr
 
 class AmberPrmtopReader:
 
@@ -261,10 +261,10 @@ class AmberPrmtopReader:
 
         # store in frame
         frame["props"] = meta
-        frame["atoms"] = ArrayDict(atoms)
-        frame["bonds"] = ArrayDict(bonds)
-        frame["angles"] = ArrayDict(angles)
-        frame["dihedrals"] = ArrayDict(dihedrals)
+        frame["atoms"] = xr.Dataset({k: ("index", np.asarray(v)) for k, v in atoms.items()})
+        frame["bonds"] = xr.Dataset({k: ("index", np.asarray(v)) for k, v in bonds.items()})
+        frame["angles"] = xr.Dataset({k: ("index", np.asarray(v)) for k, v in angles.items()})
+        frame["dihedrals"] = xr.Dataset({k: ("index", np.asarray(v)) for k, v in dihedrals.items()})
 
         return frame
 

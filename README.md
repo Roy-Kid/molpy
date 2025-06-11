@@ -6,6 +6,7 @@ This package depends on few external packages
 * [numpy](https://github.com/numpy/numpy)
 * [chemfiles.py](https://github.com/chemfiles/chemfiles.py)
 * [python-igraph](https://github.com/igraph/python-igraph)
+* [xarray](https://github.com/pydata/xarray)
 
 > :laughing: This project is still under active development. Any suggestions and feature requests are welcome.
 

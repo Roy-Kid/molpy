@@ -5,7 +5,7 @@ import numpy as np
 
 import molpy as mp
 from collections import defaultdict
-from nesteddict import ArrayDict
+import xarray as xr
 
 
 class PDBReader(DataReader):
@@ -70,14 +70,15 @@ class PDBReader(DataReader):
                     if atom_name_counter[name] > 1:
                         atoms["name"][i] = f"{name}{atom_name_counter[name]}"
 
-            frame["atoms"] = ArrayDict(atoms)
+            atoms_ds = {k: ("index", np.asarray(v)) for k, v in atoms.items()}
+            frame["atoms"] = xr.Dataset(atoms_ds)
             frame["box"] = mp.Box()
 
             if len(bonds):
-                frame["bonds"] = ArrayDict(
+                frame["bonds"] = xr.Dataset(
                     {
-                        "i": bonds[:, 0],
-                        "j": bonds[:, 1],
+                        "i": ("index", bonds[:, 0]),
+                        "j": ("index", bonds[:, 1]),
                     }
                 )
 
@@ -99,18 +100,18 @@ class PDBWriter(DataWriter):
             atoms = frame["atoms"]
             name = frame.get("name", "MOL")
             f.write(f"REMARK  {name}\n")
-            for i, atom in enumerate(atoms.iterrows()):
-                # serial = as_builtin(atom.get("id", i))
+            n_atoms = atoms.dims.get("index", 0)
+            for i in range(n_atoms):
                 serial = i + 1
-                altLoc = atom.get("altLoc", np.array("")).item()
-                unique_name = atom.get("unique_name", atom.get("name", np.array("UNK"))).item()
+                altLoc = atoms.get("altLoc", xr.DataArray("")).values[i]
+                unique_name = atoms.get("unique_name", atoms["name"]).values[i]
 
-                resName = atom.get("resName", np.array("UNK")).item()
-                chainID = atom.get("chainID", np.array("A")).item()
-                resSeq = atom.get("resSeq", atom.get("molid", np.array(1))).item()
-                iCode = atom.get("iCode", np.array("")).item()
-                elem = atom.get("element", np.array("X")).item()
-                x, y, z = atom["xyz"]
+                resName = atoms.get("resName", xr.DataArray("UNK")).values[i]
+                chainID = atoms.get("chainID", xr.DataArray("A")).values[i]
+                resSeq = atoms.get("resSeq", xr.DataArray(1)).values[i]
+                iCode = atoms.get("iCode", xr.DataArray("")).values[i]
+                elem = atoms.get("element", xr.DataArray("X")).values[i]
+                x, y, z = atoms["xyz"].values[i]
 
                 f.write(
                     f"{'HETATM':6s}{serial:>5d} {unique_name.upper():>4s}{altLoc:1s}{resName:>3s} {chainID:1s}{resSeq:>4d}{iCode:1s}   "
@@ -119,11 +120,13 @@ class PDBWriter(DataWriter):
 
             bonds = defaultdict(list)
             if "bonds" in frame:
-                for bond in frame["bonds"].iterrows():
-                    i = int(bond["i"] + 1)
-                    j = int(bond["j"] + 1)
-                    bonds[i].append(j)
-                    bonds[j].append(i)
+                bds = frame["bonds"]
+                n_bonds = bds.dims.get("index", 0)
+                for i in range(n_bonds):
+                    bi = int(bds["i"].values[i] + 1)
+                    bj = int(bds["j"].values[i] + 1)
+                    bonds[bi].append(bj)
+                    bonds[bj].append(bi)
 
                 for i, js in bonds.items():
                     if len(js) > 4:

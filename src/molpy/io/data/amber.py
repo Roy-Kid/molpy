@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import molpy as mp
-from molpy.core.arraydict import ArrayDict
+import xarray as xr
 
 class AmberInpcrdReader:
 
@@ -35,11 +35,11 @@ class AmberInpcrdReader:
             y_coords = coordinates[1::3]
             z_coords = coordinates[2::3]
 
-            table = ArrayDict({
-                'id': np.arange(num_atoms) + 1,
-                'x': x_coords,
-                'y': y_coords,
-                'z': z_coords
+            table = xr.Dataset({
+                'id': ('index', np.arange(num_atoms) + 1),
+                'x': ('index', x_coords),
+                'y': ('index', y_coords),
+                'z': ('index', z_coords)
             })
 
         frame['props']['name'] = title
