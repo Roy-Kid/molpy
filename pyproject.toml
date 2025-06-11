@@ -43,7 +43,6 @@ dependencies = [
   "pandas",
   "lark",
   "xarray",
-  "datatree"
 ]
 
 [project.optional-dependencies]

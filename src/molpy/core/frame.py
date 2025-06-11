@@ -5,7 +5,7 @@ from typing import Any, Sequence, Literal
 
 import numpy as np
 import xarray as xr
-from datatree import DataTree
+from xarray import DataTree
 
 from .arraydict import ArrayDict  # legacy helper
 from .utils import TagApplyer
