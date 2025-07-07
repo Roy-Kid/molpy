@@ -238,24 +238,24 @@ class LammpsDataReader(DataReader):
                 
                 if self.atom_style == "full":
                     mol_id = int(parts[1])
-                    atom_type_id = int(parts[2])
+                    atom_type = parts[2]
                     charge = float(parts[3])
                     x, y, z = float(parts[4]), float(parts[5]), float(parts[6])
                     
                     atom_data['mol'].append(mol_id)
                     atom_data['q'].append(charge)
                 elif self.atom_style == "charge":
-                    atom_type_id = int(parts[1])
+                    atom_type = parts[1]
                     charge = float(parts[2])
                     x, y, z = float(parts[3]), float(parts[4]), float(parts[5])
                     
                     atom_data['q'].append(charge)
                 else:  # atomic
-                    atom_type_id = int(parts[1])
+                    atom_type = parts[1]
                     x, y, z = float(parts[2]), float(parts[3]), float(parts[4])
                 
                 # Convert type ID to label if available, otherwise keep as string
-                atom_type_str = type_labels.get(atom_type_id, str(atom_type_id))
+                atom_type_str = atom_type
                 
                 atom_data['id'].append(atom_id)
                 atom_data['type'].append(atom_type_str)
@@ -304,12 +304,12 @@ class LammpsDataReader(DataReader):
             if line.strip():
                 parts = line.split()
                 bond_id = int(parts[0])
-                bond_type_id = int(parts[1])
+                bond_type = parts[1]
                 atom1 = int(parts[2])
                 atom2 = int(parts[3])
                 
                 # Convert type ID to label if available, otherwise keep as string
-                bond_type_str = type_labels.get(bond_type_id, str(bond_type_id))
+                bond_type_str = type_labels.get(bond_type, str(bond_type))
                 
                 bond_data['id'].append(bond_id)
                 bond_data['type'].append(bond_type_str)
@@ -339,16 +339,13 @@ class LammpsDataReader(DataReader):
             if line.strip():
                 parts = line.split()
                 angle_id = int(parts[0])
-                angle_type_id = int(parts[1])
+                angle_type = parts[1]
                 atom1 = int(parts[2])
                 atom2 = int(parts[3])
                 atom3 = int(parts[4])
                 
-                # Convert type ID to label if available, otherwise keep as string
-                angle_type_str = type_labels.get(angle_type_id, str(angle_type_id))
-                
                 angle_data['id'].append(angle_id)
-                angle_data['type'].append(angle_type_str)
+                angle_data['type'].append(angle_type)
                 angle_data['atom1'].append(atom1)
                 angle_data['atom2'].append(atom2)
                 angle_data['atom3'].append(atom3)
@@ -377,17 +374,14 @@ class LammpsDataReader(DataReader):
             if line.strip():
                 parts = line.split()
                 dihedral_id = int(parts[0])
-                dihedral_type_id = int(parts[1])
+                dihedral_type = parts[1]
                 atom1 = int(parts[2])
                 atom2 = int(parts[3])
                 atom3 = int(parts[4])
                 atom4 = int(parts[5])
-                
-                # Convert type ID to label if available, otherwise keep as string
-                dihedral_type_str = type_labels.get(dihedral_type_id, str(dihedral_type_id))
-                
+
                 dihedral_data['id'].append(dihedral_id)
-                dihedral_data['type'].append(dihedral_type_str)
+                dihedral_data['type'].append(dihedral_type)
                 dihedral_data['atom1'].append(atom1)
                 dihedral_data['atom2'].append(atom2)
                 dihedral_data['atom3'].append(atom3)
@@ -417,17 +411,14 @@ class LammpsDataReader(DataReader):
             if line.strip():
                 parts = line.split()
                 improper_id = int(parts[0])
-                improper_type_id = int(parts[1])
+                improper_type = parts[1]
                 atom1 = int(parts[2])
                 atom2 = int(parts[3])
                 atom3 = int(parts[4])
                 atom4 = int(parts[5])
                 
-                # Convert type ID to label if available, otherwise keep as string
-                improper_type_str = type_labels.get(improper_type_id, str(improper_type_id))
-                
                 improper_data['id'].append(improper_id)
-                improper_data['type'].append(improper_type_str)
+                improper_data['type'].append(improper_type)
                 improper_data['atom1'].append(atom1)
                 improper_data['atom2'].append(atom2)
                 improper_data['atom3'].append(atom3)

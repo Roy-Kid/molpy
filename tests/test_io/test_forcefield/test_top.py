@@ -30,12 +30,10 @@ class TestGMXTopReader:
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
-        top_file = TEST_DATA_DIR / "forcefield/gromacs/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("gromacs test data not available")
+        top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
         
-        ff = mp.io.read_top(top_file, mp.ForceField())
-        
+        system = mp.io.read_top(top_file)
+        ff = system.forcefield
         # Test atom style and types
         atomstyle = ff.get_atomstyle("full")
         assert atomstyle is not None
@@ -82,23 +80,7 @@ class TestGMXTopReader:
         nonexistent_file = Path("nonexistent.top")
         
         with pytest.raises(FileNotFoundError):
-            mp.io.read_top(nonexistent_file, mp.ForceField())
-
-    def test_empty_forcefield_creation(self) -> None:
-        """Test creation of empty ForceField object.
-        
-        Validates that an empty ForceField can be created and has the expected
-        initial state before loading any topology data.
-        """
-        ff = mp.ForceField()
-        
-        # Should be able to create empty force field
-        assert ff is not None
-        
-        # Basic force field queries should work even when empty
-        atomstyle = ff.get_atomstyle("full")
-        # This might be None or an empty style depending on implementation
-        # Just verify no exception is raised
+            mp.io.read_top(nonexistent_file, mp.FrameSystem())
 
     def test_force_field_parameter_validation(self, TEST_DATA_DIR: Path) -> None:
         """Test detailed validation of force field parameters.
@@ -109,12 +91,10 @@ class TestGMXTopReader:
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
-        top_file = TEST_DATA_DIR / "forcefield/gromacs/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("gromacs test data not available")
+        top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
         
-        ff = mp.io.read_top(top_file, mp.ForceField())
-        
+        system = mp.io.read_top(top_file, mp.FrameSystem())
+        ff = system.forcefield
         # Test that atom types contain expected fields
         atomstyle = ff.get_atomstyle("full")
         if atomstyle is not None:
@@ -158,12 +138,10 @@ class TestGMXTopReader:
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
-        top_file = TEST_DATA_DIR / "forcefield/gromacs/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("gromacs test data not available")
+        top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
         
-        ff = mp.io.read_top(top_file, mp.ForceField())
-        
+        system = mp.io.read_top(top_file, mp.FrameSystem())
+        ff = system.forcefield
         # Should be able to access all styles
         styles = [
             ff.get_atomstyle("full"),

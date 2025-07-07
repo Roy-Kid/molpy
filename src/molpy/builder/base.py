@@ -63,7 +63,7 @@ class StructBuilder(BaseBuilder):
         replicas = []
         for i, pos in enumerate(positions):
             # Create a copy of the template
-            replica = self._copy_structure(template)
+            replica = template()
             
             # Translate all atoms by the position offset
             for atom in replica.atoms:
@@ -72,25 +72,5 @@ class StructBuilder(BaseBuilder):
             
             replicas.append(replica)
         
-        return Atomistic.concat(name, replicas)
-    
-    def _copy_structure(self, struct: Atomistic) -> Atomistic:
-        """Create a deep copy of a structure."""
-        new_struct = Atomistic(struct.get("name", "copy"))
-        
-        # Copy atoms
-        for atom in struct.atoms:
-            new_atom = atom.clone()
-            new_struct.atoms.add(new_atom)
-        
-        # Copy bonds (if any)
-        if hasattr(struct, 'bonds') and len(struct.bonds) > 0:
-            atom_map = {id(old): new for old, new in zip(struct.atoms, new_struct.atoms)}
-            for bond in struct.bonds:
-                if id(bond.itom) in atom_map and id(bond.jtom) in atom_map:
-                    new_bond = bond.clone()
-                    new_bond.itom = atom_map[id(bond.itom)]
-                    new_bond.jtom = atom_map[id(bond.jtom)]
-                    new_struct.bonds.add(new_bond)
-        
-        return new_struct
+        return Atomistic.concat(replicas)
+

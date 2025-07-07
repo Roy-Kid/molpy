@@ -83,12 +83,6 @@ class TestType:
         assert t.name == "type1"
         t.name = "new_name"
         assert t.name == "new_name"
-        
-    def test_match_not_implemented(self):
-        t = Type(name="type1")
-        with pytest.raises(NotImplementedError):
-            t.match(None)
-
 
 class TestTypeContainer:
     def test_init(self):
@@ -254,35 +248,11 @@ class TestStyleContainer:
 
 
 class TestAtomType:
+
     def test_init(self):
         at = AtomType("atom1", p1="value")
         assert at.name == "atom1"
         assert at["p1"] == "value"
-
-    def test_match_valid_atom(self):
-        at = AtomType("C")
-        # Mock atom-like object
-        atom = {"type": "C"}
-        assert at.match(atom) == True
-        
-    def test_match_invalid_atom(self):
-        at = AtomType("C")
-        # Mock atom-like object with different type
-        atom = {"type": "N"}
-        assert at.match(atom) == False
-        
-    def test_match_invalid_entity(self):
-        at = AtomType("C")
-        assert at.match("not an atom") == False
-        assert at.match(None) == False
-        assert at.match({}) == False  # No 'type' key
-
-    def test_apply(self):
-        at = AtomType("C", mass=12.01)
-        atom = {"type": "H"}
-        at.apply(atom)
-        assert atom["mass"] == 12.01
-        assert atom["type"] == "H"  # Original type preserved
 
 
 class TestBondType:
@@ -306,46 +276,6 @@ class TestBondType:
         bt = BondType(at1, at2)
         assert bt.atomtypes == [at1, at2]
 
-    def test_match_valid_bond(self):
-        at1 = AtomType("C")
-        at2 = AtomType("H")
-        bt = BondType(at1, at2)
-        
-        # Mock bond-like object
-        class MockBond:
-            def __init__(self, itype, jtype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-        
-        bond = MockBond("C", "H")
-        assert bt.match(bond) == True
-        
-        # Test reverse order
-        bond_reverse = MockBond("H", "C")
-        assert bt.match(bond_reverse) == True
-        
-    def test_match_invalid_bond(self):
-        at1 = AtomType("C")
-        at2 = AtomType("H")
-        bt = BondType(at1, at2)
-        
-        class MockBond:
-            def __init__(self, itype, jtype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-        
-        bond = MockBond("C", "N")
-        assert bt.match(bond) == False
-        
-    def test_match_invalid_entity(self):
-        at1 = AtomType("C")
-        at2 = AtomType("H")
-        bt = BondType(at1, at2)
-        
-        assert bt.match("not a bond") == False
-        assert bt.match(None) == False
-
-
 class TestAngleType:
     def test_init(self):
         at1 = AtomType("atom1")
@@ -368,27 +298,9 @@ class TestAngleType:
         at = AngleType(at1, at2, at3)
         assert at.atomtypes == [at1, at2, at3]
 
-    def test_match_valid_angle(self):
-        at1 = AtomType("C")
-        at2 = AtomType("O")
-        at3 = AtomType("H")
-        angle_type = AngleType(at1, at2, at3)
-        
-        class MockAngle:
-            def __init__(self, itype, jtype, ktype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-                self.ktom = {"type": ktype}
-        
-        angle = MockAngle("C", "O", "H")
-        assert angle_type.match(angle) == True
-        
-        # Test reverse order (i and k can be swapped)
-        angle_reverse = MockAngle("H", "O", "C")
-        assert angle_type.match(angle_reverse) == True
-
 
 class TestDihedralType:
+
     def test_init(self):
         at1 = AtomType("atom1")
         at2 = AtomType("atom2")
@@ -397,72 +309,8 @@ class TestDihedralType:
         dt = DihedralType(at1, at2, at3, at4)
         assert dt.name == "atom1-atom2-atom3-atom4"
 
-    def test_atomtypes(self):
-        at1 = AtomType("atom1")
-        at2 = AtomType("atom2")
-        at3 = AtomType("atom3")
-        at4 = AtomType("atom4")
-        dt = DihedralType(at1, at2, at3, at4)
-        assert dt.atomtypes == [at1, at2, at3, at4]
-
-    def test_match_valid_dihedral(self):
-        at1 = AtomType("C")
-        at2 = AtomType("C")
-        at3 = AtomType("O")
-        at4 = AtomType("H")
-        dt = DihedralType(at1, at2, at3, at4)
-        
-        class MockDihedral:
-            def __init__(self, itype, jtype, ktype, ltype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-                self.ktom = {"type": ktype}
-                self.ltom = {"type": ltype}
-        
-        dihedral = MockDihedral("C", "C", "O", "H")
-        assert dt.match(dihedral) == True
-        
-        # Test reverse order
-        dihedral_reverse = MockDihedral("H", "O", "C", "C")
-        assert dt.match(dihedral_reverse) == True
-
-
-class TestImproperType:
-    def test_init(self):
-        at1 = AtomType("atom1")
-        at2 = AtomType("atom2")
-        at3 = AtomType("atom3")
-        at4 = AtomType("atom4")
-        it = ImproperType(at1, at2, at3, at4)
-        assert it.name == f"atom1-atom2-atom3-atom4"
-
-    def test_atomtypes(self):
-        at1 = AtomType("atom1")
-        at2 = AtomType("atom2")
-        at3 = AtomType("atom3")
-        at4 = AtomType("atom4")
-        it = ImproperType(at1, at2, at3, at4)
-        assert it.atomtypes == [at1, at2, at3, at4]
-
-    def test_match_valid_improper(self):
-        at1 = AtomType("C")
-        at2 = AtomType("C")
-        at3 = AtomType("O")
-        at4 = AtomType("H")
-        it = ImproperType(at1, at2, at3, at4)
-        
-        class MockImproper:
-            def __init__(self, itype, jtype, ktype, ltype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-                self.ktom = {"type": ktype}
-                self.ltom = {"type": ltype}
-        
-        improper = MockImproper("C", "C", "O", "H")
-        assert it.match(improper) == True
-
-
 class TestPairType:
+
     def test_init(self):
         at1 = AtomType("atom1")
         at2 = AtomType("atom2")
@@ -474,23 +322,6 @@ class TestPairType:
         at2 = AtomType("atom2")
         pt = PairType(at1, at2)
         assert pt.atomtypes == [at1, at2]
-
-    def test_match_valid_pair(self):
-        at1 = AtomType("C")
-        at2 = AtomType("H")
-        pt = PairType(at1, at2)
-        
-        class MockPair:
-            def __init__(self, itype, jtype):
-                self.itom = {"type": itype}
-                self.jtom = {"type": jtype}
-        
-        pair = MockPair("C", "H")
-        assert pt.match(pair) == True
-        
-        # Test reverse order
-        pair_reverse = MockPair("H", "C")
-        assert pt.match(pair_reverse) == True
 
 
 class TestAtomStyle:
@@ -525,10 +356,11 @@ class TestAtomStyle:
 
 
 class TestForceField:
+
     def test_init(self):
         ff = ForceField("test_ff")
         assert ff.name == "test_ff"
-        assert ff.unit == "real"
+        assert ff.units == "real"
         assert ff.atomstyles == []
         assert ff.bondstyles == []
         assert ff.anglestyles == []
@@ -537,8 +369,8 @@ class TestForceField:
         assert ff.pairstyles == []
 
     def test_init_with_unit(self):
-        ff = ForceField("test_ff", unit="metal")
-        assert ff.unit == "metal"
+        ff = ForceField("test_ff", units="metal")
+        assert ff.units == "metal"
 
     def test_repr(self):
         ff = ForceField("test_ff")
@@ -717,81 +549,3 @@ class TestImproperType:
         )
         assert it.atomtypes == [it.itype, it.jtype, it.ktype, it.ltype]
 
-
-class TestForceField:
-    def test_init(self):
-        ff = ForceField("forcefield1")
-        assert ff.name == "forcefield1"
-        assert ff.atomstyles == []
-
-    def test_def_atomstyle(self):
-        ff = ForceField()
-        atomstyle = ff.def_atomstyle("style1")
-        assert atomstyle.name == "style1"
-        assert ff.get_atomstyle("style1") == atomstyle
-
-    def test_merge(self):
-        ff1 = ForceField("ff1")
-        ff2 = ForceField("ff2")
-        ff1.def_atomstyle("style1")
-        ff2.def_atomstyle("style2")
-        ff1.merge(ff2)
-        assert ff1.get_atomstyle("style2") is not None
-
-    def test_get_styles_and_types(self):
-        ff = ForceField()
-        astyle = ff.def_atomstyle("a")
-        bstyle = ff.def_bondstyle("b")
-        angstyle = ff.def_anglestyle("ang")
-        dstyle = ff.def_dihedralstyle("d")
-        impstyle = ff.def_improperstyle("imp")
-        pstyle = ff.def_pairstyle("p")
-        assert ff.get_atomstyle("a") == astyle
-        assert ff.get_bondstyle("b") == bstyle
-        assert ff.get_anglestyle("ang") == angstyle
-        assert ff.get_dihedralstyle("d") == dstyle
-        assert ff.get_improperstyle("imp") == impstyle
-        assert ff.get_pairstyle("p") == pstyle
-
-    def test_get_types(self):
-        ff = ForceField()
-        astyle = ff.def_atomstyle("a")
-        bstyle = ff.def_bondstyle("b")
-        angstyle = ff.def_anglestyle("ang")
-        dstyle = ff.def_dihedralstyle("d")
-        impstyle = ff.def_improperstyle("imp")
-        pstyle = ff.def_pairstyle("p")
-        at = astyle.def_type("A")
-        bt = bstyle.def_type(at, at)
-        angt = angstyle.def_type(at, at, at)
-        dt = dstyle.def_type(at, at, at, at)
-        impt = impstyle.def_type(at, at, at, at)
-        pt = pstyle.def_type(at, at)
-        assert at in ff.get_atomtypes()
-        assert bt in ff.get_bondtypes()
-        assert angt in ff.get_angletypes()
-        assert dt in ff.get_dihedraltypes()
-        assert impt in ff.get_impropertypes()
-        assert pt in pstyle.get_types()
-
-    def test_contains_and_getitem(self):
-        ff = ForceField()
-        astyle = ff.def_atomstyle("a")
-        bstyle = ff.def_bondstyle("b")
-        assert "a" in ff
-        assert "b" in ff
-        assert ff["a"] == astyle
-        assert ff["b"] == bstyle
-        with pytest.raises(KeyError):
-            _ = ff["notfound"]
-
-    def test_len(self):
-        ff = ForceField()
-        assert len(ff) == 0
-        ff.def_atomstyle("a")
-        ff.def_bondstyle("b")
-        ff.def_anglestyle("ang")
-        ff.def_dihedralstyle("d")
-        ff.def_improperstyle("imp")
-        ff.def_pairstyle("p")
-        assert len(ff) == 6

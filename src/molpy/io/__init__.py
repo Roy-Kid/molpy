@@ -62,6 +62,14 @@ def read_amber(
         frame = reader.read(frame)
     return frame, ff
 
+def read_amber_inpcrd(inpcrd: Path, frame: mp.Frame | None = None) -> mp.Frame:
+    """Read AMBER inpcrd file and return a molpy Frame object."""
+    from .data.amber import AmberInpcrdReader
+    reader = AmberInpcrdReader(inpcrd)
+    if frame is None:
+        frame = mp.Frame()
+    return reader.read(frame)
+
 
 def read_amber_system(
     prmtop: Path, inpcrd: Path | None = None, system: mp.FrameSystem | None = None
@@ -90,6 +98,8 @@ def read_mol2(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
     """Read a mol2 file and return a molpy System object."""
     from .data.mol2 import Mol2Reader
     reader = Mol2Reader(file)
+    if frame is None:
+        frame = mp.Frame()
     return reader.read(frame)
 
 def read_xsf(file: Path | str) -> mp.FrameSystem:
@@ -126,14 +136,14 @@ def read_xml_forcefield(name_or_path: Path | str, system: mp.FrameSystem | None 
     return system
 
 
-def read_gro(file: Path | str, system: mp.FrameSystem | None = None) -> mp.FrameSystem:
-    """Read a GROMACS gro file and return a FrameSystem."""
+def read_gro(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+    """Read a GROMACS gro file and return a Frame."""
     from .data.gro import GroReader
-    if system is None:
-        system = mp.FrameSystem(frame=mp.Frame())
+    if frame is None:
+        frame = mp.Frame(frame=mp.Frame())
     reader = GroReader(Path(file))
-    system = reader.read(system)
-    return system
+    frame = reader.read(frame)
+    return frame
 
 
 def read_top(file: Path | str, system: mp.FrameSystem | None = None) -> mp.FrameSystem:

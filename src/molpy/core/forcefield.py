@@ -1,7 +1,7 @@
 from collections import UserDict, defaultdict
-from pydoc import classname
-from typing import Callable, Union
 from functools import reduce
+from typing import Callable
+
 from molpy.core.atomistic import Angle, Atom, Bond, Entity
 
 
@@ -780,7 +780,7 @@ class ForceField:
 
     def def_atomstyle(self, name: str, parms=[], **data):
         atomstyle = self.get_atomstyle(name)
-        if atomstyle:
+        if atomstyle is not None:
             return atomstyle
         else:
             atomstyle = AtomStyle(name, parms, **data)

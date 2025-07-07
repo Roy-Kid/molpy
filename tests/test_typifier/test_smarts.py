@@ -130,7 +130,6 @@ class TestSMARTS:
         assert ast2.children[0].children[0].children[0].data == "and_expression"
 
     def test_precedence(self, rule_match_count, TEST_DATA_DIR):
-        pytest.xfail("SMARTS precedence known issue after xarray refactor")
         frame = mp.Frame()
         mol2 = mp.Atomistic.from_frame(
             mp.io.read_mol2(TEST_DATA_DIR / "data/mol2/ethane.mol2", frame)
@@ -179,31 +178,6 @@ class TestSMARTS:
         }
         for smart, result in checks.items():
             rule_match_count(mol2, smart, result)
-
-    def test_hexa_coordinated(self, TEST_DATA_DIR):
-        pytest.xfail("ForceField API changed")
-        system = mp.System()
-        ff = mp.io.read_xml_forcefield(
-            TEST_DATA_DIR / "forcefield/xml/pf6.xml", system
-        ).forcefield
-
-        frame = mp.Frame()
-        mol2 = mp.io.read_mol2(TEST_DATA_DIR / "data/mol2/pf6.mol2", frame).to_struct()
-
-        typifier = mp.SmartsTypifier(ff)
-        pf6 = typifier.typify(mol2)
-
-        types = [a["type"] for a in pf6["atoms"]]
-        assert types.count("P") == 1
-        assert types.count("F1") == 2
-        assert types.count("F2") == 2
-        assert types.count("F3") == 2
-
-        # assert len(pf6["bonds"]) == 6
-        # assert all(bond["type"] for bond in pf6["bonds"])
-
-        # assert len(pf6["angles"]) == 15
-        # assert all(angle["type"] for angle in pf6["angles"])
 
     def test_optional_names_bad_syntax(self):
         bad_optional_names = ["_C", "XXX", "C"]

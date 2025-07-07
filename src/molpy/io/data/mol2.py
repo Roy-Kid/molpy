@@ -2,6 +2,7 @@ from pathlib import Path
 from molpy import Element
 from .base import DataReader
 import molpy as mp
+import numpy as np
 
 
 class Mol2Reader(DataReader):
@@ -71,12 +72,27 @@ class Mol2Reader(DataReader):
 
         # Build datasets
         if self.atoms:
-            keys = self.atoms[0].keys()
-            frame["atoms"] = {k: [d[k] for d in self.atoms] for k in keys}
+            # Convert atom list to Frame Block structure
+            atoms_dict = {}
+            for key in self.atoms[0].keys():
+                values = [atom[key] for atom in self.atoms]
+                if key == "xyz":
+                    # Convert tuples to separate x, y, z arrays
+                    xyz_array = np.array(values)
+                    atoms_dict["x"] = xyz_array[:, 0]
+                    atoms_dict["y"] = xyz_array[:, 1] 
+                    atoms_dict["z"] = xyz_array[:, 2]
+                else:
+                    atoms_dict[key] = np.array(values)
+            
+            frame["atoms"] = atoms_dict
 
         if self.bonds:
-            keys = self.bonds[0].keys()
-            frame["bonds"] = {k: [d[k] for d in self.bonds] for k in keys}
+            # Convert bond list to Frame Block structure  
+            bonds_dict = {}
+            for key in self.bonds[0].keys():
+                bonds_dict[key] = np.array([bond[key] for bond in self.bonds])
+            frame["bonds"] = bonds_dict
 
         return frame
 

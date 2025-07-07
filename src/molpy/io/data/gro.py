@@ -120,11 +120,8 @@ class GroReader(DataReader):
                         except:
                                 atom['atomic_number'] = 1  # Default to hydrogen
 
-    def read(self, system: mp.FrameSystem | None = None) -> mp.FrameSystem:
+    def read(self, frame: mp.Frame | None = None) -> mp.Frame:
         """Read GRO file and populate frame."""
-        
-        if system is None:
-            system = mp.FrameSystem()
 
         # Read file content
         with open(self._file, 'r') as f:

@@ -11,8 +11,7 @@ class TestAmberInpcrdReader:
         """Test reading LiTFSI.inpcrd file."""
 
         frame = mp.Frame()
-        result = mp.io.read_amber(
-            prmtop=TEST_DATA_DIR / "forcefield/amber/LiTFSI.prmtop",
+        result = mp.io.read_amber_inpcrd(
             inpcrd=TEST_DATA_DIR / "data/inpcrd/LiTFSI.inpcrd",
             frame=frame
         )

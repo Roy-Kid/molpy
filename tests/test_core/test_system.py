@@ -2,6 +2,7 @@
 
 import pytest
 import numpy as np
+import molpy as mp
 from numpy.testing import assert_array_almost_equal
 
 from molpy.core.system import FrameSystem, StructSystem, PeriodicSystem
@@ -47,9 +48,8 @@ class TestStructSystem:
     
     def test_init(self):
         """Test StructSystem initialization."""
-        from struct import Struct
         
-        struct = Struct('if')
+        struct = mp.Struct()
         box = Box.cubic(10.0)
         ff = ForceField()
         

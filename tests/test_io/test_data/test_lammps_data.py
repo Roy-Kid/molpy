@@ -9,7 +9,6 @@ Also tests Frame initialization with xarray to_dict format.
 import pytest
 import tempfile
 import numpy as np
-from pathlib import Path
 import os
 
 # Import molpy components
@@ -19,14 +18,17 @@ from molpy.io.data.lammps import LammpsDataReader, LammpsDataWriter
 @pytest.fixture
 def test_files(TEST_DATA_DIR):
     """Provide paths to test files."""
+
+    lammps_data_dir = TEST_DATA_DIR / "data/lammps-data"
+
     files = {
-        'data_body': TEST_DATA_DIR / "data.body",
-        'labelmap': TEST_DATA_DIR / "labelmap.lmp",
-        'molid': TEST_DATA_DIR / "molid.lmp", 
-        'solvated': TEST_DATA_DIR / "solvated.lmp",
-        'triclinic_1': TEST_DATA_DIR / "triclinic-1.lmp",
-        'triclinic_2': TEST_DATA_DIR / "triclinic-2.lmp",
-        'whitespaces': TEST_DATA_DIR / "whitespaces.lmp"
+        'data_body': lammps_data_dir / "data.body",
+        'labelmap': lammps_data_dir / "labelmap.lmp",
+        'molid': lammps_data_dir / "molid.lmp", 
+        'solvated': lammps_data_dir / "solvated.lmp",
+        'triclinic_1': lammps_data_dir / "triclinic-1.lmp",
+        'triclinic_2': lammps_data_dir / "triclinic-2.lmp",
+        'whitespaces': lammps_data_dir / "whitespaces.lmp"
     }
     
     # Check which files actually exist
@@ -39,8 +41,6 @@ class TestLammpsDataReader:
 
     def test_molid_file(self, test_files):
         """Test reading molid.lmp - file with molecular IDs and full style."""
-        if 'molid' not in test_files:
-            pytest.skip("molid.lmp test file not found")
             
         reader = LammpsDataReader(test_files['molid'], atom_style="full")
         frame = reader.read()
@@ -51,13 +51,13 @@ class TestLammpsDataReader:
         
         # Should have 12 atoms based on file content
         assert len(atoms['id']) == 12
-        assert 'mol' in atoms.data_vars  # molecule ID should be present
-        assert 'type' in atoms.data_vars
-        assert 'q' in atoms.data_vars
-        assert 'xyz' in atoms.data_vars
+        assert 'mol' in atoms  # molecule ID should be present
+        assert 'type' in atoms
+        assert 'q' in atoms
+        assert 'xyz' in atoms
         
         # Check coordinate data shape
-        xyz = atoms['xyz'].values
+        xyz = atoms['xyz']
         assert xyz.shape == (12, 3)  # 12 atoms, 3 coordinates
         
         # Check box dimensions (0-20 in each direction)
@@ -66,13 +66,11 @@ class TestLammpsDataReader:
         np.testing.assert_array_almost_equal(box_lengths, [20.0, 20.0, 20.0])
         
         # Check that molecule IDs are in the data (should be 0-3 based on file)
-        mol_ids = atoms['mol'].values
+        mol_ids = atoms['mol']
         assert len(np.unique(mol_ids)) <= 4  # max 4 different molecules
 
     def test_whitespaces_file(self, test_files):
         """Test reading whitespaces.lmp - file with extra whitespaces."""
-        if 'whitespaces' not in test_files:
-            pytest.skip("whitespaces.lmp test file not found")
             
         reader = LammpsDataReader(test_files['whitespaces'], atom_style="full")
         frame = reader.read()
@@ -83,7 +81,7 @@ class TestLammpsDataReader:
         assert len(atoms['id']) == 1
         
         # Check the single atom's coordinates
-        xyz = atoms['xyz'].values
+        xyz = atoms['xyz']
         np.testing.assert_array_almost_equal(xyz[0], [5.0, 5.0, 5.0])
         
         # Check box (should be 10x10x10)
@@ -114,8 +112,6 @@ class TestLammpsDataReader:
 
     def test_labelmap_file(self, test_files):
         """Test reading labelmap.lmp - file with atom/bond type labels."""
-        if 'labelmap' not in test_files:
-            pytest.skip("labelmap.lmp test file not found")
         
         # With unified string-based type handling, this should work now
         reader = LammpsDataReader(test_files['labelmap'], atom_style="full")
@@ -127,11 +123,11 @@ class TestLammpsDataReader:
         
         # Should have 16 atoms based on file content
         assert len(atoms['id']) == 16
-        assert 'type' in atoms.data_vars
-        assert 'xyz' in atoms.data_vars
+        assert 'type' in atoms
+        assert 'xyz' in atoms
         
         # Check that atom types are strings (labels like 'f', 'c3', etc.)
-        atom_types = atoms['type'].values
+        atom_types = atoms['type']
         assert atom_types.dtype.kind == 'U'  # Unicode string
         
         # Check for expected labels
@@ -142,7 +138,7 @@ class TestLammpsDataReader:
         # Check bonds if present
         if 'bonds' in frame:
             bonds = frame['bonds']
-            assert bonds['type'].values.dtype.kind == 'U'  # String bond types too
+            assert bonds['type'].dtype.kind == 'U'  # String bond types too
             
         print(f"✓ labelmap.lmp: {len(atoms['id'])} atoms with string labels: {sorted(unique_types)}")
 
@@ -179,8 +175,8 @@ class TestLammpsDataReader:
         assert len(impropers['id']) == 1376
         
         # Check atom types (should be 11 types)
-        type_values = atoms['type'].values
-        unique_types = np.unique(type_values)
+        type = atoms['type']
+        unique_types = np.unique(type)
         assert len(unique_types) == 11
 
 
@@ -189,8 +185,6 @@ class TestLammpsDataWriter:
 
     def test_write_read_roundtrip(self, test_files):
         """Test that we can write and read back the same data."""
-        if 'molid' not in test_files:
-            pytest.skip("molid.lmp test file not found")
         
         # Read original file
         reader = LammpsDataReader(test_files['molid'], atom_style="full")
@@ -213,8 +207,8 @@ class TestLammpsDataWriter:
             new_atoms = new_frame['atoms']
             
             assert len(orig_atoms['id']) == len(new_atoms['id'])
-            np.testing.assert_array_equal(orig_atoms['type'].values, new_atoms['type'].values)
-            np.testing.assert_array_almost_equal(orig_atoms['xyz'].values, new_atoms['xyz'].values)
+            np.testing.assert_array_equal(orig_atoms['type'], new_atoms['type'])
+            np.testing.assert_array_almost_equal(orig_atoms['xyz'], new_atoms['xyz'])
             
             # Compare box
             assert original_frame.box is not None
@@ -238,20 +232,9 @@ class TestLammpsDataWriter:
             'xyz': np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
             'mass': np.array([1.0, 1.0, 2.0])
         }
+    
         
-        data_vars = {
-            'id': (['atoms_id'], atoms_data['id']),
-            'type': (['atoms_id'], atoms_data['type']),
-            'xyz': (['atoms_id', 'spatial'], atoms_data['xyz']),
-            'mass': (['atoms_id'], atoms_data['mass'])
-        }
-        
-        coords = {
-            'atoms_id': np.arange(3),
-            'spatial': ['x', 'y', 'z']
-        }
-        
-        frame['atoms'] = xr.Dataset(data_vars, coords=coords)
+        frame['atoms'] = atoms_data
         frame.box = mp.Box([10.0, 10.0, 10.0])
         
         # Write to temporary file
@@ -272,74 +255,6 @@ class TestLammpsDataWriter:
                 
         finally:
             os.unlink(tmp_path)
-
-
-class TestFrameXarrayFormat:
-    """Test Frame initialization with xarray to_dict format."""
-    
-    def test_frame_from_xarray_dict(self):
-        """Test creating Frame from xarray Dataset.to_dict() format."""
-        # Create a sample Dataset
-        data_vars = {
-            'id': (['atoms_id'], np.array([1, 2, 3])),
-            'type': (['atoms_id'], np.array([1, 1, 2])),
-            'xyz': (['atoms_id', 'spatial'], np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]))
-        }
-        coords = {
-            'atoms_id': np.arange(3),
-            'spatial': ['x', 'y', 'z']
-        }
-        
-        original_dataset = xr.Dataset(data_vars, coords=coords)
-        
-        # Convert to dict format
-        dict_format = original_dataset.to_dict()
-        
-        # Create Frame from dict format
-        frame = mp.Frame({'atoms': dict_format})
-        
-        # Verify the data was reconstructed correctly
-        assert 'atoms' in frame
-        atoms = frame['atoms']
-        
-        assert len(atoms['id']) == 3
-        np.testing.assert_array_equal(atoms['id'].values, [1, 2, 3])
-        np.testing.assert_array_equal(atoms['type'].values, [1, 1, 2])
-        np.testing.assert_array_almost_equal(
-            atoms['xyz'].values, 
-            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        )
-    
-    def test_frame_roundtrip_with_dict_format(self, test_files):
-        """Test Frame -> xarray dict -> Frame roundtrip."""
-        if 'molid' not in test_files:
-            pytest.skip("molid.lmp test file not found")
-        
-        # Read a frame
-        reader = LammpsDataReader(test_files['molid'], atom_style="full")
-        original_frame = reader.read()
-        
-        # Convert atoms to dict format
-        atoms_dict = original_frame['atoms'].to_dict()
-        
-        # Create new frame from dict format
-        new_frame = mp.Frame({'atoms': atoms_dict})
-        new_frame.box = original_frame.box  # Copy box separately
-        
-        # Compare the frames
-        orig_atoms = original_frame['atoms']
-        new_atoms = new_frame['atoms']
-        
-        assert len(orig_atoms['id']) == len(new_atoms['id'])
-        np.testing.assert_array_equal(orig_atoms['id'].values, new_atoms['id'].values)
-        np.testing.assert_array_equal(orig_atoms['type'].values, new_atoms['type'].values)
-        np.testing.assert_array_almost_equal(orig_atoms['xyz'].values, new_atoms['xyz'].values)
-        
-        if 'mol' in orig_atoms.data_vars:
-            np.testing.assert_array_equal(orig_atoms['mol'].values, new_atoms['mol'].values)
-        
-        if 'q' in orig_atoms.data_vars:
-            np.testing.assert_array_almost_equal(orig_atoms['q'].values, new_atoms['q'].values)
 
 
 class TestMoleculeReader:
@@ -380,8 +295,8 @@ Bonds
             assert 'atoms' in frame
             atoms = frame['atoms']
             assert len(atoms['id']) == 3
-            assert 'type' in atoms.data_vars
-            assert 'xyz' in atoms.data_vars
+            assert 'type' in atoms
+            assert 'xyz' in atoms
             
             # Check bonds
             assert 'bonds' in frame
