@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import List, Sequence, Union, Optional
 
 import numpy as np
-import pandas as pd
 
 from molpy.core import Trajectory, Frame,  Box
 

@@ -75,18 +75,9 @@ class SmartsTypifier(ForceFieldTypifier):
         smarts_graphs = {}
         smarts_overrides = {}
 
-        probe_atomtype = forcefield.get_atomtypes()[0]
-
-        if "def" in probe_atomtype:
-            flag = "def"
-        elif "smirks" in probe_atomtype:
-            flag = "smirks"
-        else:
-            raise ValueError("No SMARTS or SMIRKS found in atomtype")
-
         for atomtype in forcefield.get_atomtypes():
-            label = atomtype.label
-            smarts = atomtype[flag]
+            label = atomtype.name
+            smarts = atomtype["def"]
             graph = SMARTSGraph(smarts, self.parser, label, overrides=None)
             smarts_graphs[label] = graph
             overrides = atomtype.get("overrides", None)

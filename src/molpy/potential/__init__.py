@@ -1,1 +1,1 @@
-from .base import Potential, PotentialDict
+from .base import Potential

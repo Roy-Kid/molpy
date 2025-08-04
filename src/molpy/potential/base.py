@@ -1,30 +1,73 @@
 import numpy as np
 import molpy as mp
 from molpy.core.forcefield import KernelMeta
+from collections import UserList
+
 
 class Potential(metaclass=KernelMeta):
-       
-    def calc_energy(self, r: np.ndarray) -> np.ndarray:
-        ...
-    
-    def calc_force(self, r: np.ndarray) -> np.ndarray:
-        ...
+    """
+    Base class for all potential functions in MolPy.
 
-    def get_energy(self, frame: mp.Frame) -> np.ndarray:
-        ...
+    This class provides a template for defining potential functions that can be used in molecular simulations.
+    It includes methods for evaluating the potential and its derivatives, as well as a method to check if the potential is periodic.
+    """
 
-class PotentialDict(dict, Potential):
+    def __call__(self, *args, **kwargs):
+        """Evaluate the potential."""
+        raise NotImplementedError("Subclasses must implement this method.")
 
-    def calc_energy(self, r_or_frame):
-        
-        energy = 0
-        for pot in self.values():
-            energy += pot.calc_energy(r_or_frame)
+    def calc_energy(self, frame: mp.Frame) -> float: ...
 
-        return energy
-    
-    def calc_force(self, r):
-        forces = 0
-        for pot in self.values():
-            forces += pot.calc_force(r)
-        return forces
+    def calc_forces(self, frame: mp.Frame) -> np.ndarray:
+        """
+        Calculate the forces acting on the particles in the given frame.
+
+        Parameters
+        ----------
+        frame : mp.Frame
+            The frame containing the particle positions and other relevant data.
+
+        Returns
+        -------
+        np.ndarray
+            An array of forces acting on each particle.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+class Potentials(UserList[Potential]):
+
+    def calc_energy(self, frame: mp.Frame) -> float:
+        """
+        Calculate the total energy of the system by summing the energies from all potentials.
+
+        Parameters
+        ----------
+        frame : mp.Frame
+            The frame containing the particle positions and other relevant data.
+
+        Returns
+        -------
+        float
+            The total energy of the system.
+        """
+        return sum(pot.calc_energy(frame) for pot in self)
+
+    def calc_forces(self, frame: mp.Frame) -> np.ndarray:
+        """
+        Calculate the total forces acting on the particles by summing the forces from all potentials.
+
+        Parameters
+        ----------
+        frame : mp.Frame
+            The frame containing the particle positions and other relevant data.
+
+        Returns
+        -------
+        np.ndarray
+            An array of total forces acting on each particle.
+        """
+        return sum(
+            (pot.calc_forces(frame) for pot in self),
+            start=np.zeros_like((frame["atoms", "xyz"])),
+        )

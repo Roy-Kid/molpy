@@ -8,6 +8,7 @@ from . import region
 from . import typifier
 from . import builder
 from . import pack
+from . import analysis
 from .core import *
 from .core.units import Unit
 from .builder.polymer import PolymerBuilder, AnchorRule, Monomer

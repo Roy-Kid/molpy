@@ -1,8 +1,8 @@
 """
 OPLS-AA typifier tests.
 
-This module contains tests for OPLS atom type assignment and validation
-against reference topology data.
+This module contains tests for OPLS atom type assignment using SmartsTypifier
+and validation against reference topology data.
 """
 
 from pathlib import Path
@@ -12,287 +12,244 @@ import molpy as mp
 import pytest
 
 
+def pytest_generate_tests(metafunc):
+    """Generate tests for each molecule."""
+    if "molecule_name" in metafunc.fixturenames:
+        # Get molecules from test data directory
+        test_data_dir = metafunc.config.getoption("--testdata-dir", default=None)
+        if test_data_dir is None:
+            # Use default path relative to test file
+            test_data_dir = Path(__file__).parent.parent / "chemfile-testcases"
+        
+        opls_dir = Path(test_data_dir) / "opls"
+        molecules = []
+        
+        if opls_dir.exists():
+            for molecule_dir in opls_dir.iterdir():
+                if molecule_dir.is_dir():
+                    gro_file = molecule_dir / f"{molecule_dir.name}.gro"
+                    top_file = molecule_dir / f"{molecule_dir.name}.top"
+                    if gro_file.exists() and top_file.exists():
+                        molecules.append(molecule_dir.name)
+        
+        metafunc.parametrize("molecule_name", sorted(molecules))
+
+
 class TestOPLSTypifier:
     """Test suite for OPLS-AA force field typifier."""
 
-    @pytest.fixture(autouse=True)
-    def initdir(self, tmpdir):
-        """Initialize temporary directory for tests."""
-        tmpdir.chdir()
-
-    @pytest.fixture
-    def opls_validation_dir(self) -> Path:
+    @pytest.fixture(scope="class")
+    def opls_validation_dir(self, TEST_DATA_DIR) -> Path:
         """Path to OPLS validation test data directory."""
-        opls_dir = Path(__file__).parent.parent / "chemfile-testcases" / "forcefield" / "opls"
-        if not opls_dir.exists():
-            pytest.skip("OPLS validation data not available")
-        return opls_dir
+        return TEST_DATA_DIR / "opls"
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def available_molecules(self, opls_validation_dir: Path) -> List[str]:
         """Get list of molecules available for testing."""
         molecules = []
         for molecule_dir in opls_validation_dir.iterdir():
-            if molecule_dir.is_dir() and molecule_dir.name != "oplsaa.ff":
+            if molecule_dir.is_dir():
                 gro_file = molecule_dir / f"{molecule_dir.name}.gro"
                 top_file = molecule_dir / f"{molecule_dir.name}.top"
                 if gro_file.exists() and top_file.exists():
                     molecules.append(molecule_dir.name)
         return sorted(molecules)
 
-    @pytest.fixture
-    def test_molecules(self, available_molecules: List[str]) -> List[str]:
-        """Selected molecules for typifier testing."""
-        # Choose a diverse set of molecules for testing
-        priority_molecules = [
-            "1-bromobutane", "acetone", "ethanol", "methane", "toluene", 
-            "benzene", "propane", "methanol", "ethane"
-        ]
-        
-        selected = []
-        for mol in priority_molecules:
-            if mol in available_molecules:
-                selected.append(mol)
-        
-        # Add a few more if we don't have enough
-        remaining = [m for m in available_molecules if m not in selected]
-        selected.extend(remaining[:max(0, 10 - len(selected))])
-        
-        return selected[:10]
+    @pytest.fixture(scope="class")
+    def opls_typifier(self) -> mp.typifier.SmartsTypifier:
+        """Create OPLS-AA typifier instance."""
+        # Load OPLS-AA forcefield
+        frame_system = mp.io.read_xml_forcefield('oplsaa')
+        ff = frame_system.forcefield
 
-    @pytest.fixture
-    def oplsaa_forcefield(self) -> mp.ForceField:
-        """Load OPLS-AA forcefield."""
-        # Use the built-in molpy function to load OPLS-AA
-        try:
-            frame_system = mp.io.read_xml_forcefield('oplsaa')
-            return frame_system.forcefield
-        except Exception:
-            # Fallback: direct loading
-            oplsaa_path = Path(mp.__file__).parent / 'data/forcefield/oplsaa.xml'
-            from molpy.io.forcefield.xml import XMLForceFieldReader
-            
-            frame_system = mp.FrameSystem()
-            reader = XMLForceFieldReader(oplsaa_path)
-            reader.read(frame_system)
-            return frame_system.forcefield
+        typifier = mp.typifier.SmartsTypifier(ff)
+        return typifier
 
-    def get_molecule_files(self, molecule_name: str, opls_validation_dir: Path) -> tuple[Path, Path]:
-        """Get GRO and TOP file paths for a molecule."""
+
+    def test_opls_typification_single_molecule(self, molecule_name: str, 
+                                               opls_validation_dir: Path,
+                                               opls_typifier: mp.typifier.SmartsTypifier):
+        """Test OPLS typification for a single molecule against reference."""
         molecule_dir = opls_validation_dir / molecule_name
         gro_file = molecule_dir / f"{molecule_name}.gro"
         top_file = molecule_dir / f"{molecule_name}.top"
-        return gro_file, top_file
-    
-    def load_reference_atom_types(self, molecule_name: str, opls_validation_dir: Path) -> List[str]:
-        """Load reference atom types from topology file."""
-        _, top_file = self.get_molecule_files(molecule_name, opls_validation_dir)
         
-        frame_system = mp.io.read_top(str(top_file))
+        # Read structure using molpy
+        frame = mp.io.read_gro(gro_file)
         
-        if not hasattr(frame_system.forcefield, 'atomstyles') or frame_system.forcefield.n_atomstyles == 0:
-            raise ValueError(f"No atom styles found in {molecule_name} topology")
+        # Convert Frame to Atomistic structure for typification
+        atomistic_structure = mp.Atomistic.from_frame(frame)
         
-        atomstyle = frame_system.forcefield.atomstyles[0]
-        atomtypes = atomstyle.get_types()
+        # Perform typification using SmartsTypifier
+        typified_frame = opls_typifier.typify(atomistic_structure)
         
-        return [at.name for at in atomtypes]
+        # Extract reference atom types from topology file
+        reference_types = self._extract_reference_types(top_file)
+        
+        # Extract typified atom types
+        typified_types = self._extract_typified_types(typified_frame)
+        
+        # Compare results
+        self._compare_typification_results(typified_types, reference_types, molecule_name)
 
-    # Core typifier tests
-
-    def test_oplsaa_forcefield_loading(self, oplsaa_forcefield: mp.ForceField):
-        """Test that OPLS-AA forcefield loads with atom types."""
-        assert oplsaa_forcefield is not None
-        atomtypes = oplsaa_forcefield.get_atomtypes()
-        assert len(atomtypes) > 0, "No atom types found in OPLS-AA forcefield"
+    def _extract_reference_types(self, top_file: Path) -> Dict[int, str]:
+        """Extract reference atom types from topology file."""
+        reference_types = {}
         
-        # Verify we have OPLS atom types
-        opls_types = [at for at in atomtypes if at.name.startswith("opls_")]
-        assert len(opls_types) > 100, f"Expected > 100 OPLS types, found {len(opls_types)}"
-        print(f"✓ Loaded {len(opls_types)} OPLS atom types")
-
-    def test_reference_atom_type_extraction(self, test_molecules: List[str], opls_validation_dir: Path):
-        """Test extraction of reference atom types from topology files."""
-        success_count = 0
-        all_types = set()
+        with open(top_file, 'r') as f:
+            lines = f.readlines()
         
-        for molecule_name in test_molecules:
-            try:
-                reference_types = self.load_reference_atom_types(molecule_name, opls_validation_dir)
-                assert len(reference_types) > 0, f"No atom types found for {molecule_name}"
-                
-                # Verify all are OPLS types
-                non_opls = [t for t in reference_types if not t.startswith("opls_")]
-                assert len(non_opls) == 0, f"Non-OPLS types in {molecule_name}: {non_opls}"
-                
-                all_types.update(reference_types)
-                success_count += 1
-                print(f"✓ {molecule_name}: {len(reference_types)} atoms, {len(set(reference_types))} unique types")
-                
-            except Exception as e:
-                print(f"✗ {molecule_name}: {e}")
+        in_atoms_section = False
+        atom_index = 1
         
-        assert success_count >= len(test_molecules) * 0.8, f"Too many failures: {success_count}/{len(test_molecules)}"
-        print(f"✓ Found {len(all_types)} unique OPLS types across test molecules")
-
-    def test_typifier_atom_type_assignment(self, test_molecules: List[str], oplsaa_forcefield: mp.ForceField, opls_validation_dir: Path):
-        """Test typifier assignment against reference atom types."""
-        # This is the main test - currently skipped until typifier is ready
-        success_count = 0
-        
-        for molecule_name in test_molecules[:3]:  # Test subset first
-            try:
-                gro_file, top_file = self.get_molecule_files(molecule_name, opls_validation_dir)
-                
-                # Load structure
-                frame = mp.Frame()
-                structure = mp.io.read_gro(str(gro_file), frame)
-                
-                # Get reference atom types
-                reference_types = self.load_reference_atom_types(molecule_name, opls_validation_dir)
-                
-                print(f"Testing {molecule_name}: {len(reference_types)} atoms")
-                print(f"  Reference types: {set(reference_types)}")
-                
-                # TODO: Apply typifier when available
-                # from molpy.typifier import OPLSTypifier
-                # typifier = OPLSTypifier(oplsaa_forcefield)
-                # typed_frame = typifier.assign_types(frame)
-                # assigned_types = [atom.type for atom in typed_frame["atoms"]]
-                
-                # TODO: Compare assigned vs reference
-                # assert len(assigned_types) == len(reference_types)
-                # for i, (assigned, reference) in enumerate(zip(assigned_types, reference_types)):
-                #     assert assigned == reference, f"Atom {i}: {assigned} != {reference}"
-                
-                success_count += 1
-                
-            except Exception as e:
-                print(f"Failed {molecule_name}: {e}")
-        
-        print(f"Prepared typifier test for {success_count} molecules")
-
-    def test_atom_type_coverage(self, test_molecules: List[str], oplsaa_forcefield: mp.ForceField, opls_validation_dir: Path):
-        """Test that validation molecules cover diverse atom types."""
-        validation_types = set()
-        forcefield_types = set(at.name for at in oplsaa_forcefield.get_atomtypes() if at.name.startswith("opls_"))
-        
-        for molecule_name in test_molecules:
-            try:
-                reference_types = self.load_reference_atom_types(molecule_name, opls_validation_dir)
-                validation_types.update(reference_types)
-            except Exception:
-                continue
-        
-        coverage = len(validation_types) / len(forcefield_types)
-        print(f"Type coverage: {len(validation_types)}/{len(forcefield_types)} ({coverage:.1%})")
-        
-        # We should cover at least 2% of available OPLS types (reduced from 20% due to limited test molecules)
-        assert coverage >= 0.02, f"Poor type coverage: {coverage:.1%}"
-        
-        # Show most common types in validation set
-        type_counts = {}
-        for molecule_name in test_molecules:
-            try:
-                reference_types = self.load_reference_atom_types(molecule_name, opls_validation_dir)
-                for atom_type in reference_types:
-                    type_counts[atom_type] = type_counts.get(atom_type, 0) + 1
-            except Exception:
-                continue
-        
-        common_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-        print("Most common atom types in validation set:")
-        for atom_type, count in common_types:
-            print(f"  {atom_type}: {count}")
-
-    def test_charge_consistency(self, test_molecules: List[str], opls_validation_dir: Path):
-        """Test that molecules are charge neutral."""
-        neutral_count = 0
-        
-        for molecule_name in test_molecules:
-            try:
-                _, top_file = self.get_molecule_files(molecule_name, opls_validation_dir)
-
-                frame_system = mp.io.read_top(str(top_file))
-                
-                if hasattr(frame_system.forcefield, 'atomstyles') and frame_system.forcefield.n_atomstyles > 0:
-                    atomstyle = frame_system.forcefield.atomstyles[0]
-                    atomtypes = atomstyle.get_types()
-                    
-                    total_charge = sum(float(at.get("charge", 0)) for at in atomtypes)
-                    is_neutral = abs(total_charge) < 1e-6
-                    
-                    if is_neutral:
-                        neutral_count += 1
-                        print(f"✓ {molecule_name}: neutral ({total_charge:.6f})")
-                    else:
-                        print(f"⚠ {molecule_name}: charge = {total_charge:.6f}")
-                        
-            except Exception as e:
-                print(f"✗ {molecule_name}: {e}")
-        
-        # Most molecules should be neutral
-        neutrality_rate = neutral_count / len(test_molecules)
-        assert neutrality_rate >= 0.8, f"Too many non-neutral molecules: {neutrality_rate:.1%}"
-        print(f"✓ Charge neutrality: {neutral_count}/{len(test_molecules)} ({neutrality_rate:.1%})")
-
-
-# Utility functions for development
-
-def debug_molecule_types(molecule_name: str, opls_validation_dir: Path) -> None:
-    """Debug utility to analyze a specific molecule's atom types."""
-    molecule_dir = opls_validation_dir / molecule_name
-    gro_file = molecule_dir / f"{molecule_name}.gro"
-    top_file = molecule_dir / f"{molecule_name}.top"
-    
-    if not gro_file.exists() or not top_file.exists():
-        print(f"Missing files for {molecule_name}")
-        return
-    
-    try:
-        # Load structure
-        frame = mp.Frame()
-        structure = mp.io.read_gro(str(gro_file), frame)
-        print(f"{molecule_name}: {structure['atoms'].nrows} atoms")
-        
-        # Load topology  
-        frame_system = mp.io.read_top(str(top_file))
-        
-        if hasattr(frame_system.forcefield, 'atomstyles') and frame_system.forcefield.n_atomstyles > 0:
-            atomstyle = frame_system.forcefield.atomstyles[0]
-            atomtypes = atomstyle.get_types()
+        for line in lines:
+            line = line.strip()
             
-            type_counts = {}
-            for atomtype in atomtypes:
-                type_name = atomtype.name
-                type_counts[type_name] = type_counts.get(type_name, 0) + 1
+            # Check for atoms section
+            if line.startswith('[ atoms ]'):
+                in_atoms_section = True
+                continue
             
-            print("Atom types:")
-            for atom_type, count in sorted(type_counts.items()):
-                print(f"  {atom_type}: {count}")
+            # Check for next section
+            if in_atoms_section and line.startswith('['):
+                break
+            
+            # Parse atom line
+            if in_atoms_section and line and not line.startswith(';'):
+                parts = line.split()
+                if len(parts) >= 2:
+                    atom_type = parts[1]  # Second column is atom type
+                    reference_types[atom_index] = atom_type
+                    atom_index += 1
+        
+        return reference_types
+
+    def _extract_typified_types(self, typified_structure: mp.Atomistic) -> Dict[int, str]:
+        """Extract typified atom types from atomistic structure."""
+        typified_types = {}
+        
+        if "atoms" in typified_structure:
+            atoms = typified_structure["atoms"]
+            for i, atom in enumerate(atoms):
+                if "type" in atom:
+                    typified_types[i + 1] = atom["type"]
+                else:
+                    # If no type assigned, use None or empty string
+                    typified_types[i + 1] = None
+        
+        return typified_types
+
+    def _compare_typification_results(self, typified_types: Dict[int, str], 
+                                    reference_types: Dict[int, str], 
+                                    molecule_name: str):
+        """Compare typification results with reference."""
+        # Check atom count consistency
+        assert len(typified_types) == len(reference_types), \
+            f"Atom count mismatch for {molecule_name}: typified={len(typified_types)}, reference={len(reference_types)}"
+        
+        # Compare each atom
+        mismatches = []
+        for atom_id in reference_types:
+            reference_type = reference_types[atom_id]
+            typified_type = typified_types.get(atom_id, "UNKNOWN")
+            
+            if reference_type != typified_type:
+                mismatches.append({
+                    'atom_id': atom_id,
+                    'reference': reference_type,
+                    'typified': typified_type
+                })
+        
+        # Report results
+        if mismatches:
+            mismatch_rate = len(mismatches) / len(reference_types)
+            error_msg = f"Typification mismatches for {molecule_name} ({mismatch_rate:.2%} errors):\n"
+            for mismatch in mismatches[:10]:  # Show first 10 mismatches
+                error_msg += f"  Atom {mismatch['atom_id']}: "
+                error_msg += f"expected {mismatch['reference']}, got {mismatch['typified']}\n"
+            if len(mismatches) > 10:
+                error_msg += f"  ... and {len(mismatches) - 10} more mismatches\n"
+            pytest.fail(error_msg)
+        
+        # Success message
+        print(f"✓ {molecule_name}: All {len(reference_types)} atoms correctly typified")
+
+    def test_opls_typification_statistics(self, available_molecules: List[str], 
+                                        opls_validation_dir: Path,
+                                        opls_typifier: mp.typifier.SmartsTypifier):
+        """Collect statistics on OPLS typification performance."""
+        if not available_molecules:
+            pytest.skip("No OPLS test molecules available")
+        
+        total_molecules = len(available_molecules)
+        successful_molecules = 0
+        total_atoms = 0
+        successful_atoms = 0
+        failed_molecules = []
+        
+        for molecule_name in available_molecules:
+            try:
+                molecule_dir = opls_validation_dir / molecule_name
+                gro_file = molecule_dir / f"{molecule_name}.gro"
+                top_file = molecule_dir / f"{molecule_name}.top"
                 
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-if __name__ == "__main__":
-    # For development and debugging
-    opls_dir = Path(__file__).parent.parent / "chemfile-testcases" / "forcefield" / "opls"
-    
-    if opls_dir.exists():
-        molecules = []
-        for mol_dir in opls_dir.iterdir():
-            if mol_dir.is_dir() and mol_dir.name != "oplsaa.ff":
-                if (mol_dir / f"{mol_dir.name}.gro").exists() and (mol_dir / f"{mol_dir.name}.top").exists():
-                    molecules.append(mol_dir.name)
+                # Read structure and perform typification
+                frame = mp.io.read_gro(gro_file)
+                typified_frame = opls_typifier.typify(frame)
+                
+                # Extract reference and typified atom types
+                reference_types = self._extract_reference_types(top_file)
+                typified_types = self._extract_typified_types(typified_frame)
+                
+                # Count matches
+                molecule_atoms = len(reference_types)
+                molecule_matches = 0
+                
+                for atom_id in reference_types:
+                    reference_type = reference_types[atom_id]
+                    typified_type = typified_types.get(atom_id, "UNKNOWN")
+                    
+                    if reference_type == typified_type:
+                        molecule_matches += 1
+                
+                total_atoms += molecule_atoms
+                successful_atoms += molecule_matches
+                
+                if molecule_matches == molecule_atoms:
+                    successful_molecules += 1
+                else:
+                    failed_molecules.append({
+                        'name': molecule_name,
+                        'success_rate': molecule_matches / molecule_atoms,
+                        'total_atoms': molecule_atoms,
+                        'matched_atoms': molecule_matches
+                    })
+                    
+            except Exception as e:
+                failed_molecules.append({
+                    'name': molecule_name,
+                    'error': str(e),
+                    'success_rate': 0.0
+                })
         
-        print(f"Found {len(molecules)} molecules in OPLS validation set")
+        # Print statistics
+        print(f"\n=== OPLS Typification Statistics ===")
+        print(f"Total molecules tested: {total_molecules}")
+        print(f"Successful molecules: {successful_molecules}")
+        print(f"Molecule success rate: {successful_molecules/total_molecules:.2%}")
+        print(f"Total atoms tested: {total_atoms}")
+        print(f"Successful atoms: {successful_atoms}")
+        print(f"Atom success rate: {successful_atoms/total_atoms:.2%}")
         
-        # Debug a few interesting molecules
-        test_molecules = ["acetone", "benzene", "ethanol", "1-bromobutane"]
-        for mol in test_molecules:
-            if mol in molecules:
-                debug_molecule_types(mol, opls_dir)
-                print()
-    else:
-        print("OPLS validation directory not found")
+        if failed_molecules:
+            print(f"\nFailed molecules:")
+            for failed in failed_molecules[:10]:  # Show first 10 failures
+                if 'error' in failed:
+                    print(f"  {failed['name']}: ERROR - {failed['error']}")
+                else:
+                    print(f"  {failed['name']}: {failed['success_rate']:.2%} "
+                          f"({failed['matched_atoms']}/{failed['total_atoms']})")
+        
+        # Assert reasonable success rate
+        assert successful_atoms / total_atoms > 0.5, \
+            f"Atom success rate too low: {successful_atoms/total_atoms:.2%}"

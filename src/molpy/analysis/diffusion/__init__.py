@@ -1,13 +1,10 @@
-
-from molpy.analysis import BaseCompute
+from molpy.analysis import ComputeContext, Compute
 import numpy as np
+from molpy.core.logger import get_logger
+from molpy.core.config import get_config
 
-import logging
-
-from molpy.analysis.base import Result1D
-from molpy.analysis.parallel import get_num_threads
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+config = get_config()
 
 # Use fastest available fft library
 try:
@@ -15,8 +12,8 @@ try:
 
     logger.info("Using PyFFTW for FFTs")
     
-    pyfftw.config.NUM_THREADS = min(1, get_num_threads())
-    logger.info(f"Setting number of threads to {get_num_threads()}")
+    pyfftw.config.NUM_THREADS = min(1, config.n_threads)
+    logger.info(f"Setting number of threads to {config.n_threads}")
 
     # Note that currently these functions are defined to match only the parts
     # of the numpy/scipy API that are actually used below. There is no promise
@@ -54,71 +51,35 @@ def _autocorrelation(x):
     return res / n[:, np.newaxis]
 
 
-
-class DirectMSD(BaseCompute):
+class DirectMSD(Compute):
     """Direct Mean Square Displacement (MSD) calculation."""
 
-    def __init__(self, box=None):
+    def compute(self, context: ComputeContext) -> ComputeContext:
 
-        if box is None:
-            self._box = None
-        else:
-            self._box = box
+        positions = context.frame["atoms"]["xyz"]
+        _msd_result = []
 
-    def compute(self, positions, images=None, reset=True):
-
-        if reset:
-            self._particle_msd = Result1D()
-
-        self._called_compute = True
-
-        positions = np.asarray(positions)
-        assert len(positions.shape) == 3 and positions.shape[-1] == 3
-        if images is not None:
-            images = np.asarray(
-                images, dtype=np.int32
-            )
-
-        # Make sure we aren't modifying the provided array
-        if self._box is not None and images is not None:
-            unwrapped_positions = positions.copy()
-            positions = self._box.wrap(unwrapped_positions, images)
-
-        self._particle_msd.append(
+        _msd_result.append(
             np.linalg.norm(positions - positions[[0], :, :], axis=-1) ** 2
         )
 
-        return self
+        context.result[f"{self.name}_msd"] = np.array(_msd_result)
+
+        return context
     
-class WindowedMSD(BaseCompute):
+    
+class WindowedMSD(Compute):
     """Windowed Mean Square Displacement (MSD) calculation."""
 
-    def __init__(self, window_size=1, box=None):
+    def __init__(self, name: str, window_size: int = 1):
+        super().__init__(name)
         self.window_size = window_size
-        if box is None:
-            self._box = None
-        else:
-            self._box = box
 
-    def compute(self, positions, images=None, reset=True):
+    def compute(self, context: ComputeContext) -> ComputeContext:
 
-        if reset:
-            self._particle_msd = Result1D()
+        _msd_result = []
 
-        self._called_compute = True
-
-        positions = np.asarray(positions)
-        assert len(positions.shape) == 3 and positions.shape[-1] == 3
-        if images is not None:
-            images = np.asarray(
-                images, dtype=np.int32
-            )
-
-        # Make sure we aren't modifying the provided array
-        if self._box is not None and images is not None:
-            unwrapped_positions = positions.copy()
-            positions = self._box.wrap(unwrapped_positions, images)
-
+        positions = context.frame["atoms"]["xyz"]
 
         # First compute the first term r^2(k+m) - r^2(k)
         N = positions.shape[0]
@@ -136,6 +97,8 @@ class WindowedMSD(BaseCompute):
             corrs.append(_autocorrelation(positions[:, :, i]))
         S2 = np.sum(corrs, axis=0)
 
-        self._particle_msd.append(S1 - 2 * S2)
+        _msd_result.append(S1 - 2 * S2)
 
-        return self
+        context.result[f"{self.name}_msd"] = np.array(_msd_result)
+
+        return context

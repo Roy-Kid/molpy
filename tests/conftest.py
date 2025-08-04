@@ -7,14 +7,10 @@ from pathlib import Path
 import pytest
 import subprocess
 import os
+import molq
 
 _REPO_URL = "https://github.com/molcrafts/chemfile-testcases.git"
 _DEFAULT_DIR = Path(__file__).parent / "chemfile-testcases"
-
-
-def _run(cmd: list[str], cwd: Path | None = None) -> None:
-    """Subprocess helper with shorter syntax and error surfacing."""
-    subprocess.run(cmd, cwd=cwd, check=True, text=True)
 
 
 @pytest.fixture(scope="session", name="TEST_DATA_DIR")
@@ -27,15 +23,22 @@ def find_test_data() -> Path:
       Otherwise clone afresh.
     """
     data_dir = Path(os.getenv("CHEMFILE_DATA_DIR", _DEFAULT_DIR)).expanduser()
-    print("[test-data] Using test data directory:", data_dir)
+    local_submitor = molq.LocalSubmitor("download-test-data")
     if (data_dir / ".git").exists():
-        # Already a repo → update
-        print(f"[test-data] Updating repo in {data_dir} …")
-        _run(["git", "pull", "--ff-only"], cwd=data_dir)
+        local_submitor.local_submit(
+            cmd=["git", "pull", "--ff-only"],
+            cwd=data_dir,
+            job_name="update-test-data",
+            block=True,
+            quiet=True,
+        )
     else:
-        # Fresh clone
-        print(f"[test-data] Cloning repo into {data_dir} …")
         data_dir.parent.mkdir(parents=True, exist_ok=True)
-        _run(["git", "clone", "--depth", "1", _REPO_URL, str(data_dir)])
-
+        local_submitor.local_submit(
+            cmd=["git", "clone", "--depth", "1", _REPO_URL, str(data_dir)],
+            cwd=data_dir.parent,
+            job_name="download-test-data",
+            block=True,
+            quiet=True,
+        )
     return data_dir

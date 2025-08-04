@@ -50,7 +50,7 @@ class GroReader(DataReader):
                 'res_number': line[:5].strip(),
                 'res_name': line[5:10].strip(),
                 'name': line[10:15].strip(),
-                'atomic_number': int(line[15:20].strip()) if line[15:20].strip() else 0,
+                'number': int(line[15:20].strip()) if line[15:20].strip() else 0,
                 'x': float(line[20:28].strip()) if line[20:28].strip() else 0.0,
                 'y': float(line[28:36].strip()) if line[28:36].strip() else 0.0,
                 'z': float(line[36:44].strip()) if line[36:44].strip() else 0.0
@@ -95,10 +95,10 @@ class GroReader(DataReader):
         except (ValueError, IndexError):
             return np.eye(3)
 
-    def assign_atomic_numbers(self, atoms):
+    def assign_numbers(self, atoms):
         """Assign atomic numbers based on atom names."""
         for atom in atoms:
-            if 'atomic_number' not in atom or atom['atomic_number'] == 0:
+            if 'number' not in atom or atom['number'] == 0:
                 # Guess from atom name
                 name = atom.get('name', '').strip()
                 if name:
@@ -112,13 +112,13 @@ class GroReader(DataReader):
                                 'Ca': 20, 'Fe': 26, 'Ni': 28, 'Cu': 29, 'Zn': 30, 'Br': 35, 'I': 53
                             }
                             if clean_name[:2] in element_map:
-                                atom['atomic_number'] = element_map[clean_name[:2]]
+                                atom['number'] = element_map[clean_name[:2]]
                             elif clean_name[:1] in element_map:
-                                atom['atomic_number'] = element_map[clean_name[:1]]
+                                atom['number'] = element_map[clean_name[:1]]
                             else:
-                                atom['atomic_number'] = 1  # Default to hydrogen
+                                atom['number'] = 1  # Default to hydrogen
                         except:
-                                atom['atomic_number'] = 1  # Default to hydrogen
+                                atom['number'] = 1  # Default to hydrogen
 
     def read(self, frame: mp.Frame | None = None) -> mp.Frame:
         """Read GRO file and populate frame."""
@@ -143,7 +143,7 @@ class GroReader(DataReader):
             'res_number': [],
             'res_name': [],
             'name': [],
-            'atomic_number': [],
+            'number': [],
             'xyz': [],
             'vx': [],  # Separate velocity components
             'vy': [],
@@ -159,7 +159,7 @@ class GroReader(DataReader):
                 atoms_data['res_number'].append(atom_data['res_number'])
                 atoms_data['res_name'].append(atom_data['res_name'])
                 atoms_data['name'].append(atom_data['name'])
-                atoms_data['atomic_number'].append(atom_data['atomic_number'])
+                atoms_data['number'].append(atom_data['number'])
                 atoms_data['xyz'].append([atom_data['x'], atom_data['y'], atom_data['z']])
                 
                 if 'vx' in atom_data:
@@ -185,11 +185,11 @@ class GroReader(DataReader):
                 atom_dict = {key: values[i] if values else None for key, values in atoms_data.items()}
                 atom_dicts.append(atom_dict)
             
-            self.assign_atomic_numbers(atom_dicts)
+            self.assign_numbers(atom_dicts)
             
             # Update atomic numbers
             for i, atom_dict in enumerate(atom_dicts):
-                atoms_data['atomic_number'][i] = atom_dict['atomic_number']
+                atoms_data['number'][i] = atom_dict['number']
         
         # Convert to numpy arrays
         for key in list(atoms_data.keys()):
@@ -197,7 +197,7 @@ class GroReader(DataReader):
             if values:
                 if key == 'xyz' or key == 'velocity':
                     atoms_data[key] = np.array(values, dtype=float)
-                elif key == 'atomic_number':
+                elif key == 'number':
                     atoms_data[key] = np.array(values, dtype=int)
                 else:
                     # For string data, use proper string dtype
@@ -356,7 +356,7 @@ class GroWriter(DataWriter):
                     
                     res_name = str(atom_data.get("res_name", "MOL"))
                     atom_name = str(atom_data.get("name", "X"))
-                    atom_num = int(atom_data.get("atomic_number", i + 1))
+                    atom_num = int(atom_data.get("number", i + 1))
                     
                     # Handle coordinates
                     xyz = atom_data.get("xyz", [0.0, 0.0, 0.0])

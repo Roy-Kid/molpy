@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .box import Box
-
+from .topology import Topology
 
 BlockLike: TypeAlias = dict[str, ArrayLike]
 
@@ -54,6 +54,8 @@ class Block(MutableMapping[str, np.ndarray]):
             }
         elif isinstance(key, str):
             return self._vars[key]
+        elif isinstance(key, tuple):
+            return np.array([self[k] for k in key])
         else:
             raise KeyError(f"Invalid key type: {type(key)}. Expected str, int, or slice.")
 
@@ -188,3 +190,12 @@ class Frame:
             for k, v in grp._vars.items():
                 txt.append(f"  [{g}] {k}: shape={v.shape}")
         return "\n".join(txt) + "\n)"
+
+    def get_topology(self) -> Topology:
+        """Get the topology of the frame."""
+        bonds = self["bonds"]["i", "j"]
+        n_atoms = self["atoms"].nrows
+        topo = Topology()
+        topo.add_atoms(n_atoms)
+        topo.add_bonds(bonds.T)
+        return topo

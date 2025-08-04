@@ -12,14 +12,14 @@ class TestRegisterPotential:
         class MetaclassRegisterPotential(metaclass=KernelMeta):
             name = "PotentialA"
 
-        assert ForceField._kernel_registry["PotentialA"] is MetaclassRegisterPotential
+        assert ForceField._kernel_registry["root"]["PotentialA"] is MetaclassRegisterPotential
     
     def test_base_potential_register(self):
 
         class BasePotential(Potential):
             name = "BasePotential"
 
-        assert ForceField._kernel_registry["BasePotential"] is BasePotential
+        assert ForceField._kernel_registry["root"]["BasePotential"] is BasePotential
 
     def test_type_potential_register(self):
 
