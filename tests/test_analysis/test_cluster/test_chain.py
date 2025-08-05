@@ -8,7 +8,7 @@ import pytest
 import igraph as ig
 
 import molpy as mp
-from molpy.analysis.cluster.chain import ChainFinder, ChainResult
+from molpy.analysis.cluster.chain import ChainFinder
 
 
 @pytest.fixture
@@ -30,25 +30,7 @@ def mock_frame():
 @pytest.fixture
 def chain_finder():
     """Create a ChainFinder instance."""
-    return ChainFinder()
-
-class TestChainResult:
-    """Test the ChainResult class."""
-    
-    def test_init_with_components(self):
-        """Test ChainResult initialization with components."""
-        chain_idx = [np.array([0, 1, 2]), np.array([3, 4])]
-        result = ChainResult(chain_idx=chain_idx)
-        
-        assert len(result.chain_idx) == 2
-        assert np.array_equal(result.chain_idx[0], np.array([0, 1, 2]))
-        assert np.array_equal(result.chain_idx[1], np.array([3, 4]))
-    
-    def test_init_empty(self):
-        """Test ChainResult initialization with empty components."""
-        result = ChainResult(chain_idx=[])
-        assert len(result.chain_idx) == 0
-
+    return ChainFinder(name="test")
 
 class TestChainFinder:
     """Test the ChainFinder class."""
@@ -59,6 +41,8 @@ class TestChainFinder:
     
     def test_compute(self, chain_finder, mock_frame):
         """Test ChainFinder computation."""
-        result = chain_finder.compute(mock_frame)
-        assert isinstance(result, ChainResult)
-        assert len(result.chain_idx) == 8
+        context = chain_finder(mock_frame)
+        assert "test_chain_idx" in context.result
+        result = context.result["test_chain_idx"]
+        assert isinstance(result, list)
+        assert np.unique(result).size == 8

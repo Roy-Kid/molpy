@@ -1,12 +1,31 @@
+from collections import defaultdict
 from typing import Any, overload, TypeAlias
 from collections.abc import MutableMapping, Iterator
 import numpy as np
 from numpy.typing import ArrayLike
+import csv
+import re
+from pathlib import Path
+from io import StringIO
 
 from .box import Box
 from .topology import Topology
 
 BlockLike: TypeAlias = dict[str, ArrayLike]
+
+_INT_RE = re.compile(r"^[+-]?\d+$")
+_FLOAT_RE = re.compile(r"^[+-]?((\d+\.\d*)|(\.\d+)|(\d+\.?\d*)[eE][+-]?\d+)$")
+
+def guess_type(s: str) -> type:
+    s = s.strip()
+    if not s or s.lower() in {'nan', 'null', 'none'}:
+        return str
+
+    if _INT_RE.fullmatch(s):
+        return int
+    if _FLOAT_RE.fullmatch(s):
+        return float
+    return str
 
 class Block(MutableMapping[str, np.ndarray]):
     """
@@ -84,6 +103,94 @@ class Block(MutableMapping[str, np.ndarray]):
     def from_dict(cls, data: dict[str, np.ndarray]) -> "Block":
         """Inverse of :meth:`to_dict`."""
         return cls({k: np.asarray(v) for k, v in data.items()})
+
+    @classmethod
+    def from_csv(cls, filepath: str | Path | StringIO, *, 
+                delimiter: str = ",",
+                encoding: str = "utf-8",
+                header: list[str] | None = None,
+                **kwargs) -> "Block":
+        """
+        Create a Block from a CSV file or StringIO.
+        
+        Parameters
+        ----------
+        filepath : str, Path, or StringIO
+            Path to the CSV file or StringIO object
+        delimiter : str, default=","
+            CSV delimiter character
+        encoding : str, default="utf-8"
+            File encoding (ignored for StringIO)
+        header : list[str] or None, default=None
+            Column names. If None, first row is used as headers.
+            If provided, CSV is assumed to have no header row.
+        **kwargs
+            Additional arguments passed to csv.reader
+            
+        Returns
+        -------
+        Block
+            A new Block instance with data from the CSV file
+            
+        Examples
+        --------
+        >>> block = Block.from_csv("data.csv")
+        >>> block = Block.from_csv("data.csv", delimiter=";")
+        >>> from io import StringIO
+        >>> csv_data = StringIO("x,y,z\\n0,1,2\\n3,4,5")
+        >>> block = Block.from_csv(csv_data)
+        >>> # No header CSV
+        >>> csv_no_header = StringIO("0,1,2\\n3,4,5")
+        >>> block = Block.from_csv(csv_no_header, header=["x", "y", "z"])
+        """
+        # 判断类型
+        if isinstance(filepath, StringIO):
+            csvfile = filepath
+            csvfile.seek(0)
+            close_file = False
+        else:
+            filepath = Path(filepath)
+            if not filepath.exists():
+                raise FileNotFoundError(f"CSV file not found: {filepath}")
+            csvfile = open(filepath, 'r', encoding=encoding, newline='')
+            close_file = True
+
+        try:
+            reader = csv.reader(csvfile, delimiter=delimiter, **kwargs)
+            
+            # Handle headers
+            if header is None:
+                # Use first row as headers
+                try:
+                    headers = next(reader)
+                except StopIteration:
+                    raise ValueError("CSV file is empty")
+            else:
+                # Use provided headers, no header row in CSV
+                headers = header
+
+            raw_data = {h: [] for h in headers}
+
+            for row in reader:
+                for i, header_name in enumerate(headers):
+                    raw_data[header_name].append(row[i])
+
+            data = {}
+            for k, v in raw_data.items():
+                for dtype in (int, float, str):
+                    try:
+                        data[k] = np.array(v, dtype=dtype)
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    raise ValueError(f"Failed to convert {k} to any of int, float, str")
+            
+            return cls(data)
+        finally:
+            if close_file:
+                csvfile.close()
+    
 
     def copy(self) -> "Block":
         """Shallow copy (arrays are **not** copied)."""

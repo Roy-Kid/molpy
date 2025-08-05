@@ -1,10 +1,10 @@
 from io import StringIO
 from pathlib import Path
 from typing import List, Sequence, Union, Optional
-
+import re
 import numpy as np
 
-from molpy.core import Trajectory, Frame,  Box
+from molpy.core import Trajectory, Frame, Block, Box
 
 from .base import TrajectoryReader, TrajectoryWriter
 
@@ -12,66 +12,44 @@ from .base import TrajectoryReader, TrajectoryWriter
 class LammpsTrajectoryReader(TrajectoryReader):
     """Reader for LAMMPS trajectory files, supporting multiple files."""
 
-    def __init__(self, fpaths: str | Path | list[str | Path], trajectory: Trajectory | None = None):
+    def __init__(self, fpath: str | Path, trajectory: Trajectory | None = None):
         # Convert fpaths to the expected format
-        if not isinstance(fpaths, list):
-            fpaths = [fpaths]
-        fpaths_converted: list[Path] = [Path(p) for p in fpaths]
+        fpath_converted = Path(fpath)
         if trajectory is None:
             trajectory = Trajectory()
-        super().__init__(trajectory, fpaths_converted)
-        self._open_all_files()
+        super().__init__(trajectory, fpath_converted)
 
     def read_frame(self, index: int) -> "Frame":
         """Read a specific frame from the trajectory."""
-        if index < 0 or index >= len(self._byte_offsets):
-            raise IndexError(f"Frame index {index} out of range ({len(self._byte_offsets)})")
-        
-        # Check if no frames were found (empty file)
-        if len(self._byte_offsets) == 0:
-            raise EOFError("No frames found in trajectory file")
-
-        mm, offset = self.get_file_and_offset(index)
-        mm.seek(offset)
-
-        file_idx, start_offset = self._byte_offsets[index]
-
-        if (
-            index + 1 < len(self._byte_offsets)
-            and self._byte_offsets[index + 1][0] == file_idx
-        ):
-            end_offset = self._byte_offsets[index + 1][1]
-        else:
-            end_offset = None  
-
-        mm = self._fp_list[file_idx]
-
-        if end_offset is None:
-            mm.seek(start_offset)
-            frame_bytes = mm.read()  
-        else:
-            frame_bytes = mm[start_offset:end_offset] 
-
-        frame_lines = frame_bytes.decode("utf-8").splitlines()
-
+        frame_start = self._byte_offsets[index]
+        frame_end = self._byte_offsets[index + 1] if index + 1 < len(self._byte_offsets) else None
+        frame_bytes = self._mm[frame_start:frame_end]
+        frame_lines = frame_bytes.decode().splitlines()
         return self._parse_frame(frame_lines)
 
-    def _parse_trajectories(self):
+    def _parse_trajectory(self):
         """Parse trajectory files and update frame count."""
-        self._open_all_files()
-        for file_idx, mm in enumerate(self._fp_list):
-            if mm is None:  # Empty file
-                continue
-            mm.seek(0)
-            while True:
-                pos = mm.tell()
-                line = mm.readline()
-                if not line:
-                    break
-                if line.strip().startswith(b"ITEM: TIMESTEP"):
-                    self._byte_offsets.append((file_idx, pos))
-        
-        # Update total frames count
+
+        # Use regex to find all ITEMs and ATOMS blocks, and compute frame offsets accordingly
+        item_re = re.compile(rb"^ITEM:.*", re.MULTILINE)
+        atoms_re = re.compile(rb"^ITEM:\s+ATOMS\b")
+
+        # Find all ITEMs and their byte offsets
+        item_matches = list(item_re.finditer(self._mm))
+        item_offsets = [m.start() for m in item_matches]
+
+        # Find indices of ITEM: ATOMS entries (index into item_offsets)
+        atoms_indices = [
+            i for i, m in enumerate(item_matches)
+            if atoms_re.match(m.group(0))
+        ]
+
+        # Compute frame starts: first ITEM, then every ATOMS+1
+        frame_offsets = [item_offsets[0]] + [
+            item_offsets[i + 1] for i in atoms_indices[:-1]
+        ]
+
+        self._byte_offsets = frame_offsets
         self._total_frames = len(self._byte_offsets)
 
     def _parse_frame(self, frame_lines: Sequence[str]) -> Frame:
@@ -79,11 +57,15 @@ class LammpsTrajectoryReader(TrajectoryReader):
         
         header = []
         box_bounds = []
-        timestep = int(frame_lines[1].strip())
-        data_start = 0  # Initialize data_start
 
+        timestep = None
+        data_start = None
+        header = []
         for i, line in enumerate(frame_lines):
-            if line.startswith("ITEM: BOX BOUNDS"):
+            if line.startswith("ITEM: TIMESTEP"):
+                # The timestep value is on the next line
+                timestep = int(frame_lines[i + 1].strip())
+            elif line.startswith("ITEM: BOX BOUNDS"):
                 periodic = line.split()[-3:]
                 for j in range(3):
                     box_bounds.append(
@@ -97,15 +79,6 @@ class LammpsTrajectoryReader(TrajectoryReader):
         # Check if we found atom data
         if not header:
             raise ValueError("No atom data found in trajectory frame")
-
-        df = pd.read_csv(
-            StringIO("\n".join(frame_lines[data_start:])),
-            sep=r'\s+',
-            names=header,
-        )
-        
-        # Convert pandas DataFrame to dictionary format for Frame
-        atoms_data = {k: df[k].to_numpy() for k in header}
         
         box_bounds = np.array(box_bounds)
 
@@ -135,7 +108,7 @@ class LammpsTrajectoryReader(TrajectoryReader):
         
         # Create frame with proper structure
         frame = Frame(box=box, timestep=timestep)
-        frame["atoms"] = atoms_data
+        frame["atoms"] = Block.from_csv(StringIO("\n".join(frame_lines[data_start:])), header=header, delimiter=" ")
         
         return frame
 

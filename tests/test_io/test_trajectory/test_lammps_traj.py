@@ -29,17 +29,6 @@ class TestReadLammpsTrajectory:
         atoms = frame["atoms"]
         assert len(atoms) > 0  # Should have variable names
 
-    def test_read_multi_traj(self, TEST_DATA_DIR):
-        reader = LammpsTrajectoryReader([TEST_DATA_DIR/"trajectory/lammps/unwrapped.lammpstrj", TEST_DATA_DIR/"trajectory/lammps/wrapped.lammpstrj"])
-
-        assert reader.n_frames >= 2
-        frame0 = reader.read_frame(0)
-        assert frame0.metadata["timestep"] is not None
-        assert len(frame0["atoms"]) > 0  # Check atoms exist
-        frame1 = reader.read_frame(1)
-        assert frame1.metadata["timestep"] is not None
-        assert len(frame1["atoms"]) > 0  # Check atoms exist
-
     def test_trajectory_iteration(self, TEST_DATA_DIR):
         """Test iterating through trajectory frames."""
         reader = LammpsTrajectoryReader(TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj")
@@ -198,10 +187,9 @@ class TestErrorHandling:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
             tmp.write("")  # Empty file
             
-            reader = LammpsTrajectoryReader(tmp.name)
             # Should handle empty file gracefully
             with pytest.raises((IndexError, ValueError, EOFError)):
-                reader.read_frame(0)
+                reader = LammpsTrajectoryReader(tmp.name)
 
     def test_malformed_trajectory(self):
         """Test handling malformed trajectory files."""
@@ -217,6 +205,7 @@ class TestErrorHandling:
             tmp.write("ITEM: ATOMS id type x y z\n")
             tmp.write("1 1 0.0 0.0 0.0\n")
             # Missing second atom - malformed
+            tmp.flush()  # Ensure data is written to disk
             
             reader = LammpsTrajectoryReader(tmp.name)
             # Should handle malformed file gracefully

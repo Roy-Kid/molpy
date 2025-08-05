@@ -30,8 +30,8 @@ class ChainFinder(Compute):
         frame = context.frame
         topo = frame.get_topology()
         components = topo.connected_components()
-        
-        context.result["chain_idx"] = components
+        membership = components.membership
+        context.result[f"{self.name}_chain_idx"] = membership
         return context
 
 

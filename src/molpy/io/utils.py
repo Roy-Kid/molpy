@@ -38,10 +38,9 @@ def to_frame(framelike: FrameLike) -> mp.Frame:
 
 class ZipReader:
 
-    def __init__(self, *readers, merge: bool = True):
+    def __init__(self, *readers):
 
         self.readers = readers
-        self.merge = merge
 
     def __enter__(self):
 
@@ -53,7 +52,4 @@ class ZipReader:
 
     def __iter__(self):
         for frames in zip(*self.readers):
-            if self.merge:
-                yield mp.Frame.From_frames(frames)
-            else:
-                yield frames
+            yield frames

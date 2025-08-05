@@ -23,7 +23,7 @@ class TestGMXGroReader:
         assert str(first_atom["res_number"]) == "1"
         assert str(first_atom["res_name"]) == "LIG"
         assert str(first_atom["name"]) == "S"
-        assert int(first_atom["atomic_number"]) == 1
+        assert int(first_atom["number"]) == 1
         xyz = np.asarray(first_atom["xyz"])
         expected_xyz = np.array([0.310, 0.862, 1.316])
         np.testing.assert_allclose(xyz, expected_xyz, rtol=1e-3)
@@ -40,7 +40,7 @@ class TestGROReaderComprehensive:
             'res_number': [1, 1],
             'res_name': ['WAT', 'WAT'],
             'name': ['OW', 'HW1'],
-            'atomic_number': [1, 2],
+            'number': [1, 2],
             'xyz': [[0.000, 0.000, 0.000], [0.100, 0.000, 0.000]]
         }
         frame["atoms"] = atoms_data
@@ -75,7 +75,7 @@ class TestGROReaderComprehensive:
         assert "res_number" in atoms
         assert "res_name" in atoms
         assert "name" in atoms
-        assert "atomic_number" in atoms
+        assert "number" in atoms
         assert "xyz" in atoms
         
         # Check first atom data
@@ -83,7 +83,7 @@ class TestGROReaderComprehensive:
         assert "res_number" in first_atom
         assert "res_name" in first_atom
         assert "name" in first_atom
-        assert "atomic_number" in first_atom
+        assert "number" in first_atom
         
         # Check coordinates
         xyz = np.asarray(first_atom["xyz"])
@@ -206,7 +206,7 @@ class TestGROWriter:
             'res_number': [1, 1, 1],
             'res_name': ['WAT', 'WAT', 'WAT'],
             'name': ['OW', 'HW1', 'HW2'],
-            'atomic_number': [1, 2, 3],
+            'number': [1, 2, 3],
             'xyz': [[0.000, 0.000, 0.000], [0.100, 0.000, 0.000], [-0.033, 0.094, 0.000]]
         }
         frame["atoms"] = atoms_data
@@ -267,7 +267,7 @@ class TestGROWriter:
             'res_number': [1],
             'res_name': ['MOL'],
             'name': ['C'],
-            'atomic_number': [1],
+            'number': [1],
             'xyz': [[0.0, 0.0, 0.0]]
         }
         frame["atoms"] = atoms_data

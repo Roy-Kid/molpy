@@ -33,12 +33,19 @@ class Compute(ABC):
     
     def __call__(self, context: ComputeContext | Frame) -> ComputeContext:
 
+        context = self._ensure_context(context)
+
         self._check_inputs(context)
 
         self.compute(context)
 
         self._check_outputs(context)
 
+        return context
+
+    def _ensure_context(self, context: ComputeContext | Frame) -> ComputeContext:
+        if isinstance(context, Frame):
+            return ComputeContext(context)
         return context
 
     def _check_inputs(self, _: ComputeContext) -> Exception:
