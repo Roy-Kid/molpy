@@ -1,0 +1,61 @@
+---
+description: Molpy general rules
+globs:
+alwaysApply: true
+---
+
+MolPy is a modular Python toolkit for molecular modeling, simulation setup, and structural analysis. It provides a unified framework for manipulating atomic structures, generating force field inputs, and analyzing simulation data.
+
+MolPy is designed to be:
+
+* **LLM-friendly**: Clean APIs, explicit typing, minimal magic
+* **Extensible**: All data models and operators follow standard composition patterns
+* **Interoperable**: Easy to connect with AmberTools, LAMMPS, OpenMM, Packmol, etc.
+
+## 1. Folder Structure
+
+All source code is located in `/src/molpy/`:
+
+```
+src/molpy/
+├── analysis/        # Structure and trajectory analysis (e.g. RDF, radius of gyration)
+├── builder/         # Topology generation, SMARTS-based typing, graph logic
+├── io/              # File readers/writers: PDB, XYZ, LAMMPS, AMBER, etc.
+├── core/            # Core data models: Atom, Bond, Struct, Frame, Trajectory, etc.
+├── data/            # Preset data: Forcefield parameters, etc.
+├── engine/          # Engine for running simulations (e.g. LAMMPS, OpenMM, etc.)
+├── op/              # Operators for manipulating data (e.g. `rotate()`etc.)
+├── pack/            # Packing tools (e.g. Packmol, etc.)
+├── potential/       # Potential functions (e.g. Lennard-Jones, etc.)
+```
+
+## 2. Tech Stack
+
+* **Language**: Python 3.10+
+
+## 3. Coding Standards
+
+* Use `snake_case` for functions and variables
+* Use `PascalCase` for classes (e.g. `Atom`, `Struct`)
+* Use **explicit typing** everywhere — prefer `list[...]`, `tuple[...]`, `Literal[...]`, `NDArray[...]`
+* Avoid `Any` and `Union` unless necessary
+* All core classes should be immutable or behave like value types
+
+## 4. Data Model Guidelines
+
+The data exchange between modules should use following house-keeping classes:
+
+* `Atom`, `Bond`, `Angle`, `Dihedral` and `Struct` are dict-like objects
+* `Frame` represents a static single frame in a trajectory (with box + coordinates)
+* `Trajectory` supports lazy loading, mmap slicing, slicing by time/atom
+
+## 5. Testing
+
+* Use `pytest` for all modules under `tests/`
+* Each major class should have a corresponding `TestClass`
+* Use realistic molecular test cases with minimal inputs (e.g. methane, water dimer)
+
+## 6. Prohibited Patterns
+
+🚫 Don’t suggest mutable global state or singleton-like designs
+🚫 Don’t auto-load external tools or guess/hardcode paths
