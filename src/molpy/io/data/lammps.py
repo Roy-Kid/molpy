@@ -445,7 +445,7 @@ class LammpsDataReader(DataReader):
 
 
 class LammpsDataWriter(DataWriter):
-    """Modern LAMMPS data file writer using xarray exclusively."""
+    """Modern LAMMPS data file writer."""
     
     def __init__(self, path: Union[str, Path], atom_style: str = "full"):
         super().__init__(Path(path))  # Convert to Path explicitly
@@ -826,7 +826,7 @@ class LammpsDataWriter(DataWriter):
 
 
 class LammpsMoleculeReader(DataReader):
-    """LAMMPS molecule template file reader using xarray exclusively."""
+    """LAMMPS molecule template file reader."""
     
     def __init__(self, path: Union[str, Path]):
         super().__init__(Path(path))  # Convert to Path explicitly
@@ -1088,19 +1088,8 @@ class LammpsMoleculeReader(DataReader):
                 dihedral_data['atom4'].append(atom4)
         
         if dihedral_data['id']:
-            # Convert to numpy arrays and create Dataset
-            data_vars = {}
-            n_dihedrals = len(dihedral_data['id'])
-            
-            for key, values in dihedral_data.items():
-                if key == 'type':
-                    # Keep type as string array
-                    data_vars[key] = (['dihedrals_id'], np.array(values, dtype=str))
-                else:
-                    data_vars[key] = (['dihedrals_id'], np.array(values))
-            
-            coords = {'dihedrals_id': np.arange(n_dihedrals)}
-            frame['dihedrals'] = xr.Dataset(data_vars, coords=coords)
+            # Create Block and store in frame
+            frame['dihedrals'] = mp.Block(dihedral_data)
     
     def _parse_impropers(self, improper_lines: List[str], frame: mp.Frame) -> None:
         """Parse impropers section - same as LammpsDataReader."""
@@ -1134,23 +1123,12 @@ class LammpsMoleculeReader(DataReader):
                 improper_data['atom4'].append(atom4)
         
         if improper_data['id']:
-            # Convert to numpy arrays and create Dataset
-            data_vars = {}
-            n_impropers = len(improper_data['id'])
-            
-            for key, values in improper_data.items():
-                if key == 'type':
-                    # Keep type as string array
-                    data_vars[key] = (['impropers_id'], np.array(values, dtype=str))
-                else:
-                    data_vars[key] = (['impropers_id'], np.array(values))
-            
-            coords = {'impropers_id': np.arange(n_impropers)}
-            frame['impropers'] = xr.Dataset(data_vars, coords=coords)
+            # Create Block and store in frame
+            frame['impropers'] = mp.Block(improper_data)
 
 
 class LammpsMoleculeWriter(DataWriter):
-    """LAMMPS molecule template file writer using xarray exclusively."""
+    """LAMMPS molecule template file writer."""
     
     def __init__(self, path: Union[str, Path]):
         super().__init__(Path(path))  # Convert to Path explicitly
