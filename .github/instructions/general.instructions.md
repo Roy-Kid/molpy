@@ -33,7 +33,7 @@ src/molpy/
 
 * Use `snake_case` for functions and variables
 * Use `PascalCase` for classes (e.g. `Atom`, `Struct`)
-* Use **explicit typing** everywhere — prefer `list[...]`, `tuple[...]`, `Literal[...]`, `NDArray[...]`
+* Use **explicit typing** everywhere — must use `list[...]`, `tuple[...]`, `Literal[...]`, `NDArray[...]`
 * Avoid `Any` and `Union` unless necessary
 * All core classes should be immutable or behave like value types
 
