@@ -4,7 +4,7 @@ from typing import List, Sequence, Union, Optional
 import re
 import numpy as np
 
-from molpy.core import Trajectory, Frame, Block, Box
+from molpy.core import Frame, Block, Box
 
 from .base import TrajectoryReader, TrajectoryWriter
 
@@ -12,14 +12,12 @@ from .base import TrajectoryReader, TrajectoryWriter
 class LammpsTrajectoryReader(TrajectoryReader):
     """Reader for LAMMPS trajectory files, supporting multiple files."""
 
-    def __init__(self, fpath: str | Path, trajectory: Trajectory | None = None):
+    def __init__(self, fpath: str | Path):
         # Convert fpaths to the expected format
         fpath_converted = Path(fpath)
-        if trajectory is None:
-            trajectory = Trajectory()
-        super().__init__(trajectory, fpath_converted)
+        super().__init__(fpath_converted)
 
-    def read_frame(self, index: int) -> "Frame":
+    def _read_frame_data(self, index: int) -> "Frame":
         """Read a specific frame from the trajectory."""
         frame_start = self._byte_offsets[index]
         frame_end = self._byte_offsets[index + 1] if index + 1 < len(self._byte_offsets) else None
@@ -102,178 +100,101 @@ class LammpsTrajectoryReader(TrajectoryReader):
             )
             origin = np.array([box_bounds[0, 0], box_bounds[1, 0], box_bounds[2, 0]])
         else:
-            raise ValueError(f"Invalid box bounds shape {box_bounds.shape}")
+            raise ValueError(f"Invalid box bounds shape: {box_bounds.shape}")
 
+        # Create box
         box = Box(matrix=box_matrix, origin=origin)
-        
-        # Create frame with proper structure
+
         frame = Frame(box=box, timestep=timestep)
         frame["atoms"] = Block.from_csv(StringIO("\n".join(frame_lines[data_start:])), header=header, delimiter=" ")
+
         
+        # 优化后的列类型映射
+        int_columns = ['id', 'type', 'mol']
+        str_columns = []
+        field_type_mappings = {c: int for c in int_columns} | {c: str for c in str_columns}
+        for col_name in header:
+            frame["atoms"][col_name] = frame["atoms"][col_name].astype(field_type_mappings.get(col_name, float))
+
+        frame.metadata['source_file'] = str(self.fpath)
         return frame
 
 
 class LammpsTrajectoryWriter(TrajectoryWriter):
-    """Writer for LAMMPS trajectory files (dump format)."""
+    """Writer for LAMMPS trajectory files."""
 
     def __init__(self, fpath: Union[str, Path], atom_style: str = "full"):
         super().__init__(fpath)
         self.atom_style = atom_style
-        self._frame_count = 0
 
     def write_frame(self, frame: "Frame", timestep: Optional[int] = None):
-        """Write a single frame to the trajectory file.
-        
-        Args:
-            frame: Frame object containing atoms and box information
-            timestep: Timestep number (if None, uses auto-increment)
-        """
+        """Write a single frame to the file."""
         if timestep is None:
-            # Try to get timestep from frame metadata first
-            if hasattr(frame, 'metadata') and frame.metadata and 'timestep' in frame.metadata:
-                timestep = frame.metadata['timestep']
-            else:
-                timestep = self._frame_count
+            timestep = frame.metadata.get('timestep', 0)
         
-        self._frame_count += 1
-        
-        # Get atoms data
-        if "atoms" not in frame:
-            raise ValueError("Frame must contain atoms data")
-        
-        atoms = frame["atoms"]
-        
-        # Get number of atoms
-        n_atoms = 0
-        if hasattr(atoms, '_vars'):
-            # Block object - get count from first variable
-            if atoms._vars:
-                first_key = next(iter(atoms._vars))
-                n_atoms = len(atoms._vars[first_key])
-        else:
-            # Dict-like - count entries in first field
-            if atoms and isinstance(atoms, dict):
-                first_key = next(iter(atoms))
-                n_atoms = len(atoms[first_key])
-        
-        # Write timestep header
+        # Write timestep
         self._fp.write(f"ITEM: TIMESTEP\n{timestep}\n".encode())
         
-        # Write number of atoms
-        self._fp.write(f"ITEM: NUMBER OF ATOMS\n{n_atoms}\n".encode())
-        
         # Write box bounds
-        box = getattr(frame, 'box', None)
-        if box and hasattr(box, 'matrix'):
+        if frame.box:
+            box = frame.box
             matrix = box.matrix
-            origin = getattr(box, 'origin', np.zeros(3))
+            origin = box.origin
             
-            # For orthogonal box
+            # Check if box is orthogonal
             if np.allclose(matrix, np.diag(np.diag(matrix))):
-                xlo, ylo, zlo = origin
-                xhi = xlo + matrix[0, 0]
-                yhi = ylo + matrix[1, 1]
-                zhi = zlo + matrix[2, 2]
-                
-                self._fp.write(f"ITEM: BOX BOUNDS pp pp pp\n".encode())
-                self._fp.write(f"{xlo:.6f} {xhi:.6f}\n".encode())
-                self._fp.write(f"{ylo:.6f} {yhi:.6f}\n".encode())
-                self._fp.write(f"{zlo:.6f} {zhi:.6f}\n".encode())
+                # Orthogonal box
+                self._fp.write("ITEM: BOX BOUNDS pp pp pp\n".encode())
+                for i in range(3):
+                    self._fp.write(f"{origin[i]} {origin[i] + matrix[i, i]}\n".encode())
             else:
-                # For triclinic box
-                xlo, ylo, zlo = origin
-                xhi = xlo + matrix[0, 0]
-                yhi = ylo + matrix[1, 1]
-                zhi = zlo + matrix[2, 2]
-                xy = matrix[0, 1]
-                xz = matrix[0, 2]
-                yz = matrix[1, 2]
-                
-                self._fp.write(f"ITEM: BOX BOUNDS xy xz yz pp pp pp\n".encode())
-                self._fp.write(f"{xlo:.6f} {xhi:.6f} {xy:.6f}\n".encode())
-                self._fp.write(f"{ylo:.6f} {yhi:.6f} {xz:.6f}\n".encode())
-                self._fp.write(f"{zlo:.6f} {zhi:.6f} {yz:.6f}\n".encode())
-        else:
-            # Default box if none provided
-            self._fp.write(f"ITEM: BOX BOUNDS pp pp pp\n".encode())
-            self._fp.write(f"0.000000 10.000000\n".encode())
-            self._fp.write(f"0.000000 10.000000\n".encode())
-            self._fp.write(f"0.000000 10.000000\n".encode())
-        
-        # Determine atom columns to write
-        if self.atom_style == "full":
-            cols = ["id", "mol", "type", "q", "x", "y", "z"]
-        else:
-            # Default atomic style
-            cols = ["id", "type", "x", "y", "z"]
-        
-        # Map frame fields to dump columns
-        field_mapping = {
-            "mol": "molid",  # molid in frame -> mol in dump
-            "q": "q",        # charge field
-            "x": "x", "y": "y", "z": "z"  # coordinates (try individual first)
-        }
-        
-        # Write atom header
-        self._fp.write(f"ITEM: ATOMS {' '.join(cols)}\n".encode())
-        
-        # Prepare atom data
-        atom_data = {}
-        coords = None
-        
-        # Handle coordinates - try individual x,y,z first, then xyz array
-        if all(coord in atoms for coord in ["x", "y", "z"]):
-            atom_data["x"] = atoms["x"]
-            atom_data["y"] = atoms["y"]
-            atom_data["z"] = atoms["z"]
-        elif "xyz" in atoms:
-            coords = atoms["xyz"]
-            coords = np.asarray(coords)
-            if coords.ndim == 2 and coords.shape[1] == 3:
-                atom_data["x"] = coords[:, 0]
-                atom_data["y"] = coords[:, 1]
-                atom_data["z"] = coords[:, 2]
-            else:
-                raise ValueError("xyz coordinates must be Nx3 array")
-        else:
-            raise ValueError("No coordinate data found in atoms")
-        
-        # Handle other fields
-        for col in cols:
-            if col in ["x", "y", "z"]:
-                continue  # Already handled
-            
-            field_name = field_mapping.get(col, col)
-            if field_name in atoms:
-                atom_data[col] = atoms[field_name]
-            else:
-                # Provide defaults
-                if col == "id":
-                    atom_data[col] = np.arange(1, n_atoms + 1)
-                elif col == "mol":
-                    atom_data[col] = np.ones(n_atoms, dtype=int)
-                elif col == "type":
-                    atom_data[col] = np.ones(n_atoms, dtype=int)
-                elif col == "q":
-                    atom_data[col] = np.zeros(n_atoms)
-        
-        # Write atom data
-        for i in range(n_atoms):
-            line_parts = []
-            for col in cols:
-                value = atom_data[col][i]
-                if col in ["id", "mol"]:
-                    line_parts.append(f"{int(value)}")
-                elif col == "type":
-                    # Handle both string and numeric types
-                    if isinstance(value, str):
-                        # Create a simple mapping for common atom types
-                        type_map = {'H': 1, 'C': 2, 'N': 3, 'O': 4, 'S': 5, 'P': 6}
-                        line_parts.append(f"{type_map.get(value, 1)}")
+                # Triclinic box
+                self._fp.write("ITEM: BOX BOUNDS pp pp pp xy xz yz\n".encode())
+                for i in range(3):
+                    if i == 0:
+                        self._fp.write(f"{origin[i]} {origin[i] + matrix[i, i]} {matrix[0, 1]}\n".encode())
+                    elif i == 1:
+                        self._fp.write(f"{origin[i]} {origin[i] + matrix[i, i]} {matrix[0, 2]}\n".encode())
                     else:
-                        line_parts.append(f"{int(value)}")
-                else:
-                    line_parts.append(f"{float(value):.6f}")
+                        self._fp.write(f"{origin[i]} {origin[i] + matrix[i, i]} {matrix[1, 2]}\n".encode())
+        
+        # Write atoms
+        if 'atoms' in frame:
+            atoms = frame['atoms']
             
-            line = " ".join(line_parts) + "\n"
-            self._fp.write(line.encode())
+            # Determine column order based on available data
+            columns = []
+            if 'id' in atoms:
+                columns.append('id')
+            if 'mol_id' in atoms:
+                columns.append('mol_id')
+            if 'type' in atoms:
+                columns.append('type')
+            if 'q' in atoms:
+                columns.append('q')
+            if 'x' in atoms and 'y' in atoms and 'z' in atoms:
+                columns.extend(['x', 'y', 'z'])
+            elif 'xu' in atoms and 'yu' in atoms and 'zu' in atoms:
+                columns.extend(['xu', 'yu', 'zu'])
+            elif 'xs' in atoms and 'ys' in atoms and 'zs' in atoms:
+                columns.extend(['xs', 'ys', 'zs'])
+            if 'vx' in atoms and 'vy' in atoms and 'vz' in atoms:
+                columns.extend(['vx', 'vy', 'vz'])
+            if 'fx' in atoms and 'fy' in atoms and 'fz' in atoms:
+                columns.extend(['fx', 'fy', 'fz'])
+            
+            # Write atom header
+            self._fp.write(f"ITEM: ATOMS {' '.join(columns)}\n".encode())
+            
+            # Write atom data
+            n_atoms = len(atoms)
+            for i in range(n_atoms):
+                row_data = []
+                for col in columns:
+                    if col in ['x', 'y', 'z', 'xu', 'yu', 'zu', 'xs', 'ys', 'zs', 'vx', 'vy', 'vz', 'fx', 'fy', 'fz', 'q']:
+                        row_data.append(f"{atoms[col][i]:.6f}")
+                    else:
+                        row_data.append(f"{atoms[col][i]}")
+                self._fp.write(f"{' '.join(row_data)}\n".encode())
+        
+        self._fp.flush()

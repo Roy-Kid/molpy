@@ -4,28 +4,25 @@ from pathlib import Path
 import mmap
 
 if TYPE_CHECKING:
-    from ...core.trajectory import Trajectory
     from ...core.frame import Frame
 
 PathLike = Union[str, bytes]  # type_check_only
 
 class TrajectoryReader(ABC):
     """
-    Base class for trajectory file readers with lazy loading and caching support.
+    Base class for trajectory file readers that act as providers.
     
-    This class provides memory-mapped file reading and works with Trajectory objects
-    to enable on-demand frame loading and caching.
+    This class provides memory-mapped file reading and directly returns Frame objects
+    without needing to interact with Trajectory objects.
     """
 
-    def __init__(self, trajectory: "Trajectory", fpath: Union[Path, str]):
+    def __init__(self, fpath: Union[Path, str]):
         """
         Initialize the trajectory reader.
         
         Args:
-            trajectory: Trajectory object to populate with frames
             fpath: Path to trajectory file
         """
-        self.trajectory = trajectory
         self.fpath = Path(fpath)
         if not self.fpath.exists():
             raise FileNotFoundError(f"File not found: {self.fpath}")
@@ -35,7 +32,6 @@ class TrajectoryReader(ABC):
         self._total_frames = 0
 
         self._open_file()
-        self.trajectory.set_total_frames(self._total_frames)
 
     @property
     def n_frames(self) -> int:
@@ -49,15 +45,15 @@ class TrajectoryReader(ABC):
         if self._mm is not None:
             self._mm.close()
 
-    def load_frame(self, index: int) -> "Frame":
+    def read_frame(self, index: int) -> "Frame":
         """
-        Load a specific frame into the trajectory.
+        Read a specific frame from the trajectory file.
         
         Args:
-            index: Frame index to load
+            index: Frame index to read
             
         Returns:
-            The loaded Frame object
+            The Frame object
         """
         if index < 0:
             index = self._total_frames + index
@@ -65,31 +61,25 @@ class TrajectoryReader(ABC):
         if index < 0 or index >= self._total_frames:
             raise IndexError(f"Frame index {index} out of range [0, {self._total_frames})")
             
-        # Check if frame is already loaded
-        if self.trajectory.is_loaded(index):
-            frame = self.trajectory.frames[index]  # Direct access to frame dict
-            return frame
-            
-        # Load the frame
-        frame = self.read_frame(index)
-        self.trajectory._add_frame(index, frame)
+        # Read the frame directly
+        frame = self._read_frame_data(index)
         return frame
 
-    def load_frames(self, indices: List[int]) -> List["Frame"]:
+    def read_frames(self, indices: List[int]) -> List["Frame"]:
         """
-        Load multiple frames into the trajectory.
+        Read multiple frames from the trajectory file.
         
         Args:
-            indices: List of frame indices to load
+            indices: List of frame indices to read
             
         Returns:
-            List of loaded Frame objects
+            List of Frame objects
         """
-        return [self.load_frame(i) for i in indices]
+        return [self.read_frame(i) for i in indices]
 
-    def load_range(self, start: int, stop: int, step: int = 1) -> List["Frame"]:
+    def read_range(self, start: int, stop: int, step: int = 1) -> List["Frame"]:
         """
-        Load a range of frames into the trajectory.
+        Read a range of frames from the trajectory file.
         
         Args:
             start: Starting frame index
@@ -97,21 +87,19 @@ class TrajectoryReader(ABC):
             step: Step size
             
         Returns:
-            List of loaded Frame objects
+            List of Frame objects
         """
         indices = list(range(start, stop, step))
-        return self.load_frames(indices)
+        return self.read_frames(indices)
 
-    def preload_all(self) -> None:
-        """Load all frames into the trajectory."""
-        for i in range(self._total_frames):
-            if not self.trajectory.is_loaded(i):
-                self.load_frame(i)
+    def read_all(self) -> List["Frame"]:
+        """Read all frames from the trajectory file."""
+        return [self.read_frame(i) for i in range(self._total_frames)]
 
     @abstractmethod
-    def read_frame(self, index: int) -> "Frame":
+    def _read_frame_data(self, index: int) -> "Frame":
         """
-        Read a frame from file without adding it to the trajectory.
+        Read frame data from file at the given index.
         
         Args:
             index: Frame index to read
@@ -121,17 +109,13 @@ class TrajectoryReader(ABC):
         """
         pass
 
-    def read_frames(self, indices: List[int]) -> List["Frame"]:
-        """Read multiple frames from file without adding them to the trajectory."""
-        return [self.read_frame(i) for i in indices]
-
     def __len__(self) -> int:
         return self._total_frames
 
     def __iter__(self) -> Iterator["Frame"]:
-        """Iterate over all frames, loading them as needed."""
+        """Iterate over all frames."""
         for i in range(self._total_frames):
-            yield self.load_frame(i)
+            yield self.read_frame(i)
 
     @abstractmethod
     def _parse_trajectory(self):

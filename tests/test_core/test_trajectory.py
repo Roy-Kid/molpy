@@ -1,233 +1,501 @@
-#!/usr/bin/env python3
-"""Unit tests for the refactored Trajectory and TrajectoryReader classes.
+"""Comprehensive tests for the trajectory module."""
 
-This module contains comprehensive tests for:
-- Trajectory class functionality (caching, indexing, metadata)
-- TrajectoryReader base class functionality
-- LammpsTrajectoryReader implementation
-- Integration between Trajectory and TrajectoryReader
-- Edge cases and error handling
-
-Uses pytest framework with modern Python 3.10+ type hints and Google-style docstrings.
-"""
-import numpy as np
 import pytest
+import numpy as np
+from typing import Generator, Iterator
+from unittest.mock import Mock
 
-from molpy.core.box import Box
-from molpy.core.frame import Block, Frame
-from molpy.core.trajectory import Trajectory
+from molpy.core.trajectory import (
+    FrameProvider, 
+    SizedFrameProvider,
+    CachedFrames,
+    FrameGenerator,
+    Trajectory,
+    SplitStrategy,
+    FrameIntervalStrategy,
+    TimeIntervalStrategy,
+    CustomStrategy,
+    TrajectorySplitter
+)
+from molpy.core.frame import Frame
+
+
+@pytest.fixture
+def mock_frame():
+    """Create a mock frame for testing."""
+    frame = Mock(spec=Frame)
+    frame.metadata = {}
+    return frame
+
+
+@pytest.fixture
+def mock_frames():
+    """Create a list of mock frames for testing."""
+    frames = []
+    for i in range(10):
+        frame = Mock(spec=Frame)
+        frame.metadata = {'time': i * 0.5}  # Time: 0.0, 0.5, 1.0, ..., 4.5
+        frames.append(frame)
+    return frames
+
+
+@pytest.fixture
+def frame_list_provider(mock_frames):
+    """Create a list-based frame provider."""
+    class FrameList(list):
+        def __getitem__(self, key):
+            if isinstance(key, int):
+                return super().__getitem__(key)
+            elif isinstance(key, slice):
+                return super().__getitem__(key)
+            else:
+                raise TypeError(f"Invalid key type: {type(key)}")
+                
+        def __iter__(self):
+            return super().__iter__()
+            
+        def __len__(self):
+            return super().__len__()
+    
+    return FrameList(mock_frames)
+
+
+@pytest.fixture
+def frame_generator(mock_frames):
+    """Create a generator of frames for testing."""
+    def gen():
+        for frame in mock_frames:
+            yield frame
+    return gen()
+
+
+class TestCachedFrames:
+    """Test the CachedFrames dict subclass."""
+    
+    def test_cached_frames_is_dict(self, mock_frame):
+        cache = CachedFrames()
+        cache[0] = mock_frame
+        assert cache[0] is mock_frame
+        assert len(cache) == 1
+
+
+class TestFrameGenerator:
+    """Test the FrameGenerator class."""
+    
+    def test_init(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        assert isinstance(fg._cache, CachedFrames)
+        assert not fg._exhausted
+    
+    def test_iteration(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        result = list(fg)
+        assert len(result) == len(mock_frames)
+        assert all(isinstance(f, Mock) for f in result)
+    
+    def test_iteration_caches_frames(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        
+        # First iteration should cache frames
+        list(fg)
+        assert len(fg._cache) == len(mock_frames)
+        
+        # Second iteration should use cached frames
+        result = list(fg)
+        assert len(result) == len(mock_frames)
+    
+    def test_getitem_positive_index(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        
+        # Access frame at index 3
+        frame = fg[3]
+        assert frame is mock_frames[3]
+        
+        # Should have cached frames 0-3
+        assert len(fg._cache) == 4
+    
+    def test_getitem_negative_index_raises(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        
+        with pytest.raises(IndexError, match="Negative indexing not supported"):
+            fg[-1]
+    
+    def test_getitem_out_of_range(self, mock_frames):
+        def gen():
+            for frame in mock_frames[:3]:  # Only 3 frames
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        
+        with pytest.raises(IndexError, match="Index 5 out of range"):
+            fg[5]
+    
+    def test_getitem_slice(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        
+        # Test basic slice
+        result = fg[2:5]
+        assert isinstance(result, list)
+        assert len(result) == 3
+        assert result[0] is mock_frames[2]
+        assert result[2] is mock_frames[4]
+    
+    def test_getitem_slice_with_step(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        
+        # Test slice with step
+        result = fg[1:8:2]
+        assert isinstance(result, list)
+        assert len(result) == 4
+        assert result[0] is mock_frames[1]
+        assert result[1] is mock_frames[3]
+        assert result[2] is mock_frames[5]
+        assert result[3] is mock_frames[7]
+    
+    def test_getitem_slice_negative_raises(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        
+        with pytest.raises(IndexError, match="Reverse slicing not supported"):
+            fg[-3:-1]
+    
+    def test_getitem_invalid_type(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        
+        with pytest.raises(TypeError, match="Invalid key type"):
+            fg[1.5]  # type: ignore[arg-type]
 
 
 class TestTrajectory:
-    """Test suite for the refactored Trajectory class."""
-
-    @pytest.fixture
-    def trajectory(self) -> Trajectory:
-        """Create an empty trajectory instance.
-        
-        Returns:
-            Empty Trajectory instance for testing.
-        """
-        return Trajectory()
-
-    @pytest.fixture
-    def test_frames(self) -> list[Frame]:
-        """Create test frame instances.
-        
-        Returns:
-            List of 5 test Frame instances with random atom data.
-        """
-        frames = []
-        for i in range(5):
-            atoms_data = {
-                'id': np.arange(1, 11),  # 10 atoms
-                'type': np.ones(10, dtype=int),
-                'x': np.random.random(10),
-                'y': np.random.random(10),
-                'z': np.random.random(10)
-            }
-            
-            box = Box(
-                matrix=np.diag([10.0, 10.0, 10.0]),
-                origin=np.zeros(3)
-            )
-            
-            frame = Frame(box=box, timestep=i)
-            frame["atoms"] = Block(atoms_data)
-            frames.append(frame)
-        return frames
+    """Test the Trajectory class."""
     
-    def test_empty_trajectory_initialization(self, trajectory: Trajectory) -> None:
-        """Test creating an empty trajectory.
+    def test_init_with_frame_provider(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        assert traj._frames is frame_list_provider
+        assert traj._topology is None
+    
+    def test_init_with_topology(self, frame_list_provider):
+        topology = Mock()
+        traj = Trajectory(frame_list_provider, topology)
+        assert traj._topology is topology
+    
+    def test_iteration(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        result = list(traj)
+        assert len(result) == len(frame_list_provider)
+    
+    def test_len_with_sized_provider(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        assert len(traj) == len(frame_list_provider)
+    
+    def test_len_with_generator_raises(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        traj = Trajectory(fg)
         
-        Args:
-            trajectory: Empty trajectory fixture.
-        """
-        assert len(trajectory) == 0
-        assert len(trajectory.get_loaded_indices()) == 0
-        assert trajectory._total_frames is None
+        with pytest.raises(TypeError, match="Length not available for generator-based"):
+            len(traj)
+    
+    def test_has_length_sized_provider(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        assert traj.has_length() is True
+    
+    def test_has_length_generator(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        traj = Trajectory(fg)
+        assert traj.has_length() is False
+    
+    def test_getitem_int_returns_frame(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        frame = traj[3]
+        assert frame is frame_list_provider[3]
+    
+    def test_getitem_slice_returns_trajectory(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        sub_traj = traj[2:5]
+        
+        assert isinstance(sub_traj, Trajectory)
+        assert sub_traj._topology is traj._topology
+    
+    def test_getitem_invalid_type(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        
+        with pytest.raises(TypeError, match="Invalid key type"):
+            traj[1.5]  # type: ignore[arg-type]
+    
+    def test_map_function(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        traj = Trajectory(fg)
+        
+        def transform_frame(frame):
+            new_frame = Mock(spec=Frame)
+            new_frame.metadata = {'transformed': True}
+            return new_frame
+        
+        mapped_traj = traj.map(transform_frame)
+        
+        assert isinstance(mapped_traj, Trajectory)
+        assert isinstance(mapped_traj._frames, FrameGenerator)
+        
+        # Test that mapping actually works
+        result = list(mapped_traj)
+        assert len(result) == len(mock_frames)
+        assert all(f.metadata.get('transformed') for f in result)
 
-    def test_trajectory_with_frames_initialization(self, test_frames: list[Frame]) -> None:
-        """Test creating trajectory with initial frames.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:3])
-        assert len(traj.get_loaded_indices()) == 3
-        assert traj.get_loaded_indices() == [0, 1, 2]
 
-    def test_append_frame(self, trajectory: Trajectory, test_frames: list[Frame]) -> None:
-        """Test appending frames to trajectory.
-        
-        Args:
-            trajectory: Empty trajectory fixture.
-            test_frames: List of test frames fixture.
-        """
-        trajectory.append(test_frames[0])
-        assert len(trajectory.get_loaded_indices()) == 1
-        assert 0 in trajectory.frames
+class TestSplitStrategy:
+    """Test the abstract SplitStrategy class."""
+    
+    def test_abstract_method(self):
+        # Cannot instantiate abstract class directly
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            SplitStrategy()  # type: ignore[abstract]
 
-    def test_frame_access_by_index(self, test_frames: list[Frame]) -> None:
-        """Test accessing frames by index.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:3])
-        
-        # Test positive indexing
-        frame = traj[1]
-        assert isinstance(frame, Frame)
-        
-        # Test negative indexing (requires total frames to be set)
-        traj.set_total_frames(3)
-        frame = traj[-1]
-        assert isinstance(frame, Frame)
 
-    def test_frame_access_unloaded_raises_keyerror(self) -> None:
-        """Test that accessing unloaded frames raises KeyError."""
-        traj = Trajectory()
-        traj.set_total_frames(5)
+class TestFrameIntervalStrategy:
+    """Test the FrameIntervalStrategy class."""
+    
+    def test_init(self):
+        strategy = FrameIntervalStrategy(5)
+        assert strategy.interval == 5
+    
+    def test_get_split_indices_sized_trajectory(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        strategy = FrameIntervalStrategy(3)
         
-        with pytest.raises(KeyError):
-            _ = traj[2]
+        indices = strategy.get_split_indices(traj)
+        expected = [0, 3, 6, 9, 10]  # For 10 frames with interval 3
+        assert indices == expected
+    
+    def test_get_split_indices_exact_multiple(self, frame_list_provider):
+        # Create a provider with exactly 9 frames
+        provider = frame_list_provider[:9]
+        traj = Trajectory(provider)
+        strategy = FrameIntervalStrategy(3)
+        
+        indices = strategy.get_split_indices(traj)
+        expected = [0, 3, 6, 9]
+        assert indices == expected
+    
+    def test_get_split_indices_generator_raises(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        traj = Trajectory(fg)
+        strategy = FrameIntervalStrategy(3)
+        
+        with pytest.raises(TypeError, match="Frame interval splitting requires trajectory with known length"):
+            strategy.get_split_indices(traj)
 
-    def test_slice_access(self, test_frames: list[Frame]) -> None:
-        """Test slice access returns new trajectory.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:4])
-        
-        sliced = traj[1:3]
-        assert isinstance(sliced, Trajectory)
-        assert len(sliced.get_loaded_indices()) == 2
 
-    def test_is_loaded(self, trajectory: Trajectory, test_frames: list[Frame]) -> None:
-        """Test checking if frame is loaded.
+class TestTimeIntervalStrategy:
+    """Test the TimeIntervalStrategy class."""
+    
+    def test_init(self):
+        strategy = TimeIntervalStrategy(1.0)
+        assert strategy.interval == 1.0
+    
+    def test_get_split_indices_with_time_metadata(self, mock_frames):
+        # Mock frames have time metadata: 0.0, 0.5, 1.0, 1.5, 2.0, ...
+        provider = mock_frames
+        traj = Trajectory(provider)
+        strategy = TimeIntervalStrategy(1.0)  # Split every 1.0 time unit
         
-        Args:
-            trajectory: Empty trajectory fixture.
-            test_frames: List of test frames fixture.
-        """
-        trajectory.append(test_frames[0])
+        indices = strategy.get_split_indices(traj)
+        # Should split at times: 0.0, 1.0, 2.0, 3.0, 4.0
+        # Corresponding to frame indices: 0, 2, 4, 6, 8, (10)
+        expected = [0, 2, 4, 6, 8, 10]
+        assert indices == expected
+    
+    def test_get_split_indices_no_time_metadata(self, frame_list_provider):
+        # Remove time metadata
+        for frame in frame_list_provider:
+            frame.metadata = {}
         
-        assert trajectory.is_loaded(0) is True
-        assert trajectory.is_loaded(1) is False
+        traj = Trajectory(frame_list_provider)
+        strategy = TimeIntervalStrategy(1.0)
+        
+        indices = strategy.get_split_indices(traj)
+        # Should only have start and end indices
+        expected = [0, 10]
+        assert indices == expected
+    
+    def test_get_split_indices_generator_exhausts(self, mock_frames):
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        traj = Trajectory(fg)
+        strategy = TimeIntervalStrategy(1.0)
+        
+        indices = strategy.get_split_indices(traj)
+        # Should work but exhaust the generator
+        assert len(indices) >= 2
+        assert indices[0] == 0
+        assert indices[-1] == len(mock_frames)
 
-    def test_need_more(self, test_frames: list[Frame]) -> None:
-        """Test need_more method.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:2])
-        
-        # We have 2 frames loaded, need more if total > 2
-        assert traj.need_more(5) is True  # This sets total frames to 5
-        
-        # Now we know there are 5 total frames and 2 loaded
-        assert traj.need_more(5) is True
-        
-        # If total equals loaded, no need for more
-        assert traj.need_more(2) is False
 
-    def test_cache_size_limit(self, test_frames: list[Frame]) -> None:
-        """Test LRU cache behavior with size limits.
+class TestCustomStrategy:
+    """Test the CustomStrategy class."""
+    
+    def test_init_and_call(self, frame_list_provider):
+        def custom_split_func(traj):
+            return [0, 5, 10]
         
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(max_cache_size=2)
+        strategy = CustomStrategy(custom_split_func)
+        traj = Trajectory(frame_list_provider)
         
-        # Add 3 frames - should evict the first one
-        for i in range(3):
-            traj.append(test_frames[i])
-        
-        # Should only have 2 frames cached
-        assert len(traj.frames) == 2
-        assert traj.is_loaded(0) is False  # First frame should be evicted
+        indices = strategy.get_split_indices(traj)
+        assert indices == [0, 5, 10]
 
-    def test_lru_access_order(self, test_frames: list[Frame]) -> None:
-        """Test that LRU eviction works correctly.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        # Create trajectory with cache size 3, add 3 frames
-        traj = Trajectory(max_cache_size=3)
-        
-        # Add frames manually to have more control
-        for i in range(3):
-            traj._add_frame(i, test_frames[i])
-        
-        # Access frame 0 to make it recently used
-        _ = traj[0]
-        
-        # Add another frame - should evict frame 1, not frame 0
-        traj._add_frame(3, test_frames[3])
-        
-        assert traj.is_loaded(0) is True   # Recently accessed
-        assert traj.is_loaded(1) is False  # Should be evicted (LRU)
-        assert traj.is_loaded(2) is True   # Still there
-        assert traj.is_loaded(3) is True   # Just added
 
-    def test_clear_cache(self, test_frames: list[Frame]) -> None:
-        """Test clearing the cache.
+class TestTrajectorySplitter:
+    """Test the TrajectorySplitter class."""
+    
+    def test_init(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        splitter = TrajectorySplitter(traj)
+        assert splitter.trajectory is traj
+    
+    def test_split_with_frame_interval(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        splitter = TrajectorySplitter(traj)
+        strategy = FrameIntervalStrategy(3)
         
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:3])
-        traj.clear_cache()
+        segments = splitter.split(strategy)
         
-        assert len(traj.frames) == 0
-        assert len(traj.get_loaded_indices()) == 0
+        assert len(segments) == 4  # [0:3], [3:6], [6:9], [9:10]
+        assert all(isinstance(seg, Trajectory) for seg in segments)
+    
+    def test_split_frames_convenience(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
+        splitter = TrajectorySplitter(traj)
+        
+        segments = splitter.split_frames(4)
+        
+        assert len(segments) == 3  # [0:4], [4:8], [8:10]
+        assert all(isinstance(seg, Trajectory) for seg in segments)
+    
+    def test_split_time_convenience(self, mock_frames):
+        provider = mock_frames
+        traj = Trajectory(provider)
+        splitter = TrajectorySplitter(traj)
+        
+        segments = splitter.split_time(1.0)
+        
+        assert len(segments) >= 1
+        assert all(isinstance(seg, Trajectory) for seg in segments)
+    
+    def test_split_preserves_topology(self, frame_list_provider):
+        topology = Mock()
+        traj = Trajectory(frame_list_provider, topology)
+        splitter = TrajectorySplitter(traj)
+        
+        segments = splitter.split_frames(3)
+        
+        assert all(seg._topology is topology for seg in segments)
 
-    def test_copy(self, test_frames: list[Frame]) -> None:
-        """Test copying trajectory.
-        
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:2], test_meta="value")
-        copy_traj = traj.copy()
-        
-        assert len(copy_traj.get_loaded_indices()) == 2
-        assert copy_traj.meta.get("test_meta") == "value"
-        assert traj is not copy_traj
 
-    def test_iteration(self, test_frames: list[Frame]) -> None:
-        """Test iterating over trajectory.
+class TestProtocolCompliance:
+    """Test that classes properly implement the protocols."""
+    
+    def test_frame_generator_implements_frame_provider(self, frame_generator):
+        fg = FrameGenerator(frame_generator)
+        assert isinstance(fg, FrameProvider)
+    
+    def test_list_implements_sized_frame_provider(self, frame_list_provider):
+        assert isinstance(frame_list_provider, SizedFrameProvider)
+        assert isinstance(frame_list_provider, FrameProvider)
+
+
+class TestErrorHandling:
+    """Test error handling throughout the module."""
+    
+    def test_frame_generator_handles_empty_generator(self):
+        def empty_gen():
+            return
+            yield  # This will never be reached
         
-        Args:
-            test_frames: List of test frames fixture.
-        """
-        traj = Trajectory(test_frames[:3])
-        frames = list(traj)
+        fg = FrameGenerator(empty_gen())
+        result = list(fg)
+        assert result == []
+        assert fg._exhausted
+    
+    def test_trajectory_slicing_edge_cases(self, frame_list_provider):
+        traj = Trajectory(frame_list_provider)
         
-        assert len(frames) == 3
-        for frame in frames:
-            assert isinstance(frame, Frame)
+        # Empty slice
+        empty_traj = traj[5:5]
+        assert isinstance(empty_traj, Trajectory)
+        
+        # Slice beyond bounds
+        beyond_traj = traj[8:20]
+        assert isinstance(beyond_traj, Trajectory)
+
+
+class TestIntegration:
+    """Integration tests combining multiple components."""
+    
+    def test_full_workflow_with_frame_generator(self, mock_frames):
+        # Create trajectory from generator
+        def gen():
+            for frame in mock_frames:
+                yield frame
+        
+        fg = FrameGenerator(gen())
+        traj = Trajectory(fg)
+        
+        # Apply transformation
+        def add_id(frame):
+            new_frame = Mock(spec=Frame)
+            new_frame.metadata = frame.metadata.copy()
+            new_frame.metadata['id'] = id(frame)
+            return new_frame
+        
+        transformed_traj = traj.map(add_id)
+        
+        # Collect results
+        result = list(transformed_traj)
+        assert len(result) == len(mock_frames)
+        assert all('id' in f.metadata for f in result)
+    
+    def test_full_workflow_with_splitting(self, frame_list_provider):
+        # Create trajectory
+        topology = Mock()
+        traj = Trajectory(frame_list_provider, topology)
+        
+        # Split trajectory
+        splitter = TrajectorySplitter(traj)
+        segments = splitter.split_frames(3)
+        
+        # Verify segments
+        assert len(segments) == 4
+        
+        # Test accessing frames in segments
+        first_segment = segments[0]
+        frames_in_first = list(first_segment)
+        assert len(frames_in_first) == 3
+        
+        # Verify topology is preserved
+        assert all(seg._topology is topology for seg in segments)

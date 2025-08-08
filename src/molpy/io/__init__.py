@@ -222,12 +222,10 @@ def write_lammps(workdir: Path, system: mp.FrameSystem) -> None:
     write_lammps_data(file_path.with_suffix(".data"), system._wrapped)
     write_lammps_forcefield(file_path.with_suffix(".ff"), system.forcefield)
 
-def read_lammps_trajectory(file: Path | str, trajectory: mp.Trajectory | None = None) -> 'trajectory.lammps.LammpsTrajectoryReader':
+def read_lammps_trajectory(file: Path | str) -> 'trajectory.lammps.LammpsTrajectoryReader':
     """Read LAMMPS trajectory file and return a trajectory reader."""
     from .trajectory.lammps import LammpsTrajectoryReader
-    if trajectory is None:
-        trajectory = mp.Trajectory()
-    return LammpsTrajectoryReader(trajectory, [Path(file)])
+    return LammpsTrajectoryReader(Path(file))
 
 def write_lammps_trajectory(file: Path | str, frames: List[mp.Frame], atom_style: str = "full") -> None:
     """Write frames to a LAMMPS trajectory file."""

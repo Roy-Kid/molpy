@@ -68,9 +68,11 @@ class RadiiOfGyration(Compute):
         """
         Compute the radii of gyration of the frame.
         """
-        xyz = context.frame["atoms"]["xyz"]
+        xyz = context.frame["atoms"][["xu", "yu", "zu"]]
         box = context.frame.box.matrix
         cl = freud.cluster.ClusterProperties()
+        print(xyz.shape)
+        print(context.result[self.cluster_field].shape)
         cl.compute((box, xyz), context.result[self.cluster_field])
         context.result[f"{self.name}_radii_of_gyration"] = cl.radii_of_gyration
         return context

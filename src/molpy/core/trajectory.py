@@ -1,271 +1,219 @@
-# author: Roy Kid
-# contact: lijichen365@gmail.com
-# date: 2024-02-05
-# version: 0.0.1
-
-from typing import Optional, List, Dict, Any, Iterator, Union
-from copy import deepcopy
+from typing import Protocol, Iterator, overload, Sequence, Generator, Union, Callable, runtime_checkable
+from abc import ABC, abstractmethod
+import numpy as np
 from .frame import Frame
 
+@runtime_checkable
+class FrameProvider(Protocol):
+    """Protocol for frame providers that can be indexed."""
+    def __getitem__(self, key: int | slice) -> Frame | list[Frame]: ...
+    def __iter__(self) -> Iterator[Frame]: ...
+
+@runtime_checkable
+class SizedFrameProvider(FrameProvider, Protocol):
+    """Protocol for frame providers that have a known length."""
+    def __len__(self) -> int: ...
+
+class CachedFrames(dict[int, Frame]): ...
+
+class FrameGenerator(FrameProvider):
+    """Generator-based frame provider with caching. No predefined length."""
+
+    def __init__(self, frames: Generator[Frame, None, None]):
+        """Initialize with a generator of frames."""
+        self._frames = frames
+        self._cache = CachedFrames()
+        self._exhausted = False
+
+    def __iter__(self) -> Iterator[Frame]:
+        idx = 0
+        # If we're exhausted, just iterate through cached frames
+        if self._exhausted:
+            for i in sorted(self._cache.keys()):
+                yield self._cache[i]
+            return
+            
+        # Otherwise, continue from where we left off
+        while not self._exhausted:
+            if idx in self._cache:
+                yield self._cache[idx]
+            else:
+                try:
+                    frame = next(self._frames)
+                    self._cache[idx] = frame
+                    yield frame
+                except StopIteration:
+                    self._exhausted = True
+                    break
+            idx += 1
+
+    def __getitem__(self, key: int | slice) -> Frame | list[Frame]: 
+        if isinstance(key, int):
+            if key < 0:
+                raise IndexError("Negative indexing not supported for generator-based frames. "
+                               "Consider using Framelist for full indexing support.")
+            
+            if key in self._cache:
+                return self._cache[key]
+            
+            # Generate frames up to the requested index
+            for idx, frame in enumerate(self):
+                if idx == key:
+                    return frame
+            raise IndexError(f"Index {key} out of range (generator exhausted)")
+        elif isinstance(key, slice):
+            if key.start < 0 or key.stop < 0:
+                raise IndexError("Reverse slicing not supported for generators")
+            start = key.start or 0
+            stop = key.stop
+            step = key.step or 1
+            
+            result = []
+            for i in range(start, stop, step):
+                try:
+                    result.append(self[i])
+                except IndexError:
+                    break
+            return result
+        else:
+            raise TypeError(f"Invalid key type: {type(key)}")
+        
 
 class Trajectory:
-    """
-    A trajectory represents a time-ordered sequence of molecular configurations (frames).
-    
-    This class stores loaded frames in memory and provides an interface for lazy loading
-    and caching of trajectory data. It is designed to work with TrajectoryReader for
-    on-demand frame loading.
-    
-    Each frame contains atomic positions, velocities, forces, and system properties 
-    at a specific time step.
-    """
-    
-    def __init__(self, frames: Optional[List[Frame]] = None, max_cache_size: Optional[int] = None, **meta):
-        """
-        Initialize a trajectory.
-        
-        Args:
-            frames: Optional list of Frame objects. If None, creates an empty trajectory.
-            max_cache_size: Maximum number of frames to keep in memory. If None, no limit.
-            **meta: Additional metadata for the trajectory.
-        """
-        self.frames: Dict[int, Frame] = {}  # frame_index -> Frame
-        self._frame_indices: List[int] = []  # ordered list of available frame indices
-        self._total_frames: Optional[int] = None  # total number of frames (when known)
-        self._max_cache_size = max_cache_size
-        self._access_order: List[int] = []  # for LRU cache management
-        self.meta = meta
-        
-        if frames:
-            for i, frame in enumerate(frames):
-                self._add_frame(i, frame)
+    """A sequence of molecular frames with optional topology."""
+
+    def __init__(self, frames: FrameProvider, topology=None):
+        """Initialize trajectory with a frame provider."""
+        self._frames = frames
+        self._topology = topology
+
+    def __iter__(self) -> Iterator[Frame]:
+        return iter(self._frames)
     
     def __len__(self) -> int:
-        """Return the number of available frames in the trajectory."""
-        if self._total_frames is not None:
-            return self._total_frames
-        return len(self._frame_indices)
+        """Return the number of frames in the trajectory."""
+        if isinstance(self._frames, SizedFrameProvider):
+            return len(self._frames)
+        else:
+            raise TypeError("Length not available for generator-based trajectories. "
+                          "Use count_frames() to exhaust and count if needed.")
     
-    def __getitem__(self, idx: Union[int, slice]) -> Union[Frame, 'Trajectory']:
-        """
-        Get a frame by index or slice.
+    def has_length(self) -> bool:
+        """Check if this trajectory has a known length without computing it."""
+        return isinstance(self._frames, SizedFrameProvider)
+
+    def __getitem__(self, key: int | slice) -> "Frame | Trajectory":
+        if isinstance(key, int):
+            frame = self._frames[key]
+            # Protocol guarantees Frame for int index
+            return frame  # type: ignore[return-value]
+        elif isinstance(key, slice):
+            sliced_frames = self._frames[key]
+            return Trajectory(sliced_frames, self._topology)  # type: ignore[arg-type]
+        else:
+            raise TypeError(f"Invalid key type: {type(key)}")
+
+    def map(self, func: Callable[[Frame], Frame]) -> "Trajectory":
+        """Apply a function to each frame, returning a new trajectory."""
+        def mapped_generator() -> Generator[Frame, None, None]:
+            for frame in self._frames:
+                yield func(frame)
+        return Trajectory(FrameGenerator(mapped_generator()), self._topology)
+
+
+# ====================== Trajectory Splitters ====================
+
+class SplitStrategy(ABC):
+    """Abstract splitting strategy."""
+    
+    @abstractmethod
+    def get_split_indices(self, trajectory: Trajectory) -> list[int]:
+        """Get split point indices."""
+        raise NotImplementedError
+
+
+class FrameIntervalStrategy(SplitStrategy):
+    """Split every N frames."""
+    
+    def __init__(self, interval: int):
+        self.interval = interval
+    
+    def get_split_indices(self, trajectory: Trajectory) -> list[int]:
+        if not trajectory.has_length():
+            raise TypeError("Frame interval splitting requires trajectory with known length")
         
-        Args:
-            idx: Frame index or slice
-            
-        Returns:
-            Frame object at the specified index or new Trajectory with sliced frames
-            
-        Raises:
-            IndexError: If frame is not available and cannot be loaded
-            KeyError: If frame index is not in the trajectory
-        """
-        if isinstance(idx, slice):
-            # Handle slice - return new Trajectory with loaded frames in the slice range
-            start, stop, step = idx.indices(len(self))
-            sliced_frames = []
-            for i in range(start, stop, step):
-                if i in self.frames:
-                    sliced_frames.append(self.frames[i])
-                else:
-                    raise KeyError(f"Frame {i} not loaded. Use TrajectoryReader.load_frame() first.")
-            return Trajectory(sliced_frames, max_cache_size=self._max_cache_size, **self.meta)
+        length = len(trajectory)
+        indices = list(range(0, length, self.interval))
+        if indices[-1] != length:
+            indices.append(length)
+        return indices
+
+
+class TimeIntervalStrategy(SplitStrategy):
+    """Split by time intervals."""
+    
+    def __init__(self, interval: float):
+        self.interval = interval
+    
+    def get_split_indices(self, trajectory: Trajectory) -> list[int]:
+        indices = [0]
+        start_time = None
+        frame_count = 0
         
-        # Handle single index
-        if idx < 0:
-            # Handle negative indexing
-            if self._total_frames is not None:
-                idx = self._total_frames + idx
-            else:
-                idx = len(self._frame_indices) + idx
+        for i, frame in enumerate(trajectory):
+            frame_count = i + 1  # Keep track of total frames seen
+            # Check if frame has time information in metadata
+            frame_time = frame.metadata.get('time', None)
+            if frame_time is not None:
+                if start_time is None:
+                    start_time = frame_time
                 
-        if idx in self.frames:
-            # Update access order for LRU
-            if idx in self._access_order:
-                self._access_order.remove(idx)
-            self._access_order.append(idx)
-            return self.frames[idx]
+                # Check if we've reached the next interval
+                if frame_time >= start_time + len(indices) * self.interval:
+                    indices.append(i)
         
-        # Frame not loaded - caller should use TrajectoryReader to load it
-        raise KeyError(f"Frame {idx} not loaded. Use TrajectoryReader.load_frame() first.")
-    
-    def append(self, frame: Frame) -> None:
-        """
-        Add a frame to the trajectory.
+        # Add final index using the count from iteration
+        final_index = frame_count
+        if indices[-1] != final_index:
+            indices.append(final_index)
         
-        Args:
-            frame: Frame object to add
-        """
-        next_index = max(self._frame_indices, default=-1) + 1
-        self._add_frame(next_index, frame)
-    
-    def extend(self, frames: List[Frame]) -> None:
-        """
-        Add multiple frames to the trajectory.
-        
-        Args:
-            frames: List of Frame objects to add
-        """
-        for frame in frames:
-            self.append(frame)
-    
-    def _add_frame(self, index: int, frame: Frame) -> None:
-        """
-        Internal method to add a frame at a specific index.
-        
-        Args:
-            index: Frame index
-            frame: Frame object to add
-        """
-        # If frame already exists, just update access order
-        if index in self.frames:
-            if index in self._access_order:
-                self._access_order.remove(index)
-            self._access_order.append(index)
-            return
-            
-        # Manage cache size before adding new frame
-        if self._max_cache_size and len(self.frames) >= self._max_cache_size:
-            self._evict_lru_frame()
-        
-        self.frames[index] = frame
-        if index not in self._frame_indices:
-            self._frame_indices.append(index)
-            self._frame_indices.sort()
-        
-        # Update access order
-        self._access_order.append(index)
-    
-    def _evict_lru_frame(self) -> None:
-        """Remove the least recently used frame from cache."""
-        if not self._access_order:
-            return
-        
-        lru_index = self._access_order.pop(0)
-        if lru_index in self.frames:
-            del self.frames[lru_index]
-            # Note: We don't remove from _frame_indices as it tracks 
-            # which frames are available, not which are loaded
-    
-    def need_more(self, total_frames: int) -> bool:
-        """
-        Check if more frames need to be loaded.
-        
-        Args:
-            total_frames: Total number of frames available
-            
-        Returns:
-            True if more frames are available to load
-        """
-        self._total_frames = total_frames
-        return len(self._frame_indices) < total_frames
-    
-    def is_loaded(self, index: int) -> bool:
-        """
-        Check if a frame is already loaded in memory.
-        
-        Args:
-            index: Frame index to check
-            
-        Returns:
-            True if frame is loaded, False otherwise
-        """
-        return index in self.frames
-    
-    def get_loaded_indices(self) -> List[int]:
-        """
-        Get list of frame indices that are currently loaded.
-        
-        Returns:
-            Sorted list of loaded frame indices
-        """
-        return sorted(self.frames.keys())
-    
-    def clear_cache(self) -> None:
-        """Remove all frames from memory cache."""
-        self.frames.clear()
-        self._access_order.clear()
-        self._frame_indices.clear()
-    
-    def set_total_frames(self, total: int) -> None:
-        """
-        Set the total number of frames in the trajectory.
-        
-        Args:
-            total: Total number of frames
-        """
-        self._total_frames = total
-    
-    def iterframes(self) -> Iterator[Frame]:
-        """
-        Iterate over loaded frames in the trajectory.
-        
-        Note: This only iterates over frames currently in memory.
-        Use TrajectoryReader for complete iteration.
-        """
-        for index in sorted(self.frames.keys()):
-            yield self.frames[index]
-    
-    def copy(self) -> "Trajectory":
-        """Create a copy of the trajectory with all loaded frames."""
-        new_traj = Trajectory(max_cache_size=self._max_cache_size, **deepcopy(self.meta))
-        new_traj._total_frames = self._total_frames
-        for index, frame in self.frames.items():
-            new_traj._add_frame(index, deepcopy(frame))
-        return new_traj
-    
-    def __iter__(self):
-        """
-        Iterate over loaded frames in the trajectory.
-        
-        Note: This only iterates over frames currently in memory.
-        Use TrajectoryReader for complete iteration.
-        """
-        return self.iterframes()
-    
-    def __repr__(self) -> str:
-        loaded = len(self.frames)
-        total = self._total_frames or len(self._frame_indices)
-        return f"<Trajectory {loaded}/{total} frames loaded, meta={self.meta}>"
-    
-    # Placeholder for IO (legacy compatibility)
-    def to_file(self, filename, fmt=None):
-        raise NotImplementedError("Trajectory export not implemented. Use TrajectoryWriter instead.")
+        return indices
 
-    @classmethod
-    def from_file(cls, filename, fmt=None):
-        raise NotImplementedError("Trajectory import not implemented. Use TrajectoryReader instead.")
 
-    @classmethod
-    def concat(cls, trajectories: list["Trajectory"]) -> "Trajectory":
-        """Concatenate multiple Trajectory objects into one."""
-        if not trajectories:
-            return cls()
+class CustomStrategy(SplitStrategy):
+    """Split using custom function."""
+    
+    def __init__(self, split_func: Callable[[Trajectory], list[int]]):
+        self.split_func = split_func
+    
+    def get_split_indices(self, trajectory: Trajectory) -> list[int]:
+        return self.split_func(trajectory)
+
+
+class TrajectorySplitter:
+    """Splits trajectories into lazy segments."""
+    
+    def __init__(self, trajectory: Trajectory):
+        self.trajectory = trajectory
+    
+    def split(self, strategy: SplitStrategy) -> list[Trajectory]:
+        """Split trajectory using strategy, returning lazy segments."""
+        indices = strategy.get_split_indices(self.trajectory)
         
-        # Create new trajectory with combined metadata
-        meta = trajectories[0].meta.copy() if hasattr(trajectories[0], "meta") else {}
-        new_traj = cls(**meta)
+        segments = []
+        for i in range(len(indices) - 1):
+            start, end = indices[i], indices[i + 1]
+            # Use trajectory slicing instead of accessing private members
+            segment = self.trajectory[start:end]
+            segments.append(segment)
         
-        # Add all frames from all trajectories
-        for traj in trajectories:
-            for frame in traj.iterframes():
-                new_traj.append(frame)
-        
-        return new_traj
-
-    def to_dict(self) -> dict:
-        """Convert the trajectory to a dict with frame data and meta info."""
-        return {
-            "frames": [frame.to_dict() for frame in self.iterframes()],
-            "meta": self.meta.copy(),
-            "loaded_indices": self.get_loaded_indices(),
-            "total_frames": self._total_frames
-        }
-
-    def get_meta(self, key: str, default=None):
-        """Get metadata value."""
-        return self.meta.get(key, default)
-
-    def set_meta(self, key: str, value: Any):
-        """Set metadata value."""
-        self.meta[key] = value
+        return segments
+    
+    def split_frames(self, interval: int) -> list[Trajectory]:
+        """Convenience method for frame-based splitting."""
+        return self.split(FrameIntervalStrategy(interval))
+    
+    def split_time(self, interval: float) -> list[Trajectory]:
+        """Convenience method for time-based splitting."""
+        return self.split(TimeIntervalStrategy(interval))
+    
