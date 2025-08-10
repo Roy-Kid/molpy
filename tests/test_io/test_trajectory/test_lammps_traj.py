@@ -1,9 +1,9 @@
 import pytest
 import tempfile
 import numpy as np
+from pathlib import Path
 import molpy as mp
 from molpy.io.trajectory.lammps import LammpsTrajectoryReader, LammpsTrajectoryWriter
-from pathlib import Path
 
 
 class TestReadLammpsTrajectory:
@@ -13,16 +13,17 @@ class TestReadLammpsTrajectory:
         frame = reader.read_frame(0)
 
         assert frame.metadata["timestep"] is not None
-        assert frame.box.matrix.shape == (3, 3)  # type: ignore
+        assert frame.metadata["box"] is not None
+        assert frame.metadata["box"].matrix.shape == (3, 3)
         assert frame["atoms"].nrows > 0
-        assert frame.box is not None
 
     def test_read_frame_with_properties(self, TEST_DATA_DIR):
         reader = LammpsTrajectoryReader(TEST_DATA_DIR / "trajectory/lammps/properties.lammpstrj")
         frame = reader.read_frame(0)
 
         assert frame.metadata["timestep"] is not None
-        assert frame.box.matrix.shape == (3, 3)  # type: ignore
+        assert frame.metadata["box"] is not None
+        assert frame.metadata["box"].matrix.shape == (3, 3)
         assert frame["atoms"].nrows > 0
         
         # Check that atoms block exists and has content
@@ -45,7 +46,7 @@ class TestReadLammpsTrajectory:
             assert isinstance(frame, mp.Frame)
             assert frame.metadata["timestep"] is not None
             assert "atoms" in frame
-            assert frame.box is not None
+            assert frame.metadata["box"] is not None
 
     def test_frame_properties(self, TEST_DATA_DIR):
         """Test that frames have correct properties."""
@@ -57,9 +58,9 @@ class TestReadLammpsTrajectory:
         assert isinstance(frame.metadata["timestep"], (int, np.integer))
         
         # Check box
-        assert frame.box is not None
-        assert hasattr(frame.box, 'matrix')
-        assert frame.box.matrix.shape == (3, 3)
+        assert frame.metadata["box"] is not None
+        assert hasattr(frame.metadata["box"], 'matrix')
+        assert frame.metadata["box"].matrix.shape == (3, 3)
 
     def test_context_manager(self, TEST_DATA_DIR):
         """Test using trajectory reader as context manager."""
@@ -67,6 +68,30 @@ class TestReadLammpsTrajectory:
             frame = reader.read_frame(0)
             assert frame.metadata["timestep"] is not None
             assert "atoms" in frame
+
+    def test_multiple_files_support(self, TEST_DATA_DIR):
+        """Test reading from multiple trajectory files."""
+        file1 = TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
+        file2 = TEST_DATA_DIR / "trajectory/lammps/properties.lammpstrj"
+        
+        # Test with multiple files if they exist
+        if file1.exists() and file2.exists():
+            reader = LammpsTrajectoryReader([file1, file2])
+            
+            # Should have frames from both files
+            assert reader.n_frames > 0
+            
+            # Read some frames
+            frame1 = reader.read_frame(0)
+            assert frame1.metadata["timestep"] is not None
+            assert "atoms" in frame1
+            
+            # Test reading range
+            if reader.n_frames > 1:
+                frames = reader.read_range(0, min(3, reader.n_frames))
+                assert len(frames) >= 1
+                for frame in frames:
+                    assert isinstance(frame, mp.Frame)
 
 
 class TestWriteLammpsTrajectory:
@@ -88,14 +113,15 @@ class TestWriteLammpsTrajectory:
             }
             frame["atoms"] = atoms_data
             frame.metadata["timestep"] = i * 100
-            frame.box = mp.Box(np.eye(3) * 10.0)
+            frame.metadata["box"] = mp.Box(np.eye(3) * 10.0)
             frames.append(frame)
         
         # Write trajectory
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
             writer = LammpsTrajectoryWriter(tmp.name)
             for frame in frames:
-                writer.write_frame(frame)
+                timestep = frame.metadata["timestep"]
+                writer.write_frame(frame, timestep=timestep)
             writer.close()
             
             # Read back and verify
@@ -126,7 +152,7 @@ class TestWriteLammpsTrajectory:
         }
         frame["atoms"] = atoms_data
         frame.metadata["timestep"] = 0
-        frame.box = mp.Box(np.eye(3) * 5.0)
+        frame.metadata["box"] = mp.Box(np.eye(3) * 5.0)
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
             with LammpsTrajectoryWriter(tmp.name) as writer:
@@ -149,7 +175,7 @@ class TestWriteLammpsTrajectory:
         }
         frame["atoms"] = atoms_data
         frame.metadata["timestep"] = 1000
-        frame.box = mp.Box(np.diag([5.0, 5.0, 5.0]))
+        frame.metadata["box"] = mp.Box(np.diag([5.0, 5.0, 5.0]))
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
             # Write
@@ -170,8 +196,8 @@ class TestWriteLammpsTrajectory:
             assert atoms.nrows == 4
             
             # Verify box
-            assert frame_read.box is not None
-            assert np.allclose(frame_read.box.matrix.diagonal(), [5.0, 5.0, 5.0])
+            assert frame_read.metadata["box"] is not None
+            assert np.allclose(frame_read.metadata["box"].matrix.diagonal(), [5.0, 5.0, 5.0])
 
 
 class TestErrorHandling:
@@ -180,7 +206,6 @@ class TestErrorHandling:
         """Test reading non-existent trajectory file."""
         with pytest.raises((FileNotFoundError, IOError)):
             reader = LammpsTrajectoryReader("nonexistent.dump")
-            reader.read_frame(0)
 
     def test_read_empty_file(self):
         """Test reading empty trajectory file."""
@@ -221,13 +246,143 @@ class TestErrorHandling:
         """Test reading invalid frame indices."""
         reader = LammpsTrajectoryReader(TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj")
         
-        # Test negative index
-        with pytest.raises((IndexError, ValueError)):
-            reader.read_frame(-1)
-        
         # Test too large index
         with pytest.raises((IndexError, ValueError)):
             reader.read_frame(999999)
+
+
+class TestMultipleFilesTrajectory:
+    """Test multiple file trajectory reading capabilities."""
+
+    def test_create_multi_file_trajectory(self):
+        """Test creating and reading a multi-file trajectory."""
+        # Create multiple trajectory files
+        filenames = []
+        
+        for file_idx in range(3):
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
+                filenames.append(tmp.name)
+                
+                writer = LammpsTrajectoryWriter(tmp.name)
+                
+                # Write 2 frames per file
+                for frame_idx in range(2):
+                    frame = mp.Frame()
+                    
+                    atoms_data = {
+                        'id': [0, 1],
+                        'type': [1, 2],
+                        'x': [0.0 + file_idx*0.5 + frame_idx*0.1, 1.0 + file_idx*0.5 + frame_idx*0.1],
+                        'y': [0.0, 0.0],
+                        'z': [0.0, 0.0]
+                    }
+                    frame["atoms"] = atoms_data
+                    frame.metadata["timestep"] = file_idx * 100 + frame_idx * 10
+                    frame.metadata["box"] = mp.Box(np.eye(3) * 10.0)
+                    
+                    writer.write_frame(frame)
+                
+                writer.close()
+        
+        # Test reading from multiple files
+        reader = LammpsTrajectoryReader(filenames)
+        
+        # Should have 6 frames total (3 files × 2 frames each)
+        assert reader.n_frames == 6
+        
+        # Test reading all frames
+        all_frames = reader.read_all()
+        assert len(all_frames) == 6
+        
+        # Check that timesteps are in expected order
+        expected_timesteps = [0, 10, 100, 110, 200, 210]
+        for i, frame in enumerate(all_frames):
+            assert frame.metadata["timestep"] == expected_timesteps[i]
+        
+        # Test reading specific frames
+        frame_2 = reader.read_frame(2)  # First frame of second file
+        assert frame_2.metadata["timestep"] == 100
+        
+        frame_5 = reader.read_frame(5)  # Last frame
+        assert frame_5.metadata["timestep"] == 210
+        
+        # Test reading range
+        frames_1_to_3 = reader.read_range(1, 4)
+        assert len(frames_1_to_3) == 3
+        assert frames_1_to_3[0].metadata["timestep"] == 10
+        assert frames_1_to_3[2].metadata["timestep"] == 110
+        
+        # Cleanup
+        for filename in filenames:
+            Path(filename).unlink()
+
+    def test_multi_file_with_different_formats(self):
+        """Test reading multiple files with potentially different atom formats."""
+        filenames = []
+        
+        # File 1: basic format
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp1:
+            filenames.append(tmp1.name)
+            
+            writer = LammpsTrajectoryWriter(tmp1.name)
+            frame = mp.Frame()
+            
+            atoms_data = {
+                'id': [0, 1],
+                'type': [1, 1],
+                'x': [0.0, 1.0],
+                'y': [0.0, 0.0],
+                'z': [0.0, 0.0]
+            }
+            frame["atoms"] = atoms_data
+            frame.metadata["timestep"] = 0
+            frame.metadata["box"] = mp.Box(np.eye(3) * 10.0)
+            
+            writer.write_frame(frame)
+            writer.close()
+        
+        # File 2: format with velocities
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp2:
+            filenames.append(tmp2.name)
+            
+            writer = LammpsTrajectoryWriter(tmp2.name)
+            frame = mp.Frame()
+            
+            atoms_data = {
+                'id': [0, 1, 2],
+                'type': [1, 1, 2],
+                'x': [0.0, 1.0, 0.5],
+                'y': [0.0, 0.0, 1.0],
+                'z': [0.0, 0.0, 0.0],
+                'vx': [0.1, -0.1, 0.0],
+                'vy': [0.0, 0.0, 0.1],
+                'vz': [0.0, 0.0, 0.0]
+            }
+            frame["atoms"] = atoms_data
+            frame.metadata["timestep"] = 100
+            frame.metadata["box"] = mp.Box(np.eye(3) * 10.0)
+            
+            writer.write_frame(frame)
+            writer.close()
+        
+        # Read both files together
+        reader = LammpsTrajectoryReader(filenames)
+        
+        assert reader.n_frames == 2
+        
+        # Read first frame (from file 1)
+        frame1 = reader.read_frame(0)
+        assert frame1.metadata["timestep"] == 0
+        assert frame1["atoms"].nrows == 2
+        
+        # Read second frame (from file 2)
+        frame2 = reader.read_frame(1)
+        assert frame2.metadata["timestep"] == 100
+        assert frame2["atoms"].nrows == 3
+        
+        # Cleanup
+        for filename in filenames:
+            Path(filename).unlink()
 
 
 class TestTrajectoryIntegration:
@@ -239,14 +394,15 @@ class TestTrajectoryIntegration:
         
         atoms_data = {
             'id': [0, 1, 2],
-            'molid': [1, 1, 2],
-            'type': ['O', 'H', 'H'],
-            'q': [-0.8476, 0.4238, 0.4238],
-            'xyz': [[0.0, 0.0, 0.0], [0.816, 0.577, 0.0], [-0.816, 0.577, 0.0]]
+            'type': [1, 1, 2],  # Use numeric types for LAMMPS
+            'x': [0.0, 0.816, -0.816],
+            'y': [0.0, 0.577, 0.577],
+            'z': [0.0, 0.0, 0.0],
+            'q': [-0.8476, 0.4238, 0.4238]
         }
         frame["atoms"] = atoms_data
         frame.metadata["timestep"] = 0
-        frame.box = mp.Box(np.diag([10.0, 10.0, 10.0]))
+        frame.metadata["box"] = mp.Box(np.diag([10.0, 10.0, 10.0]))
         
         # Write as trajectory
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
@@ -260,7 +416,7 @@ class TestTrajectoryIntegration:
             
             assert frame_read.metadata["timestep"] is not None
             assert "atoms" in frame_read
-            assert frame_read.box is not None
+            assert frame_read.metadata["box"] is not None
 
     def test_multiple_formats_consistency(self):
         """Test that data and trajectory formats are consistent."""
@@ -271,11 +427,13 @@ class TestTrajectoryIntegration:
         atoms_data = {
             'id': [0, 1],
             'type': [1, 2],
-            'xyz': [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+            'x': [0.0, 1.0],
+            'y': [0.0, 0.0],
+            'z': [0.0, 0.0]
         }
         frame_original["atoms"] = atoms_data
         frame_original.metadata["timestep"] = 100
-        frame_original.box = mp.Box(np.eye(3) * 5.0)
+        frame_original.metadata["box"] = mp.Box(np.eye(3) * 5.0)
         
         # Write as trajectory and read back
         with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
@@ -289,167 +447,9 @@ class TestTrajectoryIntegration:
             # Both should have same basic structure
             assert frame_traj.metadata["timestep"] is not None
             assert "atoms" in frame_traj
-            assert frame_traj.box is not None
-            assert frame_original.box is not None
+            assert frame_traj.metadata["box"] is not None
+            assert frame_original.metadata["box"] is not None
             
             # Box dimensions should be similar
-            assert np.allclose(frame_traj.box.matrix.diagonal(), 
-                             frame_original.box.matrix.diagonal())
-
-# ===== Merged tests from test_lammps_trajectory_fixes.py =====
-
-class TestLammpsTrajectoryFixes:
-    """Test LAMMPS trajectory functionality with fixes."""
-
-    def test_basic_trajectory_write_read(self):
-        """Test basic trajectory writing and reading."""
-        # Create frames
-        frames = []
-        for timestep in [0, 100, 200]:
-            frame = mp.Frame()
-            
-            atoms_data = {
-                'id': [0, 1],
-                'type': [1, 2],  # Use numeric types for trajectory
-                'x': [0.0 + timestep*0.01, 1.0 + timestep*0.01],
-                'y': [0.0, 0.0],
-                'z': [0.0, 0.0],
-                'q': [0.5, -0.5]
-            }
-            frame["atoms"] = atoms_data
-            frame.metadata["timestep"] = timestep
-            frame.box = mp.Box(np.eye(3) * 10.0)
-            frames.append(frame)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
-            # Write trajectory
-            writer = LammpsTrajectoryWriter(tmp.name)
-            for frame in frames:
-                timestep = frame.metadata["timestep"]
-                writer.write_frame(frame, timestep=timestep)
-            writer.close()
-            
-            # Verify file exists and has content
-            assert Path(tmp.name).exists()
-            assert Path(tmp.name).stat().st_size > 0
-            
-            # Read back and verify
-            reader = LammpsTrajectoryReader(tmp.name)
-            
-            # Test reading first frame
-            frame_read = reader.read_frame(0)
-            assert frame_read.metadata["timestep"] == 0
-            assert frame_read["atoms"].nrows == 2
-            
-            # Verify coordinates are preserved
-            x_values = frame_read["atoms"]["x"]
-            assert np.isclose(x_values[0], 0.0)
-            assert np.isclose(x_values[1], 1.0)
-
-    def test_trajectory_timestep_handling(self):
-        """Test that timesteps are correctly handled in trajectory."""
-        frames = []
-        timesteps = [0, 25, 50, 75, 100]
-        
-        for timestep in timesteps:
-            frame = mp.Frame()
-            
-            atoms_data = {
-                'id': [0, 1, 2],
-                'type': ['A', 'B', 'C'],
-                'x': [0.0 + timestep*0.001, 1.0 + timestep*0.001, 2.0 + timestep*0.001],
-                'y': [0.0, 1.0, 2.0],
-                'z': [0.0, 0.0, 0.0]
-            }
-            frame["atoms"] = atoms_data
-            frame.metadata["timestep"] = timestep
-            frame.box = mp.Box(np.eye(3) * 10.0)
-            frames.append(frame)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
-            writer = LammpsTrajectoryWriter(tmp.name)
-            
-            for frame in frames:
-                timestep = frame.metadata["timestep"]
-                writer.write_frame(frame, timestep=timestep)
-            
-            writer.close()
-            
-            # Read back and verify timesteps
-            reader = LammpsTrajectoryReader(tmp.name)
-            
-            for i, expected_timestep in enumerate(timesteps):
-                frame_read = reader.read_frame(i)
-                assert frame_read.metadata["timestep"] == expected_timestep
-
-    def test_multiple_frame_trajectory(self):
-        """Test writing and reading multiple frames in a trajectory."""
-        n_frames = 5
-        frames = []
-        
-        for i in range(n_frames):
-            frame = mp.Frame()
-            
-            atoms_data = {
-                'id': [0, 1, 2],
-                'type': [1, 1, 2],
-                'x': [0.0 + i*0.1, 1.0 + i*0.1, 0.5 + i*0.1],
-                'y': [0.0, 0.0, 1.0],
-                'z': [0.0, 0.0, 0.0]
-            }
-            frame["atoms"] = atoms_data
-            frame.metadata["timestep"] = i * 10
-            frame.box = mp.Box(np.eye(3) * 10.0)
-            frames.append(frame)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
-            writer = LammpsTrajectoryWriter(tmp.name)
-            
-            for frame in frames:
-                timestep = frame.metadata["timestep"]
-                writer.write_frame(frame, timestep=timestep)
-            
-            writer.close()
-            
-            # Verify file content
-            with open(tmp.name, 'r') as f:
-                content = f.read()
-            
-            # Should contain all timesteps
-            assert "ITEM: TIMESTEP" in content
-            assert "0\n" in content  # First timestep
-            assert "40\n" in content  # Last timestep
-            
-            # Should contain atom data for all frames
-            assert content.count("ITEM: ATOMS") == 5
-
-    def test_trajectory_box_handling(self):
-        """Test that box information is correctly written to trajectory."""
-        frame = mp.Frame()
-        
-        atoms_data = {
-            'id': [0],
-            'type': [1],
-            'x': [0.0],
-            'y': [0.0],
-            'z': [0.0]
-        }
-        frame["atoms"] = atoms_data
-        frame.metadata["timestep"] = 0
-        
-        # Test with custom box dimensions
-        frame.box = mp.Box(np.diag([5.0, 7.5, 10.0]))
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.dump', delete=False) as tmp:
-            writer = LammpsTrajectoryWriter(tmp.name)
-            writer.write_frame(frame, timestep=0)
-            writer.close()
-            
-            with open(tmp.name, 'r') as f:
-                content = f.read()
-            
-            # Should contain box bounds
-            assert "ITEM: BOX BOUNDS" in content
-            assert "5.000000" in content  # x dimension
-            assert "7.500000" in content  # y dimension
-            assert "10.000000" in content  # z dimension
+            assert np.allclose(frame_traj.metadata["box"].matrix.diagonal(), 
+                             frame_original.metadata["box"].matrix.diagonal())

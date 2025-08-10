@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Union, List, Optional, TYPE_CHECKING
+from typing import Iterator, Union, List, Optional, TYPE_CHECKING, NamedTuple
 from pathlib import Path
 import mmap
 
@@ -8,30 +8,43 @@ if TYPE_CHECKING:
 
 PathLike = Union[str, bytes]  # type_check_only
 
+class FrameLocation(NamedTuple):
+    """Location information for a frame."""
+    file_index: int
+    byte_offset: int
+    file_path: Path
+
 class TrajectoryReader(ABC):
     """
     Base class for trajectory file readers that act as providers.
     
     This class provides memory-mapped file reading and directly returns Frame objects
-    without needing to interact with Trajectory objects.
+    without needing to interact with Trajectory objects. Supports reading from multiple files.
     """
 
-    def __init__(self, fpath: Union[Path, str]):
+    def __init__(self, fpath: Union[Path, str, List[Path], List[str]]):
         """
         Initialize the trajectory reader.
         
         Args:
-            fpath: Path to trajectory file
+            fpath: Path to trajectory file or list of paths to multiple trajectory files
         """
-        self.fpath = Path(fpath)
-        if not self.fpath.exists():
-            raise FileNotFoundError(f"File not found: {self.fpath}")
+        # Handle both single file and multiple files
+        if isinstance(fpath, (str, Path)):
+            self.fpaths = [Path(fpath)]
+        else:
+            self.fpaths = [Path(p) for p in fpath]
+        
+        # Validate all files exist
+        for path in self.fpaths:
+            if not path.exists():
+                raise FileNotFoundError(f"File not found: {path}")
 
-        self._byte_offsets: List[int] = []  # list of byte offsets for each frame
-        self._mm = None  # memory-mapped file object
+        self._frame_locations: List[FrameLocation] = []  # location info for each frame
+        self._mms: List[mmap.mmap] = []  # memory-mapped file objects for each file
         self._total_frames = 0
 
-        self._open_file()
+        self._open_files()
 
     @property
     def n_frames(self) -> int:
@@ -42,15 +55,16 @@ class TrajectoryReader(ABC):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._mm is not None:
-            self._mm.close()
+        for mm in self._mms:
+            if mm is not None:
+                mm.close()
 
     def read_frame(self, index: int) -> "Frame":
         """
-        Read a specific frame from the trajectory file.
+        Read a specific frame from the trajectory file(s).
         
         Args:
-            index: Frame index to read
+            index: Global frame index to read
             
         Returns:
             The Frame object
@@ -60,10 +74,27 @@ class TrajectoryReader(ABC):
             
         if index < 0 or index >= self._total_frames:
             raise IndexError(f"Frame index {index} out of range [0, {self._total_frames})")
-            
-        # Read the frame directly
-        frame = self._read_frame_data(index)
-        return frame
+        
+        # Get location info for this frame
+        location = self._get_frame_location(index)
+        
+        # Calculate frame end position
+        if index + 1 < len(self._frame_locations):
+            next_location = self._frame_locations[index + 1]
+            if next_location.file_index == location.file_index:
+                frame_end = next_location.byte_offset
+            else:
+                frame_end = None  # End of file
+        else:
+            frame_end = None  # Last frame
+        
+        # Get the memory-mapped file and read frame data
+        mm = self._get_mmap(location.file_index)
+        frame_bytes = mm[location.byte_offset:frame_end]
+        frame_lines = frame_bytes.decode().splitlines()
+        
+        # Parse the frame lines using the derived class implementation
+        return self._parse_frame(frame_lines)
 
     def read_frames(self, indices: List[int]) -> List["Frame"]:
         """
@@ -97,16 +128,21 @@ class TrajectoryReader(ABC):
         return [self.read_frame(i) for i in range(self._total_frames)]
 
     @abstractmethod
-    def _read_frame_data(self, index: int) -> "Frame":
+    def _parse_frame(self, frame_lines: List[str]) -> "Frame":
         """
-        Read frame data from file at the given index.
+        Parse frame lines into a Frame object.
         
         Args:
-            index: Frame index to read
+            frame_lines: List of strings representing the frame data
             
         Returns:
             Frame object
         """
+        pass
+
+    @abstractmethod
+    def _parse_trajectory(self, file_index: int):
+        """Parse trajectory file at given index, storing frame locations."""
         pass
 
     def __len__(self) -> int:
@@ -117,33 +153,43 @@ class TrajectoryReader(ABC):
         for i in range(self._total_frames):
             yield self.read_frame(i)
 
-    @abstractmethod
-    def _parse_trajectory(self):
-        """Parse trajectory file, storing frame offsets."""
-        pass
+    def _open_files(self):
+        """Open trajectory files with memory mapping and build global index."""
+        self._mms = []
+        
+        for file_index, fpath in enumerate(self.fpaths):
+            # Open file
+            fp = open(fpath, "rb")
+            # Check if empty
+            fp.seek(0, 2)
+            if fp.tell() == 0:
+                raise ValueError(f"File is empty: {fpath}")
+            fp.seek(0)  # Seek back to beginning
+            
+            mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
+            self._mms.append(mm)
+            
+            # Parse this file to get frame locations
+            self._parse_trajectory(file_index)
 
-    def _open_file(self):
-        """Open trajectory file with memory mapping."""
-        fp = open(self.fpath, "rb")
-        # if empty, raise error
-        fp.seek(0, 2)
-        if fp.tell() == 0:
-            raise ValueError("File is empty")
-        fp.seek(0)  # Seek back to beginning
-        self._mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
-        self._parse_trajectory()
-
-    def get_offset(self, index: int) -> int:
-        """Get byte offset for a given frame index."""
-        if index >= len(self._byte_offsets):
+    def _get_frame_location(self, index: int) -> FrameLocation:
+        """Get location information for a frame."""
+        if index >= len(self._frame_locations):
             raise IndexError(f"Frame index {index} out of range")
-        return self._byte_offsets[index]
+        return self._frame_locations[index]
 
-    def get_mmap(self) -> mmap.mmap:
-        """Get the memory-mapped file object."""
-        if self._mm is None:
-            raise ValueError("File is empty or not properly opened")
-        return self._mm
+    def _get_mmap(self, file_index: int) -> mmap.mmap:
+        """Get the memory-mapped file object for a specific file."""
+        if file_index >= len(self._mms) or self._mms[file_index] is None:
+            raise ValueError(f"File {file_index} is not properly opened")
+        return self._mms[file_index]
+
+    @property 
+    def fpath(self) -> Path:
+        """For backward compatibility - returns the first file path."""
+        if not self.fpaths:
+            raise ValueError("No files available")
+        return self.fpaths[0]
 
 
 class TrajectoryWriter(ABC):

@@ -1,6 +1,6 @@
 from io import StringIO
 from pathlib import Path
-from typing import List, Sequence, Union, Optional
+from typing import List, Union, Optional
 import re
 import numpy as np
 
@@ -12,28 +12,20 @@ from .base import TrajectoryReader, TrajectoryWriter
 class LammpsTrajectoryReader(TrajectoryReader):
     """Reader for LAMMPS trajectory files, supporting multiple files."""
 
-    def __init__(self, fpath: str | Path):
-        # Convert fpaths to the expected format
-        fpath_converted = Path(fpath)
-        super().__init__(fpath_converted)
+    def __init__(self, fpath: Union[str, Path, List[str], List[Path]]):
+        # Pass the fpath (single or multiple) to the base class
+        super().__init__(fpath)
 
-    def _read_frame_data(self, index: int) -> "Frame":
-        """Read a specific frame from the trajectory."""
-        frame_start = self._byte_offsets[index]
-        frame_end = self._byte_offsets[index + 1] if index + 1 < len(self._byte_offsets) else None
-        frame_bytes = self._mm[frame_start:frame_end]
-        frame_lines = frame_bytes.decode().splitlines()
-        return self._parse_frame(frame_lines)
-
-    def _parse_trajectory(self):
-        """Parse trajectory files and update frame count."""
-
+    def _parse_trajectory(self, file_index: int):
+        """Parse trajectory file at given index and update frame count."""
+        mm = self._get_mmap(file_index)
+        
         # Use regex to find all ITEMs and ATOMS blocks, and compute frame offsets accordingly
         item_re = re.compile(rb"^ITEM:.*", re.MULTILINE)
         atoms_re = re.compile(rb"^ITEM:\s+ATOMS\b")
 
         # Find all ITEMs and their byte offsets
-        item_matches = list(item_re.finditer(self._mm))
+        item_matches = list(item_re.finditer(mm))
         item_offsets = [m.start() for m in item_matches]
 
         # Find indices of ITEM: ATOMS entries (index into item_offsets)
@@ -43,14 +35,26 @@ class LammpsTrajectoryReader(TrajectoryReader):
         ]
 
         # Compute frame starts: first ITEM, then every ATOMS+1
-        frame_offsets = [item_offsets[0]] + [
-            item_offsets[i + 1] for i in atoms_indices[:-1]
-        ]
+        if item_offsets:
+            frame_offsets = [item_offsets[0]] + [
+                item_offsets[i + 1] for i in atoms_indices[:-1]
+            ]
+        else:
+            frame_offsets = []
 
-        self._byte_offsets = frame_offsets
-        self._total_frames = len(self._byte_offsets)
+        # Add frame locations to the global list
+        from .base import FrameLocation
+        for offset in frame_offsets:
+            location = FrameLocation(
+                file_index=file_index,
+                byte_offset=offset,
+                file_path=self.fpaths[file_index]
+            )
+            self._frame_locations.append(location)
+        
+        self._total_frames += len(frame_offsets)
 
-    def _parse_frame(self, frame_lines: Sequence[str]) -> Frame:
+    def _parse_frame(self, frame_lines: List[str]) -> Frame:
         """Parse frame lines into a Frame object."""
         
         header = []
@@ -105,18 +109,31 @@ class LammpsTrajectoryReader(TrajectoryReader):
         # Create box
         box = Box(matrix=box_matrix, origin=origin)
 
-        frame = Frame(box=box, timestep=timestep)
+        frame = Frame(timestep=timestep)
         frame["atoms"] = Block.from_csv(StringIO("\n".join(frame_lines[data_start:])), header=header, delimiter=" ")
 
         
-        # 优化后的列类型映射
+        # 优化后的列类型映射 - 更加智能的类型推断
         int_columns = ['id', 'type', 'mol']
         str_columns = []
         field_type_mappings = {c: int for c in int_columns} | {c: str for c in str_columns}
+        
         for col_name in header:
-            frame["atoms"][col_name] = frame["atoms"][col_name].astype(field_type_mappings.get(col_name, float))
+            if col_name in field_type_mappings:
+                try:
+                    frame["atoms"][col_name] = frame["atoms"][col_name].astype(field_type_mappings[col_name])
+                except (ValueError, TypeError):
+                    # 如果转换失败，保持原始类型
+                    pass
+            else:
+                # 对于其他列，尝试转换为浮点数，失败则保持原样
+                try:
+                    frame["atoms"][col_name] = frame["atoms"][col_name].astype(float)
+                except (ValueError, TypeError):
+                    # 保持原始类型（可能是字符串）
+                    pass
 
-        frame.metadata['source_file'] = str(self.fpath)
+        frame.metadata['box'] = box
         return frame
 
 
@@ -135,9 +152,17 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
         # Write timestep
         self._fp.write(f"ITEM: TIMESTEP\n{timestep}\n".encode())
         
+        # Write number of atoms
+        if 'atoms' in frame:
+            atoms = frame['atoms']
+            first_col = next(iter(atoms.keys()))
+            n_atoms = len(atoms[first_col])
+            self._fp.write(f"ITEM: NUMBER OF ATOMS\n{n_atoms}\n".encode())
+        
         # Write box bounds
-        if frame.box:
-            box = frame.box
+        # Get box from metadata
+        box = frame.metadata.get('box')
+        if box:
             matrix = box.matrix
             origin = box.origin
             
@@ -188,7 +213,12 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
             
             # Write atom data
             n_atoms = len(atoms)
-            for i in range(n_atoms):
+            
+            # 获取第一个可用列来确定实际原子数量
+            first_col = next(iter(atoms.keys()))
+            actual_n_atoms = len(atoms[first_col])
+            
+            for i in range(actual_n_atoms):
                 row_data = []
                 for col in columns:
                     if col in ['x', 'y', 'z', 'xu', 'yu', 'zu', 'xs', 'ys', 'zs', 'vx', 'vy', 'vz', 'fx', 'fy', 'fz', 'q']:

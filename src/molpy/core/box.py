@@ -5,12 +5,11 @@
 
 import numpy as np
 from numpy.typing import ArrayLike
-from .region import Region, PeriodicBoundary
+from .region import PeriodicBoundary
 from enum import Enum
-from .schema import BoxSchema
 
 
-class Box(Region, PeriodicBoundary):
+class Box(PeriodicBoundary):
 
     class Style(Enum):
         FREE = 0
@@ -21,8 +20,7 @@ class Box(Region, PeriodicBoundary):
         self,
         matrix: ArrayLike | None = None,
         pbc: ArrayLike = np.ones(3, dtype=bool),
-        origin: ArrayLike = np.zeros(3),
-        name: str = "Box"
+        origin: ArrayLike = np.zeros(3)
     ):
         """
         Initialize a Box object.
@@ -36,7 +34,7 @@ class Box(Region, PeriodicBoundary):
             origin (np.ndarray, optional): A 1D array of shape (3,) representing the origin of the box. 
                 Defaults to an array of zeros.
         """
-        super().__init__(name)
+        super().__init__()
         if matrix is None or np.all(matrix == 0):
             _matrix = np.zeros((3, 3))
         else:
@@ -79,45 +77,6 @@ class Box(Region, PeriodicBoundary):
         to visualize the box in 3D space.
         """
         ...
-
-    def to_dict(self) -> dict:
-        """
-        Convert Box to a dictionary for serialization.
-        
-        Returns:
-            dict: Dictionary containing box matrix, periodic boundary conditions,
-                  origin, and type information for reconstruction.
-        """
-        schema = BoxSchema(
-            matrix=self._matrix,
-            pbc=self._pbc,
-            origin=self._origin
-        )
-        data = schema.model_dump()
-        return data
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "Box":
-        """
-        Create Box from dictionary representation.
-        
-        Args:
-            data: Dictionary containing box parameters
-            
-        Returns:
-            Box: Reconstructed Box instance
-        """
-        # Extract class info if present for validation
-        class_info = data.get("__class__")
-        if class_info and not class_info.endswith("Box"):
-            raise ValueError(f"Cannot create Box from class {class_info}")
-            
-        matrix = np.array(data["matrix"]) if "matrix" in data else None
-        pbc = np.array(data["pbc"]) if "pbc" in data else np.ones(3, dtype=bool)
-        origin = np.array(data["origin"]) if "origin" in data else np.zeros(3)
-        name = data.get("name", "Box")
-        
-        return cls(matrix=matrix, pbc=pbc, origin=origin, name=name)
 
     @classmethod
     def cubic(
@@ -941,6 +900,18 @@ class Box(Region, PeriodicBoundary):
         return Box(
             matrix=new_matrix,
             pbc=self._pbc.copy(),
-            origin=self._origin.copy(),
-            name=self.name
+            origin=self._origin.copy()
         )
+
+    def to_dict(self) -> dict:
+        """
+        Convert the box to a dictionary representation.
+
+        Returns:
+            dict: A dictionary containing the box properties.
+        """
+        return {
+            'matrix': self._matrix.tolist(),
+            'pbc': self._pbc.tolist(),
+            'origin': self._origin.tolist()
+        }

@@ -1,13 +1,14 @@
 """
-Modern LAMMPS data and molecule template file I/O.
+Modern LAMMPS data file I/O using Block.from_csv.
 
-This module provides clean, efficient, and maintainable readers and writers
-for LAMMPS data files and molecule templates
+This module provides a clean, imperative approach to reading and writing
+LAMMPS data files using the Block.from_csv functionality.
 """
 
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Tuple
 from datetime import datetime
+from io import StringIO
 import numpy as np
 
 import molpy as mp
@@ -15,117 +16,113 @@ from .base import DataReader, DataWriter
 
 
 class LammpsDataReader(DataReader):
+    """Modern LAMMPS data file reader using Block.from_csv."""
     
     def __init__(self, path: Union[str, Path], atom_style: str = "full"):
-        super().__init__(Path(path))  # Convert to Path explicitly
+        super().__init__(Path(path))
         self.atom_style = atom_style
     
     def read(self, frame: Optional[mp.Frame] = None) -> mp.Frame:
         """Read LAMMPS data file into a Frame."""
-        if frame is None:
-            frame = mp.Frame()
+        frame = frame or mp.Frame()
         
-        lines = self._read_and_clean_lines()
-        sections = self._parse_sections(lines)
+        # Read and parse the file
+        lines = self._read_lines()
+        sections = self._extract_sections(lines)
         
-        # Parse header information
-        counts, box_bounds = self._parse_header(sections.get('header', []))
+        # Parse header and set up box
+        header_info = self._parse_header(sections.get('header', []))
+        frame.metadata['box'] = self._create_box(header_info['box_bounds'])
         
-        # Set up box
-        if box_bounds:
-            frame.box = self._create_box(box_bounds)
+        # Parse masses if present
+        masses = self._parse_masses(sections.get('Masses', []))
         
-        # Parse data sections
-        if 'Masses' in sections:
-            masses = self._parse_masses(sections['Masses'])
-        else:
-            masses = {}
+        # Parse type labels
+        type_labels = self._parse_type_labels(sections)
         
-        # Parse type labels if present
-        type_labels = {}
-        if 'AtomTypeLabels' in sections:
-            type_labels['atom'] = self._parse_type_labels(sections['AtomTypeLabels'])
-        if 'BondTypeLabels' in sections:
-            type_labels['bond'] = self._parse_type_labels(sections['BondTypeLabels'])
-        if 'AngleTypeLabels' in sections:
-            type_labels['angle'] = self._parse_type_labels(sections['AngleTypeLabels'])
-        if 'DihedralTypeLabels' in sections:
-            type_labels['dihedral'] = self._parse_type_labels(sections['DihedralTypeLabels'])
-        if 'ImproperTypeLabels' in sections:
-            type_labels['improper'] = self._parse_type_labels(sections['ImproperTypeLabels'])
+        # Parse force field parameters
+        forcefield = self._parse_force_field(sections)
         
+        # Parse atoms section
         if 'Atoms' in sections:
-            self._parse_atoms(sections['Atoms'], frame, masses, type_labels.get('atom', {}))
+            frame['atoms'] = self._parse_atoms_section(
+                sections['Atoms'], masses, type_labels.get('atom', {})
+            )
         
-        if 'Bonds' in sections and counts.get('bonds', 0) > 0:
-            self._parse_bonds(sections['Bonds'], frame, type_labels.get('bond', {}))
+        # Parse connectivity sections
+        if 'Bonds' in sections and header_info['counts'].get('bonds', 0) > 0:
+            frame['bonds'] = self._parse_connectivity_section(
+                sections['Bonds'], 'bond', type_labels.get('bond', {})
+            )
         
-        if 'Angles' in sections and counts.get('angles', 0) > 0:
-            self._parse_angles(sections['Angles'], frame, type_labels.get('angle', {}))
+        if 'Angles' in sections and header_info['counts'].get('angles', 0) > 0:
+            frame['angles'] = self._parse_connectivity_section(
+                sections['Angles'], 'angle', type_labels.get('angle', {})
+            )
         
-        if 'Dihedrals' in sections and counts.get('dihedrals', 0) > 0:
-            self._parse_dihedrals(sections['Dihedrals'], frame, type_labels.get('dihedral', {}))
+        if 'Dihedrals' in sections and header_info['counts'].get('dihedrals', 0) > 0:
+            frame['dihedrals'] = self._parse_connectivity_section(
+                sections['Dihedrals'], 'dihedral', type_labels.get('dihedral', {})
+            )
         
-        if 'Impropers' in sections and counts.get('impropers', 0) > 0:
-            self._parse_impropers(sections['Impropers'], frame, type_labels.get('improper', {}))
+        if 'Impropers' in sections and header_info['counts'].get('impropers', 0) > 0:
+            frame['impropers'] = self._parse_connectivity_section(
+                sections['Impropers'], 'improper', type_labels.get('improper', {})
+            )
         
         # Store metadata
         frame.metadata.update({
             'format': 'lammps_data',
             'atom_style': self.atom_style,
-            'counts': counts,
-            'source_file': str(self._path)
+            'counts': header_info['counts'],
+            'source_file': str(self._path),
+            'forcefield': forcefield
         })
         
         return frame
     
-    def _read_and_clean_lines(self) -> List[str]:
-        """Read file and return cleaned lines."""
+    def _read_lines(self) -> List[str]:
+        """Read file and return non-empty, non-comment lines."""
         with open(self._path, 'r') as f:
-            lines = [line.strip() for line in f.readlines()]
-        return [line for line in lines if line and not line.startswith('#')]
+            return [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
     
-    def _parse_sections(self, lines: List[str]) -> Dict[str, List[str]]:
-        """Parse file into sections."""
+    def _extract_sections(self, lines: List[str]) -> Dict[str, List[str]]:
+        """Extract sections from LAMMPS data file."""
         sections = {'header': []}
         current_section = 'header'
         
+        section_keywords = [
+            'atoms', 'masses', 'bonds', 'angles', 'dihedrals', 'impropers',
+            'atom type labels', 'bond type labels', 'angle type labels', 
+            'dihedral type labels', 'improper type labels',
+            'pair coeffs', 'bond coeffs', 'angle coeffs', 'dihedral coeffs', 'improper coeffs'
+        ]
+        
         for line in lines:
-            # Check if line starts with section keywords (case insensitive)
             line_lower = line.lower()
-            if (line_lower.startswith('atoms') or 
-                line_lower.startswith('masses') or 
-                line_lower.startswith('bonds') or 
-                line_lower.startswith('angles') or 
-                line_lower.startswith('dihedrals') or 
-                line_lower.startswith('impropers')):
-                # Extract the section name (first word)
-                section_name = line.split()[0].capitalize()
+            
+            # Check if this line starts a new section
+            if any(line_lower.startswith(keyword) for keyword in section_keywords):
+                if 'type labels' in line_lower:
+                    # Handle type labels sections
+                    section_name = line.replace('Type Labels', 'TypeLabels').replace(' ', '')
+                elif 'coeffs' in line_lower:
+                    # Handle force field coefficients sections
+                    section_name = line.replace(' ', '')
+                else:
+                    # Handle regular sections
+                    section_name = line.split()[0].capitalize()
                 current_section = section_name
                 sections[current_section] = []
-            elif ('type labels' in line_lower):
-                # Type labels sections
-                section_name = line.replace('Type Labels', 'TypeLabels').replace(' ', '')
-                current_section = section_name
-                sections[current_section] = []
-            elif line.lower().endswith('types') or line.lower().endswith('atoms') or line.lower().endswith('bonds'):
-                # Count lines go to header
-                sections['header'].append(line)
-            elif line.lower().startswith('pair coeffs') or line.lower().startswith('bond coeffs'):
-                # Skip coefficient sections for now
-                current_section = 'coeffs'
-                sections[current_section] = []
-            elif 'xlo xhi' in line.lower() or 'ylo' in line.lower() and 'yhi' in line.lower() or 'zlo zhi' in line.lower():
-                # Box bounds go to header
-                sections['header'].append(line)
             else:
+                # Add line to current section
                 if current_section not in sections:
                     sections[current_section] = []
                 sections[current_section].append(line)
         
         return sections
     
-    def _parse_header(self, header_lines: List[str]) -> Tuple[Dict[str, int], Optional[Dict[str, Tuple[float, float]]]]:
+    def _parse_header(self, header_lines: List[str]) -> Dict[str, Any]:
         """Parse header information."""
         counts = {}
         box_bounds = {}
@@ -134,321 +131,285 @@ class LammpsDataReader(DataReader):
             parts = line.split()
             if len(parts) < 2:
                 continue
-                
+            
             try:
+                count = int(parts[0])
                 if 'atoms' in line.lower() and not line.lower().startswith('atoms'):
-                    counts['atoms'] = int(parts[0])
+                    counts['atoms'] = count
                 elif 'bonds' in line.lower() and not line.lower().startswith('bonds'):
-                    counts['bonds'] = int(parts[0])
+                    counts['bonds'] = count
                 elif 'angles' in line.lower() and not line.lower().startswith('angles'):
-                    counts['angles'] = int(parts[0])
+                    counts['angles'] = count
                 elif 'dihedrals' in line.lower() and not line.lower().startswith('dihedrals'):
-                    counts['dihedrals'] = int(parts[0])
+                    counts['dihedrals'] = count
                 elif 'impropers' in line.lower() and not line.lower().startswith('impropers'):
-                    counts['impropers'] = int(parts[0])
+                    counts['impropers'] = count
                 elif 'atom types' in line.lower():
-                    counts['atom_types'] = int(parts[0])
+                    counts['atom_types'] = count
                 elif 'bond types' in line.lower():
-                    counts['bond_types'] = int(parts[0])
+                    counts['bond_types'] = count
                 elif 'angle types' in line.lower():
-                    counts['angle_types'] = int(parts[0])
+                    counts['angle_types'] = count
                 elif 'dihedral types' in line.lower():
-                    counts['dihedral_types'] = int(parts[0])
+                    counts['dihedral_types'] = count
                 elif 'improper types' in line.lower():
-                    counts['improper_types'] = int(parts[0])
+                    counts['improper_types'] = count
                 elif 'xlo xhi' in line.lower():
                     box_bounds['x'] = (float(parts[0]), float(parts[1]))
                 elif 'ylo' in line.lower() and 'yhi' in line.lower():
-                    # Handle "ylo yhi" with flexible spacing
-                    ylo_idx = next(i for i, part in enumerate(parts) if 'ylo' in part.lower())
                     box_bounds['y'] = (float(parts[0]), float(parts[1]))
                 elif 'zlo zhi' in line.lower():
                     box_bounds['z'] = (float(parts[0]), float(parts[1]))
             except (ValueError, IndexError):
-                # Skip lines that can't be parsed
                 continue
         
-        return counts, box_bounds if box_bounds else None
+        return {'counts': counts, 'box_bounds': box_bounds if box_bounds else None}
     
-    def _create_box(self, box_bounds: Dict[str, Tuple[float, float]]) -> mp.Box:
+    def _create_box(self, box_bounds: Optional[Dict[str, Tuple[float, float]]]) -> mp.Box:
         """Create Box from bounds."""
-        # Ensure all three dimensions are present, use default if missing
-        default_bounds = (0.0, 10.0)
+        if not box_bounds:
+            # Default box
+            return mp.Box(np.array([10.0, 10.0, 10.0]))
         
         lengths = np.array([
-            box_bounds.get('x', default_bounds)[1] - box_bounds.get('x', default_bounds)[0],
-            box_bounds.get('y', default_bounds)[1] - box_bounds.get('y', default_bounds)[0],
-            box_bounds.get('z', default_bounds)[1] - box_bounds.get('z', default_bounds)[0]
+            box_bounds.get('x', (0.0, 10.0))[1] - box_bounds.get('x', (0.0, 10.0))[0],
+            box_bounds.get('y', (0.0, 10.0))[1] - box_bounds.get('y', (0.0, 10.0))[0],
+            box_bounds.get('z', (0.0, 10.0))[1] - box_bounds.get('z', (0.0, 10.0))[0]
         ])
         origin = np.array([
-            box_bounds.get('x', default_bounds)[0],
-            box_bounds.get('y', default_bounds)[0],
-            box_bounds.get('z', default_bounds)[0]
+            box_bounds.get('x', (0.0, 10.0))[0],
+            box_bounds.get('y', (0.0, 10.0))[0],
+            box_bounds.get('z', (0.0, 10.0))[0]
         ])
         return mp.Box(lengths, origin=origin)
     
     def _parse_masses(self, mass_lines: List[str]) -> Dict[str, float]:
-        """Parse mass section. Returns mapping from type (as string) to mass."""
+        """Parse mass section."""
         masses = {}
         for line in mass_lines:
-            if line.strip():
-                parts = line.split()
-                if len(parts) >= 2:
-                    # Always treat type as string for unified handling
+            parts = line.split()
+            if len(parts) >= 2:
+                try:
                     type_str = parts[0]
-                    try:
-                        mass = float(parts[1])
-                        masses[type_str] = mass
-                    except ValueError:
-                        # Skip lines where mass can't be parsed
-                        continue
+                    mass = float(parts[1])
+                    masses[type_str] = mass
+                except ValueError:
+                    continue
         return masses
     
-    def _parse_atoms(self, atom_lines: List[str], frame: mp.Frame, masses: Dict[str, float], type_labels: Optional[Dict[int, str]] = None) -> None:
-        """Parse atoms section and add to frame as Block."""
-        if not atom_lines:
-            return
+    def _parse_type_labels(self, sections: Dict[str, List[str]]) -> Dict[str, Dict[int, str]]:
+        """Parse all type labels sections."""
+        type_labels = {}
         
-        if type_labels is None:
-            type_labels = {}
-        
-        # Collect atom data
-        atom_data = {
-            'id': [],
-            'type': [],
-            'x': [],
-            'y': [],
-            'z': [],
-            'mass': []
+        label_sections = {
+            'atom': 'AtomTypeLabels',
+            'bond': 'BondTypeLabels', 
+            'angle': 'AngleTypeLabels',
+            'dihedral': 'DihedralTypeLabels',
+            'improper': 'ImproperTypeLabels'
         }
         
-        # Add fields based on atom style
-        if self.atom_style == "full":
-            atom_data.update({
-                'mol': [],
-                'q': []
-            })
-        elif self.atom_style == "charge":
-            atom_data['q'] = []
+        for label_type, section_name in label_sections.items():
+            if section_name in sections:
+                id_to_label = {}
+                for line in sections[section_name]:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        try:
+                            type_id = int(parts[0])
+                            label = parts[1]
+                            id_to_label[type_id] = label
+                        except ValueError:
+                            continue
+                type_labels[label_type] = id_to_label
         
-        for line in atom_lines:
-            if line.strip():
-                parts = line.split()
-                atom_id = int(parts[0])
-                
-                if self.atom_style == "full":
-                    mol_id = int(parts[1])
-                    atom_type = parts[2]
-                    charge = float(parts[3])
-                    x, y, z = float(parts[4]), float(parts[5]), float(parts[6])
-                    
-                    atom_data['mol'].append(mol_id)
-                    atom_data['q'].append(charge)
-                elif self.atom_style == "charge":
-                    atom_type = parts[1]
-                    charge = float(parts[2])
-                    x, y, z = float(parts[3]), float(parts[4]), float(parts[5])
-                    
-                    atom_data['q'].append(charge)
-                else:  # atomic
-                    atom_type = parts[1]
-                    x, y, z = float(parts[2]), float(parts[3]), float(parts[4])
-                
-                # Convert type ID to label if available, otherwise keep as string
-                atom_type_str = atom_type
-                
-                atom_data['id'].append(atom_id)
-                atom_data['type'].append(atom_type_str)
-                atom_data['x'].append(x)
-                atom_data['y'].append(y)
-                atom_data['z'].append(z)
-                # Get mass from mapping, default to 1.0 if not found
-                atom_data['mass'].append(masses.get(atom_type_str, 1.0))
-        
-        # Create xyz coordinate array
-        xyz = np.column_stack([atom_data['x'], atom_data['y'], atom_data['z']])
-        
-        # Create data dict for Block (Block will convert to numpy arrays automatically)
-        block_data = {
-            'id': atom_data['id'],
-            'type': atom_data['type'],
-            'mass': atom_data['mass'],
-            'xyz': xyz
-        }
-        
-        # Add optional fields
-        if 'mol' in atom_data:
-            block_data['mol'] = atom_data['mol']
-        if 'q' in atom_data:
-            block_data['q'] = atom_data['q']
-        
-        # Create Block and store in frame
-        frame['atoms'] = mp.Block(block_data)
+        return type_labels
     
-    def _parse_bonds(self, bond_lines: List[str], frame: mp.Frame, type_labels: Optional[Dict[int, str]] = None) -> None:
-        """Parse bonds section and add to frame as Block."""
-        if not bond_lines:
-            return
+    def _parse_force_field(self, sections: Dict[str, List[str]]) -> mp.ForceField:
+        """Parse force field parameters into mp.ForceField."""
+        forcefield = mp.ForceField()
         
-        if type_labels is None:
-            type_labels = {}
-        
-        bond_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': []
-        }
-        
-        for line in bond_lines:
-            if line.strip():
+        # Parse pair coefficients
+        if 'PairCoeffs' in sections:
+            pair_style = forcefield.def_pairstyle("lj/cut")
+            for line in sections['PairCoeffs']:
                 parts = line.split()
-                bond_id = int(parts[0])
-                bond_type = parts[1]
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                
-                # Convert type ID to label if available, otherwise keep as string
-                bond_type_str = type_labels.get(bond_type, str(bond_type))
-                
-                bond_data['id'].append(bond_id)
-                bond_data['type'].append(bond_type_str)
-                bond_data['atom1'].append(atom1)
-                bond_data['atom2'].append(atom2)
-        
-        # Create Block and store in frame
-        frame['bonds'] = mp.Block(bond_data)
-    
-    def _parse_angles(self, angle_lines: List[str], frame: mp.Frame, type_labels: Optional[Dict[int, str]] = None) -> None:
-        """Parse angles section and add to frame as Block."""
-        if not angle_lines:
-            return
-        
-        if type_labels is None:
-            type_labels = {}
-        
-        angle_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': []
-        }
-        
-        for line in angle_lines:
-            if line.strip():
-                parts = line.split()
-                angle_id = int(parts[0])
-                angle_type = parts[1]
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                
-                angle_data['id'].append(angle_id)
-                angle_data['type'].append(angle_type)
-                angle_data['atom1'].append(atom1)
-                angle_data['atom2'].append(atom2)
-                angle_data['atom3'].append(atom3)
-        
-        # Create Block and store in frame
-        frame['angles'] = mp.Block(angle_data)
-    
-    def _parse_dihedrals(self, dihedral_lines: List[str], frame: mp.Frame, type_labels: Optional[Dict[int, str]] = None) -> None:
-        """Parse dihedrals section and add to frame as Block."""
-        if not dihedral_lines:
-            return
-        
-        if type_labels is None:
-            type_labels = {}
-        
-        dihedral_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': [],
-            'atom4': []
-        }
-        
-        for line in dihedral_lines:
-            if line.strip():
-                parts = line.split()
-                dihedral_id = int(parts[0])
-                dihedral_type = parts[1]
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                atom4 = int(parts[5])
-
-                dihedral_data['id'].append(dihedral_id)
-                dihedral_data['type'].append(dihedral_type)
-                dihedral_data['atom1'].append(atom1)
-                dihedral_data['atom2'].append(atom2)
-                dihedral_data['atom3'].append(atom3)
-                dihedral_data['atom4'].append(atom4)
-        
-        # Create Block and store in frame
-        frame['dihedrals'] = mp.Block(dihedral_data)
-    
-    def _parse_impropers(self, improper_lines: List[str], frame: mp.Frame, type_labels: Optional[Dict[int, str]] = None) -> None:
-        """Parse impropers section and add to frame as Block."""
-        if not improper_lines:
-            return
-        
-        if type_labels is None:
-            type_labels = {}
-        
-        improper_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': [],
-            'atom4': []
-        }
-        
-        for line in improper_lines:
-            if line.strip():
-                parts = line.split()
-                improper_id = int(parts[0])
-                improper_type = parts[1]
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                atom4 = int(parts[5])
-                
-                improper_data['id'].append(improper_id)
-                improper_data['type'].append(improper_type)
-                improper_data['atom1'].append(atom1)
-                improper_data['atom2'].append(atom2)
-                improper_data['atom3'].append(atom3)
-                improper_data['atom4'].append(atom4)
-        
-        # Create Block and store in frame
-        frame['impropers'] = mp.Block(improper_data)
-    
-    def _parse_type_labels(self, label_lines: List[str]) -> Dict[int, str]:
-        """Parse type labels section. Returns mapping from numeric ID to label."""
-        id_to_label = {}
-        for line in label_lines:
-            if line.strip():
-                parts = line.split()
-                if len(parts) >= 2:
+                if len(parts) >= 3:
                     try:
                         type_id = int(parts[0])
-                        label = parts[1]
-                        id_to_label[type_id] = label
-                    except ValueError:
-                        # Skip lines where ID can't be parsed
+                        epsilon = float(parts[1])
+                        sigma = float(parts[2])
+                        type_name = f"pair_{type_id}"
+                        # TODO: Fix force field implementation
+                        # pair_type = pair_style.def_type(type_name)
+                        # pair_type["epsilon"] = epsilon
+                        # pair_type["sigma"] = sigma
+                    except (ValueError, IndexError):
                         continue
-        return id_to_label
+        
+        # Parse bond coefficients
+        if 'BondCoeffs' in sections:
+            bond_style = forcefield.def_bondstyle("harmonic")
+            for line in sections['BondCoeffs']:
+                parts = line.split()
+                if len(parts) >= 3:
+                    try:
+                        type_id = int(parts[0])
+                        k = float(parts[1])
+                        r0 = float(parts[2])
+                        type_name = f"bond_{type_id}"
+                        # TODO: Fix force field implementation
+                        # bond_type = bond_style.def_type(type_name)
+                        # bond_type["k"] = k
+                        # bond_type["r0"] = r0
+                    except (ValueError, IndexError):
+                        continue
+        
+        # Parse angle coefficients
+        if 'AngleCoeffs' in sections:
+            angle_style = forcefield.def_anglestyle("harmonic")
+            for line in sections['AngleCoeffs']:
+                parts = line.split()
+                if len(parts) >= 3:
+                    try:
+                        type_id = int(parts[0])
+                        k = float(parts[1])
+                        theta0 = float(parts[2])
+                        type_name = f"angle_{type_id}"
+                        # TODO: Fix force field implementation
+                        # angle_type = angle_style.def_type(type_name)
+                        # angle_type["k"] = k
+                        # angle_type["theta0"] = theta0
+                    except (ValueError, IndexError):
+                        continue
+        
+        # Parse dihedral coefficients
+        if 'DihedralCoeffs' in sections:
+            dihedral_style = forcefield.def_dihedralstyle("harmonic")
+            for line in sections['DihedralCoeffs']:
+                parts = line.split()
+                if len(parts) >= 4:
+                    try:
+                        type_id = int(parts[0])
+                        k = float(parts[1])
+                        d = int(parts[2])
+                        n = int(parts[3])
+                        type_name = f"dihedral_{type_id}"
+                        # TODO: Fix force field implementation
+                        # dihedral_type = dihedral_style.def_type(type_name)
+                        # dihedral_type["k"] = k
+                        # dihedral_type["d"] = d
+                        # dihedral_type["n"] = n
+                    except (ValueError, IndexError):
+                        continue
+        
+        # Parse improper coefficients
+        if 'ImproperCoeffs' in sections:
+            improper_style = forcefield.def_improperstyle("harmonic")
+            for line in sections['ImproperCoeffs']:
+                parts = line.split()
+                if len(parts) >= 4:
+                    try:
+                        type_id = int(parts[0])
+                        k = float(parts[1])
+                        d = int(parts[2])
+                        n = int(parts[3])
+                        type_name = f"improper_{type_id}"
+                        # TODO: Fix force field implementation
+                        # improper_type = improper_style.def_type(type_name)
+                        # improper_type["k"] = k
+                        # improper_type["d"] = d
+                        # improper_type["n"] = n
+                    except (ValueError, IndexError):
+                        continue
+        
+        return forcefield
+    
+    def _parse_atoms_section(self, atom_lines: List[str], masses: Dict[str, float], 
+                            type_labels: Dict[int, str]) -> mp.Block:
+        """Parse atoms section using Block.from_csv with space delimiter."""
+        if not atom_lines:
+            return mp.Block()
+        
+        # Create space-separated string for Block.from_csv
+        csv_lines = []
+        
+        # Add header based on atom style
+        if self.atom_style == "full":
+            header = ["id", "mol", "type", "q", "x", "y", "z"]
+        elif self.atom_style == "charge":
+            header = ["id", "type", "q", "x", "y", "z"]
+        else:  # atomic
+            header = ["id", "type", "x", "y", "z"]
+        
+        csv_lines.append(" ".join(header))
+        
+        # Add data lines directly
+        for line in atom_lines:
+            parts = line.split()
+            if len(parts) >= len(header):
+                csv_lines.append(line)
+        
+        # Parse using Block.from_csv with space delimiter
+        csv_string = "\n".join(csv_lines)
+        block = mp.Block.from_csv(StringIO(csv_string), delimiter=" ", skipinitialspace=True)
+        
+        # Add mass information
+        if block.nrows > 0:
+            mass_values = []
+            for type_str in block['type']:
+                mass_values.append(masses.get(str(type_str), 1.0))
+            block['mass'] = np.array(mass_values)
+            
+            # Convert numeric types back to string types using type labels
+            if type_labels:
+                converted_types = []
+                for type_id in block['type']:
+                    try:
+                        type_id_int = int(type_id)
+                        converted_type = type_labels.get(type_id_int, str(type_id))
+                        converted_types.append(converted_type)
+                    except (ValueError, TypeError):
+                        converted_types.append(str(type_id))
+                block['type'] = np.array(converted_types)
+        
+        return block
+    
+    def _parse_connectivity_section(self, lines: List[str], section_type: str, 
+                                  type_labels: Dict[int, str]) -> mp.Block:
+        """Parse connectivity sections (bonds, angles, dihedrals, impropers)."""
+        if not lines:
+            return mp.Block()
+        
+        # Define headers for each section type
+        headers = {
+            'bond': ["id", "type", "atom1", "atom2"],
+            'angle': ["id", "type", "atom1", "atom2", "atom3"],
+            'dihedral': ["id", "type", "atom1", "atom2", "atom3", "atom4"],
+            'improper': ["id", "type", "atom1", "atom2", "atom3", "atom4"]
+        }
+        
+        header = headers[section_type]
+        csv_lines = [" ".join(header)]
+        
+        # Add data lines directly
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= len(header):
+                csv_lines.append(line)
+        
+        # Parse using Block.from_csv with space delimiter
+        csv_string = "\n".join(csv_lines)
+        block = mp.Block.from_csv(StringIO(csv_string), delimiter=" ", skipinitialspace=True)
+        
+        return block
 
 
 class LammpsDataWriter(DataWriter):
-    """Modern LAMMPS data file writer."""
+    """Modern LAMMPS data file writer using Block.to_csv approach."""
     
     def __init__(self, path: Union[str, Path], atom_style: str = "full"):
-        super().__init__(Path(path))  # Convert to Path explicitly
+        super().__init__(Path(path))
         self.atom_style = atom_style
     
     def write(self, frame: mp.Frame) -> None:
@@ -460,266 +421,247 @@ class LammpsDataWriter(DataWriter):
         lines.append("")
         
         # Count sections
-        n_atoms = frame["atoms"].nrows
-        n_bonds = frame['bonds'].nrows if 'bonds' in frame else 0
-        n_angles = frame["angles"].nrows if 'angles' in frame else 0
-        n_dihedrals = frame["dihedrals"].nrows if 'dihedrals' in frame else 0
-        n_impropers = frame["impropers"].nrows if 'impropers' in frame else 0
-        lines.append(f"{n_atoms} atoms")
-        if n_bonds > 0:
-            lines.append(f"{n_bonds} bonds")
-        if n_angles > 0:
-            lines.append(f"{n_angles} angles")
-        if n_dihedrals > 0:
-            lines.append(f"{n_dihedrals} dihedrals")
-        if n_impropers > 0:
-            lines.append(f"{n_impropers} impropers")
+        counts = self._get_counts(frame)
+        self._write_counts(lines, counts)
         lines.append("")
         
-        # Type counts - handle both numeric and string types
-        if 'atoms' in frame:
-            atom_types = frame['atoms']['type']
-            unique_atom_types = np.unique(atom_types)
-            n_atom_types = len(unique_atom_types)
-            lines.append(f"{n_atom_types} atom types")
-        
-        if 'bonds' in frame and n_bonds > 0:
-            bond_types = frame['bonds']['type']
-            unique_bond_types = np.unique(bond_types)
-            n_bond_types = len(unique_bond_types)
-            lines.append(f"{n_bond_types} bond types")
-        
-        if 'angles' in frame and n_angles > 0:
-            angle_types = frame['angles']['type']
-            unique_angle_types = np.unique(angle_types)
-            n_angle_types = len(unique_angle_types)
-            lines.append(f"{n_angle_types} angle types")
-        
-        if 'dihedrals' in frame and n_dihedrals > 0:
-            dihedral_types = frame['dihedrals']['type']
-            unique_dihedral_types = np.unique(dihedral_types)
-            n_dihedral_types = len(unique_dihedral_types)
-            lines.append(f"{n_dihedral_types} dihedral types")
-        
-        if 'impropers' in frame and n_impropers > 0:
-            improper_types = frame['impropers']['type']
-            unique_improper_types = np.unique(improper_types)
-            n_improper_types = len(unique_improper_types)
-            lines.append(f"{n_improper_types} improper types")
-        
+        # Type counts
+        self._write_type_counts(lines, frame)
         lines.append("")
         
         # Box bounds
-        if frame.box is not None:
-            box = frame.box
-            lines.append(f"{box.origin[0]:.6f} {box.origin[0] + box.lengths[0]:.6f} xlo xhi")
-            lines.append(f"{box.origin[1]:.6f} {box.origin[1] + box.lengths[1]:.6f} ylo yhi")
-            lines.append(f"{box.origin[2]:.6f} {box.origin[2] + box.lengths[2]:.6f} zlo zhi")
-        else:
-            # Default box if none provided
-            lines.append("0.0 10.0 xlo xhi")
-            lines.append("0.0 10.0 ylo yhi")
-            lines.append("0.0 10.0 zlo zhi")
-        
+        self._write_box_bounds(lines, frame)
         lines.append("")
         
         # Masses section
         if 'atoms' in frame:
-            if "mass" in frame["atoms"]:
-                self._write_masses(lines, frame)
-            if "type" in frame["atoms"]:
-                print("type in atoms")
-                self._write_atom_type_labels(lines, frame)
+            self._write_masses_section(lines, frame)
         
-        # Bond Type Labels section (if string types are used)
-        if 'bonds' in frame and n_bonds > 0:
-            self._write_bond_type_labels(lines, frame)
+        # Type labels sections
+        self._write_type_labels_sections(lines, frame)
         
-        # Angle Type Labels section (if string types are used)
-        if 'angles' in frame and n_angles > 0:
-            self._write_angle_type_labels(lines, frame)
+        # Force field coefficients sections
+        self._write_force_field_coeffs_sections(lines, frame)
         
-        # Dihedral Type Labels section (if string types are used)
-        if 'dihedrals' in frame and n_dihedrals > 0:
-            self._write_dihedral_type_labels(lines, frame)
-        
-        # Improper Type Labels section (if string types are used)
-        if 'impropers' in frame and n_impropers > 0:
-            self._write_improper_type_labels(lines, frame)
-        
-        # Atoms section
+        # Data sections
         if 'atoms' in frame:
-            self._write_atoms(lines, frame)
+            self._write_atoms_section(lines, frame)
         
-        # Bonds section
-        if 'bonds' in frame and n_bonds > 0:
-            self._write_bonds(lines, frame)
+        if 'bonds' in frame and counts.get('bonds', 0) > 0:
+            self._write_connectivity_section(lines, frame, 'bonds')
         
-        # Angles section
-        if 'angles' in frame and n_angles > 0:
-            self._write_angles(lines, frame)
+        if 'angles' in frame and counts.get('angles', 0) > 0:
+            self._write_connectivity_section(lines, frame, 'angles')
         
-        # Dihedrals section
-        if 'dihedrals' in frame and n_dihedrals > 0:
-            self._write_dihedrals(lines, frame)
+        if 'dihedrals' in frame and counts.get('dihedrals', 0) > 0:
+            self._write_connectivity_section(lines, frame, 'dihedrals')
         
-        # Impropers section
-        if 'impropers' in frame and n_impropers > 0:
-            self._write_impropers(lines, frame)
+        if 'impropers' in frame and counts.get('impropers', 0) > 0:
+            self._write_connectivity_section(lines, frame, 'impropers')
         
         # Write to file
         with open(self._path, 'w') as f:
             f.write('\n'.join(lines))
     
-    def _write_masses(self, lines: List[str], frame: mp.Frame) -> None:
+    def _get_counts(self, frame: mp.Frame) -> Dict[str, int]:
+        """Get counts from frame."""
+        counts = {}
+        if 'atoms' in frame:
+            counts['atoms'] = frame['atoms'].nrows
+        if 'bonds' in frame:
+            counts['bonds'] = frame['bonds'].nrows
+        if 'angles' in frame:
+            counts['angles'] = frame['angles'].nrows
+        if 'dihedrals' in frame:
+            counts['dihedrals'] = frame['dihedrals'].nrows
+        if 'impropers' in frame:
+            counts['impropers'] = frame['impropers'].nrows
+        return counts
+    
+    def _write_counts(self, lines: List[str], counts: Dict[str, int]) -> None:
+        """Write count lines."""
+        if 'atoms' in counts:
+            lines.append(f"{counts['atoms']} atoms")
+        if 'bonds' in counts and counts['bonds'] > 0:
+            lines.append(f"{counts['bonds']} bonds")
+        if 'angles' in counts and counts['angles'] > 0:
+            lines.append(f"{counts['angles']} angles")
+        if 'dihedrals' in counts and counts['dihedrals'] > 0:
+            lines.append(f"{counts['dihedrals']} dihedrals")
+        if 'impropers' in counts and counts['impropers'] > 0:
+            lines.append(f"{counts['impropers']} impropers")
+    
+    def _write_type_counts(self, lines: List[str], frame: mp.Frame) -> None:
+        """Write type count lines."""
+        if 'atoms' in frame:
+            unique_types = np.unique(frame['atoms']['type'])
+            lines.append(f"{len(unique_types)} atom types")
+        
+        if 'bonds' in frame and frame['bonds'].nrows > 0:
+            unique_types = np.unique(frame['bonds']['type'])
+            lines.append(f"{len(unique_types)} bond types")
+        
+        if 'angles' in frame and frame['angles'].nrows > 0:
+            unique_types = np.unique(frame['angles']['type'])
+            lines.append(f"{len(unique_types)} angle types")
+        
+        if 'dihedrals' in frame and frame['dihedrals'].nrows > 0:
+            unique_types = np.unique(frame['dihedrals']['type'])
+            lines.append(f"{len(unique_types)} dihedral types")
+        
+        if 'impropers' in frame and frame['impropers'].nrows > 0:
+            unique_types = np.unique(frame['impropers']['type'])
+            lines.append(f"{len(unique_types)} improper types")
+    
+    def _write_box_bounds(self, lines: List[str], frame: mp.Frame) -> None:
+        """Write box bounds."""
+        if frame.metadata.get('box') is not None:
+            box = frame.metadata['box']
+            lines.append(f"{box.origin[0]:.6f} {box.origin[0] + box.lengths[0]:.6f} xlo xhi")
+            lines.append(f"{box.origin[1]:.6f} {box.origin[1] + box.lengths[1]:.6f} ylo yhi")
+            lines.append(f"{box.origin[2]:.6f} {box.origin[2] + box.lengths[2]:.6f} zlo zhi")
+        else:
+            lines.append("0.0 10.0 xlo xhi")
+            lines.append("0.0 10.0 ylo yhi")
+            lines.append("0.0 10.0 zlo zhi")
+    
+    def _write_masses_section(self, lines: List[str], frame: mp.Frame) -> None:
         """Write masses section."""
         lines.append("Masses")
         lines.append("")
         
         atoms_data = frame['atoms']
-        atom_types = atoms_data['type']
+        unique_types = np.unique(atoms_data['type'])
+        type_to_id = {t: i+1 for i, t in enumerate(sorted(unique_types))}
         
-        # Get type mapping
-        type_to_id = self._create_type_mapping(atom_types)
-        
-        for atom_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            # Find first occurrence of this type to get mass
-            mask = atoms_data['type'] == atom_type_str
+        for atom_type in sorted(unique_types):
+            mask = atoms_data['type'] == atom_type
             mass = atoms_data['mass'][mask][0]
-            # Use mapped type ID for output
-            lines.append(f"{type_to_id[atom_type_str]} {mass:.6f}")
+            lines.append(f"{type_to_id[atom_type]} {mass:.6f}")
         
         lines.append("")
     
-    def _create_type_mapping(self, types: np.ndarray) -> Dict[str, int]:
-        """Create mapping from type labels to numeric IDs."""
-        unique_types = np.unique(types)
-        type_to_id = {}
+    def _write_type_labels_sections(self, lines: List[str], frame: mp.Frame) -> None:
+        """Write type labels sections if needed."""
+        sections = [
+            ('atoms', 'Atom Type Labels'),
+            ('bonds', 'Bond Type Labels'),
+            ('angles', 'Angle Type Labels'),
+            ('dihedrals', 'Dihedral Type Labels'),
+            ('impropers', 'Improper Type Labels')
+        ]
         
-        for i, atom_type_str in enumerate(sorted(unique_types), 1):
-            type_to_id[atom_type_str] = i
-        
-        return type_to_id
+        for block_name, section_name in sections:
+            if block_name in frame and frame[block_name].nrows > 0:
+                types = frame[block_name]['type']
+                if self._needs_type_labels(types):
+                    lines.append(section_name)
+                    lines.append("")
+                    
+                    unique_types = np.unique(types)
+                    type_to_id = {t: i+1 for i, t in enumerate(sorted(unique_types))}
+                    
+                    for type_label in sorted(unique_types):
+                        lines.append(f"{type_to_id[type_label]} {type_label}")
+                    
+                    lines.append("")
     
     def _needs_type_labels(self, types: np.ndarray) -> bool:
-        """Check if type labels section is needed (non-numeric types)."""
-        # try:
-        #     # Try to convert all types to integers
-        #     for t in np.unique(types):
-        #         int(t)
-        #     return False  # All types are numeric
-        # except ValueError:
-        #     return True  # At least one type is non-numeric
-        return True
+        """Check if type labels section is needed."""
+        return True  # Always include for consistency
     
-    def _write_atom_type_labels(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write Atom Type Labels section if needed."""
-        atoms_data = frame['atoms']
-        atom_types = atoms_data['type']
+    def _write_force_field_coeffs_sections(self, lines: List[str], frame: mp.Frame) -> None:
+        """Write force field coefficients sections."""
+        forcefield = frame.metadata.get('forcefield')
+        if not forcefield:
+            return
         
-        if not self._needs_type_labels(atom_types):
-            return  # Skip if all types are numeric
+        # Write pair coefficients
+        if forcefield.pairstyles:
+            lines.append("Pair Coeffs")
+            lines.append("")
+            for style in forcefield.pairstyles:
+                for type_obj in style.types:
+                    type_id = int(type_obj.name.split('_')[1])
+                    epsilon = type_obj.get("epsilon", 0.0)
+                    sigma = type_obj.get("sigma", 1.0)
+                    lines.append(f"{type_id} {epsilon:.6f} {sigma:.6f}")
+            lines.append("")
         
-        lines.append("Atom Type Labels")
-        lines.append("")
+        # Write bond coefficients
+        if forcefield.bondstyles:
+            lines.append("Bond Coeffs")
+            lines.append("")
+            for style in forcefield.bondstyles:
+                for type_obj in style.types:
+                    type_id = int(type_obj.name.split('_')[1])
+                    k = type_obj.get("k", 0.0)
+                    r0 = type_obj.get("r0", 1.0)
+                    lines.append(f"{type_id} {k:.6f} {r0:.6f}")
+            lines.append("")
         
-        type_to_id = self._create_type_mapping(atom_types)
+        # Write angle coefficients
+        if forcefield.anglestyles:
+            lines.append("Angle Coeffs")
+            lines.append("")
+            for style in forcefield.anglestyles:
+                for type_obj in style.types:
+                    type_id = int(type_obj.name.split('_')[1])
+                    k = type_obj.get("k", 0.0)
+                    theta0 = type_obj.get("theta0", 0.0)
+                    lines.append(f"{type_id} {k:.6f} {theta0:.6f}")
+            lines.append("")
         
-        for atom_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            lines.append(f"{type_to_id[atom_type_str]} {atom_type_str}")
+        # Write dihedral coefficients
+        if forcefield.dihedralstyles:
+            lines.append("Dihedral Coeffs")
+            lines.append("")
+            for style in forcefield.dihedralstyles:
+                for type_obj in style.types:
+                    type_id = int(type_obj.name.split('_')[1])
+                    k = type_obj.get("k", 0.0)
+                    d = type_obj.get("d", 1)
+                    n = type_obj.get("n", 1)
+                    lines.append(f"{type_id} {k:.6f} {d} {n}")
+            lines.append("")
         
-        lines.append("")
+        # Write improper coefficients
+        if forcefield.improperstyles:
+            lines.append("Improper Coeffs")
+            lines.append("")
+            for style in forcefield.improperstyles:
+                for type_obj in style.types:
+                    type_id = int(type_obj.name.split('_')[1])
+                    k = type_obj.get("k", 0.0)
+                    d = type_obj.get("d", 1)
+                    n = type_obj.get("n", 1)
+                    lines.append(f"{type_id} {k:.6f} {d} {n}")
+            lines.append("")
     
-    def _write_bond_type_labels(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write Bond Type Labels section if needed."""
-        bonds_data = frame['bonds']
-        bond_types = bonds_data['type']
-        
-        if not self._needs_type_labels(bond_types):
-            return  # Skip if all types are numeric
-        
-        lines.append("Bond Type Labels")
-        lines.append("")
-        
-        type_to_id = self._create_type_mapping(bond_types)
-        
-        for bond_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            lines.append(f"{type_to_id[bond_type_str]} {bond_type_str}")
-        
-        lines.append("")
-    
-    def _write_angle_type_labels(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write Angle Type Labels section if needed."""
-        angles_data = frame['angles']
-        angle_types = angles_data['type']
-        
-        if not self._needs_type_labels(angle_types):
-            return  # Skip if all types are numeric
-        
-        lines.append("Angle Type Labels")
-        lines.append("")
-        
-        type_to_id = self._create_type_mapping(angle_types)
-        
-        for angle_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            lines.append(f"{type_to_id[angle_type_str]} {angle_type_str}")
-        
-        lines.append("")
-    
-    def _write_dihedral_type_labels(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write Dihedral Type Labels section if needed."""
-        dihedrals_data = frame['dihedrals']
-        dihedral_types = dihedrals_data['type']
-        
-        if not self._needs_type_labels(dihedral_types):
-            return  # Skip if all types are numeric
-        
-        lines.append("Dihedral Type Labels")
-        lines.append("")
-        
-        type_to_id = self._create_type_mapping(dihedral_types)
-        
-        for dihedral_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            lines.append(f"{type_to_id[dihedral_type_str]} {dihedral_type_str}")
-        
-        lines.append("")
-    
-    def _write_improper_type_labels(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write Improper Type Labels section if needed."""
-        impropers_data = frame['impropers']
-        improper_types = impropers_data['type']
-        
-        if not self._needs_type_labels(improper_types):
-            return  # Skip if all types are numeric
-        
-        lines.append("Improper Type Labels")
-        lines.append("")
-        
-        type_to_id = self._create_type_mapping(improper_types)
-        
-        for improper_type_str in sorted(type_to_id.keys(), key=lambda x: type_to_id[x]):
-            lines.append(f"{type_to_id[improper_type_str]} {improper_type_str}")
-        
-        lines.append("")
-    
-    def _write_atoms(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_atoms_section(self, lines: List[str], frame: mp.Frame) -> None:
         """Write atoms section."""
         lines.append("Atoms")
         lines.append("")
         
         atoms_data = frame['atoms']
-        atom_types = atoms_data['type']
+        unique_types = np.unique(atoms_data['type'])
+        type_to_id = {t: i+1 for i, t in enumerate(sorted(unique_types))}
         
-        # Create type mapping
-        type_to_id = self._create_type_mapping(atom_types)
+        # Ensure atom IDs exist
+        if 'id' not in atoms_data:
+            atoms_data['id'] = np.arange(1, atoms_data.nrows + 1)
         
-        if "id" not in atoms_data:
-            atoms_data["id"] = np.arange(1, atoms_data.nrows + 1)
-        for i in range(len(atoms_data['id'])):
+        for i in range(atoms_data.nrows):
             atom_id = int(atoms_data['id'][i])
-            atom_type_str = atoms_data['type'][i]
-            atom_type = type_to_id[atom_type_str]  # Convert using mapping
-            x, y, z = atoms_data['xyz'][i]
+            atom_type = type_to_id[atoms_data['type'][i]]
+            
+            # Handle coordinates - check if xyz exists or separate x, y, z
+            if 'xyz' in atoms_data:
+                x, y, z = atoms_data['xyz'][i]
+            else:
+                x = float(atoms_data['x'][i])
+                y = float(atoms_data['y'][i])
+                z = float(atoms_data['z'][i])
             
             if self.atom_style == "full":
                 mol_id = int(atoms_data['mol'][i]) if 'mol' in atoms_data else 1
@@ -733,573 +675,37 @@ class LammpsDataWriter(DataWriter):
         
         lines.append("")
     
-    def _write_bonds(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write bonds section."""
-        lines.append("Bonds")
+    def _write_connectivity_section(self, lines: List[str], frame: mp.Frame, section_name: str) -> None:
+        """Write connectivity section (bonds, angles, dihedrals, impropers)."""
+        lines.append(section_name.capitalize())
         lines.append("")
         
-        bonds_data = frame['bonds']
-        bond_types_raw = bonds_data['type']
+        data = frame[section_name]
+        unique_types = np.unique(data['type'])
+        type_to_id = {t: i+1 for i, t in enumerate(sorted(unique_types))}
         
-        # Convert to strings for consistent type mapping
-        bond_types = [str(t) for t in bond_types_raw]
+        # Ensure IDs exist
+        if 'id' not in data:
+            data['id'] = np.arange(1, data.nrows + 1)
         
-        # Create bond type to id mapping based on string types
-        type_to_id = self._create_type_mapping(np.array(bond_types))
-        
-        atoms_ids = frame["atoms"]["id"]
-
-        lines.extend([
-            f"{int(bond_id)} {type_to_id[btype]} {atoms_ids[int(i1)]} {atoms_ids[int(j1)]}"
-            for bond_id, btype, i1, j1
-            in zip(bonds_data["id"], bond_types, bonds_data["i"], bonds_data["j"])
-        ])
-        
-        lines.append("")
-    
-    def _write_angles(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write angles section."""
-        lines.append("Angles")
-        lines.append("")
-        
-        angles_data = frame['angles']
-        angle_types = angles_data['type']
-        
-        # Create angle type to id mapping
-        type_to_id = self._create_type_mapping(angle_types)
-        
-        atoms_ids = frame["atoms"]["id"]
-        angle_types = [str(t) for t in angles_data["type"]]
-        lines.extend([
-            f"{int(angle_id)} {type_to_id[atype]} {atoms_ids[int(i1)]} {atoms_ids[int(j1)]} {atoms_ids[int(k1)]}"
-            for angle_id, atype, i1, j1, k1
-            in zip(angles_data["id"], angle_types, angles_data["i"], angles_data["j"], angles_data["k"])
-        ])
-        
-        lines.append("")
-    
-    def _write_dihedrals(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write dihedrals section."""
-        lines.append("Dihedrals")
-        lines.append("")
-        
-        dihedrals_data = frame['dihedrals']
-        dihedral_types = dihedrals_data['type']
-        
-        # Create dihedral type to id mapping
-        type_to_id = self._create_type_mapping(dihedral_types)
-        
-        atoms_ids = frame["atoms"]["id"]
-        dihedral_types = [str(t) for t in dihedrals_data["type"]]
-        lines.extend([
-            f"{int(dihedral_id)} {type_to_id[dtype]} {atoms_ids[int(i1)]} {atoms_ids[int(j1)]} "
-            f"{atoms_ids[int(k1)]} {atoms_ids[int(l1)]}"
-            for dihedral_id, dtype, i1, j1, k1, l1
-            in zip(dihedrals_data["id"], dihedral_types, dihedrals_data["i"], 
-                   dihedrals_data["j"], dihedrals_data["k"], dihedrals_data["l"])
-        ])
-        
-        lines.append("")
-    
-    def _write_impropers(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write impropers section."""
-        lines.append("Impropers")
-        lines.append("")
-        
-        impropers_data = frame['impropers']
-        improper_types = impropers_data['type']
-        
-        # Create improper type to id mapping
-        type_to_id = self._create_type_mapping(improper_types)
-        
-        for i in range(len(impropers_data['id'])):
-            improper_id = int(impropers_data['id'][i])
-            improper_type_str = str(impropers_data['type'][i])
-            improper_type = type_to_id[improper_type_str]
-            atom1 = int(impropers_data['atom1'][i])
-            atom2 = int(impropers_data['atom2'][i])
-            atom3 = int(impropers_data['atom3'][i])
-            atom4 = int(impropers_data['atom4'][i])
-            lines.append(f"{improper_id} {improper_type} {atom1} {atom2} {atom3} {atom4}")
-        
-        lines.append("")
-
-
-class LammpsMoleculeReader(DataReader):
-    """LAMMPS molecule template file reader."""
-    
-    def __init__(self, path: Union[str, Path]):
-        super().__init__(Path(path))  # Convert to Path explicitly
-    
-    def read(self, frame: Optional[mp.Frame] = None) -> mp.Frame:
-        """Read LAMMPS molecule template file into a Frame."""
-        if frame is None:
-            frame = mp.Frame()
-        
-        lines = self._read_and_clean_lines()
-        sections = self._parse_sections(lines)
-        
-        # Parse header
-        counts = self._parse_header(sections.get('header', []))
-        
-        # Parse sections
-        if 'Coords' in sections:
-            self._parse_coords(sections['Coords'], frame)
-        
-        if 'Types' in sections:
-            self._parse_types(sections['Types'], frame)
-        
-        if 'Charges' in sections:
-            self._parse_charges(sections['Charges'], frame)
-        
-        if 'Bonds' in sections:
-            self._parse_bonds(sections['Bonds'], frame)
-        
-        if 'Angles' in sections:
-            self._parse_angles(sections['Angles'], frame)
-        
-        if 'Dihedrals' in sections:
-            self._parse_dihedrals(sections['Dihedrals'], frame)
-        
-        if 'Impropers' in sections:
-            self._parse_impropers(sections['Impropers'], frame)
-        
-        # Store metadata
-        frame.metadata.update({
-            'format': 'lammps_molecule',
-            'counts': counts,
-            'source_file': str(self._path)
-        })
-        
-        return frame
-    
-    def _read_and_clean_lines(self) -> List[str]:
-        """Read file and return cleaned lines."""
-        with open(self._path, 'r') as f:
-            lines = [line.strip() for line in f.readlines()]
-        return [line for line in lines if line and not line.startswith('#')]
-    
-    def _parse_sections(self, lines: List[str]) -> Dict[str, List[str]]:
-        """Parse file into sections."""
-        sections = {'header': []}
-        current_section = 'header'
-        
-        section_keywords = ['coords', 'types', 'charges', 'bonds', 'angles', 'dihedrals', 'impropers']
-        
-        for line in lines:
-            line_lower = line.lower()
-            if any(keyword in line_lower for keyword in section_keywords):
-                current_section = line.capitalize()
-                sections[current_section] = []
-            else:
-                if current_section not in sections:
-                    sections[current_section] = []
-                sections[current_section].append(line)
-        
-        return sections
-    
-    def _parse_header(self, header_lines: List[str]) -> Dict[str, int]:
-        """Parse header information."""
-        counts = {}
-        
-        for line in header_lines:
-            parts = line.split()
-            if len(parts) >= 2:
-                try:
-                    count = int(parts[0])
-                    if 'atoms' in line.lower():
-                        counts['atoms'] = count
-                    elif 'bonds' in line.lower():
-                        counts['bonds'] = count
-                    elif 'angles' in line.lower():
-                        counts['angles'] = count
-                    elif 'dihedrals' in line.lower():
-                        counts['dihedrals'] = count
-                    elif 'impropers' in line.lower():
-                        counts['impropers'] = count
-                except ValueError:
-                    continue
-        
-        return counts
-    
-    def _parse_coords(self, coord_lines: List[str], frame: mp.Frame) -> None:
-        """Parse coordinates section."""
-        coords_data = {
-            'id': [],
-            'x': [],
-            'y': [],
-            'z': []
-        }
-        
-        for line in coord_lines:
-            if line.strip():
-                parts = line.split()
-                atom_id = int(parts[0])
-                x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
-                
-                coords_data['id'].append(atom_id)
-                coords_data['x'].append(x)
-                coords_data['y'].append(y)
-                coords_data['z'].append(z)
-        
-        if coords_data['id']:
-            # Create xyz coordinate array
-            xyz = np.column_stack([coords_data['x'], coords_data['y'], coords_data['z']])
+        for i in range(data.nrows):
+            item_id = int(data['id'][i])
+            item_type = type_to_id[data['type'][i]]
             
-            # Create or update atoms block
-            if 'atoms' not in frame:
-                frame['atoms'] = mp.Block({
-                    'id': coords_data['id'],
-                    'xyz': xyz
-                })
-            else:
-                # Update existing block by setting xyz
-                frame['atoms']['xyz'] = xyz
-    
-    def _parse_types(self, type_lines: List[str], frame: mp.Frame) -> None:
-        """Parse types section."""
-        types_data = {'id': [], 'type': []}
-        
-        for line in type_lines:
-            if line.strip():
-                parts = line.split()
-                atom_id = int(parts[0])
-                atom_type_str = parts[1]  # Always treat as string
-                
-                types_data['id'].append(atom_id)
-                types_data['type'].append(atom_type_str)
-        
-        if types_data['id']:
-            if 'atoms' not in frame:
-                frame['atoms'] = mp.Block({
-                    'id': types_data['id'],
-                    'type': types_data['type']
-                })
-            else:
-                frame['atoms']['type'] = types_data['type']
-    
-    def _parse_charges(self, charge_lines: List[str], frame: mp.Frame) -> None:
-        """Parse charges section."""
-        charges_data = {'id': [], 'q': []}
-        
-        for line in charge_lines:
-            if line.strip():
-                parts = line.split()
-                atom_id = int(parts[0])
-                charge = float(parts[1])
-                
-                charges_data['id'].append(atom_id)
-                charges_data['q'].append(charge)
-        
-        if charges_data['id']:
-            if 'atoms' not in frame:
-                frame['atoms'] = mp.Block({
-                    'id': charges_data['id'],
-                    'q': charges_data['q']
-                })
-            else:
-                frame['atoms']['q'] = charges_data['q']
-    
-    def _parse_bonds(self, bond_lines: List[str], frame: mp.Frame) -> None:
-        """Parse bonds section."""
-        bond_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': []
-        }
-        
-        for line in bond_lines:
-            if line.strip():
-                parts = line.split()
-                bond_id = int(parts[0])
-                bond_type_str = parts[1]  # Always treat as string
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                
-                bond_data['id'].append(bond_id)
-                bond_data['type'].append(bond_type_str)
-                bond_data['atom1'].append(atom1)
-                bond_data['atom2'].append(atom2)
-        
-        if bond_data['id']:
-            frame['bonds'] = mp.Block(bond_data)
-    
-    def _parse_angles(self, angle_lines: List[str], frame: mp.Frame) -> None:
-        """Parse angles section - same as LammpsDataReader."""
-        if not angle_lines:
-            return
-        
-        angle_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': []
-        }
-        
-        for line in angle_lines:
-            if line.strip():
-                parts = line.split()
-                angle_id = int(parts[0])
-                angle_type_str = parts[1]  # Always treat as string
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                
-                angle_data['id'].append(angle_id)
-                angle_data['type'].append(angle_type_str)
-                angle_data['atom1'].append(atom1)
-                angle_data['atom2'].append(atom2)
-                angle_data['atom3'].append(atom3)
-        
-        if angle_data['id']:
-            frame['angles'] = mp.Block(angle_data)
-    
-    def _parse_dihedrals(self, dihedral_lines: List[str], frame: mp.Frame) -> None:
-        """Parse dihedrals section - same as LammpsDataReader."""
-        if not dihedral_lines:
-            return
-        
-        dihedral_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': [],
-            'atom4': []
-        }
-        
-        for line in dihedral_lines:
-            if line.strip():
-                parts = line.split()
-                dihedral_id = int(parts[0])
-                dihedral_type_str = parts[1]  # Always treat as string
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                atom4 = int(parts[5])
-                
-                dihedral_data['id'].append(dihedral_id)
-                dihedral_data['type'].append(dihedral_type_str)
-                dihedral_data['atom1'].append(atom1)
-                dihedral_data['atom2'].append(atom2)
-                dihedral_data['atom3'].append(atom3)
-                dihedral_data['atom4'].append(atom4)
-        
-        if dihedral_data['id']:
-            # Create Block and store in frame
-            frame['dihedrals'] = mp.Block(dihedral_data)
-    
-    def _parse_impropers(self, improper_lines: List[str], frame: mp.Frame) -> None:
-        """Parse impropers section - same as LammpsDataReader."""
-        if not improper_lines:
-            return
-        
-        improper_data = {
-            'id': [],
-            'type': [],
-            'atom1': [],
-            'atom2': [],
-            'atom3': [],
-            'atom4': []
-        }
-        
-        for line in improper_lines:
-            if line.strip():
-                parts = line.split()
-                improper_id = int(parts[0])
-                improper_type_str = parts[1]  # Always treat as string
-                atom1 = int(parts[2])
-                atom2 = int(parts[3])
-                atom3 = int(parts[4])
-                atom4 = int(parts[5])
-                
-                improper_data['id'].append(improper_id)
-                improper_data['type'].append(improper_type_str)
-                improper_data['atom1'].append(atom1)
-                improper_data['atom2'].append(atom2)
-                improper_data['atom3'].append(atom3)
-                improper_data['atom4'].append(atom4)
-        
-        if improper_data['id']:
-            # Create Block and store in frame
-            frame['impropers'] = mp.Block(improper_data)
-
-
-class LammpsMoleculeWriter(DataWriter):
-    """LAMMPS molecule template file writer."""
-    
-    def __init__(self, path: Union[str, Path]):
-        super().__init__(Path(path))  # Convert to Path explicitly
-    
-    def write(self, frame: mp.Frame) -> None:
-        """Write Frame to LAMMPS molecule template file."""
-        lines = []
-        
-        # Header comment
-        lines.append(f"# LAMMPS molecule template written by molpy on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        lines.append("")
-        print(frame)
-        # Count lines
-        n_atoms = len(frame['atoms']['id']) if 'atoms' in frame else 0
-        n_bonds = len(frame['bonds']['id']) if 'bonds' in frame else 0
-        n_angles = len(frame['angles']['id']) if 'angles' in frame else 0
-        n_dihedrals = len(frame['dihedrals']['id']) if 'dihedrals' in frame else 0
-        n_impropers = len(frame['impropers']['id']) if 'impropers' in frame else 0
-        
-        lines.append(f"{n_atoms} atoms")
-        if n_bonds > 0:
-            lines.append(f"{n_bonds} bonds")
-        if n_angles > 0:
-            lines.append(f"{n_angles} angles")
-        if n_dihedrals > 0:
-            lines.append(f"{n_dihedrals} dihedrals")
-        if n_impropers > 0:
-            lines.append(f"{n_impropers} impropers")
-        lines.append("")
-        
-        # Coords section
-        if 'atoms' in frame and 'xyz' in frame['atoms']:
-            self._write_coords(lines, frame)
-        
-        # Types section
-        if 'atoms' in frame and 'type' in frame['atoms']:
-            self._write_types(lines, frame)
-        
-        # Charges section
-        if 'atoms' in frame and 'q' in frame['atoms']:
-            self._write_charges(lines, frame)
-        
-        # Bonds section
-        if 'bonds' in frame and n_bonds > 0:
-            self._write_bonds(lines, frame)
-        
-        # Angles section
-        if 'angles' in frame and n_angles > 0:
-            self._write_angles(lines, frame)
-        
-        # Dihedrals section
-        if 'dihedrals' in frame and n_dihedrals > 0:
-            self._write_dihedrals(lines, frame)
-        
-        # Impropers section
-        if 'impropers' in frame and n_impropers > 0:
-            self._write_impropers(lines, frame)
-        
-        # Write to file
-        with open(self._path, 'w') as f:
-            f.write('\n'.join(lines))
-    
-    def _write_coords(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write coordinates section."""
-        lines.append("Coords")
-        lines.append("")
-        
-        atoms_data = frame['atoms']
-        
-        for i in range(len(atoms_data['id'])):
-            atom_id = int(atoms_data['id'][i])
-            x, y, z = atoms_data['xyz'][i]
-            lines.append(f"{atom_id} {x:.6f} {y:.6f} {z:.6f}")
-        
-        lines.append("")
-    
-    def _write_types(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write types section."""
-        lines.append("Types")
-        lines.append("")
-        
-        atoms_data = frame['atoms']
-        atom_ids = atoms_data['id'].tolist()
-        atom_types = atoms_data['type'].tolist()
-        for i in range(len(atoms_data['id'])):
-            atom_id = atom_ids[i]
-            atom_type = atom_types[i]
-            lines.append(f"{atom_id} {atom_type}")
-        
-        lines.append("")
-    
-    def _write_charges(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write charges section."""
-        lines.append("Charges")
-        lines.append("")
-        
-        atoms_data = frame['atoms']
-        
-        for i in range(len(atoms_data['id'])):
-            atom_id = int(atoms_data['id'][i])
-            charge = float(atoms_data['q'][i])
-            lines.append(f"{atom_id} {charge:.6f}")
-        
-        lines.append("")
-    
-    def _write_bonds(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write bonds section."""
-        lines.append("Bonds")
-        lines.append("")
-        
-        bonds_data = frame['bonds']
-        bond_ids = bonds_data['id'].tolist()
-        bond_types = bonds_data['type'].tolist()
-        for i in range(len(bond_ids)):
-            bond_id = bond_ids[i]
-            bond_type = str(bond_types[i])
-            atom1 = int(bonds_data['i'][i]) + 1
-            atom2 = int(bonds_data['j'][i]) + 1
-            lines.append(f"{bond_id} {bond_type} {atom1} {atom2}")
-        
-        lines.append("")
-    
-    def _write_angles(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write angles section."""
-        lines.append("Angles")
-        lines.append("")
-        
-        angles_data = frame['angles']
-
-        for i in range(len(angles_data['id'])):
-            angle_id = int(angles_data['id'][i])
-            angle_type = str(angles_data['type'][i])
-            atom1 = int(angles_data['i'][i]) + 1
-            atom2 = int(angles_data['j'][i]) + 1
-            atom3 = int(angles_data['k'][i]) + 1
-            lines.append(f"{angle_id} {angle_type} {atom1} {atom2} {atom3}")
-        
-        lines.append("")
-    
-    def _write_dihedrals(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write dihedrals section."""
-        lines.append("Dihedrals")
-        lines.append("")
-        
-        dihedrals_data = frame['dihedrals']
-        
-        for i in range(len(dihedrals_data['id'])):
-            dihedral_id = int(dihedrals_data['id'][i])
-            dihedral_type = str(dihedrals_data['type'][i]) 
-            atom1 = int(dihedrals_data['i'][i]) + 1
-            atom2 = int(dihedrals_data['j'][i]) + 1
-            atom3 = int(dihedrals_data['k'][i]) + 1
-            atom4 = int(dihedrals_data['l'][i]) + 1
-            lines.append(f"{dihedral_id} {dihedral_type} {atom1} {atom2} {atom3} {atom4}")
-        
-        lines.append("")
-    
-    def _write_impropers(self, lines: List[str], frame: mp.Frame) -> None:
-        """Write impropers section."""
-        lines.append("Impropers")
-        lines.append("")
-        
-        impropers_data = frame['impropers']
-        
-        for i in range(len(impropers_data['id'])):
-            improper_id = int(impropers_data['id'][i])
-            improper_type = impropers_data['type'][i]
-            atom1 = int(impropers_data['i'][i]) + 1
-            atom2 = int(impropers_data['j'][i]) + 1
-            atom3 = int(impropers_data['k'][i]) + 1
-            atom4 = int(impropers_data['l'][i]) + 1
-            lines.append(f"{improper_id} {improper_type} {atom1} {atom2} {atom3} {atom4}")
+            if section_name == 'bonds':
+                atom1 = int(data['atom1'][i])
+                atom2 = int(data['atom2'][i])
+                lines.append(f"{item_id} {item_type} {atom1} {atom2}")
+            elif section_name == 'angles':
+                atom1 = int(data['atom1'][i])
+                atom2 = int(data['atom2'][i])
+                atom3 = int(data['atom3'][i])
+                lines.append(f"{item_id} {item_type} {atom1} {atom2} {atom3}")
+            elif section_name in ['dihedrals', 'impropers']:
+                atom1 = int(data['atom1'][i])
+                atom2 = int(data['atom2'][i])
+                atom3 = int(data['atom3'][i])
+                atom4 = int(data['atom4'][i])
+                lines.append(f"{item_id} {item_type} {atom1} {atom2} {atom3} {atom4}")
         
         lines.append("")

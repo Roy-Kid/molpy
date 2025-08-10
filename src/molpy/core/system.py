@@ -197,7 +197,7 @@ class PeriodicSystem(Wrapper):
         original_box = self.box
         
         # Create new frame with same box reference initially
-        new_frame = Frame(box=frame.box)
+        new_frame = Frame()
         new_frame.metadata = frame.metadata.copy()
         
         # Process each block in the frame
@@ -366,8 +366,7 @@ class PeriodicSystem(Wrapper):
         new_box = Box(
             matrix=new_matrix,
             pbc=current_box.pbc.copy(),
-            origin=current_box.origin.copy(),
-            name=current_box.name
+            origin=current_box.origin.copy()
         )
         
         if isinstance(self._wrapped, FrameSystem):

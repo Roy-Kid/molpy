@@ -1,15 +1,14 @@
-from collections import defaultdict
-from typing import Any, overload, TypeAlias
-from collections.abc import MutableMapping, Iterator
+import csv
+from collections.abc import Iterator, MutableMapping
+from io import StringIO
+from pathlib import Path
+from typing import Any, TypeAlias, overload
+
 import numpy as np
 from numpy.typing import ArrayLike
-import csv
-import re
-from pathlib import Path
-from io import StringIO
 
-from .box import Box
 from .topology import Topology
+from .selection import Selection, MaskPredicate
 
 BlockLike: TypeAlias = dict[str, ArrayLike]
 
@@ -59,6 +58,9 @@ class Block(MutableMapping[str, np.ndarray]):
     @overload
     def __getitem__(self, key: np.ndarray) -> "Block": ...  # type: ignore[override]
 
+    @overload
+    def __getitem__(self, key: Selection) -> "Block": ...  # type: ignore[override]
+
     def __getitem__(self, key):  # type: ignore[override]
         if isinstance(key, (int, slice)):
             return {
@@ -96,6 +98,8 @@ class Block(MutableMapping[str, np.ndarray]):
             return np.array([self[k] for k in key])
         elif isinstance(key, np.ndarray):
             return Block({k: v[key] for k, v in self._vars.items()})
+        elif isinstance(key, MaskPredicate):  # Selection alias covers old API
+            return key(self)
         else:
             raise KeyError(f"Invalid key type: {type(key)}. Expected str, int, slice, list[str], or np.ndarray.")
 
@@ -215,7 +219,7 @@ class Block(MutableMapping[str, np.ndarray]):
 
     def copy(self) -> "Block":
         """Shallow copy (arrays are **not** copied)."""
-        return Block(self._vars.copy())
+        return Block(self._vars.copy())  # type: ignore[arg-type]
 
     def sort(self, key: str, *, reverse: bool = False) -> "Block":
         """
@@ -421,21 +425,18 @@ class Block(MutableMapping[str, np.ndarray]):
             yield RowTuple(*row_values)
 
 
-
 class Frame:
     """
     Hierarchical numerical data container.
 
         Frame
         ├- blocks (dict[str, Block])
-        ├- box    (simulation box)
         ├- metadata   (dict[str, Any])  # metadata
     """
 
-    def __init__(self, *, box: Box | None = None, **props) -> None:
+    def __init__(self, blocks = None, **props) -> None:
         # guarantee a root block even if none supplied
-        self._blocks: dict[str, Block] = {}
-        self.box: Box | None = box
+        self._blocks: dict[str, Block] = blocks if blocks is not None else {}
         self.metadata = props
 
     # ---------- main get/set --------------------------------------------
@@ -484,15 +485,13 @@ class Frame:
         meta_dict = {k: v for k, v in self.metadata.items()}
         return {
             "blocks": block_dict,
-            "metadata": meta_dict,
-            "box": self.box.to_dict() if self.box else None,
+            "metadata": meta_dict
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Frame":
         blocks = {g: Block.from_dict(grp) for g, grp in data["blocks"].items()}
-        box = Box.from_dict(data["box"]) if data.get("box") else None
-        frame = cls(blocks=blocks, box=box)
+        frame = cls(blocks=blocks)
         frame.metadata = data.get("metadata", {})
         return frame
 
@@ -506,9 +505,12 @@ class Frame:
 
     def get_topology(self) -> Topology:
         """Get the topology of the frame."""
-        bonds = self["bonds"]["i", "j"]
+        bonds_block = self["bonds"]
+        i = bonds_block["i"]
+        j = bonds_block["j"]
+        bonds_list = [(int(ii), int(jj)) for ii, jj in zip(i.tolist(), j.tolist())]
         n_atoms = self["atoms"].nrows
         topo = Topology()
         topo.add_atoms(n_atoms)
-        topo.add_bonds(bonds.T)
+        topo.add_bonds(bonds_list)
         return topo

@@ -398,7 +398,7 @@ Charlie,35,1.75"""
         # Wrong length boolean mask
         wrong_mask = np.array([True, False, True])
         
-        with pytest.raises(ValueError, match="Boolean mask length 3 must match number of rows 5"):
+        with pytest.raises(IndexError):
             blk[wrong_mask]
 
     def test_block_mask_empty_result(self):

@@ -10,3 +10,4 @@ from .protocol import *
 from .trajectory import *
 from .atomistic import *
 from .wrapper import *
+from .selection import *

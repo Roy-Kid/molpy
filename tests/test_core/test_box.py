@@ -399,7 +399,3 @@ class TestBoxStyle:
         assert mp.Box.cubic(1).style == mp.Box.Style.ORTHOGONAL
         assert mp.Box.orth([1, 2, 3]).style == mp.Box.Style.ORTHOGONAL
         assert mp.Box.tric([1, 2, 3], [0.5, 1, 1.5]).style == mp.Box.Style.TRICLINIC
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

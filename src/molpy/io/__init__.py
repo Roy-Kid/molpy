@@ -22,9 +22,9 @@ def read_lammps_forcefield(scripts: Path|list[Path], frame: mp.ForceField | None
     return reader.read(frame=frame)
 
 def read_lammps_molecule(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
-    """Read LAMMPS molecule file and return a molpy System object."""
-    from .data.lammps import LammpsMoleculeReader
-    reader = LammpsMoleculeReader(file, )
+    """Read LAMMPS molecule file and return a molpy Frame object."""
+    from .data.lammps_molecule import LammpsMoleculeReader
+    reader = LammpsMoleculeReader(file)
     return reader.read(frame=frame)
 
 def read_lammps(data: Path, scripts: Path | list[Path] | None = None, frame: mp.Frame | None = None) -> mp.Frame:
@@ -202,10 +202,10 @@ def write_xsf(file: Path | str, system: mp.FrameSystem) -> None:
     writer = XsfWriter(Path(file))
     writer.write(system)
 
-def write_lammps_molecule(file: Path | str, frame: mp.Frame) -> None:
-
-    from .data.lammps import LammpsMoleculeWriter
-    writer = LammpsMoleculeWriter(file)
+def write_lammps_molecule(file: Path | str, frame: mp.Frame, format_type: str = "native") -> None:
+    """Write a molpy Frame object to a LAMMPS molecule file."""
+    from .data.lammps_molecule import LammpsMoleculeWriter
+    writer = LammpsMoleculeWriter(file, format_type)
     writer.write(frame)
 
 def write_lammps_forcefield(file: Path | str, forcefield: mp.ForceField) -> None:
