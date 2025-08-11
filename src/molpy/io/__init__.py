@@ -3,7 +3,9 @@ from typing import List
 
 import numpy as np
 
-import molpy as mp
+from molpy.core.forcefield import ForceField
+from molpy.core.frame import Frame
+from molpy.core.system import FrameSystem
 
 from . import data, forcefield, log, trajectory
 
@@ -11,8 +13,8 @@ read_txt = np.loadtxt
 
 
 def read_lammps_data(
-    file: Path | str, atom_style: str, frame: mp.Frame | None = None
-) -> mp.Frame:
+    file: Path | str, atom_style: str, frame: Frame | None = None
+) -> Frame:
     """Read LAMMPS data file and return a molpy System object."""
     from .data.lammps import LammpsDataReader
 
@@ -21,8 +23,8 @@ def read_lammps_data(
 
 
 def read_lammps_forcefield(
-    scripts: Path | list[Path], frame: mp.ForceField | None = None
-) -> mp.ForceField:
+    scripts: Path | list[Path], frame: ForceField | None = None
+) -> ForceField:
     """Read LAMMPS force field file and return a molpy ForceField object."""
     from .forcefield.lammps import LAMMPSForceFieldReader
 
@@ -30,7 +32,7 @@ def read_lammps_forcefield(
     return reader.read(frame=frame)
 
 
-def read_lammps_molecule(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+def read_lammps_molecule(file: Path | str, frame: Frame | None = None) -> Frame:
     """Read LAMMPS molecule file and return a molpy Frame object."""
     from .data.lammps_molecule import LammpsMoleculeReader
 
@@ -39,8 +41,8 @@ def read_lammps_molecule(file: Path | str, frame: mp.Frame | None = None) -> mp.
 
 
 def read_lammps(
-    data: Path, scripts: Path | list[Path] | None = None, frame: mp.Frame | None = None
-) -> mp.Frame:
+    data: Path, scripts: Path | list[Path] | None = None, frame: Frame | None = None
+) -> Frame:
     """Read LAMMPS data and force field files and return a molpy System object. If data file is provided, only read model;
     If input file is provided, read force field.
     """
@@ -50,19 +52,19 @@ def read_lammps(
     return frame
 
 
-def read_pdb(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+def read_pdb(file: Path | str, frame: Frame | None = None) -> Frame:
     """Read a PDB file and return a molpy Frame object."""
     from .data.pdb import PDBReader
 
     reader = PDBReader(file)
     if frame is None:
-        frame = mp.Frame()
+        frame = Frame()
     return reader.read(frame)
 
 
 def read_amber(
-    prmtop: Path, inpcrd: Path | None = None, frame: mp.Frame | None = None
-) -> tuple[mp.Frame, mp.ForceField]:
+    prmtop: Path, inpcrd: Path | None = None, frame: Frame | None = None
+) -> tuple[Frame, ForceField]:
     """Read AMBER force field prmtop and return a molpy ForceField object."""
     from .forcefield.amber import AmberPrmtopReader
 
@@ -70,7 +72,7 @@ def read_amber(
     inpcrd = Path(inpcrd) if inpcrd is not None else None
     reader = AmberPrmtopReader(prmtop)
     if frame is None:
-        frame = mp.Frame()
+        frame = Frame()
     frame, ff = reader.read(frame)
     if inpcrd is not None:
         from .data.amber import AmberInpcrdReader
@@ -80,50 +82,50 @@ def read_amber(
     return frame, ff
 
 
-def read_amber_inpcrd(inpcrd: Path, frame: mp.Frame | None = None) -> mp.Frame:
+def read_amber_inpcrd(inpcrd: Path, frame: Frame | None = None) -> Frame:
     """Read AMBER inpcrd file and return a molpy Frame object."""
     from .data.amber import AmberInpcrdReader
 
     reader = AmberInpcrdReader(inpcrd)
     if frame is None:
-        frame = mp.Frame()
+        frame = Frame()
     return reader.read(frame)
 
 
 def read_amber_system(
-    prmtop: Path, inpcrd: Path | None = None, system: mp.FrameSystem | None = None
-) -> mp.FrameSystem:
+    prmtop: Path, inpcrd: Path | None = None, system: FrameSystem | None = None
+) -> FrameSystem:
     """Read AMBER force field prmtop and coordinates and return a FrameSystem."""
     if system is None:
-        system = mp.FrameSystem()
+        system = FrameSystem()
 
     # Ensure we have a frame to work with
-    frame = system._wrapped if system._wrapped is not None else mp.Frame()
+    frame = system._wrapped if system._wrapped is not None else Frame()
     frame, ff = read_amber(prmtop, inpcrd, frame)
-    return mp.FrameSystem(frame=frame, forcefield=ff, box=system.box)
+    return FrameSystem(frame=frame, forcefield=ff, box=system.box)
 
 
-def read_amber_ac(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+def read_amber_ac(file: Path | str, frame: Frame | None = None) -> Frame:
     """Read an AC file and return a molpy System object."""
     from .data.ac import AcReader
 
     reader = AcReader(file)
     if frame is None:
-        frame = mp.Frame()
+        frame = Frame()
     return reader.read(frame)
 
 
-def read_mol2(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+def read_mol2(file: Path | str, frame: Frame | None = None) -> Frame:
     """Read a mol2 file and return a molpy System object."""
     from .data.mol2 import Mol2Reader
 
     reader = Mol2Reader(file)
     if frame is None:
-        frame = mp.Frame()
+        frame = Frame()
     return reader.read(frame)
 
 
-def read_xsf(file: Path | str) -> mp.FrameSystem:
+def read_xsf(file: Path | str) -> FrameSystem:
     """Read an XSF file and return a molpy FrameSystem object."""
     from .data.xsf import XsfReader
 
@@ -132,8 +134,8 @@ def read_xsf(file: Path | str) -> mp.FrameSystem:
 
 
 def read_xml_forcefield(
-    name_or_path: Path | str, system: mp.FrameSystem | None = None
-) -> mp.FrameSystem:
+    name_or_path: Path | str, system: FrameSystem | None = None
+) -> FrameSystem:
     """Read an XML force field file and return a FrameSystem."""
     from .forcefield.xml import XMLForceFieldReader
 
@@ -157,7 +159,7 @@ def read_xml_forcefield(
         xml_path = Path(name_or_path)
 
     if system is None:
-        system = mp.FrameSystem()
+        system = FrameSystem()
 
     reader = XMLForceFieldReader(xml_path)
     reader.read(system)
@@ -165,35 +167,35 @@ def read_xml_forcefield(
     return system
 
 
-def read_gro(file: Path | str, frame: mp.Frame | None = None) -> mp.Frame:
+def read_gro(file: Path | str, frame: Frame | None = None) -> Frame:
     """Read a GROMACS gro file and return a Frame."""
     from .data.gro import GroReader
 
     if frame is None:
-        frame = mp.Frame(frame=mp.Frame())
+        frame = Frame(frame=Frame())
     reader = GroReader(Path(file))
     frame = reader.read(frame)
     return frame
 
 
-def read_top(file: Path | str, system: mp.FrameSystem | None = None) -> mp.FrameSystem:
+def read_top(file: Path | str, system: FrameSystem | None = None) -> FrameSystem:
     """Read a GROMACS top file and return a FrameSystem with force field data."""
     from .forcefield.top import GromacsTopReader
 
     if system is None:
-        system = mp.FrameSystem()
+        system = FrameSystem()
 
     reader = GromacsTopReader(Path(file))
     forcefield = reader.read(system.forcefield)
     # Create new FrameSystem with updated forcefield
-    return mp.FrameSystem(frame=system._wrapped, forcefield=forcefield, box=system.box)
+    return FrameSystem(frame=system._wrapped, forcefield=forcefield, box=system.box)
 
 
 def read_gromacs_system(
     gro_file: Path | str,
     top_file: Path | str | None = None,
-    system: mp.FrameSystem | None = None,
-) -> mp.FrameSystem:
+    system: FrameSystem | None = None,
+) -> FrameSystem:
     """Read GROMACS structure and topology files and return a complete FrameSystem.
 
     Args:
@@ -205,7 +207,7 @@ def read_gromacs_system(
         FrameSystem with structure, box, and optional force field data
     """
     if system is None:
-        system = mp.FrameSystem()
+        system = FrameSystem()
 
     # Read structure file
     system = read_gro(gro_file, system)
@@ -217,7 +219,7 @@ def read_gromacs_system(
     return system
 
 
-def write_lammps_data(file: Path, frame: mp.Frame) -> None:
+def write_lammps_data(file: Path, frame: Frame) -> None:
     """Write a molpy System object to a LAMMPS data file."""
     from .data.lammps import LammpsDataWriter
 
@@ -225,7 +227,7 @@ def write_lammps_data(file: Path, frame: mp.Frame) -> None:
     writer.write(frame)
 
 
-def write_pdb(file: Path | str, frame: mp.Frame) -> None:
+def write_pdb(file: Path | str, frame: Frame) -> None:
     """Write a molpy System object to a PDB file."""
     from .data.pdb import PDBWriter
 
@@ -233,7 +235,7 @@ def write_pdb(file: Path | str, frame: mp.Frame) -> None:
     writer.write(frame)
 
 
-def write_xsf(file: Path | str, system: mp.FrameSystem) -> None:
+def write_xsf(file: Path | str, system: FrameSystem) -> None:
     """Write a molpy FrameSystem object to an XSF file."""
     from .data.xsf import XsfWriter
 
@@ -242,7 +244,7 @@ def write_xsf(file: Path | str, system: mp.FrameSystem) -> None:
 
 
 def write_lammps_molecule(
-    file: Path | str, frame: mp.Frame, format_type: str = "native"
+    file: Path | str, frame: Frame, format_type: str = "native"
 ) -> None:
     """Write a molpy Frame object to a LAMMPS molecule file."""
     from .data.lammps_molecule import LammpsMoleculeWriter
@@ -251,7 +253,7 @@ def write_lammps_molecule(
     writer.write(frame)
 
 
-def write_lammps_forcefield(file: Path | str, forcefield: mp.ForceField) -> None:
+def write_lammps_forcefield(file: Path | str, forcefield: ForceField) -> None:
     """Write a molpy System object to a LAMMPS force field file."""
     from .forcefield.lammps import LAMMPSForceFieldWriter
 
@@ -259,7 +261,7 @@ def write_lammps_forcefield(file: Path | str, forcefield: mp.ForceField) -> None
     writer.write(file, forcefield)
 
 
-def write_lammps(workdir: Path, system: mp.FrameSystem) -> None:
+def write_lammps(workdir: Path, system: FrameSystem) -> None:
     """Write a molpy FrameSystem object to LAMMPS data and force field files."""
     if not workdir.exists():
         workdir.mkdir(parents=True, exist_ok=True)
@@ -278,7 +280,7 @@ def read_lammps_trajectory(
 
 
 def write_lammps_trajectory(
-    file: Path | str, frames: List[mp.Frame], atom_style: str = "full"
+    file: Path | str, frames: List[Frame], atom_style: str = "full"
 ) -> None:
     """Write frames to a LAMMPS trajectory file."""
     from .trajectory.lammps import LammpsTrajectoryWriter

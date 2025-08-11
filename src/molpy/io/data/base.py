@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import IO, Any, Iterator, List
+from typing import IO, Any, Iterator
 
-import molpy as mp
+from molpy.core.frame import Frame
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -56,13 +56,13 @@ class DataReader(FileBase, ABC):
         """`for line in reader:` yields non-blank, stripped lines."""
         return self._iter_nonblank()
 
-    def read_lines(self) -> List[str]:
+    def read_lines(self) -> list[str]:
         """Return all lines at once."""
         return list(self.fh.readlines())
 
     # -- high-level parse ---------------------------------------------
     @abstractmethod
-    def read(self, frame: mp.Frame) -> mp.Frame:
+    def read(self, frame: Frame) -> Frame:
         """Populate / update a Frame from the underlying text."""
         ...
 
@@ -77,6 +77,6 @@ class DataWriter(FileBase, ABC):
         super().__init__(path, mode="w", **open_kwargs)
 
     @abstractmethod
-    def write(self, frame: mp.Frame) -> None:  # noqa: D401
+    def write(self, frame: Frame) -> None:  # noqa: D401
         """Serialize *frame* into the underlying text file."""
         ...

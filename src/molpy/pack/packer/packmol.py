@@ -6,8 +6,8 @@ from typing import Any, Dict, Generator
 import molq
 import numpy as np
 
-import molpy as mp
 import molpy.pack as mpk
+from molpy.core.frame import Frame
 
 from .base import Packer
 
@@ -93,7 +93,7 @@ class Packmol(Packer):
     @molq.local
     def pack(
         self, targets=None, max_steps: int = 1000, seed: int | None = None
-    ) -> Generator[Dict, Any, mp.Frame]:
+    ) -> Generator[Dict, Any, Frame]:
         if targets is None:
             targets = self.targets
         if seed is None:
@@ -215,7 +215,7 @@ class Packmol(Packer):
             return combined
 
         # Build final frame
-        final_frame = mp.Frame()
+        final_frame = Frame()
         final_frame["atoms"] = concat_blocks(all_atoms)
         # Overwrite coordinates with optimized positions
         if "xyz" in optimized_frame["atoms"]:

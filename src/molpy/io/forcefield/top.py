@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-import molpy as mp
+from molpy.core.forcefield import ForceField
 
 
 class GromacsTopReader:
@@ -30,11 +30,11 @@ class GromacsTopReader:
     # NOTE: `forcefield` is optional and only used to help resolve #include paths
     def read(
         self,
-        forcefield: mp.ForceField,
+        forcefield: ForceField,
         *,
         strip_comments: bool = True,
         recursive: bool = True,
-    ) -> mp.ForceField:
+    ) -> ForceField:
         """Parse the topology file.
 
         Parameters
@@ -85,7 +85,7 @@ class GromacsTopReader:
         path: Path,
         store: dict[str, list[str]],
         visited: set[Path],
-        forcefield: mp.ForceField | None,
+        forcefield: ForceField | None,
         strip_comments: bool,
         recursive: bool,
     ) -> None:
@@ -148,7 +148,7 @@ class GromacsTopReader:
 
     # --------------------------------------------------------------------- #
     def _resolve_include(
-        self, inc: Path, cwd: Path, forcefield: mp.ForceField | None
+        self, inc: Path, cwd: Path, forcefield: ForceField | None
     ) -> Path:
         """Return an absolute path for an included file.
 
@@ -173,7 +173,7 @@ class GromacsTopReader:
         # Fallback: return path relative to cwd even if it doesn't exist
         return candidate
 
-    def _parse_atom_section(self, lines: list[str], ff: mp.ForceField) -> None:
+    def _parse_atom_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [atomtypes] section of a Gromacs topology file.
 
         Parameters
@@ -210,7 +210,7 @@ class GromacsTopReader:
 
         self.atomtypes = atomtypes
 
-    def _parse_bond_section(self, lines: list[str], ff: mp.ForceField) -> None:
+    def _parse_bond_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [bondtypes] section of a GROMACS topology file."""
 
         func_types = {
@@ -255,7 +255,7 @@ class GromacsTopReader:
             # Register the bond type in the force‑field object
             bondstyle.def_type(itype=itype, jtype=jtype, name=name, **param_dict)
 
-    def _parse_angle_section(self, lines: list[str], ff: mp.ForceField) -> None:
+    def _parse_angle_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [angletypes] section of a GROMACS topology file."""
 
         func_types = {
@@ -299,7 +299,7 @@ class GromacsTopReader:
                 name=name, itype=itype, jtype=jtype, ktype=ktype, **param_dict
             )
 
-    def _parse_dihedral_section(self, lines: list[str], ff: mp.ForceField) -> None:
+    def _parse_dihedral_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [dihedraltypes] section of a GROMACS topology file."""
 
         func_types = {
@@ -347,7 +347,7 @@ class GromacsTopReader:
                 **param_dict,
             )
 
-    def _parse_pair_section(self, lines: list[str], ff: mp.ForceField) -> None:
+    def _parse_pair_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [pairtypes] or [nonbond_params] section."""
 
         func_types = {

@@ -12,7 +12,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-import molpy as mp
+from molpy.core.box import Box
+from molpy.core.forcefield import ForceField
+from molpy.core.frame import Block, Frame
 
 from .base import DataReader, DataWriter
 
@@ -24,9 +26,9 @@ class LammpsDataReader(DataReader):
         super().__init__(Path(path))
         self.atom_style = atom_style
 
-    def read(self, frame: Optional[mp.Frame] = None) -> mp.Frame:
+    def read(self, frame: Optional[Frame] = None) -> Frame:
         """Read LAMMPS data file into a Frame."""
-        frame = frame or mp.Frame()
+        frame = frame or Frame()
 
         # Read and parse the file
         lines = self._read_lines()
@@ -191,13 +193,11 @@ class LammpsDataReader(DataReader):
 
         return {"counts": counts, "box_bounds": box_bounds if box_bounds else None}
 
-    def _create_box(
-        self, box_bounds: Optional[Dict[str, Tuple[float, float]]]
-    ) -> mp.Box:
+    def _create_box(self, box_bounds: Optional[Dict[str, Tuple[float, float]]]) -> Box:
         """Create Box from bounds."""
         if not box_bounds:
             # Default box
-            return mp.Box(np.array([10.0, 10.0, 10.0]))
+            return Box(np.array([10.0, 10.0, 10.0]))
 
         lengths = np.array(
             [
@@ -216,7 +216,7 @@ class LammpsDataReader(DataReader):
                 box_bounds.get("z", (0.0, 10.0))[0],
             ]
         )
-        return mp.Box(lengths, origin=origin)
+        return Box(lengths, origin=origin)
 
     def _parse_masses(self, mass_lines: List[str]) -> Dict[str, float]:
         """Parse mass section."""
@@ -262,9 +262,9 @@ class LammpsDataReader(DataReader):
 
         return type_labels
 
-    def _parse_force_field(self, sections: Dict[str, List[str]]) -> mp.ForceField:
-        """Parse force field parameters into mp.ForceField."""
-        forcefield = mp.ForceField()
+    def _parse_force_field(self, sections: Dict[str, List[str]]) -> ForceField:
+        """Parse force field parameters into ForceField."""
+        forcefield = ForceField()
 
         # Parse pair coefficients
         if "PairCoeffs" in sections:
@@ -367,10 +367,10 @@ class LammpsDataReader(DataReader):
         atom_lines: List[str],
         masses: Dict[str, float],
         type_labels: Dict[int, str],
-    ) -> mp.Block:
+    ) -> Block:
         """Parse atoms section using Block.from_csv with space delimiter."""
         if not atom_lines:
-            return mp.Block()
+            return Block()
 
         # Create space-separated string for Block.from_csv
         csv_lines = []
@@ -393,7 +393,7 @@ class LammpsDataReader(DataReader):
 
         # Parse using Block.from_csv with space delimiter
         csv_string = "\n".join(csv_lines)
-        block = mp.Block.from_csv(
+        block = Block.from_csv(
             StringIO(csv_string), delimiter=" ", skipinitialspace=True
         )
 
@@ -420,10 +420,10 @@ class LammpsDataReader(DataReader):
 
     def _parse_connectivity_section(
         self, lines: List[str], section_type: str, type_labels: Dict[int, str]
-    ) -> mp.Block:
+    ) -> Block:
         """Parse connectivity sections (bonds, angles, dihedrals, impropers)."""
         if not lines:
-            return mp.Block()
+            return Block()
 
         # Define headers for each section type
         headers = {
@@ -444,7 +444,7 @@ class LammpsDataReader(DataReader):
 
         # Parse using Block.from_csv with space delimiter
         csv_string = "\n".join(csv_lines)
-        block = mp.Block.from_csv(
+        block = Block.from_csv(
             StringIO(csv_string), delimiter=" ", skipinitialspace=True
         )
 
@@ -458,7 +458,7 @@ class LammpsDataWriter(DataWriter):
         super().__init__(Path(path))
         self.atom_style = atom_style
 
-    def write(self, frame: mp.Frame) -> None:
+    def write(self, frame: Frame) -> None:
         """Write Frame to LAMMPS data file."""
         lines = []
 
@@ -511,7 +511,7 @@ class LammpsDataWriter(DataWriter):
         with open(self._path, "w") as f:
             f.write("\n".join(lines))
 
-    def _get_counts(self, frame: mp.Frame) -> Dict[str, int]:
+    def _get_counts(self, frame: Frame) -> Dict[str, int]:
         """Get counts from frame."""
         counts = {}
         if "atoms" in frame:
@@ -539,7 +539,7 @@ class LammpsDataWriter(DataWriter):
         if "impropers" in counts and counts["impropers"] > 0:
             lines.append(f"{counts['impropers']} impropers")
 
-    def _write_type_counts(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_type_counts(self, lines: List[str], frame: Frame) -> None:
         """Write type count lines."""
         if "atoms" in frame:
             unique_types = np.unique(frame["atoms"]["type"])
@@ -561,7 +561,7 @@ class LammpsDataWriter(DataWriter):
             unique_types = np.unique(frame["impropers"]["type"])
             lines.append(f"{len(unique_types)} improper types")
 
-    def _write_box_bounds(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_box_bounds(self, lines: List[str], frame: Frame) -> None:
         """Write box bounds."""
         if frame.metadata.get("box") is not None:
             box = frame.metadata["box"]
@@ -579,7 +579,7 @@ class LammpsDataWriter(DataWriter):
             lines.append("0.0 10.0 ylo yhi")
             lines.append("0.0 10.0 zlo zhi")
 
-    def _write_masses_section(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_masses_section(self, lines: List[str], frame: Frame) -> None:
         """Write masses section."""
         lines.append("Masses")
         lines.append("")
@@ -595,7 +595,7 @@ class LammpsDataWriter(DataWriter):
 
         lines.append("")
 
-    def _write_type_labels_sections(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_type_labels_sections(self, lines: List[str], frame: Frame) -> None:
         """Write type labels sections if needed."""
         sections = [
             ("atoms", "Atom Type Labels"),
@@ -625,7 +625,7 @@ class LammpsDataWriter(DataWriter):
         return True  # Always include for consistency
 
     def _write_force_field_coeffs_sections(
-        self, lines: List[str], frame: mp.Frame
+        self, lines: List[str], frame: Frame
     ) -> None:
         """Write force field coefficients sections."""
         forcefield = frame.metadata.get("forcefield")
@@ -694,7 +694,7 @@ class LammpsDataWriter(DataWriter):
                     lines.append(f"{type_id} {k:.6f} {d} {n}")
             lines.append("")
 
-    def _write_atoms_section(self, lines: List[str], frame: mp.Frame) -> None:
+    def _write_atoms_section(self, lines: List[str], frame: Frame) -> None:
         """Write atoms section."""
         lines.append("Atoms")
         lines.append("")
@@ -736,7 +736,7 @@ class LammpsDataWriter(DataWriter):
         lines.append("")
 
     def _write_connectivity_section(
-        self, lines: List[str], frame: mp.Frame, section_name: str
+        self, lines: List[str], frame: Frame, section_name: str
     ) -> None:
         """Write connectivity section (bonds, angles, dihedrals, impropers)."""
         lines.append(section_name.capitalize())

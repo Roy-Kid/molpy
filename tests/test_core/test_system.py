@@ -49,7 +49,9 @@ class TestStructSystem:
     def test_init(self):
         """Test StructSystem initialization."""
 
-        struct = mp.Struct()
+        from molpy.core.protocol import Struct
+
+        struct = Struct()
         box = Box.cubic(10.0)
         ff = ForceField()
 

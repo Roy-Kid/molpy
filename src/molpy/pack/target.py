@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING, Union
+from typing import Union
 
 import numpy as np
 
-import molpy as mp
+from molpy.core.frame import Frame
 
 # Note: All constraint classes are now in molpy.pack.constraint
 # No need for molpack dependency
@@ -12,7 +12,7 @@ class Target:
 
     def __init__(
         self,
-        frame: mp.Frame,
+        frame: Frame,
         number: int,
         constraint,  # Remove specific type annotation since mpk might not be available
         is_fixed: bool = False,

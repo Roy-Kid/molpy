@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 
-import molpy as mp
-from molpy.core import Block, Frame
+from molpy.core.box import Box
+from molpy.core.frame import Block, Frame
 
 from .base import DataReader
 
@@ -38,8 +37,8 @@ class AmberInpcrdReader(DataReader):
         super().__init__(path=Path(file), **kwargs)
 
     # ------------------------------------------------------------------
-    def read(self, frame: mp.Frame | None = None) -> mp.Frame:
-        frame = frame or mp.Frame()
+    def read(self, frame: Frame | None = None) -> Frame:
+        frame = frame or Frame()
 
         raw_lines = self.read_lines()  # stripped, non-blank
         if len(raw_lines) < 2:
@@ -65,11 +64,11 @@ class AmberInpcrdReader(DataReader):
             cursor += int(n_atoms / 2)
 
         # ---------- box (optional) -------------------------------------
-        box = mp.Box()
+        box = Box()
         if cursor < len(raw_lines):
             box_floats = [float(x) for x in raw_lines[cursor].split()]
             if len(box_floats) >= 3:
-                box = mp.Box(matrix=np.diag(box_floats[:3]))
+                box = Box(matrix=np.diag(box_floats[:3]))
 
         # ---------- populate frame -------------------------------------
         # If a matching atoms block exists, only replace xyz(/vel)

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
-import molpy as mp
-from molpy import Element
+from molpy.core.element import Element
+from molpy.core.frame import Frame
 
 from .base import DataReader
 
@@ -30,7 +30,7 @@ class Mol2Reader(DataReader):
         """Clean up line by stripping whitespace."""
         return line.strip()
 
-    def read(self, frame: mp.Frame) -> mp.Frame:
+    def read(self, frame: Frame) -> Frame:
         """Read MOL2 file and populate frame."""
 
         try:

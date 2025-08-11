@@ -1,7 +1,7 @@
 import random
 from typing import Literal
 
-import molpy as mp
+from molpy.core.frame import Frame
 
 from .packer import get_packer
 from .target import Target
@@ -16,7 +16,7 @@ class Session:
         self.targets = []
         self.packer = get_packer(packer, workdir=workdir)
 
-    def add_target(self, frame: mp.Frame, number: int, constraint):
+    def add_target(self, frame: Frame, number: int, constraint):
         target = Target(frame, number, constraint)
         self.targets.append(target)
         self.packer.add_target(target)

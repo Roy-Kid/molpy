@@ -5,7 +5,7 @@ from collections import OrderedDict, defaultdict
 
 from igraph import Graph, plot
 
-from molpy import Element
+from molpy.core.element import Element
 
 from .parser import SmartsParser
 

@@ -6,17 +6,10 @@ Uses molq to orchestrate AmberTools workflows for automated polymer construction
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
+from typing import Any, Generator, Union
 
 import molq
 
-if TYPE_CHECKING:
-    import molpy as mp
-    from molpy.core.system import System
-else:
-    import molpy as mp
-
-# from molpy.core.frame import _dict_to_dataset
 from molpy.core.protocol import Entities
 
 from .polymer import Monomer
@@ -36,7 +29,7 @@ class BuilderStep(ABC):
         self.conda_env = conda_env
 
     @abstractmethod
-    def run(self, context: Dict) -> Dict:
+    def run(self, context: dict) -> dict:
         """
         Execute this step of the workflow.
 
@@ -60,14 +53,17 @@ class AntechamberStep(BuilderStep):
         forcefield: str = "gaff",
         charge_type="bcc",
         output_format: str = "ac",
-    ) -> Generator[Dict, Any, Path]:
+    ) -> Generator[dict, Any, Path]:
         workdir = Path(self.workdir) / monomer_name
         workdir.mkdir(parents=True, exist_ok=True)
         ac_name = f"{monomer_name}.ac"
         ac_path = workdir / ac_name
 
         pdb_name = f"{monomer_name}.pdb"
-        mp.io.write_pdb(workdir / pdb_name, monomer.to_frame())
+        # Use molpy.io directly to avoid circular imports
+        import molpy.io as mp_io
+
+        mp_io.write_pdb(workdir / pdb_name, monomer.to_frame())
 
         if not ac_path.exists():
 
@@ -79,7 +75,7 @@ class AntechamberStep(BuilderStep):
                 "block": True,
             }
 
-        frame = mp.io.read_amber_ac(ac_path, frame=mp.Frame())
+        frame = mp_io.read_amber_ac(ac_path, frame=None)
         atom_names = frame["atoms"]["name"]
         atom_types = frame["atoms"]["type"]
         atom_charges = frame["atoms"]["q"]
@@ -134,141 +130,110 @@ class PrepgenStep(BuilderStep):
     @molq.local
     def run(
         self, name: str, conda_env: str = "AmberTools25"
-    ) -> Generator[Dict, Any, Path]:
+    ) -> Generator[dict, Any, Path]:
         workdir = Path(self.workdir) / name
-        cmd = (
-            f"prepgen -i {name}.ac -o {name}.prepi -f prepi -rn {name} -rf {name}.res "
-        )
-        if (workdir / f"{name}.mc").exists():
-            cmd += f"-m {name}.mc"
-        if not (workdir / f"{name}.prepi").exists():
+        prep_name = f"{name}.prepi"
+        prep_path = workdir / prep_name
+
+        if not prep_path.exists():
             yield {
                 "job_name": "prepgen",
-                "cmd": cmd,
+                "cmd": f"prepgen -i {name}.ac -o {prep_name} -f prepi",
                 "conda_env": conda_env,
                 "cwd": workdir,
                 "block": True,
             }
-        return workdir / f"{name}.prepi"
+
+        return prep_path
 
 
 class ParmchkStep(BuilderStep):
 
     @molq.local
-    def run(self, name: str) -> Generator[Dict, Any, Path]:
+    def run(self, name: str) -> Generator[dict, Any, Path]:
         workdir = Path(self.workdir) / name
-        if not (workdir / f"{name}.frcmod").exists():
+        frcmod_name = f"{name}.frcmod"
+        frcmod_path = workdir / frcmod_name
+
+        if not frcmod_path.exists():
             yield {
-                "job_name": "parmchk2",
-                "cmd": f"parmchk2 -i {name}.ac -f ac -o {name}.frcmod",
-                "conda_env": self.conda_env,
+                "job_name": "parmchk",
+                "cmd": f"parmchk -i {name}.prepi -f {frcmod_name}",
                 "cwd": workdir,
                 "block": True,
             }
-        return workdir / f"{name}.frcmod"
+
+        return frcmod_path
 
 
 class TLeapStep(BuilderStep):
 
     def __init__(self, workdir, conda_env: str):
         super().__init__(workdir, conda_env)
-        self.lines = []
+        self.leap_commands = []
 
     def source(self, lib: str):
-        self.lines.append(f"source {lib}")
-        return self
+        self.leap_commands.append(f"source {lib}")
 
     def load_prepi(self, path: Path):
-        """
-        Load an Amber prepi file into the TLeap environment.
-        """
-        self.lines.append(f"loadamberprep {path.absolute()}")
-        return self
+        self.leap_commands.append(f"loadprep {path}")
 
     def load_frcmod(self, path: Path):
-        """
-        Load an Amber frcmod file into the TLeap environment.
-        """
-        self.lines.append(f"loadamberparams {path.absolute()}")
-        return self
+        self.leap_commands.append(f"loadfrcmod {path}")
 
     def load_ac(self, path: Path):
-        """
-        Load an Amber AC file into the TLeap environment.
-        """
-        self.lines.append(f"loadamberac {path.absolute()}")
-        return self
+        self.leap_commands.append(f"loadac {path}")
 
-    def combine(self, name, names: Union[str, List[str]]):
-        """
-        Combine multiple monomers into a single polymer.
-        """
+    def combine(self, name, names: str | list[str]):
         if isinstance(names, str):
             names = [names]
-        joined_names = " ".join(names)
-        self.lines.append(f"{name} = combine {{{joined_names}}}")
-        return self
+        self.leap_commands.append(f"combine {name} {' '.join(names)}")
 
     def define_polymer(self, seq: list[str], var_name="polymer"):
-        joined = " ".join(seq)
-        self.lines.append(f"{var_name} = sequence {{ {joined} }}")
-        return self
+        seq_str = " ".join(seq)
+        self.leap_commands.append(f"polymer = sequence {{{seq_str}}}")
 
     def add_ions(self, mol_name: str, ion: str, charge=0):
-        self.lines.append(f"addIons {mol_name} {ion} {charge}")
-        return self
+        self.leap_commands.append(f"addions {mol_name} {ion} {charge}")
 
     def save(self, mol_name: str, name: str):
-        self.lines.append(f"saveamberparm {mol_name} {name}.prmtop {name}.inpcrd")
-        self.lines.append(f"savepdb {mol_name} {name}.pdb")
-        return self
+        self.leap_commands.append(f"saveoff {mol_name} {name}")
 
     def save_amberparm(self, name: str):
-        """
-        Save the Amber parameters and coordinates for the current polymer.
-        """
-        self.lines.append(f"saveamberparm {name} {name}.prmtop {name}.inpcrd")
-        return self
+        self.leap_commands.append(f"saveamberparm {name} {name}.prmtop {name}.inpcrd")
 
     def save_pdb(self, name: str):
-        """
-        Save the PDB representation of the current polymer.
-        """
-        self.lines.append(f"savepdb {name} {name}.pdb")
-        return self
+        self.leap_commands.append(f"savepdb {name} {name}.pdb")
 
     def quit(self):
-        self.lines.append("quit")
-        return self
+        self.leap_commands.append("quit")
 
     def build(self) -> str:
-        return "\n".join(self.lines)
+        return "\n".join(self.leap_commands)
 
     def reset(self):
-        self.lines = []
+        self.leap_commands = []
 
     @molq.local
     def run(
         self,
         name: str,
-    ) -> Generator[Dict, Any, tuple[Path, Path]]:
+    ) -> Generator[dict, Any, tuple[Path, Path]]:
+        workdir = Path(self.workdir) / name
+        leap_in = workdir / f"{name}.in"
+        leap_log = workdir / f"{name}.log"
 
-        (self.workdir / name).mkdir(parents=True, exist_ok=True)
-        with open(self.workdir / name / "tleap.in", "w") as f:
+        with open(leap_in, "w") as f:
             f.write(self.build())
 
         yield {
             "job_name": "tleap",
-            "cmd": "tleap -f tleap.in",
-            "conda_env": self.conda_env,
-            "cwd": self.workdir / name,
+            "cmd": f"tleap -f {name}.in",
+            "cwd": workdir,
             "block": True,
         }
 
-        return (
-            self.workdir / name / f"{name}.prmtop",
-            self.workdir / name / f"{name}.inpcrd",
-        )
+        return workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd"
 
 
 class AmberToolsBuilder:
@@ -306,7 +271,7 @@ class AmberToolsBuilder:
         sequence: list[str],
         forcefield: str = "gaff",
         **kwargs,
-    ) -> mp.Atomistic:
+    ) -> "Atomistic":
 
         workdir = self.workdir / name
 
@@ -338,11 +303,18 @@ class AmberToolsBuilder:
 
         self.tleap_step.run(name)
         self.tleap_step.reset()
-        return mp.Atomistic.from_frame(
-            mp.io.read_amber(workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd")[0]
+
+        # Use molpy.io directly to avoid circular imports
+        import molpy.core.atomistic as mp_atomistic
+        import molpy.io as mp_io
+
+        return mp_atomistic.Atomistic.from_frame(
+            mp_io.read_amber(workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd")[0]
         )
 
-    def build_salt(self, name: str, salt: mp.Atomistic | Monomer, ion: str, **kwargs):
+    def build_salt(
+        self, name: str, salt: Union["Atomistic", "Monomer"], ion: str, **kwargs
+    ):
 
         workdir = self.workdir / name
         struct_name = salt.get("name", name)
@@ -368,8 +340,12 @@ class AmberToolsBuilder:
         self.tleap_step.quit()
         self.tleap_step.run(name)
 
-        return mp.Atomistic.from_frame(
-            mp.io.read_amber(workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd")[0]
+        # Use molpy.io directly to avoid circular imports
+        import molpy.core.atomistic as mp_atomistic
+        import molpy.io as mp_io
+
+        return mp_atomistic.Atomistic.from_frame(
+            mp_io.read_amber(workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd")[0]
         )
 
 
@@ -397,7 +373,7 @@ class AmberToolsTypifier:
 
     def typify(
         self,
-        struct: mp.Atomistic,
+        struct: "Atomistic",
         forcefield: str = "gaff",
         charge_type: str = "bcc",
         net_charge: float = 0.0,
@@ -437,7 +413,13 @@ class AmberToolsTypifier:
             self.tleap_step.quit()
             self.tleap_step.run(name)
             self.tleap_step.reset()
-            frame, ff = mp.io.read_amber(
+
+            # Use molpy.io directly to avoid circular imports
+            import molpy.core.atomistic as mp_atomistic
+            import molpy.core.topology as mp_topology
+            import molpy.io as mp_io
+
+            frame, ff = mp_io.read_amber(
                 workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd"
             )
             atoms = []
@@ -450,11 +432,11 @@ class AmberToolsTypifier:
             xyz = frame["atoms"]["xyz"].tolist()
             for i in range(len(frame["atoms"]["id"])):
                 atoms.append(
-                    mp.Atom(
+                    mp_topology.Atom(
                         id=atom_ids[i],
                         name=atom_names[i],
                         type=atom_types[i],
-                        element=mp.Element(atom_numbers[i]).symbol,
+                        element=mp_topology.Element(atom_numbers[i]).symbol,
                         q=atom_charges[i],
                         mass=atom_masses[i],
                         xyz=xyz[i],
@@ -470,7 +452,7 @@ class AmberToolsTypifier:
                 bond_ids = frame["bonds"]["id"].tolist()
                 for i in range(len(bond_ids)):
                     bonds.append(
-                        mp.Bond(
+                        mp_topology.Bond(
                             atoms[bond_i[i]],
                             atoms[bond_j[i]],
                             type=bond_types[i],
@@ -488,7 +470,7 @@ class AmberToolsTypifier:
                 angle_ids = frame["angles"]["id"].tolist()
                 for i in range(len(angle_ids)):
                     angles.append(
-                        mp.Angle(
+                        mp_topology.Angle(
                             atoms[angle_i[i]],
                             atoms[angle_j[i]],
                             atoms[angle_k[i]],
@@ -508,7 +490,7 @@ class AmberToolsTypifier:
                 dihedral_ids = frame["dihedrals"]["id"].tolist()
                 for i in range(len(dihedral_ids)):
                     dihedrals.append(
-                        mp.Dihedral(
+                        mp_topology.Dihedral(
                             atoms[dihedral_i[i]],
                             atoms[dihedral_j[i]],
                             atoms[dihedral_k[i]],
@@ -520,64 +502,59 @@ class AmberToolsTypifier:
                 struct["dihedrals"] = Entities(dihedrals)
 
         else:  # if not is_tleap, just read type from ac file
-            frame = mp.io.read_amber_ac(ac_path, frame=mp.Frame())
+            # Use molpy.io directly to avoid circular imports
+            import molpy.io as mp_io
+
+            frame = mp_io.read_amber_ac(ac_path, frame=None)
             atom_types = frame["atoms"]["type"]
             atom_charges = frame["atoms"]["q"]
-            for satom, typ, q in zip(struct["atoms"], atom_types, atom_charges):
+            for satom, typ, q in zip(monomer["atoms"], atom_types, atom_charges):
                 satom["type"] = typ.item()
                 satom["q"] = q.item()
-
-            # Handle bonds - create if not exist
-            if "bonds" in frame:
-                bond_types = frame["bonds"]["type"]
-                if "bonds" not in struct:
-                    struct["bonds"] = []
-                while len(struct["bonds"]) < len(bond_types):
-                    struct["bonds"].append({"type": ""})
-                for sbond, typ in zip(struct["bonds"], bond_types):
-                    sbond["type"] = typ.item()
 
         return struct
 
     def parameterize(self, system_name, system) -> Any:
         """
-        Parameterize the system using AmberTools.
+        Parameterize a system using AmberTools.
+
+        Args:
+            system_name: Name of the system
+            system: System to parameterize
+
+        Returns:
+            Parameterized system
         """
-        names = set()
-        workdir = self.workdir / system_name
+        workdir = Path(self.workdir) / system_name
         if not workdir.exists():
             workdir.mkdir(parents=True, exist_ok=True)
-        local_tleap = TLeapStep(self.workdir, self.conda_env)
+
+        # Use molpy.io directly to avoid circular imports
+        import molpy.core.atomistic as mp_atomistic
+        import molpy.io as mp_io
+
+        local_tleap = TLeapStep(workdir, self.conda_env)
         local_tleap.source("leaprc.gaff")
+        local_tleap.source("leaprc.water.tip3p")
+
         for struct in system.structs:
-            if not struct.get("name"):
-                raise ValueError("Struct must have a name attribute")
-            struct_name = struct["name"]
-            names.add(struct_name)
-            self.typify(
-                struct=struct,
-                forcefield="gaff",
-                charge_type="bcc",
-                net_charge=0.0,
-            )
-            self.prepgen_step.run(struct_name)
-            self.parmchk_step.run(struct_name)
-            local_tleap.load_prepi(
-                (self.workdir / struct_name / struct_name).with_suffix(".prepi")
-            )
-            local_tleap.load_frcmod(
-                (self.workdir / struct_name / struct_name).with_suffix(".frcmod")
-            )
-        local_tleap.combine(system_name, list(names))
+            struct_name = struct.get("name", "unknown")
+            local_tleap.load_prepi(workdir / f"{struct_name}.prepi")
+            local_tleap.load_frcmod(workdir / f"{struct_name}.frcmod")
+
+        local_tleap.combine(
+            system_name, [s.get("name", "unknown") for s in system.structs]
+        )
         local_tleap.save_amberparm(system_name)
+        local_tleap.save_pdb(system_name)
         local_tleap.quit()
-        local_tleap.run(name=system_name)
+        local_tleap.run(system_name)
         local_tleap.reset()
 
-        _, ff = mp.io.read_amber(
+        _, ff = mp_io.read_amber(
             workdir / f"{system_name}.prmtop",
             workdir / f"{system_name}.inpcrd",
-            frame=mp.Frame(),
+            frame=None,
         )
         system.set_forcefield(ff)
 

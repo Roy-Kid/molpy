@@ -2,9 +2,9 @@ from pathlib import Path
 
 import numpy as np
 
-import molpy as mp
-from molpy import Element
-from molpy.core.frame import Block
+from molpy.core.box import Box
+from molpy.core.element import Element
+from molpy.core.frame import Block, Frame
 
 from .base import DataReader, DataWriter
 
@@ -138,7 +138,7 @@ class GroReader(DataReader):
                         except:
                             atom["number"] = 1  # Default to hydrogen
 
-    def read(self, frame: mp.Frame | None = None) -> mp.Frame:
+    def read(self, frame: Frame | None = None) -> Frame:
         """Read GRO file and populate frame."""
 
         # Read file content
@@ -234,9 +234,9 @@ class GroReader(DataReader):
         if len(lines) > 2 + natoms:
             box_line = lines[2 + natoms]
             box_matrix = self._parse_box_line(box_line)
-            frame.box = mp.Box(matrix=box_matrix)
+            frame.box = Box(matrix=box_matrix)
         else:
-            frame.box = mp.Box()  # Default box
+            frame.box = Box()  # Default box
 
         return frame
 

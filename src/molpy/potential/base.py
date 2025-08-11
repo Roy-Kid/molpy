@@ -2,8 +2,8 @@ from collections import UserList
 
 import numpy as np
 
-import molpy as mp
 from molpy.core.forcefield import KernelMeta
+from molpy.core.frame import Frame
 
 
 class Potential(metaclass=KernelMeta):
@@ -18,15 +18,15 @@ class Potential(metaclass=KernelMeta):
         """Evaluate the potential."""
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def calc_energy(self, frame: mp.Frame) -> float: ...
+    def calc_energy(self, frame: Frame) -> float: ...
 
-    def calc_forces(self, frame: mp.Frame) -> np.ndarray:
+    def calc_forces(self, frame: Frame) -> np.ndarray:
         """
         Calculate the forces acting on the particles in the given frame.
 
         Parameters
         ----------
-        frame : mp.Frame
+        frame : Frame
             The frame containing the particle positions and other relevant data.
 
         Returns
@@ -39,13 +39,13 @@ class Potential(metaclass=KernelMeta):
 
 class Potentials(UserList[Potential]):
 
-    def calc_energy(self, frame: mp.Frame) -> float:
+    def calc_energy(self, frame: Frame) -> float:
         """
         Calculate the total energy of the system by summing the energies from all potentials.
 
         Parameters
         ----------
-        frame : mp.Frame
+        frame : Frame
             The frame containing the particle positions and other relevant data.
 
         Returns
@@ -55,13 +55,13 @@ class Potentials(UserList[Potential]):
         """
         return sum(pot.calc_energy(frame) for pot in self)
 
-    def calc_forces(self, frame: mp.Frame) -> np.ndarray:
+    def calc_forces(self, frame: Frame) -> np.ndarray:
         """
         Calculate the total forces acting on the particles by summing the forces from all potentials.
 
         Parameters
         ----------
-        frame : mp.Frame
+        frame : Frame
             The frame containing the particle positions and other relevant data.
 
         Returns

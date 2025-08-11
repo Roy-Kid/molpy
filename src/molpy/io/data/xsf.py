@@ -10,8 +10,10 @@ from typing import Any
 
 import numpy as np
 
-import molpy as mp
-from molpy.core import Block, Box, Element, Frame
+from molpy.core.box import Box
+from molpy.core.element import Element
+from molpy.core.frame import Block, Frame
+from molpy.core.system import FrameSystem
 
 from .base import DataReader, DataWriter
 
@@ -32,7 +34,7 @@ class XsfReader(DataReader):
         super().__init__(Path(file))
         self._file = Path(file)
 
-    def read(self) -> mp.FrameSystem:
+    def read(self) -> FrameSystem:
         """
         Read XSF file and return FrameSystem.
 
@@ -43,7 +45,7 @@ class XsfReader(DataReader):
             - frame containing atomic data
             - box: unit cell for CRYSTAL, Free Box for MOLECULE
         """
-        frame = mp.Frame()
+        frame = Frame()
 
         lines = self.read_lines()
         lines = [line.strip() for line in lines if line.strip()]
@@ -127,7 +129,7 @@ class XsfReader(DataReader):
             # For molecular structures, use free box
             box = Box()  # Free box for non-periodic molecules
 
-        system = mp.FrameSystem(frame=frame, box=box)
+        system = FrameSystem(frame=frame, box=box)
         return system
 
     def _parse_vectors(self, lines: list[str]) -> np.ndarray:
@@ -195,7 +197,7 @@ class XsfWriter(DataWriter):
         super().__init__(Path(file))
         self._file = Path(file)
 
-    def write(self, system: mp.FrameSystem) -> None:
+    def write(self, system: FrameSystem) -> None:
         """
         Write FrameSystem to XSF file.
 
