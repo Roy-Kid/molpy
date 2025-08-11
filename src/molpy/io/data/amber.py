@@ -2,10 +2,12 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import molpy as mp
 
-from molpy.core import Frame, Block
+import molpy as mp
+from molpy.core import Block, Frame
+
 from .base import DataReader
+
 
 # ---------------------------------------------------------------------
 # helpers
@@ -39,7 +41,7 @@ class AmberInpcrdReader(DataReader):
     def read(self, frame: mp.Frame | None = None) -> mp.Frame:
         frame = frame or mp.Frame()
 
-        raw_lines = self.read_lines()                 # stripped, non-blank
+        raw_lines = self.read_lines()  # stripped, non-blank
         if len(raw_lines) < 2:
             raise ValueError("inpcrd too short")
 
@@ -49,18 +51,18 @@ class AmberInpcrdReader(DataReader):
         time = float(header_tokens[1]) if len(header_tokens) > 1 else None
 
         # ---------- coordinates ----------------------------------------
-        
-        cursor = int(n_atoms/2)+2
+
+        cursor = int(n_atoms / 2) + 2
         coords = _eat_section(raw_lines[2:cursor])
 
         # ---------- velocities (optional) ------------------------------
         velocity_vals = None
         if cursor < len(raw_lines):
-            maybe_vels = _eat_section(raw_lines[cursor : cursor + int(n_atoms/2)])
+            maybe_vels = _eat_section(raw_lines[cursor : cursor + int(n_atoms / 2)])
             # Heuristic: if the number of lines consumed equals coord section,
             # we assume velocities exist.
             velocity_vals = maybe_vels.reshape(n_atoms, 3)
-            cursor += int(n_atoms/2)
+            cursor += int(n_atoms / 2)
 
         # ---------- box (optional) -------------------------------------
         box = mp.Box()

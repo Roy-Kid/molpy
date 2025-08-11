@@ -1,9 +1,11 @@
-import molpy as mp
 import pytest
+
+import molpy as mp
+
 
 class TestTypifier:
 
-    @pytest.fixture(scope='class', name="ethane")
+    @pytest.fixture(scope="class", name="ethane")
     def ethane(self):
         class Ethane(mp.Atomistic):
             def __init__(self):
@@ -18,8 +20,8 @@ class TestTypifier:
                 self.def_bond(ch3_1["atoms"][0], ch3_2["atoms"][0])
 
         return Ethane()
-    
-    @pytest.fixture(scope='class', name="ff_ethane")
+
+    @pytest.fixture(scope="class", name="ff_ethane")
     def ff_ethane(self):
         ff = mp.ForceField("ethane")
         atomstyle = ff.def_atomstyle("full")
@@ -39,7 +41,7 @@ class TestTypifier:
 
         typifier = mp.typifier.ForceFieldTypifier(ff_ethane)
         typifier.typify_bonds(ethane)
-        
+
         bonds = ethane.bonds
         # assert bonds[0]["style"] == "harmonic"
         assert bonds[0]["type"] == f"C-H"

@@ -7,14 +7,15 @@ used throughout the molecular modeling framework.
 
 from collections import UserDict
 from copy import deepcopy
-from typing import Callable, TypeVar, Generic, Iterable, Type
+from typing import Callable, Generic, Iterable, Type, TypeVar
 
 T = TypeVar("T", bound="Entity")
+
 
 class Entity(UserDict):
     """
     Base class representing a general entity with dictionary-like behavior.
-    
+
     Provides flexible storage of attributes using dictionary semantics,
     along with cloning and comparison functionality.
     """
@@ -22,10 +23,10 @@ class Entity(UserDict):
     def __call__(self, **modify):
         """
         Return a copy of the entity with optional modifications.
-        
+
         Args:
             **modify: Key-value pairs to modify in the copy
-            
+
         Returns:
             A new Entity instance with modifications applied
         """
@@ -34,10 +35,10 @@ class Entity(UserDict):
     def clone(self, **modify):
         """
         Create a deep copy of the entity with optional modifications.
-        
+
         Args:
             **modify: Key-value pairs to modify in the copy
-            
+
         Returns:
             A new Entity instance
         """
@@ -63,10 +64,7 @@ class Entity(UserDict):
         Convert the entity and all nested components to a dictionary,
         including class path for deserialization.
         """
-        return {
-                key: value
-                for key, value in self.data.items()
-            }
+        return {key: value for key, value in self.data.items()}
 
     @classmethod
     def from_dict(cls: Type[T], data: dict) -> T:
@@ -85,18 +83,19 @@ class Entity(UserDict):
 
 T = TypeVar("T", bound=Entity)
 
+
 class Entities(Generic[T]):
     """
     Container for storing and managing collections of molecular entities.
-    
+
     Provides a list-like interface with additional functionality for
     finding entities by conditions and names.
     """
 
-    def __init__(self, entities: Iterable[T] | None =None):
+    def __init__(self, entities: Iterable[T] | None = None):
         """
         Initialize the container.
-        
+
         Args:
             entities: Optional initial entities to add
         """
@@ -156,7 +155,7 @@ class Entities(Generic[T]):
     def extend(self, entities: Iterable[T]) -> None:
         """
         Extend the collection with multiple entities.
-        
+
         Args:
             entities: Sequence of entities to add
         """
@@ -169,10 +168,10 @@ class Entities(Generic[T]):
     def __getitem__(self, key):
         """
         Get an entity by its index, name, or multiple entities.
-        
+
         Args:
             key: Index, slice, name, or sequence of indices/names
-            
+
         Returns:
             Entity or list of entities
         """
@@ -182,10 +181,11 @@ class Entities(Generic[T]):
         """Return a string representation of the collection."""
         return f"<Entities: {len(self._data)} items>"
 
+
 class Struct(Entity):
     """
     Base class for molecular structures.
-    
+
     Provides fundamental structure functionality without requiring
     spatial or atomic properties.
     """
@@ -193,10 +193,10 @@ class Struct(Entity):
     def to_frame(self):
         """
         Convert the structure to a frame representation.
-        
+
         This method should be implemented by subclasses to provide
         a specific frame representation of the structure.
-        
+
         Returns:
             Frame: A frame representation of the structure
         """

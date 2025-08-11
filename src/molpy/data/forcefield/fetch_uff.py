@@ -1,7 +1,10 @@
 from collections import namedtuple
-import requests
-import molpy as mp
+
 import numpy as np
+import requests
+
+import molpy as mp
+
 
 class FetchUFF:
     #
@@ -17,7 +20,7 @@ class FetchUFF:
 
     def __init__(self, url):
         self.url = url
-        
+
     def fetch(self, url):
         """
         Fetch the UFF force field parameters from the given URL.
@@ -26,21 +29,25 @@ class FetchUFF:
         if response.status_code == 200:
             content = response.text
         else:
-            raise Exception(f"Failed to fetch data from {url}. Status code: {response.status_code}")
-        
+            raise Exception(
+                f"Failed to fetch data from {url}. Status code: {response.status_code}"
+            )
+
         with open("UFF.prm", "w") as file:
             file.write(content)
 
     def parse(self):
-
         """
         Parse the UFF force field parameters from the fetched file.
         """
         with open("UFF.prm", "r") as file:
             lines = file.readlines()
-        
+
         raw_atom = namedtuple("atom", ["smarts", "type", "descr"])
-        raw_param = namedtuple("param", "Atom          r1	theta0	x1	D1	zeta	Z1	Vi	Uj	Xi	Hard	Radius".split())
+        raw_param = namedtuple(
+            "param",
+            "Atom          r1	theta0	x1	D1	zeta	Z1	Vi	Uj	Xi	Hard	Radius".split(),
+        )
         atoms = []
         params = []
         for line in lines:
@@ -68,6 +75,4 @@ class FetchUFF:
         dihestyle = ff.def_dihedralstyle("harmonic")
         pairstyle = ff.def_pairstyle("lj")
         for param in params:
-            bondstyle.def_type(
-                
-            )
+            bondstyle.def_type()

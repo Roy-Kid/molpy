@@ -3,10 +3,12 @@
 # date: 2023-09-29
 # version: 0.0.1
 
+from enum import Enum
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from .region import PeriodicBoundary
-from enum import Enum
 
 
 class Box(PeriodicBoundary):
@@ -20,18 +22,18 @@ class Box(PeriodicBoundary):
         self,
         matrix: ArrayLike | None = None,
         pbc: ArrayLike = np.ones(3, dtype=bool),
-        origin: ArrayLike = np.zeros(3)
+        origin: ArrayLike = np.zeros(3),
     ):
         """
         Initialize a Box object.
 
         Parameters:
-            matrix (np.ndarray | None, optional): A 3x3 matrix representing the box dimensions. 
-                If None or all elements are zero, a zero matrix is used. If a 1D array of shape (3,) 
+            matrix (np.ndarray | None, optional): A 3x3 matrix representing the box dimensions.
+                If None or all elements are zero, a zero matrix is used. If a 1D array of shape (3,)
                 is provided, it is converted to a diagonal matrix. Defaults to None.
-            pbc (np.ndarray, optional): A 1D boolean array of shape (3,) indicating periodic boundary 
+            pbc (np.ndarray, optional): A 1D boolean array of shape (3,) indicating periodic boundary
                 conditions along each axis. Defaults to an array of ones (True for all axes).
-            origin (np.ndarray, optional): A 1D array of shape (3,) representing the origin of the box. 
+            origin (np.ndarray, optional): A 1D array of shape (3,) representing the origin of the box.
                 Defaults to an array of zeros.
         """
         super().__init__()
@@ -59,7 +61,7 @@ class Box(PeriodicBoundary):
     def __mul__(self, other: float):
         _matrix = self._matrix * other
         return Box(_matrix, self._pbc, self._origin)
-    
+
     def __rmul__(self, other: float):
         _matrix = self._matrix * other
         return Box(_matrix, self._pbc, self._origin)
@@ -67,9 +69,11 @@ class Box(PeriodicBoundary):
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Box):
             return False
-        return np.allclose(self._matrix, value.matrix) and np.allclose(
-            self._origin, value.origin
-        ) and np.allclose(self._pbc, value.pbc)
+        return (
+            np.allclose(self._matrix, value.matrix)
+            and np.allclose(self._origin, value.origin)
+            and np.allclose(self._pbc, value.pbc)
+        )
 
     def plot(self):
         """
@@ -114,7 +118,7 @@ class Box(PeriodicBoundary):
         if central:
             origin = np.asarray(lengths) / 2
         return cls(cls.calc_matrix_from_size_tilts(lengths, tilts), pbc, origin)
-    
+
     @classmethod
     def from_box(cls, box: "Box") -> "Box":
         """
@@ -134,7 +138,7 @@ class Box(PeriodicBoundary):
         Calculate the lower bound of the box along the x-axis.
 
         Returns:
-            float: The x-coordinate of the lower bound, calculated as the 
+            float: The x-coordinate of the lower bound, calculated as the
             negative of the x-component of the origin.
         """
         return self._origin[0]
@@ -145,8 +149,8 @@ class Box(PeriodicBoundary):
         Calculate the upper boundary of the box along the x-axis.
 
         Returns:
-            float: The x-coordinate of the upper boundary of the box, 
-            calculated as the difference between the first element of 
+            float: The x-coordinate of the upper boundary of the box,
+            calculated as the difference between the first element of
             the matrix's first row and the x-coordinate of the origin.
         """
         return self._matrix[0, 0] - self._origin[0]
@@ -179,7 +183,7 @@ class Box(PeriodicBoundary):
         Calculate the lower boundary of the box along the z-axis.
 
         Returns:
-            float: The z-coordinate of the lower boundary, calculated as the 
+            float: The z-coordinate of the lower boundary, calculated as the
             negative value of the third component of the origin vector.
         """
         return self._origin[2]
@@ -190,12 +194,12 @@ class Box(PeriodicBoundary):
         Calculate the z-component of the box's upper boundary.
 
         Returns:
-            float: The z-coordinate of the upper boundary, calculated as the 
-            difference between the z-component of the matrix and the z-component 
+            float: The z-coordinate of the upper boundary, calculated as the
+            difference between the z-component of the matrix and the z-component
             of the origin.
         """
         return self._matrix[2, 2] - self._origin[2]
-    
+
     @property
     def bounds(self) -> np.ndarray:
         """
@@ -204,11 +208,9 @@ class Box(PeriodicBoundary):
         Returns:
             np.ndarray: A 2D array with shape (3, 2) representing the bounds of the box.
         """
-        return np.array([
-            [self.xlo, self.xhi],
-            [self.ylo, self.yhi],
-            [self.zlo, self.zhi]
-        ]).T
+        return np.array(
+            [[self.xlo, self.xhi], [self.ylo, self.yhi], [self.zlo, self.zhi]]
+        ).T
 
     @property
     def style(self) -> Style:
@@ -249,11 +251,11 @@ class Box(PeriodicBoundary):
             float: The volume of the box.
         """
         return np.abs(np.linalg.det(self._matrix))
-    
+
     @property
     def origin(self) -> np.ndarray:
         return self._origin
-    
+
     @origin.setter
     def origin(self, value: np.ndarray):
         value = np.asarray(value)
@@ -266,7 +268,7 @@ class Box(PeriodicBoundary):
         Get the length of the box along the x-axis.
 
         Returns:
-            float: The length of the box in the x-direction, derived from the 
+            float: The length of the box in the x-direction, derived from the
             first element of the matrix representing the box dimensions.
         """
         return self._matrix[0, 0]
@@ -309,7 +311,7 @@ class Box(PeriodicBoundary):
         Get the lengths of the box along each axis.
 
         Returns:
-            np.ndarray: A 1D array containing the lengths of the box along 
+            np.ndarray: A 1D array containing the lengths of the box along
             the x, y, and z axes.
         """
         return self._matrix.diagonal()
@@ -375,7 +377,7 @@ class Box(PeriodicBoundary):
     @property
     def periodic_x(self) -> bool:
         return self._pbc[0]
-    
+
     @periodic_x.setter
     def periodic_x(self, value: bool):
         self._pbc[0] = value
@@ -383,7 +385,7 @@ class Box(PeriodicBoundary):
     @property
     def periodic_y(self) -> bool:
         return self._pbc[1]
-    
+
     @periodic_y.setter
     def periodic_y(self, value: bool):
         self._pbc[1] = value
@@ -391,7 +393,7 @@ class Box(PeriodicBoundary):
     @property
     def periodic_z(self) -> bool:
         return self._pbc[2]
-    
+
     @periodic_z.setter
     def periodic_z(self, value: bool):
         self._pbc[2] = value
@@ -523,7 +525,9 @@ class Box(PeriodicBoundary):
         # Optional: volume sanity check
         cos_check = cos_a**2 + cos_b**2 + cos_c**2 - 2 * cos_a * cos_b * cos_c
         if cos_check >= 1.0:
-            raise ValueError(f"Invalid box: angles produce non-physical volume. abc={abc}, angles={angles}")
+            raise ValueError(
+                f"Invalid box: angles produce non-physical volume. abc={abc}, angles={angles}"
+            )
 
         if not (0 < alpha < np.pi):
             raise ValueError("alpha must be in (0, 180)")
@@ -541,12 +545,7 @@ class Box(PeriodicBoundary):
         tmp = c**2 - xz**2 - yz**2
         lz = np.sqrt(tmp)
 
-        return np.array([
-            [lx, xy, xz],
-            [0.0, ly, yz],
-            [0.0, 0.0, lz]
-        ])
-
+        return np.array([[lx, xy, xz], [0.0, ly, yz], [0.0, 0.0, lz]])
 
     @staticmethod
     def calc_matrix_from_size_tilts(sizes, tilts) -> np.ndarray:
@@ -565,7 +564,9 @@ class Box(PeriodicBoundary):
         return np.array([[lx, xy, xz], [0, ly, yz], [0, 0, lz]])
 
     @staticmethod
-    def calc_lengths_angles_from_matrix(matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def calc_lengths_angles_from_matrix(
+        matrix: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Calculate the lengths of the box edges and angles from its matrix.
 
@@ -586,7 +587,7 @@ class Box(PeriodicBoundary):
         a = lx
         b = (ly**2 + xy**2) ** 0.5
         c = (lz**2 + xz**2 + yz**2) ** 0.5
-        cos_a = (xy*xz + ly*yz) / (b * c)
+        cos_a = (xy * xz + ly * yz) / (b * c)
         cos_b = xz / c
         cos_c = xy / b
         return np.array([a, b, c]), np.rad2deg(np.arccos([cos_a, cos_b, cos_c]))
@@ -726,7 +727,7 @@ class Box(PeriodicBoundary):
         frac = self.make_fractional(xyz)
         frac_wrapped = frac - np.floor(frac)
         return self.make_absolute(frac_wrapped)
-    
+
     def unwrap(self, xyz: np.ndarray, image: np.ndarray) -> np.ndarray:
         """
         Unwrap the coordinates of a particle based on its image.
@@ -739,7 +740,7 @@ class Box(PeriodicBoundary):
             np.ndarray: The unwrapped coordinates.
         """
         return xyz + image @ self._matrix.T
-    
+
     def get_images(self, xyz: np.ndarray) -> np.ndarray:
         """
         Get the image flags of particles, accounting for box origin and triclinic shape.
@@ -787,7 +788,7 @@ class Box(PeriodicBoundary):
             np.ndarray: The difference vector.
         """
         return self.diff_dr(r1 - r2)
-    
+
     def diff_all(self, r1: np.ndarray, r2: np.ndarray) -> np.ndarray:
         """
         Calculate the difference between all pairs of points in two sets.
@@ -819,7 +820,7 @@ class Box(PeriodicBoundary):
         """
         dr = self.diff(r1, r2)
         return np.linalg.norm(dr, axis=1)
-    
+
     def dist_all(self, r1: np.ndarray, r2: np.ndarray) -> np.ndarray:
         """
         Calculate the distances between all pairs of points in two sets.
@@ -868,9 +869,7 @@ class Box(PeriodicBoundary):
         """
         xyz = np.asarray(xyz)
         fractional = self.make_fractional(xyz)
-        return  np.all(
-            (fractional >= 0) & (fractional < 1), axis=-1
-        )
+        return np.all((fractional >= 0) & (fractional < 1), axis=-1)
 
     def merge(self, other: "Box") -> "Box":
         """
@@ -884,24 +883,20 @@ class Box(PeriodicBoundary):
         """
         return Box(matrix=other.matrix)
 
-    def transform(self, transformation_matrix: np.ndarray) -> 'Box':
+    def transform(self, transformation_matrix: np.ndarray) -> "Box":
         """Transform the box using a transformation matrix.
-        
+
         Args:
             transformation_matrix: 3x3 transformation matrix.
-            
+
         Returns:
             New Box with transformed dimensions.
         """
         # Transform the box matrix
         new_matrix = self._matrix @ transformation_matrix
-        
+
         # Keep the same periodic boundary conditions and origin
-        return Box(
-            matrix=new_matrix,
-            pbc=self._pbc.copy(),
-            origin=self._origin.copy()
-        )
+        return Box(matrix=new_matrix, pbc=self._pbc.copy(), origin=self._origin.copy())
 
     def to_dict(self) -> dict:
         """
@@ -911,7 +906,7 @@ class Box(PeriodicBoundary):
             dict: A dictionary containing the box properties.
         """
         return {
-            'matrix': self._matrix.tolist(),
-            'pbc': self._pbc.tolist(),
-            'origin': self._origin.tolist()
+            "matrix": self._matrix.tolist(),
+            "pbc": self._pbc.tolist(),
+            "origin": self._origin.tolist(),
         }

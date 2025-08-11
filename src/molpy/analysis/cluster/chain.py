@@ -1,14 +1,15 @@
+import freud
 import numpy as np
 
-import freud
-
 from molpy.core.frame import Frame
+
 from ..base import Compute, ComputeContext
+
 
 class ChainFinder(Compute):
     """
     Find connected components (chains) in a molecular structure.
-    
+
     This class analyzes the topology of a molecular frame to identify
     connected components, which represent separate molecular chains
     or disconnected fragments.
@@ -17,13 +18,13 @@ class ChainFinder(Compute):
     def compute(self, context: ComputeContext) -> ComputeContext:
         """
         Compute connected components from the frame's topology.
-        
+
         Args:
             frame: Molecular frame containing atoms and bonds
-            
+
         Returns:
             ChainResult containing the connected components
-            
+
         Raises:
             ValueError: If frame has no topology information
         """
@@ -55,6 +56,7 @@ class GyrationTensor(Compute):
         context.result[f"{self.name}_gyrations"] = cl.gyrations
         return context
 
+
 class RadiiOfGyration(Compute):
     """
     Compute the radii of gyration of a molecular structure.
@@ -63,7 +65,7 @@ class RadiiOfGyration(Compute):
     def __init__(self, name: str, cluster_field: str = "chain_idx"):
         super().__init__(name)
         self.cluster_field = cluster_field
-        
+
     def compute(self, context: ComputeContext) -> ComputeContext:
         """
         Compute the radii of gyration of the frame.

@@ -1,11 +1,13 @@
-from .base import DataWriter, DataReader
-import numpy as np
 import re
-from typing import Any
-from pathlib import Path
-from molpy.core import Frame, Block, Box
 from collections import defaultdict
+from pathlib import Path
+from typing import Any
 
+import numpy as np
+
+from molpy.core import Block, Box, Frame
+
+from .base import DataReader, DataWriter
 
 # ──────────────────────────────────────────────────────────────────────
 # helpers
@@ -13,7 +15,17 @@ from collections import defaultdict
 _ALNUM_RE = re.compile(r"([A-Za-z]+)")
 
 _TWO_CHR_ELEMENTS = {
-    "BR", "CL", "FE", "MG", "CA", "ZN", "NI", "CU", "NA", "SI", "CR",
+    "BR",
+    "CL",
+    "FE",
+    "MG",
+    "CA",
+    "ZN",
+    "NI",
+    "CU",
+    "NA",
+    "SI",
+    "CR",
 }
 
 
@@ -154,10 +166,11 @@ class PDBReader(DataReader):
         frame.box = Box(matrix=box_matrix) if box_matrix is not None else Box()
         return frame
 
+
 class PDBWriter(DataWriter):
     """
     Robust PDB file writer that creates properly formatted PDB files.
-    
+
     Features:
     - Writes ATOM/HETATM records with proper formatting
     - Handles missing fields with sensible defaults
@@ -171,7 +184,7 @@ class PDBWriter(DataWriter):
 
     def _format_atom_line(self, serial: int, atom_data: dict) -> str:
         """Format a single ATOM/HETATM line according to PDB v3.3 specifications.
-        
+
         PDB Format v3.3 ATOM/HETATM Record:
         COLUMNS        DATA TYPE    FIELD          DEFINITION
         --------------------------------------------------------------------------------
@@ -191,7 +204,7 @@ class PDBWriter(DataWriter):
         77 - 78        LString(2)   element        Element symbol, right-justified.
         79 - 80        LString(2)   charge         Charge on the atom.
         """
-        
+
         # Extract data with defaults
         record_type = atom_data.get("record_type", "ATOM")
         atom_name = atom_data.get("name", "UNK")
@@ -200,7 +213,7 @@ class PDBWriter(DataWriter):
         chain_id = atom_data.get("chainID", " ")
         res_seq = atom_data.get("resSeq", 1)
         i_code = atom_data.get("iCode", " ")
-        
+
         # Coordinates
         x, y, z = atom_data["xyz"]
 
@@ -209,110 +222,112 @@ class PDBWriter(DataWriter):
         temp_factor = atom_data.get("tempFactor", 0.0)
         element = atom_data.get("element", "")
         charge = atom_data.get("charge", "")
-        
+
         # Format according to PDB v3.3 specification
         # Columns 1-6: Record name, left-justified
         line = f"{record_type:<6s}"
-        
+
         # Columns 7-11: Serial number, right-justified
         line += f"{serial:>5d}"
-        
+
         # Column 12: Space
         line += " "
-        
+
         # Columns 13-16: Atom name
         # For atom names: if 1 character, start at column 14; if 2+ characters, start at column 13
         if len(atom_name) == 1:
             line += f" {atom_name:<3s}"  # Space + 1 char + 2 spaces
         elif len(atom_name) <= 4:
-            line += f"{atom_name:<4s}"   # Up to 4 characters
+            line += f"{atom_name:<4s}"  # Up to 4 characters
         else:
             line += f"{atom_name[:4]:<4s}"  # Truncate to 4 characters
-        
+
         # Column 17: Alternate location indicator
         line += f"{alt_loc[0] if alt_loc else ' ':1s}"
-        
+
         # Columns 18-20: Residue name, left-justified
         line += f"{res_name[:3]:<3s}"
-        
+
         # Column 21: Space
         line += " "
-        
+
         # Column 22: Chain identifier
         line += f"{chain_id[0] if chain_id else ' ':1s}"
-        
+
         # Columns 23-26: Residue sequence number, right-justified
         line += f"{res_seq:>4d}"
-        
+
         # Column 27: Insertion code
         line += f"{i_code[0] if i_code else ' ':1s}"
-        
+
         # Columns 28-30: Spaces
         line += "   "
-        
+
         # Columns 31-38: X coordinate, right-justified, 8.3 format
         line += f"{x:>8.3f}"
-        
-        # Columns 39-46: Y coordinate, right-justified, 8.3 format  
+
+        # Columns 39-46: Y coordinate, right-justified, 8.3 format
         line += f"{y:>8.3f}"
-        
+
         # Columns 47-54: Z coordinate, right-justified, 8.3 format
         line += f"{z:>8.3f}"
-        
+
         # Columns 55-60: Occupancy, right-justified, 6.2 format
         line += f"{float(occupancy):>6.2f}"
-        
+
         # Columns 61-66: Temperature factor, right-justified, 6.2 format
         line += f"{float(temp_factor):>6.2f}"
-        
+
         # Columns 67-76: Spaces (could contain segment identifier, but we'll use spaces)
         line += "          "
-        
+
         # Columns 77-78: Element symbol, right-justified
         if element:
             line += f"{element[:2]:>2s}"
         else:
             line += "  "
-        
+
         # Columns 79-80: Charge
         if charge:
             line += f"{charge[:2]:>2s}"
         else:
             line += "  "
-        
+
         line += "\n"  # End with newline
         return line
 
     def _format_cryst1_line(self, box) -> str:
         """Format CRYST1 line from box information."""
         if box is None:
-            return "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
-        
+            return (
+                "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1           1"
+            )
+
         # Extract box parameters
         matrix = box.matrix
         a = float(matrix[0, 0])
         b = float(matrix[1, 1])
         c = float(matrix[2, 2])
-        
+
         # For now, assume orthogonal (90 degree angles)
         alpha = beta = gamma = 90.0
-        
+
         return f"CRYST1{a:>9.3f}{b:>9.3f}{c:>9.3f}{alpha:>7.2f}{beta:>7.2f}{gamma:>7.2f} P 1           1"
 
     def write(self, frame):
         """Write frame to PDB file."""
-        
+
         with open(self._path, "w") as f:
             # Write header
             frame_name = frame.metadata.get("name", "MOL")
             f.write(f"REMARK  {frame_name}\n")
-            
+
             # Write CRYST1 record if box exists
-            if hasattr(frame, 'box') and frame.box is not None:
+            if hasattr(frame, "box") and frame.box is not None:
                 f.write(self._format_cryst1_line(frame.box) + "\n")
             else:
                 f.write(self._format_cryst1_line(None) + "\n")
-            
+
             # Write atoms
             if "atoms" in frame:
                 atoms = frame["atoms"]
@@ -323,11 +338,11 @@ class PDBWriter(DataWriter):
                     if "id" in atom_data:
                         display_serial = int(atom_data["id"])
                     else:
-                        display_serial = i+1
+                        display_serial = i + 1
                     line = self._format_atom_line(display_serial, atom_data)
                     f.write(line)
                 f.write("\n")
-            
+
             # Write bonds as CONECT records
             if "bonds" in frame:
                 bonds = frame["bonds"]

@@ -1,8 +1,11 @@
-import molpy as mp
-from typing import Literal
 import random
-from .target import Target
+from typing import Literal
+
+import molpy as mp
+
 from .packer import get_packer
+from .target import Target
+
 
 class Session:
 
@@ -11,7 +14,7 @@ class Session:
             workdir.mkdir(parents=True, exist_ok=True)
         self.workdir = workdir
         self.targets = []
-        self.packer = get_packer(packer, workdir=workdir )
+        self.packer = get_packer(packer, workdir=workdir)
 
     def add_target(self, frame: mp.Frame, number: int, constraint):
         target = Target(frame, number, constraint)
@@ -19,7 +22,7 @@ class Session:
         self.packer.add_target(target)
         return target
 
-    def optimize(self, max_steps: int = 1000, seed: int|None = None):
+    def optimize(self, max_steps: int = 1000, seed: int | None = None):
         if seed is None:
             seed = random.randint(1, 10000)
         return self.packer.pack(self.targets, max_steps=max_steps, seed=seed)

@@ -1,14 +1,18 @@
-from pydantic import BaseModel, Field
-import threading
 import contextlib
+import threading
 from typing import Generator, Self
+
+from pydantic import BaseModel, Field
+
 
 class Config(BaseModel):
 
-    log_level: str = Field(default='INFO')
-    
-    n_threads: int = Field(default=1, description="Number of threads to use for parallel computations")
-    
+    log_level: str = Field(default="INFO")
+
+    n_threads: int = Field(
+        default=1, description="Number of threads to use for parallel computations"
+    )
+
     # --- Internal singleton & lock ---
     _instance: Self = None
     _lock = threading.Lock()
@@ -49,7 +53,9 @@ class Config(BaseModel):
     def __repr__(self) -> str:
         return f"<MolpyConfig: {self}>"
 
+
 config = Config.instance()
+
 
 def get_config() -> Config:
     return config

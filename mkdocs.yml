@@ -1,34 +1,46 @@
 site_name: molpy
-repo_name: molcrafts/molpy
-repo_url: https://github.com/molcrafts/molpy
+site_url: https://molcrafts.github.io/molpy
+repo_url: https://github.com/MolCrafts/molpy
+repo_name: MolCrafts/molpy
+site_description: Modern Python framework for molecular simulation and analysis.
 
-copyright: Copyright &copy; 2024 - 2025 Jichen Li
+copyright: Copyright © 2024 - 2025 MolCrafts Team
 
 theme:
   name: material
   palette:
     - scheme: default
-      primary: "teal"
-      accent: "light blue"
-      toggle:
-        icon: material/brightness-7 
-        name: Switch to dark mode
+      primary: teal
+      accent: indigo
     - scheme: slate
-      primary: "teal"
-      accent: "light blue"
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-
+      primary: teal
+      accent: indigo
   features:
+    - navigation.tabs
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
-    - navigation.tabs
     - navigation.top
-    - navigation.footer
     - content.code.copy
     - content.code.annotate
+  favicon: assets/favicon.png
+  logo: assets/logo.png
+
+markdown_extensions:
+  - admonition
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.arithmatex:
+      generic: true
+  - codehilite
 
 plugins:
   - search
@@ -37,49 +49,56 @@ plugins:
         python:
           paths: [src]
           options:
-            docstring_style: numpy
+            docstring_style: google
             show_source: true
-            show_root_heading: true
-            show_root_full_path: false
+            separate_signature: true
             heading_level: 2
+            merge_init_into_class: true
+            filters: ["!^_"]
 
-nav: 
+
+nav:
   - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - FAQ: getting-started/faq.md
+      - Cheat Sheet: getting-started/cheatsheet.md
   - Tutorials:
-    - Structure: tutorials/struct.md
-    - Frame & Trajectory: tutorials/frame.md
-  - API Reference:
-    - Overview: api/index.md
-    - Core:
-      - Structure: api/struct.md
-      - Frame: api/frame.md
-      - Trajectory: api/trajectory.md
-      - Forcefield: api/forcefield.md
+      - Block & Frame Basics: tutorials/block-frame.md
+      - Force Field Basics: tutorials/forcefield.md
+      - Topology Management: tutorials/topology.md
+      - System Organization: tutorials/system-organization.md
+      - Selection & Filtering: tutorials/selection.md
+      - Box & Simulation Boundaries: tutorials/box.md
+      - Element & Chemistry: tutorials/element.md
+      - Trajectory Analysis: tutorials/trajectory.md
+      - Region & Geometric Operations: tutorials/region.md
+      - Atomistic Structures: tutorials/atomistic.md
 
-markdown_extensions:
-  - admonition
-  - codehilite
-  - footnotes
-  - md_in_html
-  - meta
-  - toc:
-      permalink: true
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.arithmatex:
-      generic: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-  - pymdownx.details
-  - pymdownx.blocks.caption
+  - How-to Guides:
+      - IO Workflows: how-to/io-workflows.md
+      - Molecular Building: how-to/molecular-building.md
+      - Potential Calculations: how-to/potential-calculations.md
+      - Molecular Packing: how-to/molecular-packing.md
+  - Developer Guides:
+      - Custom Wrappers: developer/custom-wrappers.md
+      - Custom Selection Predicates: developer/custom-selections.md
+      - Custom I/O: developer/custom-io.md
+  - API Reference:
+      - Index: reference/index.md
 
 extra_css:
-  - stylesheets/extra.css
-
+  - assets/extra.css
 extra_javascript:
-  - javascripts/mathjax.js
-  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/MolCrafts/molpy
+  generator: false
+
+watch:
+  - src/molpy

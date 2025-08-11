@@ -1,5 +1,6 @@
-from ..base import Compute
 import freud
+
+from ..base import Compute
 
 
 class RDF(Compute):

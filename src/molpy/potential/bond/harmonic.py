@@ -1,5 +1,6 @@
-from .base import BondPotential
 import numpy as np
+
+from .base import BondPotential
 
 
 class Harmonic(BondPotential):

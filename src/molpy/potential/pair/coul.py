@@ -1,5 +1,6 @@
-from .base import PairPotential
 import numpy as np
+
+from .base import PairPotential
 
 
 class CoulCut(PairPotential):

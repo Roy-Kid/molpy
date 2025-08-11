@@ -1,7 +1,9 @@
-import pytest
-import numpy as np
-import molpy as mp
 from pathlib import Path
+
+import numpy as np
+import pytest
+
+import molpy as mp
 
 
 class TestMol2Reader:
@@ -11,10 +13,10 @@ class TestMol2Reader:
         frame = mp.Frame()
         mol2 = mp.io.read_mol2(TEST_DATA_DIR / "data/mol2/ethane.mol2", frame)
         atoms = mol2["atoms"]
-        
+
         # Check that we have 8 atoms (ethane: 2 C + 6 H)
         assert atoms.nrows == 8
-        
+
         # Check specific atom properties
         assert atoms["name"][0] == "C"
         assert atoms["x"][0] == pytest.approx(3.1080)
@@ -34,16 +36,16 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-        
+
         # Check basic structure
         assert "atoms" in frame._blocks
         atoms = frame["atoms"]
-        
+
         # Ethane should have 8 atoms (2 C + 6 H)
         assert atoms.nrows == 8
-        
+
         # Check required fields
         assert "name" in atoms
         assert "x" in atoms
@@ -57,16 +59,16 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/imatinib.mol2"
         if not fpath.exists():
             pytest.skip("imatinib.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-        
+
         # Check basic structure
         assert "atoms" in frame._blocks
         atoms = frame["atoms"]
-        
+
         # Imatinib should have many atoms
         assert atoms.nrows > 50
-        
+
         # Check bonds if present
         if "bonds" in frame._blocks:
             bonds = frame["bonds"]
@@ -79,11 +81,11 @@ class TestMol2Comprehensive:
             fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-                
+
                 # Should handle status bits gracefully
                 assert "atoms" in frame._blocks
                 atoms = frame["atoms"]
-                
+
                 # Check basic fields
                 assert "name" in atoms
                 assert "x" in atoms and "y" in atoms and "z" in atoms
@@ -98,11 +100,11 @@ class TestMol2Comprehensive:
             fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-                
+
                 # Check that small molecules are handled
                 assert "atoms" in frame._blocks
                 atoms = frame["atoms"]
-                
+
                 # Should have atomic numbers assigned
                 if "number" in atoms:
                     atomic_numbers = atoms["number"]
@@ -116,12 +118,12 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/imatinib.mol2"
         if not fpath.exists():
             pytest.skip("imatinib.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-        
+
         # Should handle ring structures
         assert "atoms" in frame._blocks
-        
+
         # If bonds are present, check connectivity
         if "bonds" in frame._blocks:
             bonds = frame["bonds"]
@@ -133,15 +135,15 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
         atoms = frame["atoms"]
-        
+
         # Check coordinate precision
         x_coords = atoms["x"]
         y_coords = atoms["y"]
         z_coords = atoms["z"]
-        
+
         assert x_coords.dtype == np.float64
         assert y_coords.dtype == np.float64
         assert z_coords.dtype == np.float64
@@ -157,10 +159,10 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
         atoms = frame["atoms"]
-        
+
         # Should have charge information
         if "charge" in atoms:
             charges = atoms["charge"]
@@ -172,15 +174,15 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
         atoms = frame["atoms"]
-        
+
         # Check substructure fields
         if "subst_id" in atoms:
             subst_ids = atoms["subst_id"]
             assert len(subst_ids) > 0
-        
+
         if "subst_name" in atoms:
             subst_names = atoms["subst_name"]
             assert len(subst_names) > 0
@@ -190,15 +192,15 @@ class TestMol2Comprehensive:
         fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
-        
+
         frame = mp.io.read_mol2(fpath, frame=mp.Frame())
         atoms = frame["atoms"]
-        
+
         # Should have atomic numbers
         if "number" in atoms:
             atomic_numbers = atoms["number"]
             assert all(an > 0 for an in atomic_numbers)
-            
+
             # For ethane, should have carbon (6) and hydrogen (1)
             unique_elements = set(atomic_numbers)
             assert 6 in unique_elements  # Carbon
@@ -210,15 +212,15 @@ class TestMol2Comprehensive:
             fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-                
+
                 # Should handle bonds
                 if "bonds" in frame._blocks:
                     bonds = frame["bonds"]
-                    
+
                     # Check bond connectivity
                     assert "i" in bonds
                     assert "j" in bonds
-                    
+
                     # Bond indices should be valid
                     bond_i = bonds["i"]
                     bond_j = bonds["j"]
@@ -233,10 +235,10 @@ class TestMol2Comprehensive:
             fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-                
+
                 # Should always have atoms
                 assert "atoms" in frame._blocks
-                
+
                 # Other sections may or may not be present
                 atoms = frame["atoms"]
                 assert len(atoms["name"]) > 0
@@ -249,22 +251,22 @@ class TestMol2Comprehensive:
             fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
             if fpath.exists():
                 mol2_files.append(fpath)
-        
+
         if len(mol2_files) < 1:
             pytest.skip("Not enough MOL2 test files available")
-        
+
         # Test that all files can be read consistently
         for fpath in mol2_files:
             frame = mp.io.read_mol2(fpath, frame=mp.Frame())
-            
+
             # Basic consistency checks
             assert "atoms" in frame._blocks
             atoms = frame["atoms"]
-            
+
             # Should have basic fields
             assert "name" in atoms
             assert "x" in atoms and "y" in atoms and "z" in atoms
-            
+
             # Coordinates should be valid
             x_coords = atoms["x"]
             y_coords = atoms["y"]

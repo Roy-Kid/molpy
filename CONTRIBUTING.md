@@ -22,7 +22,7 @@ Thank you for your interest in contributing to MolPy! We welcome contributions f
    # Using conda (recommended)
    conda create -n molpy-dev python=3.10
    conda activate molpy-dev
-   
+
    # Or using venv
    python -m venv molpy-dev
    source molpy-dev/bin/activate  # Linux/Mac
@@ -45,7 +45,7 @@ Thank you for your interest in contributing to MolPy! We welcome contributions f
 We use several tools to maintain code quality:
 
 - **Black**: Code formatting
-- **isort**: Import sorting  
+- **isort**: Import sorting
 - **flake8**: Linting
 
 Run before committing:
@@ -142,7 +142,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - **Analysis Tools**: Trajectory analysis functions
 - **Documentation**: Examples and tutorials
 
-### Medium Priority  
+### Medium Priority
 - **Visualization**: Integration with plotting libraries
 - **File I/O**: Additional file format support
 - **Testing**: Expand test coverage
@@ -176,7 +176,7 @@ Look for issues labeled `good-first-issue` in our GitHub repository. These are g
 
 ### Communication
 - **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: General questions and ideas  
+- **GitHub Discussions**: General questions and ideas
 - **Pull Requests**: Code changes and improvements
 
 ## 📚 Resources

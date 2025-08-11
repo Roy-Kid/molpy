@@ -9,7 +9,10 @@ import molpy as mp
 
 class AmberPrmtopReader:
 
-    def __init__(self, file: str | Path,):
+    def __init__(
+        self,
+        file: str | Path,
+    ):
         self.file = file
 
     @staticmethod
@@ -166,8 +169,8 @@ class AmberPrmtopReader:
                     parms=[f, r_min],
                 )  # if multiply by 2
             bonds["type_id"].append(bond_type)
-            bonds["i"].append(i-1)
-            bonds["j"].append(j-1)
+            bonds["i"].append(i - 1)
+            bonds["j"].append(j - 1)
             bonds["type"].append(bond_name)
         bonds["id"] = np.arange(meta["n_bonds"], dtype=int) + 1
 
@@ -193,9 +196,9 @@ class AmberPrmtopReader:
                 )
 
             angles["type_id"].append(angle_type)
-            angles["i"].append(i-1)
-            angles["j"].append(j-1)
-            angles["k"].append(k-1)
+            angles["i"].append(i - 1)
+            angles["j"].append(j - 1)
+            angles["k"].append(k - 1)
             angles["type"].append(angle_name)
 
         angles["id"] = np.arange(meta["n_angles"], dtype=int) + 1
@@ -233,10 +236,10 @@ class AmberPrmtopReader:
                     parms=[f, periodicity, int(phase), 0.5],
                 )
             dihedrals["type_id"].append(dihe_type)
-            dihedrals["i"].append(i-1)
-            dihedrals["j"].append(j-1)
-            dihedrals["k"].append(k-1)
-            dihedrals["l"].append(l-1)
+            dihedrals["i"].append(i - 1)
+            dihedrals["j"].append(j - 1)
+            dihedrals["k"].append(k - 1)
+            dihedrals["l"].append(l - 1)
             dihedrals["type"].append(dihe_name)
         dihedrals["id"] = np.arange(meta["n_dihedrals"], dtype=int) + 1
 
@@ -244,9 +247,7 @@ class AmberPrmtopReader:
             self.raw_data["RESIDUE_POINTER"], meta, atoms, bonds, angles, dihedrals
         )
 
-        pairstyle = ff.def_pairstyle(
-            "lj/charmmfsw/coul/charmmfsh", [2.5, 9.0]
-        )
+        pairstyle = ff.def_pairstyle("lj/charmmfsw/coul/charmmfsh", [2.5, 9.0])
         for itype, rVdw, epsilon in self.parse_nonbond_params(atoms):
             atom_i_type_name = atoms["type"][itype - 1]
             atom_j_type_name = atoms["type"][itype - 1]
@@ -328,8 +329,8 @@ class AmberPrmtopReader:
         return names
 
     def _parse_residues(self, pointer, meta, atoms, bonds, angles, dihedrals):
-        pointer = ' '.join(pointer).split()
-        pointer.append(meta["n_atoms"]+1)
+        pointer = " ".join(pointer).split()
+        pointer.append(meta["n_atoms"] + 1)
         # residue_slice = list((map(lambda x: int(x) - 1, pointer))) + [
         #     meta["n_atoms"]
         # ]  # pointer is 1-indexed
@@ -341,7 +342,9 @@ class AmberPrmtopReader:
         # atom_residue_mask = np.repeat(np.arange(len(pointer)) + 1, segment_lengths)
         residue_slice = np.array(pointer, dtype=int) - 1
         segment_lengths = np.diff(residue_slice)
-        atom_residue_mask = np.repeat(np.arange(len(segment_lengths-1)), segment_lengths)
+        atom_residue_mask = np.repeat(
+            np.arange(len(segment_lengths - 1)), segment_lengths
+        )
 
         # get bond mask: if both i and j in atom_mask, then bond is intra-residue and equal to atom mask in corresponding index, else inter-residue and -1
         bond_i = bonds["i"]

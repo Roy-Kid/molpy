@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+
 import molpy as mp
+
 
 class FileHandler(ABC):
 
@@ -10,12 +12,11 @@ class FileHandler(ABC):
         self._file = open(self._path, *args, **kwargs)
 
     @abstractmethod
-    def __enter__(self):
-        ...
+    def __enter__(self): ...
 
     @abstractmethod
-    def __exit__(self, exc_type, exc_value, traceback):
-        ...
+    def __exit__(self, exc_type, exc_value, traceback): ...
+
 
 class DataReader(FileHandler):
 
@@ -25,10 +26,8 @@ class DataReader(FileHandler):
 
     def __enter__(self):
         return self.read()
-    
-    @abstractmethod
-    def read(self) -> mp.System:
-        ...
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        ...
+    @abstractmethod
+    def read(self) -> mp.System: ...
+
+    def __exit__(self, exc_type, exc_value, traceback): ...

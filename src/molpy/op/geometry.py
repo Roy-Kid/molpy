@@ -1,7 +1,8 @@
 import numpy as np
 
+
 def rotate_by_rodrigues(xyz, axis, theta):
-    """ Rotate coordinates around an axis by an angle theta. Using the Rodrigues' rotation formula.
+    """Rotate coordinates around an axis by an angle theta. Using the Rodrigues' rotation formula.
 
     Args:
         xyz (np.ndarray): coordinates
@@ -16,7 +17,7 @@ def rotate_by_rodrigues(xyz, axis, theta):
     axis = axis / np.linalg.norm(axis)
     original_shape = xyz.shape
     was_1d = xyz.ndim == 1
-    
+
     xyz = np.atleast_2d(xyz)
 
     rot = (
@@ -28,11 +29,12 @@ def rotate_by_rodrigues(xyz, axis, theta):
     # If input was 1D, squeeze the result back to 1D
     if was_1d and rot.shape[0] == 1:
         rot = rot.squeeze(0)
-    
+
     return rot
 
+
 def rotate_by_quaternion(xyz, q):
-    """ Rotate coordinates using a quaternion.
+    """Rotate coordinates using a quaternion.
 
     Args:
         xyz (np.ndarray): coordinates
@@ -43,17 +45,19 @@ def rotate_by_quaternion(xyz, q):
     """
     q = q / np.linalg.norm(q)
     w, x, y, z = q
-    rot_mat = np.array([
-        [1-2*y**2-2*z**2, 2*x*y-2*z*w, 2*x*z+2*y*w],
-        [2*x*y+2*z*w, 1-2*x**2-2*z**2, 2*y*z-2*x*w],
-        [2*x*z-2*y*w, 2*y*z+2*x*w, 1-2*x**2-2*y**2]
-    ])
+    rot_mat = np.array(
+        [
+            [1 - 2 * y**2 - 2 * z**2, 2 * x * y - 2 * z * w, 2 * x * z + 2 * y * w],
+            [2 * x * y + 2 * z * w, 1 - 2 * x**2 - 2 * z**2, 2 * y * z - 2 * x * w],
+            [2 * x * z - 2 * y * w, 2 * y * z + 2 * x * w, 1 - 2 * x**2 - 2 * y**2],
+        ]
+    )
     return np.dot(xyz, rot_mat)
 
 
 def translate(xyz, vector):
-    """ Translate coordinates by a vector.
-    
+    """Translate coordinates by a vector.
+
     Args:
         xyz (np.ndarray): coordinates
         vector (np.ndarray): translation vector
@@ -88,19 +92,11 @@ def rotation_matrix_from_vectors(vec1: np.ndarray, vec2: np.ndarray) -> np.ndarr
             perp[np.argmin(np.abs(a))] = 1.0
             v = np.cross(a, perp)
             v /= np.linalg.norm(v)
-            K = np.array([
-                [    0, -v[2],  v[1]],
-                [ v[2],     0, -v[0]],
-                [-v[1],  v[0],    0]
-            ])
+            K = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
             return np.eye(3) + 2 * K.dot(K)
 
     # skew‐symmetric cross‐product matrix for v
-    K = np.array([
-        [    0, -v[2],  v[1]],
-        [ v[2],     0, -v[0]],
-        [-v[1],  v[0],    0]
-    ])
+    K = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
 
     R = np.eye(3) + K + K.dot(K) * ((1 - c) / (s**2))
     return R

@@ -1,7 +1,10 @@
 from pathlib import Path
-from molpy import Element
-from .base import DataReader
+
 import molpy as mp
+from molpy import Element
+
+from .base import DataReader
+
 
 class AcReader(DataReader):
 
@@ -32,7 +35,7 @@ class AcReader(DataReader):
             self.assign_atomic_numbers(self.atoms)
             keys = self.atoms[0].keys()
             frame["atoms"] = {k: [d[k] for d in self.atoms] for k in keys}
-        
+
         if self.bonds:
             keys = self.bonds[0].keys()
             frame["bonds"] = {k: [d[k] for d in self.bonds] for k in keys}
@@ -58,7 +61,7 @@ class AcReader(DataReader):
             "resSeq": res_id,
             "xyz": xyz,
             "q": charge,
-            "type": atom_type
+            "type": atom_type,
         }
 
     def _parse_bond_section(self, line) -> dict:
@@ -87,7 +90,7 @@ class AcReader(DataReader):
             atom["number"] = atomic_number
 
     def _guess_atomic_number(self, name):
-        name = ''.join([c for c in name if c.isalpha()])
+        name = "".join([c for c in name if c.isalpha()])
         try:
             return Element(name.capitalize())
         except KeyError:

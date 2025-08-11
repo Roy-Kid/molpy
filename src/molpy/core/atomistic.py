@@ -709,8 +709,9 @@ class Atomistic(Wrapper):
         Returns:
             Frame: Frame object containing all structure data in Block objects.
         """
-        from .frame import Frame, Block  # Local import to avoid circular deps
         import numpy as np
+
+        from .frame import Block, Frame  # Local import to avoid circular deps
 
         frame = Frame()
 

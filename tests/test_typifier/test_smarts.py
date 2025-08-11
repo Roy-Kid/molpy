@@ -1,9 +1,9 @@
 import lark
 import pytest
-import molpy as mp
 
-from molpy.typifier.parser import SmartsParser
+import molpy as mp
 from molpy.typifier.graph import SMARTSGraph
+from molpy.typifier.parser import SmartsParser
 
 
 class TestSMARTS:

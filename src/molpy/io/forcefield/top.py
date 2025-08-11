@@ -1,6 +1,8 @@
-from pathlib import Path
 import re
+from pathlib import Path
+
 import molpy as mp
+
 
 class GromacsTopReader:
     """Utility to read a Gromacs .top/.itp topology file into a dictionary.
@@ -26,9 +28,13 @@ class GromacsTopReader:
         self.include = include
 
     # NOTE: `forcefield` is optional and only used to help resolve #include paths
-    def read(self, forcefield: mp.ForceField, *,
-             strip_comments: bool = True,
-             recursive: bool = True) -> mp.ForceField:
+    def read(
+        self,
+        forcefield: mp.ForceField,
+        *,
+        strip_comments: bool = True,
+        recursive: bool = True,
+    ) -> mp.ForceField:
         """Parse the topology file.
 
         Parameters
@@ -53,76 +59,74 @@ class GromacsTopReader:
         """
         result: dict[str, list[str]] = {}
         visited: set[Path] = set()
-        self._parse_file(self.file, result, visited,
-                         forcefield, strip_comments, recursive)
+        self._parse_file(
+            self.file, result, visited, forcefield, strip_comments, recursive
+        )
 
         # parse atom sections
-        self._parse_atom_section(
-            result["atoms"], forcefield
-        )
+        self._parse_atom_section(result["atoms"], forcefield)
         # parse bond sections
-        self._parse_bond_section(
-            result["bonds"], forcefield
-        )
+        self._parse_bond_section(result["bonds"], forcefield)
         # parse angle sections
-        self._parse_angle_section(
-            result["angles"], forcefield
-        )
+        self._parse_angle_section(result["angles"], forcefield)
         # parse dihedral sections
-        self._parse_dihedral_section(
-            result["dihedrals"], forcefield
-        )
+        self._parse_dihedral_section(result["dihedrals"], forcefield)
 
         # parse pair sections
-        self._parse_pair_section(
-            result["pairs"], forcefield
-        )
+        self._parse_pair_section(result["pairs"], forcefield)
 
         return forcefield
 
     # --------------------------------------------------------------------- #
     # Internal helpers
     # --------------------------------------------------------------------- #
-    def _parse_file(self,
-                    path: Path,
-                    store: dict[str, list[str]],
-                    visited: set[Path],
-                    forcefield: mp.ForceField|None,
-                    strip_comments: bool,
-                    recursive: bool) -> None:
+    def _parse_file(
+        self,
+        path: Path,
+        store: dict[str, list[str]],
+        visited: set[Path],
+        forcefield: mp.ForceField | None,
+        strip_comments: bool,
+        recursive: bool,
+    ) -> None:
 
         if path in visited:
             return  # Prevent infinite include loops
         visited.add(path)
 
         cwd = path.parent
-        with path.open('r', encoding='utf-8') as fh:
-            current_section: str|None = None
+        with path.open("r", encoding="utf-8") as fh:
+            current_section: str | None = None
             for raw_line in fh:
                 line = raw_line.rstrip("\n")
 
                 # Handle comments stripping
                 if strip_comments:
-                    line = line.split(';', 1)[0]
+                    line = line.split(";", 1)[0]
                 line = line.strip()
                 if not line:
                     continue  # Skip blank/comment lines
 
                 # Pre‑processor directives
-                if line.startswith('#'):
+                if line.startswith("#"):
                     # Handle #include
                     m_inc = self._INCLUDE_RE.match(line)
                     if self.include and m_inc and recursive:
                         inc_file = Path(m_inc.group(1))
-                        resolved = self._resolve_include(
-                            inc_file, cwd, forcefield)
+                        resolved = self._resolve_include(inc_file, cwd, forcefield)
                         if resolved and resolved.exists():
-                            self._parse_file(resolved, store, visited,
-                                             forcefield, strip_comments,
-                                             recursive)
+                            self._parse_file(
+                                resolved,
+                                store,
+                                visited,
+                                forcefield,
+                                strip_comments,
+                                recursive,
+                            )
                         else:
                             raise FileNotFoundError(
-                                f"Could not resolve include '{inc_file}' from '{path}'.")
+                                f"Could not resolve include '{inc_file}' from '{path}'."
+                            )
                     # Other pre‑processor directives (#ifdef, #define, etc.)
                     # are safely ignored for this simple reader.
                     continue
@@ -138,13 +142,14 @@ class GromacsTopReader:
                 if current_section is None:
                     # Lines appearing before the first section are gathered
                     # under a pseudo‑section named '__preamble__'.
-                    current_section = '__preamble__'
+                    current_section = "__preamble__"
                     store.setdefault(current_section, [])
                 store[current_section].append(line)
 
     # --------------------------------------------------------------------- #
-    def _resolve_include(self, inc: Path, cwd: Path,
-                         forcefield: mp.ForceField|None) -> Path:
+    def _resolve_include(
+        self, inc: Path, cwd: Path, forcefield: mp.ForceField | None
+    ) -> Path:
         """Return an absolute path for an included file.
 
         Search order:
@@ -159,7 +164,7 @@ class GromacsTopReader:
             return candidate
         # Try forcefield dir
         if forcefield is not None:
-            for attr in ('base_dir', 'path'):
+            for attr in ("base_dir", "path"):
                 base = getattr(forcefield, attr, None)
                 if base:
                     base_path = Path(base) / inc
@@ -167,7 +172,6 @@ class GromacsTopReader:
                         return base_path
         # Fallback: return path relative to cwd even if it doesn't exist
         return candidate
-
 
     def _parse_atom_section(self, lines: list[str], ff: mp.ForceField) -> None:
         """Parse the [atomtypes] section of a Gromacs topology file.
@@ -186,16 +190,22 @@ class GromacsTopReader:
         atomstyle = ff.def_atomstyle("full")
 
         header = [
-    "nr", "name", "resnr", "residu", "atom", "cgnr",
-    "charge", "mass", "typeB", "chargeB", "massB"
-]
+            "nr",
+            "name",
+            "resnr",
+            "residu",
+            "atom",
+            "cgnr",
+            "charge",
+            "mass",
+            "typeB",
+            "chargeB",
+            "massB",
+        ]
         atomtypes = []
         for line in map(lambda l: l.split(), lines):
             data = dict(zip(header, line))
-            at = atomstyle.def_type(
-                data.pop("name"),
-                **data
-            )
+            at = atomstyle.def_type(data.pop("name"), **data)
             atomtypes.append(at)
 
         self.atomtypes = atomtypes
@@ -205,9 +215,9 @@ class GromacsTopReader:
 
         func_types = {
             "1": "harmonic",  # kb (kJ mol‑1 nm‑2)  r0 (nm)
-            "2": "G96",       # same params as harmonic but G96 functional form
-            "3": "morse",     # r0  De  alpha
-            "4": "cubic",     # r0  k2  k3  k4  (rare)
+            "2": "G96",  # same params as harmonic but G96 functional form
+            "3": "morse",  # r0  De  alpha
+            "4": "cubic",  # r0  k2  k3  k4  (rare)
         }
 
         param_specs = {
@@ -245,15 +255,14 @@ class GromacsTopReader:
             # Register the bond type in the force‑field object
             bondstyle.def_type(itype=itype, jtype=jtype, name=name, **param_dict)
 
-
     def _parse_angle_section(self, lines: list[str], ff: mp.ForceField) -> None:
         """Parse the [angletypes] section of a GROMACS topology file."""
 
         func_types = {
-            "1": "harmonic",   # theta0  k
-            "2": "G96",        # theta0  k  (G96 quadratic)
-            "3": "quartic",    # c0 c1 c2 c3
-            "4": "ub",         # theta0 k  r0 k_ub  (Urey–Bradley)
+            "1": "harmonic",  # theta0  k
+            "2": "G96",  # theta0  k  (G96 quadratic)
+            "3": "quartic",  # c0 c1 c2 c3
+            "4": "ub",  # theta0 k  r0 k_ub  (Urey–Bradley)
         }
 
         param_specs = {
@@ -286,16 +295,17 @@ class GromacsTopReader:
             param_names = param_specs[style_name]
             param_dict = {n: v for n, v in zip(param_names, params)}
 
-            anglestyle.def_type(name=name, itype=itype, jtype=jtype, ktype=ktype, **param_dict)
-
+            anglestyle.def_type(
+                name=name, itype=itype, jtype=jtype, ktype=ktype, **param_dict
+            )
 
     def _parse_dihedral_section(self, lines: list[str], ff: mp.ForceField) -> None:
         """Parse the [dihedraltypes] section of a GROMACS topology file."""
 
         func_types = {
-            "1": "periodic",   # phi0  k  multiplicity
-            "2": "rb",         # c0 c1 c2 c3 c4 c5  (Ryckaert–Bellemans)
-            "3": "harmonic",   # psi0  k  (improper-like, but some force fields use it for proper)
+            "1": "periodic",  # phi0  k  multiplicity
+            "2": "rb",  # c0 c1 c2 c3 c4 c5  (Ryckaert–Bellemans)
+            "3": "harmonic",  # psi0  k  (improper-like, but some force fields use it for proper)
         }
 
         param_specs = {
@@ -328,7 +338,14 @@ class GromacsTopReader:
             param_names = param_specs[style_name]
             param_dict = {n: v for n, v in zip(param_names, params)}
 
-            dihstyle.def_type(name=name, itype=itype, jtype=jtype, ktype=ktype, ltype=ltype, **param_dict)
+            dihstyle.def_type(
+                name=name,
+                itype=itype,
+                jtype=jtype,
+                ktype=ktype,
+                ltype=ltype,
+                **param_dict,
+            )
 
     def _parse_pair_section(self, lines: list[str], ff: mp.ForceField) -> None:
         """Parse the [pairtypes] or [nonbond_params] section."""

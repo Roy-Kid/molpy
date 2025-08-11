@@ -1228,25 +1228,25 @@ class ForceField:
     def get_potential(self, style_name: str, **kwargs):
         """
         Get a potential instance from forcefield definition.
-        
+
         Args:
             style_name: Name of the style to get potential for
             **kwargs: Additional parameters to pass to potential constructor
-            
+
         Returns:
             Potential instance or None if not found
         """
         # Find the style by name from all style lists
         style = None
         potential_type = None
-        
+
         # Check in all style containers
         for style_list, ptype in [
             (self.pairstyles, "pair"),
-            (self.bondstyles, "bond"), 
+            (self.bondstyles, "bond"),
             (self.anglestyles, "angle"),
             (self.dihedralstyles, "dihedral"),
-            (self.improperstyles, "improper")
+            (self.improperstyles, "improper"),
         ]:
             for s in style_list:
                 if s.name == style_name:
@@ -1255,84 +1255,90 @@ class ForceField:
                     break
             if style:
                 break
-        
+
         if not style or not potential_type:
             return None
-            
+
         return self._create_potential_from_style(style, potential_type, **kwargs)
-    
+
     def get_potentials(self, style_names: list[str] | None = None, **kwargs):
         """
         Get multiple potential instances from forcefield definition.
-        
+
         Args:
             style_names: List of style names to get potentials for. If None, gets all available styles.
             **kwargs: Additional parameters to pass to potential constructors
-            
+
         Returns:
             Potentials instance containing all created potentials
         """
         from molpy.potential.base import Potentials
-        
+
         potentials = Potentials()
-        
+
         # If no style names provided, get all available styles
         if style_names is None:
             style_names = []
             # Collect all style names from all style lists
-            for style_list in [self.pairstyles, self.bondstyles, self.anglestyles, 
-                              self.dihedralstyles, self.improperstyles]:
+            for style_list in [
+                self.pairstyles,
+                self.bondstyles,
+                self.anglestyles,
+                self.dihedralstyles,
+                self.improperstyles,
+            ]:
                 style_names.extend([s.name for s in style_list])
-        
+
         # Get potential for each style name
         for style_name in style_names:
             potential = self.get_potential(style_name, **kwargs)
             if potential is not None:
                 potentials.append(potential)
-        
+
         return potentials
-    
+
     def _create_potential_from_style(self, style, potential_type: str, **kwargs):
         """
         Create a potential instance from a style definition.
-        
+
         Args:
             style: Style object containing types and parameters
             potential_type: Type of potential ("pair", "bond", "angle", etc.)
             **kwargs: Additional parameters
-            
+
         Returns:
             Potential instance
         """
         # Check if we have the potential type in kernel registry
         if potential_type not in self._kernel_registry:
             return None  # Return None instead of raising exception
-        
+
         potential_registry = self._kernel_registry[potential_type]
-        
+
         # Look for potential implementation by style name
         potential_class = None
         for name, cls in potential_registry.items():
-            if name == style.name or getattr(cls, 'name', None) == style.name:
+            if name == style.name or getattr(cls, "name", None) == style.name:
                 potential_class = cls
                 break
-        
+
         if not potential_class:
             return None  # Return None instead of raising exception
-        
+
         # Use style's parms and data as initialization parameters
         init_kwargs = {}
         init_kwargs.update(style.data)  # Add style's data dictionary
-        init_kwargs.update(kwargs)      # Override with user-provided kwargs
-        
+        init_kwargs.update(kwargs)  # Override with user-provided kwargs
+
         # Filter kwargs to only include parameters that the potential class accepts
         import inspect
+
         sig = inspect.signature(potential_class.__init__)
-        accepted_params = set(sig.parameters.keys()) - {'self'}
-        
+        accepted_params = set(sig.parameters.keys()) - {"self"}
+
         # Keep only the parameters that the potential class can accept
         filtered_kwargs = {k: v for k, v in init_kwargs.items() if k in accepted_params}
-        
+
         # Create potential instance using filtered kwargs only
         return potential_class(**filtered_kwargs)
 

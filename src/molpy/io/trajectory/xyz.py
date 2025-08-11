@@ -1,10 +1,12 @@
-from .base import TrajectoryWriter
 from molpy.core import Frame
+
+from .base import TrajectoryWriter
+
 
 class XYZTrajectoryWriter(TrajectoryWriter):
 
     def __init__(self, fpath: str):
-        
+
         self.fpath = fpath
         self.fobj = open(fpath, "w")
 

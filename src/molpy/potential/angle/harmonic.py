@@ -1,5 +1,6 @@
-from .base import AnglePotential
 import numpy as np
+
+from .base import AnglePotential
 
 
 class Harmonic(AnglePotential):
@@ -14,7 +15,7 @@ class Harmonic(AnglePotential):
     def calc_energy(
         self, r: np.ndarray, angle_idx: np.ndarray, angle_types: np.ndarray
     ) -> np.ndarray:
-        
+
         theta = np.arccos(np.sum(r[angle_idx[:, 0]] * r[angle_idx[:, 1]], axis=1))
 
         return 0.5 * self.k[angle_types] * (theta - self.theta0[angle_types]) ** 2
@@ -36,12 +37,12 @@ class Harmonic(AnglePotential):
         ub = b / norm_b[:, None]
 
         theta = np.rad2deg(np.arccos(ua @ ub.T))
-        dtheta = - self.k[angle_types] * (theta - self.theta0[angle_types])
-    
+        dtheta = -self.k[angle_types] * (theta - self.theta0[angle_types])
+
         f = dtheta / np.linalg.norm(c)
-        F1 = f * (np.cross(c, a) / norm_a[:, None]**2)
-        F3 = f * (np.cross(b, c) / norm_b[:, None]**2)
-        F2 = - (F1 + F3)
+        F1 = f * (np.cross(c, a) / norm_a[:, None] ** 2)
+        F3 = f * (np.cross(b, c) / norm_b[:, None] ** 2)
+        F2 = -(F1 + F3)
 
         per_atom_forces = np.zeros((len(r), 3))
         np.add.at(per_atom_forces, angle_idx[:, 0], F1)

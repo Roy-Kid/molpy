@@ -1,8 +1,11 @@
-from ..base import Potential
+from functools import partial, wraps
+from typing import Any, Callable, Tuple
+
 import numpy as np
+
 import molpy as mp
-from functools import wraps, partial
-from typing import Callable, Any, Tuple
+
+from ..base import Potential
 
 
 class PairPotential(Potential):
@@ -12,6 +15,7 @@ class PairPotential(Potential):
     Provides a decorator to allow methods that accept precomputed pair displacements
     (dr, dr_norm, pair_types) to also accept an mp.Frame directly.
     """
+
     @classmethod
     def or_frame(cls, *extra_fields: str) -> Callable:
         """
@@ -20,6 +24,7 @@ class PairPotential(Potential):
 
         extra_fields: column names in frame to extract before calling the method.
         """
+
         def decorator(func: Callable) -> Callable:
             @wraps(func)
             def wrapper(self, *args: Any, **kwargs: Any):
@@ -39,7 +44,9 @@ class PairPotential(Potential):
                     return func(self, dr, dr_norm, pair_types, *extra_args, **kwargs)
                 # otherwise, call as regular method
                 return func(self, *args, **kwargs)
+
             return wrapper
+
         # allow use as @or_frame or @or_frame('field1', 'field2')
         if len(extra_fields) == 1 and callable(extra_fields[0]):  # used without args
             func = extra_fields[0]

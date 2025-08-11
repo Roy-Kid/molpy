@@ -1,7 +1,10 @@
-from .base import DataReader
 from pathlib import Path
+
 import pandas as pd
+
 from molpy import Element
+
+from .base import DataReader
 
 
 class TopReader(DataReader):
@@ -60,13 +63,13 @@ class TopReader(DataReader):
         self.assign_atomic_numbers(self.atoms, None)
 
         return frame
-    
+
     def assign_atomic_numbers(self, atoms, restemp):
         for atom in atoms:
-            atomic_number = self._guess_atomic_number(atom['name'], restemp).number
+            atomic_number = self._guess_atomic_number(atom["name"], restemp).number
             if atomic_number == 0:
-                atomic_number = self._guess_atomic_number(atom['type'], restemp).number
-            atom['number'] = atomic_number
+                atomic_number = self._guess_atomic_number(atom["type"], restemp).number
+            atom["number"] = atomic_number
 
     def _guess_atomic_number(self, name, residue=None):
         """Guesses the atomic number"""
@@ -79,7 +82,7 @@ class TopReader(DataReader):
                 except KeyError:
                     return Element(name)
         return Element(name)
-    
+
     def _parse_atom_section(self, line):
         data = line.split()
         index = data[0]
@@ -89,7 +92,6 @@ class TopReader(DataReader):
         name = data[4]
         charge_id = data[5]
         charge = data[6]
-
 
         x = float(data[3])
         y = float(data[4])
@@ -101,14 +103,16 @@ class TopReader(DataReader):
             vy = float(data[7])
             vz = float(data[8])
 
-        self.atoms.append({
-            "id": index,
-            "name": name,
-            "type": type,
-            "x": x,
-            "y": y,
-            "z": z,
-            "vx": vx,
-            "vy": vy,
-            "vz": vz
-        })
+        self.atoms.append(
+            {
+                "id": index,
+                "name": name,
+                "type": type,
+                "x": x,
+                "y": y,
+                "z": z,
+                "vx": vx,
+                "vy": vy,
+                "vz": vz,
+            }
+        )

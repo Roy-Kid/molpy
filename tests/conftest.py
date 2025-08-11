@@ -3,11 +3,12 @@
 # date: 2023-01-29
 # version: 0.0.1
 
-from pathlib import Path
-import pytest
-import subprocess
 import os
+import subprocess
+from pathlib import Path
+
 import molq
+import pytest
 
 _REPO_URL = "https://github.com/molcrafts/chemfile-testcases.git"
 _DEFAULT_DIR = Path(__file__).parent / "chemfile-testcases"

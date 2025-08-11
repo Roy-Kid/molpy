@@ -1,7 +1,9 @@
 import os
 import tempfile
+
 import molpy as mp
 from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
+
 
 def test_lammps_forcefield_writer_full():
     # 构造力场，包含所有类型
@@ -17,7 +19,9 @@ def test_lammps_forcefield_writer_full():
     anglestyle.def_type(atomtype_C, atomtype_H, atomtype_C, parms=[50.0, 109.5])
 
     dihedralstyle = ff.def_dihedralstyle("opls")
-    dihedralstyle.def_type(atomtype_C, atomtype_H, atomtype_C, atomtype_H, parms=[0.5, 1.0, 0.0, 0.0])
+    dihedralstyle.def_type(
+        atomtype_C, atomtype_H, atomtype_C, atomtype_H, parms=[0.5, 1.0, 0.0, 0.0]
+    )
 
     pairstyle = ff.def_pairstyle("lj/cut")
     # 自交类型

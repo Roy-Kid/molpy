@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, List
+from typing import List, Union
 
 __all__ = ["Element"]
 
@@ -9,6 +9,7 @@ daltons = 1
 @dataclass
 class ElementData:
     """Data class representing the properties of a chemical element."""
+
     number: int
     name: str
     symbol: str
@@ -57,20 +58,20 @@ class Element:
     def __new__(cls, name_or_symbol_or_number: Union[str, int]) -> "ElementData":
         """
         Create an ElementData instance based on name, symbol, or atomic number.
-        
+
         Args:
             name_or_symbol_or_number: Element identifier (name, symbol, or atomic number)
-            
+
         Returns:
             ElementData instance
-            
+
         Raises:
             KeyError: If element is not found
         """
         # Handle atomic number 0 for unknown elements
         if name_or_symbol_or_number == 0:
             return ElementData(0, "unknown", "X", 0.0)
-            
+
         if isinstance(name_or_symbol_or_number, int):
             if name_or_symbol_or_number in cls._number_to_element:
                 return cls._number_to_element[name_or_symbol_or_number]
@@ -80,19 +81,19 @@ class Element:
             for element_name, element_data in cls._elements.items():
                 if element_name.lower() == name_lower:
                     return element_data
-            
+
             # Try symbol (case-insensitive)
             for symbol, element_data in cls._symbol_to_element.items():
                 if symbol.lower() == name_or_symbol_or_number.lower():
                     return element_data
-                
+
         raise KeyError(f"Element not found: {name_or_symbol_or_number}")
 
     @classmethod
     def get_symbols(cls, identifiers: List[Union[str, int]]) -> List[str]:
         """Convert list of element identifiers to symbols."""
         return [cls(e).symbol for e in identifiers]
-    
+
     @classmethod
     def get_atomic_number(cls, symbol: str) -> int:
         """Get atomic number by element symbol."""
@@ -224,16 +225,17 @@ class Element:
             ElementData(115, "ununpentium", "Uup", 288 * daltons),
             ElementData(116, "ununhexium", "Uuh", 292 * daltons),
         ]
-        
+
         # Clear existing dictionaries
         cls._elements.clear()
         cls._symbol_to_element.clear()
         cls._number_to_element.clear()
-        
+
         # Populate dictionaries
         for element in elements_data:
             cls._elements[element.name] = element
             cls._symbol_to_element[element.symbol] = element
             cls._number_to_element[element.number] = element
+
 
 Element.initialize()

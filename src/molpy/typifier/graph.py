@@ -40,7 +40,7 @@ class SMARTSGraph(Graph):
 
     def __init__(
         self,
-        smarts_string:str,
+        smarts_string: str,
         parser: SmartsParser = None,
         name=None,
         overrides=None,
@@ -66,13 +66,13 @@ class SMARTSGraph(Graph):
 
     def __repr__(self):
         return f"<SmartsGraph({self.smarts_string})>"
-    
+
     def plot(self, *args, **kwargs):
         """Plot the SMARTS graph."""
         graph = Graph(edges=self.get_edgelist())
         graph.vs["label"] = [v.index for v in self.vs]
         return plot(graph, *args, **kwargs)
-    
+
     def override(self, overrides):
         """Set the priority of this SMART"""
         self.overrides = overrides
@@ -143,11 +143,15 @@ class SMARTSGraph(Graph):
         elif atom_expr.data in ("and_expression", "weak_and_expression"):
             return self._atom_expr_matches(
                 atom_expr.children[0], atom, bond_partners, graph
-            ) and self._atom_expr_matches(atom_expr.children[1], atom, bond_partners, graph)
+            ) and self._atom_expr_matches(
+                atom_expr.children[1], atom, bond_partners, graph
+            )
         elif atom_expr.data == "or_expression":
             return self._atom_expr_matches(
                 atom_expr.children[0], atom, bond_partners, graph
-            ) or self._atom_expr_matches(atom_expr.children[1], atom, bond_partners, graph)
+            ) or self._atom_expr_matches(
+                atom_expr.children[1], atom, bond_partners, graph
+            )
         elif atom_expr.data == "atom_id":
             return self._atom_id_matches(
                 atom_expr.children[0], atom, bond_partners, graph
@@ -223,20 +227,18 @@ class SMARTSGraph(Graph):
         self.calc_signature(graph)
 
         self._graph_matcher = SMARTSMatcher(
-            graph,
-            self,
-            node_match_fn=self._node_match_fn
+            graph, self, node_match_fn=self._node_match_fn
         )
 
         matches = self._graph_matcher.subgraph_isomorphisms()
         match_index = set([match[0] for match in matches])
         return match_index
-    
+
     def calc_signature(self, graph):
-        
+
         ring_tokens = ["ring_size", "ring_count"]
         has_ring_rules = any(list(self.ast.find_data(token)) for token in ring_tokens)
-        
+
         if has_ring_rules:
             graph.vs["cycles"] = [set() for _ in graph.vs]
             all_cycles = _find_chordless_cycles(graph, max_cycle_size=6)
@@ -248,7 +250,7 @@ class SMARTSGraph(Graph):
 class SMARTSMatcher:
     """Inherits and implements VF2 for a SMARTSGraph."""
 
-    def __init__(self, G1:Graph, G2:Graph, node_match_fn):
+    def __init__(self, G1: Graph, G2: Graph, node_match_fn):
         self.G1 = G1
         self.G2 = G2
         self.node_match_fn = node_match_fn
@@ -257,10 +259,12 @@ class SMARTSMatcher:
     def is_isomorphic(self):
         """Return True if the two graphs are isomorphic."""
         return self.G1.isomorphic(self.G2)
-    
+
     def subgraph_isomorphisms(self):
         """Iterate over all subgraph isomorphisms between G1 and G2."""
-        matches = self.G1.get_subisomorphisms_vf2(self.G2, node_compat_fn=self.node_match_fn)
+        matches = self.G1.get_subisomorphisms_vf2(
+            self.G2, node_compat_fn=self.node_match_fn
+        )
         results = []
         for sgi in matches:
             sg = self.G1.subgraph(sgi)
@@ -358,4 +362,3 @@ def _find_chordless_cycles(graph, max_cycle_size):
                     break
 
     return cycles
-

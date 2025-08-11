@@ -1,14 +1,15 @@
-import pytest
 import numpy as np
-import molpy as mp
+import pytest
 
-from molpy.core import Atom, Bond, Angle, Dihedral
+import molpy as mp
+from molpy.core import Angle, Atom, Bond, Dihedral
+
 
 class TestAtom:
     def test_to_dict(self):
         """Test Atom.to_dict method."""
         from molpy.core.atomistic import Atom
-        
+
         # Test basic atom (without explicit xyz)
         atom = Atom(name="C", element="carbon")
         d = atom.to_dict()
@@ -16,7 +17,7 @@ class TestAtom:
         assert d["element"] == "carbon"
         # xyz should not be in dict if not explicitly set
         assert "xyz" not in d
-        
+
         # Test atom with coordinates
         atom_with_xyz = Atom(name="H", element="hydrogen", xyz=[1.0, 2.0, 3.0])
         d2 = atom_with_xyz.to_dict()
@@ -31,21 +32,21 @@ class TestBond:
         atom1 = Atom(name="C", id=0)
         atom2 = Atom(name="H", id=1)
         bond = Bond(atom1, atom2, bond_type="single", length=1.5)
-        
+
         d = bond.to_dict()
-        
+
         # Check that bond properties are included
         assert d["bond_type"] == "single"
         assert d["length"] == 1.5
-    
+
     def test_to_dict_no_atom_ids(self):
         """Test Bond.to_dict when atoms don't have ids."""
         atom1 = Atom(name="C")
         atom2 = Atom(name="H")
         bond = Bond(atom1, atom2, bond_type="single")
-        
+
         d = bond.to_dict()
-        
+
         assert d["bond_type"] == "single"
         # Should not have i,j keys when atoms don't have ids
         assert "i" not in d
@@ -59,9 +60,9 @@ class TestAngle:
         atom2 = Atom(name="C", id=1)  # vertex
         atom3 = Atom(name="O", id=2)
         angle = Angle(atom1, atom2, atom3, angle_type="harmonic")
-        
+
         d = angle.to_dict()
-        
+
         assert d["angle_type"] == "harmonic"
 
 
@@ -73,10 +74,11 @@ class TestDihedral:
         atom3 = Atom(name="C3", id=2)
         atom4 = Atom(name="C4", id=3)
         dihedral = Dihedral(atom1, atom2, atom3, atom4, dihedral_type="periodic")
-        
+
         d = dihedral.to_dict()
-        
+
         assert d["dihedral_type"] == "periodic"
+
 
 def assert_atoms_deepcopied(orig_atoms, copy_atoms):
     assert len(orig_atoms) == len(copy_atoms)
@@ -369,7 +371,7 @@ class TestAtomisticSerialization:
 
     def test_from_frame(self):
         """Test Atomistic.from_frame reconstructs structure from Frame/Block."""
-        from molpy.core.frame import Frame, Block
+        from molpy.core.frame import Block, Frame
 
         # Build a minimal frame for water
         atoms_block = Block(

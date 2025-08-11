@@ -2,20 +2,22 @@
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-BSD-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://molcrafts.github.io/molpy)
 
-**MolPy** is a modern, high-performance Python framework for molecular simulation and analysis. Built with flexibility and extensibility in mind, MolPy provides elegant data structures and comprehensive toolkits that let researchers focus on science rather than infrastructure.
+**MolPy** is a modular Python toolkit for molecular modeling, simulation setup, and structural analysis. It provides a unified framework for manipulating atomic structures, generating force field inputs, and analyzing simulation data.
 
 ## ✨ Key Features
 
-- **🏗️ Modern Architecture**: Built on xarray.DataTree for hierarchical data management
-- **🔄 Unified Serialization**: Consistent to_dict/from_dict interface across all components
-- **📦 Flexible Data Structures**: Support for atoms, bonds, angles, dihedrals, and complex molecular systems
-- **🎯 Force Field Integration**: Comprehensive force field management and type assignment
-- **📊 Trajectory Analysis**: Efficient handling of molecular dynamics trajectories
-- **🧮 Advanced Algorithms**: Built-in optimization, packing, and reaction modeling
-- **🔌 Extensible Design**: Plugin-ready architecture for custom functionality
-- **⚡ High Performance**: Optimized for large-scale molecular systems
+- **🏗️ Modular Architecture**: Clean, composable design with composition-over-inheritance philosophy
+- **📊 Flexible Data Structures**: Frame/Block system for atomic data, Trajectory for time series
+- **🎯 Advanced Selection System**: Boolean algebra for atom selection with custom predicates
+- **🔧 Force Field Management**: Comprehensive typing and parameter management
+- **📁 Multi-format I/O**: Support for PDB, XYZ, LAMMPS, AMBER, GROMACS formats
+- **🧮 Analysis Tools**: Built-in analysis for diffusion, clustering, and molecular properties
+- **🏗️ Molecular Building**: Polymer construction, bulk system generation, reaction modeling
+- **📦 Packing Algorithms**: Molecular packing with Packmol integration and optimization
+- **🔌 Extensible Design**: Custom wrappers, selections, and I/O components
+- **⚡ High Performance**: Memory-mapped trajectory reading, efficient data structures
 
 ## 🚀 Quick Start
 
@@ -25,9 +27,6 @@
 # Clone the repository
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-
-# Install dependencies
-pip install -r requirements.txt
 
 # Install in development mode
 pip install -e .
@@ -42,7 +41,7 @@ import numpy as np
 # Create a simulation box
 box = mp.Box.cubic(10.0)
 
-# Create atoms
+# Create atoms with coordinates and properties
 atoms_data = {
     'x': [0.0, 1.0, 2.0],
     'y': [0.0, 0.0, 0.0],
@@ -51,58 +50,85 @@ atoms_data = {
     'type': [1, 1, 1]
 }
 
-# Create a frame
+# Create a frame with atoms and box
 frame = mp.Frame(data={'atoms': atoms_data}, box=box)
 
-# Save and load
-frame_dict = frame.to_dict()  # Serialize to dictionary
-restored_frame = mp.Frame.from_dict(frame_dict)  # Restore from dictionary
+# Select specific atoms using the selection system
+carbon_atoms = frame['atoms'][mp.AtomTypeSelection(1)]
+print(f"Selected {len(carbon_atoms)} carbon atoms")
 
 # Save to file
-frame.save('system.h5', format='hdf5')
-loaded_frame = mp.Frame.load('system.h5')
+frame.save('system.pdb')
 ```
+
+## 📚 Documentation
+
+Comprehensive documentation is available at [https://molcrafts.github.io/molpy](https://molcrafts.github.io/molpy)
+
+### 📖 Getting Started
+- **Quickstart Guide**: Basic concepts and first steps
+- **Installation**: Setup and configuration
+- **FAQ**: Common questions and solutions
+
+### 🎓 Tutorials
+- **Core Concepts**: Frame/Block system, Selection algebra, Systems
+- **Data Structures**: Atoms, Bonds, Topology, Force Fields
+- **Analysis**: Trajectory analysis, MSD calculations, Clustering
+- **Building**: Molecular construction, Polymer building, Packing
+
+### 🔧 How-to Guides
+- **I/O Workflows**: Reading/writing various formats
+- **Molecular Building**: Creating complex systems
+- **Potential Calculations**: Energy and force computations
+- **Molecular Packing**: System generation and optimization
+
+### 👨‍💻 Developer Guides
+- **Custom Wrappers**: Extending MolPy with custom functionality
+- **Custom Selections**: Building new selection predicates
+- **Custom I/O**: Adding new file format support
+
+### 📖 API Reference
+- **Core Modules**: Fundamental data structures and classes
+- **I/O Modules**: File format support and trajectory handling
+- **Analysis Modules**: Property calculation tools
+- **Builder Modules**: Molecular construction tools
+- **Operations Modules**: Transformation and manipulation
+- **Potential Modules**: Energy and force calculations
+- **Packing Modules**: System generation algorithms
+- **Typifier Modules**: Automatic atom typing
+- **Engine Modules**: Simulation engine interfaces
+
+## 🏗️ Architecture
+
+MolPy is built around several core design principles:
+
+- **Composition over Inheritance**: Flexible wrapper system for extending functionality
+- **Selection Algebra**: Boolean logic for atom selection with custom predicates
+- **Memory Efficiency**: Lazy loading and memory mapping for large trajectories
+- **Type Safety**: Comprehensive type hints and validation
+- **Modular Design**: Clean separation of concerns across modules
+
+### Core Components
+
+- **Frame/Block**: Container system for atomic data with flexible indexing
+- **Selection System**: Boolean algebra for atom selection with custom predicates
+- **Wrapper System**: Composition-based extension mechanism
+- **Trajectory I/O**: Memory-mapped reading with lazy loading
+- **Force Field System**: Comprehensive typing and parameter management
 
 ## 📋 Dependencies
 
 **Core Dependencies:**
 - [numpy](https://github.com/numpy/numpy) - Numerical computing
-- [xarray](https://github.com/pydata/xarray) - N-dimensional labeled arrays
 - [python-igraph](https://github.com/igraph/python-igraph) - Graph analysis
-- [lark](https://github.com/lark-parser/lark) - Parsing SMILES/SMARTS
+- [lark](https://github.com/lark-parser/lark) - SMARTS/SMILES parsing
+- [pint](https://github.com/hgrecco/pint) - Physical quantities and units
+- [freud-analysis](https://github.com/glotzerlab/freud) - Analysis algorithms
 
-
-> 💡 **Note**: This project is actively developed. We welcome suggestions, feature requests, and contributions!
-
-## 🗺️ Roadmap
-
-### ✅ Completed Features
-- **Data Structures**: Static and dynamic molecular data containers
-- **File I/O**: Read and write support via Chemfiles integration
-- **Geometry**: Triclinic box support with PBC handling
-- **Force Fields**: Comprehensive force field management system
-- **Serialization**: Unified to_dict/from_dict interface for all components
-- **Frame System**: Advanced frame concatenation and manipulation
-
-### 🚧 In Development
-- **Performance**: Cell lists & neighbor lists for efficient calculations
-- **Potentials**: Built-in potential function library
-- **Optimization**: Molecular structure optimization algorithms
-- **Analysis**: Advanced trajectory analysis tools
-
-### 📅 Planned Features
-- **Modeling**: Advanced molecular modeling capabilities
-- **Typification**: Automated atom type assignment
-- **SMARTS/SMILES**: Chemical pattern matching and manipulation
-- **Visualization**: Interactive 3D molecular visualization
-- **Plugin System**: Extensible architecture for custom modules
-- **Documentation**: Comprehensive user guides and API documentation
-
-### 🎯 Future Vision
-After core functionality stabilization, we plan to:
-- Abstract performance-critical components to high-performance C++
-- Provide bindings for multiple programming languages
-- Develop GPU acceleration for large-scale simulations
+**Optional Dependencies:**
+- [mkdocs](https://github.com/mkdocs/mkdocs) - Documentation generation
+- [mkdocs-material](https://github.com/squidfunk/mkdocs-material) - Documentation theme
+- [mkdocstrings](https://github.com/mkdocstrings/mkdocstrings) - API documentation
 
 ## 🌟 Ecosystem
 
@@ -113,29 +139,19 @@ After core functionality stabilization, we plan to:
 - Integration with popular ML frameworks
 
 ### 🎨 Interactive Visualization
-**[MolVis](https://github.com/Roy-Kid/molvis)** *(coming soon)*
-- Production-level visualization using Babylon.js
-- Real-time molecular manipulation in Jupyter notebooks
-- WebGL-accelerated rendering for complex systems
+**[MolVis](https://github.com/Roy-Kid/molvis)** - Production-level visualization
+- WebGL-accelerated rendering
+- Real-time molecular manipulation
 - Interactive debugging and analysis tools
 
-## 📚 Documentation
-
-### Examples & Tutorials
-Check out the `examples/` directory for:
-- **Basic Usage**: Simple molecule creation and manipulation
-- **Force Fields**: OPLS-AA, AMBER, and custom force field setup
-- **Trajectories**: MD trajectory analysis and processing
-- **Advanced**: Polymer building, reaction modeling, and optimization
-
-### API Reference
-Comprehensive API documentation is available in the `docs/` directory.
+### 🚀 High Performance Computing
+**[MolCPP](https://github.com/MolCrafts/molcpp)** - C++ backend for performance-critical operations
 
 ## 🤝 Contributing
 
 We welcome contributions from the community! Here's how you can help:
 
-1. **🐛 Bug Reports**: Use GitHub Issues to report bugs
+1. **🐛 Bug Reports**: Use [GitHub Issues](https://github.com/MolCrafts/molpy/issues) to report bugs
 2. **💡 Feature Requests**: Suggest new features and improvements
 3. **📖 Documentation**: Help improve documentation and examples
 4. **🔧 Code Contributions**: Submit pull requests with new features or fixes
@@ -149,18 +165,31 @@ cd molpy
 # Install development dependencies
 pip install -e ".[dev]"
 
+# Install pre-commit hooks (automatically formats code)
+pre-commit install
+
 # Run tests
 pytest tests/
 
-# Run code formatting
+# Manual formatting (if needed)
 black src/
 isort src/
 ```
 
+### Code Quality
+
+This project uses pre-commit hooks to ensure code quality:
+
+- **Black**: Automatic code formatting (line length: 88)
+- **isort**: Import sorting and organization
+- **Pre-commit hooks**: Run automatically on every commit
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development guidelines.
+
 ## 📄 License
 
-This project is licensed under the BSD License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the BSD-3-Clause License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Built with ❤️ by the MolCrafts team** 
+**Built with ❤️ by the MolCrafts team**

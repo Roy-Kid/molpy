@@ -61,7 +61,7 @@ class SmartsParser:
 
     """
 
-    def __init__(self, optional_names:list[str]|None = None):
+    def __init__(self, optional_names: list[str] | None = None):
         if optional_names:
             for n in optional_names:
                 if not n.startswith("_"):

@@ -1,5 +1,6 @@
-import pytest
 import numpy as np
+import pytest
+
 import molpy as mp
 from molpy.io.data.pdb import PDBReader, PDBWriter
 
@@ -15,7 +16,7 @@ def pdb_test_files(TEST_DATA_DIR):
 
 
 class TestPDBIO:
-    
+
     def test_read_1avg(self, pdb_test_files):
         if "1avg.pdb" not in pdb_test_files:
             pytest.skip("1avg.pdb not found")

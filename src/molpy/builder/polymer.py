@@ -4,6 +4,7 @@ Flexible PolymerBuilder for molpy - Template-based polymer construction.
 This module provides a modular and extensible builder system for constructing
 polymers using reusable monomer templates with context-aware anchor matching.
 """
+
 from dataclasses import dataclass, field
 
 from ..core.atomistic import Atomistic
@@ -44,7 +45,7 @@ class Monomer(Wrapper):
         super().__init__(struct)
         self.anchors = anchors
 
-    
+
 class PolymerBuilder:
 
     def __init__(self, monomers: dict[str, Monomer]):

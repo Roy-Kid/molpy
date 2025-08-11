@@ -4,9 +4,10 @@ Uses molq to orchestrate AmberTools workflows for automated polymer construction
 """
 
 import logging
-from pathlib import Path
-from typing import Dict, List, Union, Generator, Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
+
 import molq
 
 if TYPE_CHECKING:
@@ -17,8 +18,9 @@ else:
 
 # from molpy.core.frame import _dict_to_dataset
 from molpy.core.protocol import Entities
-from .reacter_lammps import ReactantWrapper
+
 from .polymer import Monomer
+from .reacter_lammps import ReactantWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +83,13 @@ class AntechamberStep(BuilderStep):
         atom_names = frame["atoms"]["name"]
         atom_types = frame["atoms"]["type"]
         atom_charges = frame["atoms"]["q"]
-        for satom, typ, q, name in zip(monomer["atoms"], atom_types, atom_charges, atom_names):
+        for satom, typ, q, name in zip(
+            monomer["atoms"], atom_types, atom_charges, atom_names
+        ):
             satom["name"] = name.item()
             satom["type"] = typ.item()
             satom["q"] = q.item()
 
-            
         if isinstance(monomer, Monomer):
 
             def get_atom_name(atom_ref) -> str:
@@ -250,7 +253,7 @@ class TLeapStep(BuilderStep):
         name: str,
     ) -> Generator[Dict, Any, tuple[Path, Path]]:
 
-        (self.workdir/name).mkdir(parents=True, exist_ok=True)
+        (self.workdir / name).mkdir(parents=True, exist_ok=True)
         with open(self.workdir / name / "tleap.in", "w") as f:
             f.write(self.build())
 
@@ -355,14 +358,15 @@ class AmberToolsBuilder:
         self.tleap_step.source("leaprc.gaff")
         self.tleap_step.source("leaprc.water.tip3p")
         self.tleap_step.load_prepi(self.workdir / struct_name / f"{struct_name}.prepi")
-        self.tleap_step.load_frcmod(self.workdir / struct_name / f"{struct_name}.frcmod")
+        self.tleap_step.load_frcmod(
+            self.workdir / struct_name / f"{struct_name}.frcmod"
+        )
         self.tleap_step.combine(name, struct_name)
         self.tleap_step.add_ions(name, ion, charge=0)
         self.tleap_step.save_amberparm(name)
         self.tleap_step.save_pdb(name)
         self.tleap_step.quit()
         self.tleap_step.run(name)
-
 
         return mp.Atomistic.from_frame(
             mp.io.read_amber(workdir / f"{name}.prmtop", workdir / f"{name}.inpcrd")[0]

@@ -1,5 +1,6 @@
-from .packmol import Packmol
 from .nlopt import NloptPacker
+from .packmol import Packmol
+
 
 def get_packer(name, *args, **kwargs):
 

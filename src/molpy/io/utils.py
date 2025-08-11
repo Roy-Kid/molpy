@@ -1,7 +1,9 @@
-import molpy as mp
 from functools import wraps
 
+import molpy as mp
+
 FrameLike = mp.Frame | mp.System | mp.Struct
+
 
 def to_system(func):
 
@@ -12,16 +14,19 @@ def to_system(func):
             args = args[1:]
         else:
             system = kwargs.pop("system", None)
-        
+
         if isinstance(system, mp.Frame):
             system = mp.System(frame=system)
         elif isinstance(system, (mp.Struct, mp.Segment)):
             system = mp.System(frame=system.to_frame())
 
-        assert isinstance(system, mp.System), f"Expected system to be a molpy System object, got {type(system)}"
+        assert isinstance(
+            system, mp.System
+        ), f"Expected system to be a molpy System object, got {type(system)}"
         return func(system, *args, **kwargs)
 
     return wrapper
+
 
 def to_frame(framelike: FrameLike) -> mp.Frame:
 
@@ -33,7 +38,6 @@ def to_frame(framelike: FrameLike) -> mp.Frame:
         frame = framelike.to_frame()
 
     return frame
-    
 
 
 class ZipReader:

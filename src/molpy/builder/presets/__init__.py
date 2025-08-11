@@ -1,5 +1,7 @@
 import numpy as np
+
 from molpy.core.atomistic import Atomistic
+
 
 class CH3(Atomistic):
     def __init__(self):

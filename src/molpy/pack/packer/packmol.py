@@ -1,12 +1,15 @@
-from pathlib import Path
 import shutil
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Generator
+
+import molq
+import numpy as np
+
 import molpy as mp
 import molpy.pack as mpk
-import molq
-import tempfile
-import numpy as np
+
 from .base import Packer
-from typing import Generator, Dict, Any
 
 
 def map_region_to_packmol_definition(constraint):
@@ -16,7 +19,7 @@ def map_region_to_packmol_definition(constraint):
         upper = region.upper.tolist()
         flag = "outside" if not_flag else "inside"
         return f"{flag} box {origin[0]} {origin[1]} {origin[2]} {upper[0]} {upper[1]} {upper[2]}"
-    
+
     def sphere(region, not_flag):
         origin = region.origin
         flag = "outside" if not_flag else "inside"
@@ -41,6 +44,7 @@ def map_region_to_packmol_definition(constraint):
         raise NotImplementedError(
             f"Packmol does not support constraint type {type(constraint)}"
         )
+
 
 class Packmol(Packer):
 
@@ -76,20 +80,20 @@ class Packmol(Packer):
 
             lines.append(f"structure {tmpfile.name}")
             lines.append(f"  number {number}")
-            lines.append(
-                map_region_to_packmol_definition(constraint)
-            )
+            lines.append(map_region_to_packmol_definition(constraint))
             lines.append(f"end structure")
 
-        with open(self.workdir/".packmol.inp", "w") as f:
+        with open(self.workdir / ".packmol.inp", "w") as f:
             f.write("\n".join(lines))
 
     def remove_input(self):
         for file in self.intermediate_files:
-            (self.workdir/file).unlink()
+            (self.workdir / file).unlink()
 
     @molq.local
-    def pack(self, targets=None, max_steps: int = 1000, seed: int | None = None) -> Generator[Dict, Any, mp.Frame]:
+    def pack(
+        self, targets=None, max_steps: int = 1000, seed: int | None = None
+    ) -> Generator[Dict, Any, mp.Frame]:
         if targets is None:
             targets = self.targets
         if seed is None:
@@ -101,14 +105,14 @@ class Packmol(Packer):
             "cleanup_temp_files": True,
             "block": True,
         }
-        optimized_frame = mp.io.read_pdb(self.workdir/".optimized.pdb")
+        optimized_frame = mp.io.read_pdb(self.workdir / ".optimized.pdb")
         self.remove_input()
-        
+
         # Count atoms per instance
         target_atoms_count = []
         for target in targets:
-            atoms_block = target.frame['atoms']
-            n_atoms = len(atoms_block.get('id', atoms_block.get('xyz', [])))
+            atoms_block = target.frame["atoms"]
+            n_atoms = len(atoms_block.get("id", atoms_block.get("xyz", [])))
             for _ in range(target.number):
                 target_atoms_count.append(n_atoms)
 
@@ -132,63 +136,71 @@ class Packmol(Packer):
                 frame_dict = {}
 
                 # Process atoms block
-                atoms = target.frame['atoms'].copy()
-                n = len(atoms.get('id', atoms.get('xyz', [])))
+                atoms = target.frame["atoms"].copy()
+                n = len(atoms.get("id", atoms.get("xyz", [])))
 
-                atoms['mol'] = np.full(n, current_instance + 1, dtype=int)
+                atoms["mol"] = np.full(n, current_instance + 1, dtype=int)
 
                 # Reassign atom IDs sequentially
-                if 'id' in atoms:
-                    atoms['id'] = np.arange(offset + 1, offset + n + 1, dtype=int)
+                if "id" in atoms:
+                    atoms["id"] = np.arange(offset + 1, offset + n + 1, dtype=int)
 
-                frame_dict['atoms'] = atoms
+                frame_dict["atoms"] = atoms
 
                 # Process bonds
-                if 'bonds' in target.frame:
-                    bonds = target.frame['bonds'].copy()
-                    m = len(bonds.get('id', bonds.get('i', [])))
+                if "bonds" in target.frame:
+                    bonds = target.frame["bonds"].copy()
+                    m = len(bonds.get("id", bonds.get("i", [])))
                     # IDs
-                    if 'id' in bonds:
-                        bonds['id'] = np.arange(bond_id_counter + 1, bond_id_counter + m + 1, dtype=int)
+                    if "id" in bonds:
+                        bonds["id"] = np.arange(
+                            bond_id_counter + 1, bond_id_counter + m + 1, dtype=int
+                        )
                         bond_id_counter += m
                     # Endpoints
-                    for end in ('i', 'j'):
+                    for end in ("i", "j"):
                         if end in bonds:
                             bonds[end] = bonds[end] + offset
-                    frame_dict['bonds'] = bonds
+                    frame_dict["bonds"] = bonds
 
                 # Process angles
-                if 'angles' in target.frame:
-                    angles = target.frame['angles'].copy()
-                    p = len(angles.get('id', angles.get('i', [])))
-                    if 'id' in angles:
-                        angles['id'] = np.arange(angle_id_counter + 1, angle_id_counter + p + 1, dtype=int)
+                if "angles" in target.frame:
+                    angles = target.frame["angles"].copy()
+                    p = len(angles.get("id", angles.get("i", [])))
+                    if "id" in angles:
+                        angles["id"] = np.arange(
+                            angle_id_counter + 1, angle_id_counter + p + 1, dtype=int
+                        )
                         angle_id_counter += p
-                    for end in ('i', 'j', 'k'):
+                    for end in ("i", "j", "k"):
                         if end in angles:
                             angles[end] = angles[end] + offset
-                    frame_dict['angles'] = angles
+                    frame_dict["angles"] = angles
 
                 # Process dihedrals
-                if 'dihedrals' in target.frame:
-                    dihedrals = target.frame['dihedrals'].copy()
-                    q = len(dihedrals.get('id', dihedrals.get('i', [])))
-                    if 'id' in dihedrals:
-                        dihedrals['id'] = np.arange(dihedral_id_counter + 1, dihedral_id_counter + q + 1, dtype=int)
+                if "dihedrals" in target.frame:
+                    dihedrals = target.frame["dihedrals"].copy()
+                    q = len(dihedrals.get("id", dihedrals.get("i", [])))
+                    if "id" in dihedrals:
+                        dihedrals["id"] = np.arange(
+                            dihedral_id_counter + 1,
+                            dihedral_id_counter + q + 1,
+                            dtype=int,
+                        )
                         dihedral_id_counter += q
-                    for end in ('i', 'j', 'k', 'l'):
+                    for end in ("i", "j", "k", "l"):
                         if end in dihedrals:
                             dihedrals[end] = dihedrals[end] + offset
-                    frame_dict['dihedrals'] = dihedrals
+                    frame_dict["dihedrals"] = dihedrals
 
                 # Collect instance frame
-                all_atoms.append(frame_dict['atoms'])
-                if 'bonds' in frame_dict:
-                    all_bonds.append(frame_dict['bonds'])
-                if 'angles' in frame_dict:
-                    all_angles.append(frame_dict['angles'])
-                if 'dihedrals' in frame_dict:
-                    all_dihedrals.append(frame_dict['dihedrals'])
+                all_atoms.append(frame_dict["atoms"])
+                if "bonds" in frame_dict:
+                    all_bonds.append(frame_dict["bonds"])
+                if "angles" in frame_dict:
+                    all_angles.append(frame_dict["angles"])
+                if "dihedrals" in frame_dict:
+                    all_dihedrals.append(frame_dict["dihedrals"])
 
                 current_instance += 1
 
@@ -204,13 +216,13 @@ class Packmol(Packer):
 
         # Build final frame
         final_frame = mp.Frame()
-        final_frame['atoms'] = concat_blocks(all_atoms)
+        final_frame["atoms"] = concat_blocks(all_atoms)
         # Overwrite coordinates with optimized positions
-        if 'xyz' in optimized_frame['atoms']:
-            final_frame['atoms']['xyz'] = optimized_frame['atoms']['xyz']
+        if "xyz" in optimized_frame["atoms"]:
+            final_frame["atoms"]["xyz"] = optimized_frame["atoms"]["xyz"]
 
-        final_frame['bonds'] = concat_blocks(all_bonds)
-        final_frame['angles'] = concat_blocks(all_angles)
-        final_frame['dihedrals'] = concat_blocks(all_dihedrals)
+        final_frame["bonds"] = concat_blocks(all_bonds)
+        final_frame["angles"] = concat_blocks(all_angles)
+        final_frame["dihedrals"] = concat_blocks(all_dihedrals)
 
         return final_frame

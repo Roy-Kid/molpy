@@ -1,13 +1,14 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator, Any
+from typing import Any, Generator
+
+import molq
 
 import molpy as mp
+from molpy.core import ForceField
 from molpy.io import write_pdb
 from molpy.typifier.graph import SMARTSGraph, _find_chordless_cycles
 from molpy.typifier.parser import SmartsParser
-from molpy.core import ForceField
-import molq
 
 
 class BaseTypifier: ...
@@ -26,7 +27,10 @@ class ForceFieldTypifier(BaseTypifier):
         bondtypes = self.forcefield.get_bondtypes()
         for bond in bonds:
             for bondtype in bondtypes:
-                if {bondtype.itype, bondtype.jtype} == {bond.itom["type"], bond.jtom["type"]}:
+                if {bondtype.itype, bondtype.jtype} == {
+                    bond.itom["type"],
+                    bond.jtom["type"],
+                }:
                     bond["type"] = str(bondtype)
                     # bond["style"] = bondtype.style
                     break
@@ -116,4 +120,3 @@ class SmartsTypifier(ForceFieldTypifier):
         for i, cycles in zip(graph.vs, all_cycles):
             for cycle in cycles:
                 graph.vs[i.index]["cycles"].add(tuple(cycle))
-

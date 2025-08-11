@@ -1,2 +1,2 @@
-from .harmonic import Harmonic
 from .base import BondPotential
+from .harmonic import Harmonic

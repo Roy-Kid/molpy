@@ -1,7 +1,9 @@
+from collections import UserList
+
 import numpy as np
+
 import molpy as mp
 from molpy.core.forcefield import KernelMeta
-from collections import UserList
 
 
 class Potential(metaclass=KernelMeta):

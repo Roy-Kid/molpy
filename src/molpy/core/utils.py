@@ -1,9 +1,10 @@
+import csv
 from collections import defaultdict
-from typing import List, Dict, Any
 from io import StringIO
 from pathlib import Path
+from typing import Any, Dict, List
+
 from .frame import Block
-import csv
 
 
 def to_dict_of_list(list_of_dict: List[Dict[str, Any]]) -> Dict[str, List[Any]]:
@@ -20,14 +21,14 @@ def to_list_of_dict(list_of_dict: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
     return [{key: list_of_dict[key][i] for key in keys} for i in range(length)]
 
 
-def read_csv(file: Path|StringIO, delimiter: str = ",") -> Block:
+def read_csv(file: Path | StringIO, delimiter: str = ",") -> Block:
     """
     Read a CSV file or StringIO object and return a Block object.
-    
+
     Args:
         file: Path to the CSV file or a StringIO object containing CSV data.
         delimiter: Delimiter used in the CSV file (default is comma).
-    
+
     Returns:
         Block: A Block object containing the data from the CSV.
     """
@@ -39,14 +40,14 @@ def read_csv(file: Path|StringIO, delimiter: str = ",") -> Block:
         file = Path(file)
         if not file.exists():
             raise FileNotFoundError(f"File {file} does not exist.")
-        
-        with open(file, 'r', newline='') as csvfile:
+
+        with open(file, "r", newline="") as csvfile:
             reader = csv.DictReader(csvfile, delimiter=delimiter)
             data = [row for row in reader]
-    
+
     # Convert list of dicts to dict of lists for Block
     dict_of_lists = to_dict_of_list(data)
-    
+
     # Handle empty data case - create empty arrays for each column
     if not dict_of_lists and isinstance(file, StringIO):
         file.seek(0)
@@ -54,9 +55,9 @@ def read_csv(file: Path|StringIO, delimiter: str = ",") -> Block:
         fieldnames = reader.fieldnames or []
         dict_of_lists = {field: [] for field in fieldnames}
     elif not dict_of_lists and not isinstance(file, StringIO):
-        with open(file, 'r', newline='') as csvfile:
+        with open(file, "r", newline="") as csvfile:
             reader = csv.DictReader(csvfile, delimiter=delimiter)
             fieldnames = reader.fieldnames or []
             dict_of_lists = {field: [] for field in fieldnames}
-    
+
     return Block(dict_of_lists)

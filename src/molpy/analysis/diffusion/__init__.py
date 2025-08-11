@@ -1,7 +1,8 @@
-from molpy.analysis import ComputeContext, Compute
 import numpy as np
-from molpy.core.logger import get_logger
+
+from molpy.analysis import Compute, ComputeContext
 from molpy.core.config import get_config
+from molpy.core.logger import get_logger
 
 logger = get_logger(__name__)
 config = get_config()
@@ -11,7 +12,7 @@ try:
     import pyfftw
 
     logger.info("Using PyFFTW for FFTs")
-    
+
     pyfftw.config.NUM_THREADS = min(1, config.n_threads)
     logger.info(f"Setting number of threads to {config.n_threads}")
 
@@ -29,6 +30,7 @@ try:
         a[:] = x
         fft_object = pyfftw.builders.ifft(a, axis=axis)
         return fft_object()
+
 except ImportError:
     try:
         from scipy.fftpack import fft, ifft
@@ -66,8 +68,8 @@ class DirectMSD(Compute):
         context.result[f"{self.name}_msd"] = np.array(_msd_result)
 
         return context
-    
-    
+
+
 class WindowedMSD(Compute):
     """Windowed Mean Square Displacement (MSD) calculation."""
 

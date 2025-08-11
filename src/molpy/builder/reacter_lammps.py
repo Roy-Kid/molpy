@@ -1,7 +1,9 @@
-from pathlib import Path
 import logging
 from dataclasses import dataclass, field
+from pathlib import Path
+
 import molpy as mp
+
 from ..core.wrapper import Wrapper
 
 logger = logging.getLogger(__name__)
@@ -12,33 +14,31 @@ class ReactionTemplate:
     """
     Defines a reaction site with anchor atoms and edge connections.
     """
+
     init_atom: int  # Main anchor atom index
     edge_atom: int  # Atoms that will be deleted/modified
+
 
 class ReactantWrapper(Wrapper):
     """
     Wrapper for Atomistic with reaction-specific functionality.
     Manages reaction sites, anchor points, and template extraction.
     """
-    
-    def __init__(
-        self, 
-        struct: mp.Atomistic, 
-        **kwargs
-    ):
+
+    def __init__(self, struct: mp.Atomistic, **kwargs):
         super().__init__(struct, **kwargs)
-    
+
     def __call__(self, **kwargs):
         return self._wrapped(**kwargs)
-    
-    def extract_fragment(self, template: ReactionTemplate) -> 'ReactantWrapper':
+
+    def extract_fragment(self, template: ReactionTemplate) -> "ReactantWrapper":
         """
         Extract molecular fragment between two anchor points.
-        
+
         Args:
             start: Starting atom index
             end: Ending atom index
-            
+
         Returns:
             New ReactantWrapper with extracted fragment
         """
@@ -48,23 +48,24 @@ class ReactantWrapper(Wrapper):
         main_chain, branches = get_main_chain_and_branches(topology, start, end)
         template_atoms = set(main_chain + branches)
         extracted_struct = self.get_substruct(template_atoms)
-        
+
         return ReactantWrapper(extracted_struct)
 
 
 def get_main_chain_and_branches(g: mp.Topology, start: int, end: int):
     """
     Extract main chain and branches from topology graph.
-    
+
     Args:
         g: Topology graph
         start: Starting atom index
         end: Ending atom index
-        
+
     Returns:
         Tuple of (main_chain_atoms, branch_atoms)
     """
     from collections import deque
+
     def get_branch_subtree(g: mp.Topology, start: int, excluded: set):
         visited = set()
         queue = deque([start])
@@ -101,11 +102,11 @@ def get_main_chain_and_branches(g: mp.Topology, start: int, end: int):
 class ReacterBuilder:
     """
     LAMMPS-compatible reaction template builder for automated polymer synthesis.
-    
+
     This class automates the generation of pre- and post-reaction molecular templates
     for use with LAMMPS fix bond/react functionality.
     """
-    
+
     def __init__(
         self,
         workdir: Path,
@@ -113,7 +114,7 @@ class ReacterBuilder:
     ):
         """
         Initialize the reaction template builder.
-        
+
         Args:
             template1: First reaction template
             template2: Second reaction template
@@ -126,107 +127,113 @@ class ReacterBuilder:
         self.typifier = typifier
         self.workdir.mkdir(parents=True, exist_ok=True)
 
-
     def export_lammps_template(self, struct: mp.Atomistic, name: str) -> Path:
         """
         Export structure as LAMMPS molecule template using built-in writer.
-        
+
         Args:
             struct: Structure to export
             name: Template name
-            
+
         Returns:
             Path to generated template file
         """
         logger.info(f"Exporting LAMMPS template for {name}")
-        
+
         template_path = self.workdir / f"{name}.template"
-        
+
         # Convert to frame format
         frame = struct.to_frame()
         # Use molpy's built-in LAMMPS molecule writer
         mp.io.write_lammps_molecule(template_path, frame)
         return template_path
 
-    def generate_mapping(self, name, pre_struct: ReactantWrapper, post_struct: ReactantWrapper, inits: list[int], edges: list[int]) -> dict:
+    def generate_mapping(
+        self,
+        name,
+        pre_struct: ReactantWrapper,
+        post_struct: ReactantWrapper,
+        inits: list[int],
+        edges: list[int],
+    ) -> dict:
         """
         Generate LAMMPS mapping file for bond/react.
-        
+
         Args:
             pre_struct: Pre-reaction structure
             post_struct: Post-reaction structure
             inits: List of initiator atom IDs
             edges: List of edge atom IDs
-            
+
         Returns:
             Dictionary containing mapping information and file path
         """
         logger.info("Generating LAMMPS mapping file")
-        
+
         # Get atoms from both structures
         pre_atoms = list(pre_struct.atoms)
         post_atoms = list(post_struct.atoms)
-        
+
         # Generate 1:1 atom correspondence
         equivalences = []
         min_atoms = min(len(pre_atoms), len(post_atoms))
-        
+
         for i in range(min_atoms):
             pre_id = pre_atoms[i].get("id", i + 1)
             post_id = post_atoms[i].get("id", i + 1)
             equivalences.append((pre_id, post_id))
-        
+
         # Use provided initiator and edge atoms
         initiator_ids = inits if inits else [1, 2]  # Default to first two atoms
         edge_ids = edges if edges else []
-        
+
         # Generate mapping file content
         mapping_content = self._generate_mapping_content(
             equivalences, initiator_ids, edge_ids
         )
-        
+
         # Write mapping file
         mapping_file = self.workdir / f"{name}.map"
-        with open(mapping_file, 'w') as f:
+        with open(mapping_file, "w") as f:
             f.write(mapping_content)
-        
+
         logger.info(f"Generated mapping file: {mapping_file}")
         logger.info(f"Equivalences: {len(equivalences)}")
         logger.info(f"Initiator IDs: {initiator_ids}")
         logger.info(f"Edge IDs: {edge_ids}")
-        
+
         return {
-            'mapping_file': mapping_file,
-            'entries': len(equivalences),
-            'initiator_ids': initiator_ids,
-            'edge_ids': edge_ids,
-            'equivalences': equivalences
+            "mapping_file": mapping_file,
+            "entries": len(equivalences),
+            "initiator_ids": initiator_ids,
+            "edge_ids": edge_ids,
+            "equivalences": equivalences,
         }
-    
+
     def _generate_mapping_content(self, equivalences, initiator_ids, edge_ids) -> str:
         """Generate the content of the mapping file."""
         lines = []
-        
+
         # Header comment
         lines.append("# this is a map file")
         lines.append("")
-        
+
         # Equivalences count
         lines.append(f"{len(equivalences)} equivalences")
-        
+
         # Edge IDs count (optional)
         if edge_ids:
             lines.append(f"{len(edge_ids)} edgeIDs")
-        
+
         lines.append("")
-        
+
         # InitiatorIDs section (mandatory)
         lines.append("InitiatorIDs")
         lines.append("")
         for init_id in initiator_ids:
             lines.append(str(init_id))
         lines.append("")
-        
+
         # EdgeIDs section (optional)
         if edge_ids:
             lines.append("EdgeIDs")
@@ -234,32 +241,35 @@ class ReacterBuilder:
             for edge_id in edge_ids:
                 lines.append(str(edge_id))
             lines.append("")
-        
+
         # Equivalences section (mandatory)
         lines.append("Equivalences")
         lines.append("")
         for pre_id, post_id in equivalences:
             lines.append(f"{pre_id}   {post_id}")
-        
-        return "\n".join(lines)
 
+        return "\n".join(lines)
 
     def build(self, name, pre_struct, post_struct, inits=[], edges=[]):
         """
         Execute the complete workflow for reaction template generation.
-        
+
         Performs the following steps:
         1. Extract molecular templates
-        2. Merge structures  
+        2. Merge structures
         3. Generate force fields for pre- and post-reaction states
         4. Export LAMMPS templates
         5. Generate atom mapping
         6. Write all outputs to build directory
         """
         self.typifier.typify(pre_struct)
-        pre_template_path = self.export_lammps_template(pre_struct, name=pre_struct.get("name"))
+        pre_template_path = self.export_lammps_template(
+            pre_struct, name=pre_struct.get("name")
+        )
         self.typifier.typify(post_struct)
-        post_template_path = self.export_lammps_template(post_struct, name=post_struct.get("name"))
+        post_template_path = self.export_lammps_template(
+            post_struct, name=post_struct.get("name")
+        )
         mapping = self.generate_mapping(name, pre_struct, post_struct, inits, edges)
         print(f"- Pre-reaction template: {pre_template_path}\n")
         print(f"- Post-reaction template: {post_template_path}\n")

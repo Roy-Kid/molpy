@@ -1,8 +1,10 @@
-import numpy as np
 from abc import abstractmethod
-from .selection import MaskPredicate
-from .frame import Block
+
+import numpy as np
 from numpy.typing import ArrayLike
+
+from .frame import Block
+from .selection import MaskPredicate
 
 __all__ = [
     "Region",
@@ -69,14 +71,19 @@ class PeriodicBoundary(Region): ...
 
 
 class BoxRegion(Region):
-    
-    def __init__(self, lengths: ArrayLike, origin: ArrayLike | None = None, coord_field: str = "xyz"):
+
+    def __init__(
+        self,
+        lengths: ArrayLike,
+        origin: ArrayLike | None = None,
+        coord_field: str = "xyz",
+    ):
         super().__init__(coord_field)
         self.lengths = np.asarray(lengths, dtype=float)
         if origin is None:
             origin = np.zeros(3)
         self.origin = np.asarray(origin, dtype=float)
-        
+
         # Validate dimensions
         if self.lengths.shape != (3,):
             raise ValueError(f"lengths must be 3D, got shape {self.lengths.shape}")
@@ -97,51 +104,59 @@ class BoxRegion(Region):
     @property
     def bounds(self) -> np.ndarray:
         return np.vstack([self.origin, self.origin + self.lengths])
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, BoxRegion):
             return False
-        return (bool(np.allclose(self.lengths, other.lengths)) and 
-                bool(np.allclose(self.origin, other.origin)) and
-                self.coord_field == other.coord_field)
-    
+        return (
+            bool(np.allclose(self.lengths, other.lengths))
+            and bool(np.allclose(self.origin, other.origin))
+            and self.coord_field == other.coord_field
+        )
+
     def __repr__(self) -> str:
         return f"BoxRegion(lengths={self.lengths}, origin={self.origin}, coord_field='{self.coord_field}')"
 
 
 class Cube(BoxRegion):
 
-    def __init__(self, edge: float, origin: ArrayLike | None = None, coord_field: str = "xyz"):
+    def __init__(
+        self, edge: float, origin: ArrayLike | None = None, coord_field: str = "xyz"
+    ):
         if origin is None:
             origin = np.zeros(3)
         lengths = np.array([edge, edge, edge])
         super().__init__(lengths, origin, coord_field)
         self.edge = float(edge)
-        
+
         # Validate edge length
         if self.edge <= 0:
             raise ValueError(f"edge must be positive, got {self.edge}")
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, Cube):
             return False
-        return (bool(np.isclose(self.edge, other.edge)) and
-                bool(np.allclose(self.origin, other.origin)) and
-                self.coord_field == other.coord_field)
-    
+        return (
+            bool(np.isclose(self.edge, other.edge))
+            and bool(np.allclose(self.origin, other.origin))
+            and self.coord_field == other.coord_field
+        )
+
     def __repr__(self) -> str:
         return f"Cube(edge={self.edge}, origin={self.origin}, coord_field='{self.coord_field}')"
 
 
 class SphereRegion(Region):
-    
-    def __init__(self, radius: float, center: ArrayLike | None = None, coord_field: str = "xyz"):
+
+    def __init__(
+        self, radius: float, center: ArrayLike | None = None, coord_field: str = "xyz"
+    ):
         super().__init__(coord_field)
         self.radius = float(radius)
         if center is None:
             center = np.zeros(3)
         self.center = np.asarray(center, dtype=float)
-        
+
         # Validate dimensions and values
         if self.radius <= 0:
             raise ValueError(f"radius must be positive, got {self.radius}")
@@ -163,20 +178,22 @@ class SphereRegion(Region):
         xyz = np.asarray(xyz, dtype=float)
         diff = xyz - self.center
         return np.einsum("ij,ij->i", diff, diff) <= self.radius * self.radius
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, SphereRegion):
             return False
-        return (bool(np.isclose(self.radius, other.radius)) and
-                bool(np.allclose(self.center, other.center)) and
-                self.coord_field == other.coord_field)
-    
+        return (
+            bool(np.isclose(self.radius, other.radius))
+            and bool(np.allclose(self.center, other.center))
+            and self.coord_field == other.coord_field
+        )
+
     def __repr__(self) -> str:
         return f"SphereRegion(radius={self.radius}, center={self.center}, coord_field='{self.coord_field}')"
 
 
 class AndRegion(Region):
-    
+
     def __init__(self, a: Region, b: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a
@@ -193,19 +210,22 @@ class AndRegion(Region):
         lower = np.maximum(a_b[0], b_b[0])
         upper = np.minimum(a_b[1], b_b[1])
         return np.vstack([lower, upper])
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, AndRegion):
             return False
-        return (self.a == other.a and self.b == other.b and 
-                self.coord_field == other.coord_field)
-    
+        return (
+            self.a == other.a
+            and self.b == other.b
+            and self.coord_field == other.coord_field
+        )
+
     def __repr__(self) -> str:
         return f"AndRegion(a={self.a}, b={self.b}, coord_field='{self.coord_field}')"
 
 
 class OrRegion(Region):
-    
+
     def __init__(self, a: Region, b: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a
@@ -221,19 +241,22 @@ class OrRegion(Region):
         lower = np.minimum(a_b[0], b_b[0])
         upper = np.maximum(a_b[1], b_b[1])
         return np.vstack([lower, upper])
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, OrRegion):
             return False
-        return (self.a == other.a and self.b == other.b and 
-                self.coord_field == other.coord_field)
-    
+        return (
+            self.a == other.a
+            and self.b == other.b
+            and self.coord_field == other.coord_field
+        )
+
     def __repr__(self) -> str:
         return f"OrRegion(a={self.a}, b={self.b}, coord_field='{self.coord_field}')"
 
 
 class NotRegion(Region):
-    
+
     def __init__(self, a: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a
@@ -245,11 +268,11 @@ class NotRegion(Region):
     def bounds(self) -> np.ndarray:
         # Complement is unbounded; approximate by original bounds for practicality.
         return self.a.bounds
-    
+
     def __eq__(self, other) -> bool:
         if not isinstance(other, NotRegion):
             return False
-        return (self.a == other.a and self.coord_field == other.coord_field)
-    
+        return self.a == other.a and self.coord_field == other.coord_field
+
     def __repr__(self) -> str:
         return f"NotRegion(a={self.a}, coord_field='{self.coord_field}')"

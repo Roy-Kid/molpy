@@ -19,19 +19,19 @@ import molpy as mp
 
 class TestGMXTopReader:
     """Test suite for GROMACS topology file reader."""
-    
+
     def test_read_bromobutane_topology(self, TEST_DATA_DIR: Path) -> None:
         """Test reading 1-bromobutane.top file and validating force field parameters.
-        
+
         This test validates that the TOP reader can correctly parse GROMACS topology
         files and extract all force field parameters including atom types, bond types,
         angle types, dihedral types, and pair types.
-        
+
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
         top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
-        
+
         system = mp.io.read_top(top_file)
         ff = system.forcefield
         # Test atom style and types
@@ -39,7 +39,7 @@ class TestGMXTopReader:
         assert atomstyle is not None
         atomtypes = atomstyle.get_types()
         assert len(atomtypes) == 14
-        
+
         # Test specific atom type
         at135 = atomstyle.get("opls_135")
         assert at135 is not None, "Could not find opls_135 atom type"
@@ -73,26 +73,26 @@ class TestGMXTopReader:
 
     def test_read_nonexistent_file(self) -> None:
         """Test error handling when reading non-existent TOP file.
-        
+
         Verifies that appropriate exceptions are raised when attempting to read
         a topology file that doesn't exist.
         """
         nonexistent_file = Path("nonexistent.top")
-        
+
         with pytest.raises(FileNotFoundError):
             mp.io.read_top(nonexistent_file, mp.FrameSystem())
 
     def test_force_field_parameter_validation(self, TEST_DATA_DIR: Path) -> None:
         """Test detailed validation of force field parameters.
-        
+
         Performs more detailed checks on the parsed force field parameters
         to ensure data integrity and correct parsing.
-        
+
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
         top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
-        
+
         system = mp.io.read_top(top_file, mp.FrameSystem())
         ff = system.forcefield
         # Test that atom types contain expected fields
@@ -119,7 +119,7 @@ class TestGMXTopReader:
                 if isinstance(bondtypes, list):
                     # If it's a list, check first element
                     first_bond = bondtypes[0]
-                    assert hasattr(first_bond, '__str__')  # Should be representable
+                    assert hasattr(first_bond, "__str__")  # Should be representable
 
         # Test that angle types are properly structured
         anglestyle = ff.get_anglestyle("harmonic")
@@ -131,15 +131,15 @@ class TestGMXTopReader:
 
     def test_multiple_style_access(self, TEST_DATA_DIR: Path) -> None:
         """Test accessing multiple force field styles from same file.
-        
+
         Verifies that multiple interaction styles can be accessed from the same
         force field without conflicts.
-        
+
         Args:
             TEST_DATA_DIR: Path to test data directory fixture.
         """
         top_file = TEST_DATA_DIR / "forcefield/opls/1-bromobutane/1-bromobutane.top"
-        
+
         system = mp.io.read_top(top_file, mp.FrameSystem())
         ff = system.forcefield
         # Should be able to access all styles
@@ -148,9 +148,9 @@ class TestGMXTopReader:
             ff.get_bondstyle("harmonic"),
             ff.get_anglestyle("harmonic"),
             ff.get_dihedralstyle("harmonic"),
-            ff.get_pairstyle("lj12-6")
+            ff.get_pairstyle("lj12-6"),
         ]
-        
+
         # At least some styles should be available
         available_styles = [s for s in styles if s is not None]
         assert len(available_styles) > 0, "No force field styles were loaded"

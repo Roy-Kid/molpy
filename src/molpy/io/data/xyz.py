@@ -1,8 +1,9 @@
 import re
 import shlex
+
 import numpy as np
 
-from molpy.core import Block, Frame, Box
+from molpy.core import Block, Box, Frame
 
 from .base import DataReader, DataWriter
 
@@ -84,7 +85,10 @@ class XYZReader(DataReader):
                 key, value = token.split("=", 1)
                 if key == "Properties":
                     parts = value.split(":")
-                    triples = [(parts[i], parts[i + 1], int(parts[i + 2])) for i in range(0, len(parts), 3)]
+                    triples = [
+                        (parts[i], parts[i + 1], int(parts[i + 2]))
+                        for i in range(0, len(parts), 3)
+                    ]
                     result[key] = triples
                 else:
                     result[key] = value.strip('"')
@@ -93,8 +97,10 @@ class XYZReader(DataReader):
                 result[token] = True
 
         if "Lattice" in result:
-            frame.box = Box(np.array([float(x) for x in result.pop("Lattice").split()]).reshape(3, 3))
+            frame.box = Box(
+                np.array([float(x) for x in result.pop("Lattice").split()]).reshape(
+                    3, 3
+                )
+            )
         print(result)
         frame.metadata.update(result)
-
-        

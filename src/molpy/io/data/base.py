@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterator, List, IO, Any
+from typing import IO, Any, Iterator, List
 
 import molpy as mp
 

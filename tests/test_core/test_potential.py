@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
-import molpy as mp
+import pytest
 
-from molpy.core.forcefield import KernelMeta, ForceField
+import molpy as mp
+from molpy.core.forcefield import ForceField, KernelMeta
 from molpy.potential import Potential
+
 
 class TestRegisterPotential:
 
@@ -12,8 +13,11 @@ class TestRegisterPotential:
         class MetaclassRegisterPotential(metaclass=KernelMeta):
             name = "PotentialA"
 
-        assert ForceField._kernel_registry["root"]["PotentialA"] is MetaclassRegisterPotential
-    
+        assert (
+            ForceField._kernel_registry["root"]["PotentialA"]
+            is MetaclassRegisterPotential
+        )
+
     def test_base_potential_register(self):
 
         class BasePotential(Potential):

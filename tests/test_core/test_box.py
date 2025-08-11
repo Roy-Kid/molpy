@@ -127,7 +127,7 @@ class TestBoxProperties:
         expected_volume = 24.0
         actual_volume = box.volume  # volume is a property, not a method
         assert abs(actual_volume - expected_volume) < 1e-10
-        
+
         # Cubic box
         box = mp.Box.cubic(3)
         expected_volume = 27.0
@@ -137,22 +137,22 @@ class TestBoxProperties:
     def test_periodic_boundary_conditions(self):
         """Test periodic boundary condition properties."""
         box = mp.Box.orth([1, 2, 3])
-        
+
         # Default is all periodic
         assert box.periodic_x
         assert box.periodic_y
         assert box.periodic_z
         assert box.periodic
-        
+
         # Test setting individual flags
         box.periodic_x = False
         assert not box.periodic_x
         assert not box.periodic  # Should be False if any is False
-        
+
         # Test setting all flags
         box.periodic = True
         assert box.periodic_x and box.periodic_y and box.periodic_z
-        
+
         # Test setting as list
         box.periodic = [True, False, True]
         assert box.periodic_x and not box.periodic_y and box.periodic_z
@@ -164,15 +164,15 @@ class TestBoxTransformations:
     def test_fractional_absolute_conversion(self):
         """Test conversion between fractional and absolute coordinates."""
         box = mp.Box.orth([2, 2, 2], central=True)
-        
+
         # Test points
         absolute_points = np.array([[0, -0.5, 0.5], [-1, -1, -1], [0, 0, 0]])
         fractional_points = np.array([[0.5, 0.25, 0.75], [0, 0, 0], [0.5, 0.5, 0.5]])
-        
+
         # Test absolute to fractional
         result_frac = box.make_fractional(absolute_points)
         npt.assert_allclose(result_frac, fractional_points)
-        
+
         # Test fractional to absolute
         result_abs = box.make_absolute(fractional_points)
         npt.assert_allclose(result_abs, absolute_points)
@@ -180,12 +180,12 @@ class TestBoxTransformations:
     def test_wrapping_orthogonal(self):
         """Test coordinate wrapping in orthogonal box."""
         box = mp.Box.orth([2, 2, 2])
-        
+
         # Test single point
         point = [3, -1, 5]
         wrapped = box.wrap(point)
         npt.assert_allclose(wrapped, [1, 1, 1])
-        
+
         # Test multiple points
         points = [[10, -5, -5], [0, 0.5, 0]]
         wrapped = box.wrap(points)
@@ -202,7 +202,7 @@ class TestBoxTransformations:
     def test_unwrapping(self):
         """Test coordinate unwrapping."""
         box = mp.Box.tric([2, 2, 2], [1, 0, 0])
-        
+
         points = [0, -1, -1]
         images = [1, 0, 0]
         unwrapped = box.unwrap(points, images)
@@ -211,25 +211,41 @@ class TestBoxTransformations:
     def test_image_calculation(self):
         """Test image calculation."""
         box = mp.Box.orth([2, 2, 2], origin=(-1, -1, -1))
-        points = np.array([
-            [ 3.0,  4.0,  5.0],  # far positive → image = [2, 2, 3]
-            [-1.1, -2.2, -3.3],  # on negative edge → image = [-1, -1, -2] if floor(x - eps)
-            [-0.9, -0.8, -0.7],  # inside central box → image = [0, 0, 0]
-            [-2.1, -2.1, -2.1],  # well outside negative → image = [-1, -1, -1] if inside [-3,-1)
-            [ 1.0,  1.0,  1.0],  # on the boundary of central box → image = [1, 1, 1] or [0,0,0] depending on convention
-            [ 0.9999, 0.9999, 0.9999],  # just inside box → image = [0, 0, 0]
-            [-1.0001, -1.0001, -1.0001], # just outside box → image = [-1, -1, -1]
-        ])
+        points = np.array(
+            [
+                [3.0, 4.0, 5.0],  # far positive → image = [2, 2, 3]
+                [
+                    -1.1,
+                    -2.2,
+                    -3.3,
+                ],  # on negative edge → image = [-1, -1, -2] if floor(x - eps)
+                [-0.9, -0.8, -0.7],  # inside central box → image = [0, 0, 0]
+                [
+                    -2.1,
+                    -2.1,
+                    -2.1,
+                ],  # well outside negative → image = [-1, -1, -1] if inside [-3,-1)
+                [
+                    1.0,
+                    1.0,
+                    1.0,
+                ],  # on the boundary of central box → image = [1, 1, 1] or [0,0,0] depending on convention
+                [0.9999, 0.9999, 0.9999],  # just inside box → image = [0, 0, 0]
+                [-1.0001, -1.0001, -1.0001],  # just outside box → image = [-1, -1, -1]
+            ]
+        )
         images = box.get_images(points)
-        expected = np.array([
-            [ 2,  2,  3],
-            [-1, -1, -2],
-            [ 0,  0,  0],
-            [-1, -1, -1],
-            [ 1,  1,  1],     # depending on how you define boundary inclusion
-            [ 0,  0,  0],
-            [-1, -1, -1],
-        ])
+        expected = np.array(
+            [
+                [2, 2, 3],
+                [-1, -1, -2],
+                [0, 0, 0],
+                [-1, -1, -1],
+                [1, 1, 1],  # depending on how you define boundary inclusion
+                [0, 0, 0],
+                [-1, -1, -1],
+            ]
+        )
         npt.assert_allclose(images, expected)
 
 
@@ -239,10 +255,10 @@ class TestBoxDistanceCalculations:
     def test_distance_calculation(self):
         """Test distance calculation between points."""
         box = mp.Box.orth([10, 10, 10])
-        
+
         r1 = np.array([[0, 0, 0], [1, 1, 1]])
         r2 = np.array([[1, 0, 0], [0, 0, 0]])
-        
+
         distances = box.dist(r1, r2)
         expected = [1.0, np.sqrt(3)]
         npt.assert_allclose(distances, expected)
@@ -250,10 +266,10 @@ class TestBoxDistanceCalculations:
     def test_distance_all_pairs(self):
         """Test distance calculation for all pairs."""
         box = mp.Box.orth([10, 10, 10])
-        
+
         points1 = np.array([[0, 0, 1], [0, 0, 0]])
         points2 = np.array([[1, 0, 1], [0, 0, 1], [0, 0, 0]])
-        
+
         distances = box.dist_all(points1, points2)
         assert distances.shape == (2, 3)
         npt.assert_allclose(distances[0, 0], 1.0)  # [0,0,1] to [1,0,1]
@@ -266,7 +282,7 @@ class TestBoxDistanceCalculations:
         box = mp.Box.orth([2, 4, 6])
         face_distances = box.get_distance_between_faces()
         npt.assert_allclose(face_distances, [2, 4, 6])
-        
+
         # Free box
         box = mp.Box()
         face_distances = box.get_distance_between_faces()
@@ -281,7 +297,7 @@ class TestBoxValidation:
         # Non-square matrix should raise error
         with pytest.raises(AssertionError):
             mp.Box(np.array([[1, 2], [3, 4]]))
-        
+
         # Singular matrix should raise error
         with pytest.raises(AssertionError):
             mp.Box(np.array([[1, 2, 3], [2, 4, 6], [3, 6, 9]]))
@@ -289,22 +305,22 @@ class TestBoxValidation:
     def test_invalid_angles(self):
         """Test error handling for invalid angles."""
         lengths = [1, 2, 3]
-        
+
         # Invalid angle range
         with pytest.raises(ValueError):
             mp.Box.from_lengths_angles(lengths, [0, 90, 90])
-        
+
         with pytest.raises(ValueError):
             mp.Box.from_lengths_angles(lengths, [180, 90, 90])
 
     def test_lengths_validation(self):
         """Test validation of length assignments."""
         box = mp.Box.orth([1, 2, 3])
-        
+
         # Invalid length array size
         with pytest.raises(AssertionError):
             box.lengths = [1, 2, 3, 4]
-        
+
         with pytest.raises(AssertionError):
             box.lengths = [1, 2]
 
@@ -317,21 +333,21 @@ class TestBoxUtility:
         box1 = mp.Box.tric([2, 2, 2], [1, 0.5, 0.1])
         box2 = mp.Box.tric([2, 2, 2], [1, 0.5, 0.1])
         box3 = mp.Box.tric([2, 2, 2], [1, 0, 0])
-        
+
         assert box1 == box2
         assert box1 != box3
 
     def test_box_multiplication(self):
         """Test box scaling operations."""
         box = mp.Box.tric([2, 3, 4], [1, 0.5, 0.1])
-        
+
         # Test right multiplication
         box2 = box * 2
         npt.assert_allclose(box2.lx, 4)
         npt.assert_allclose(box2.ly, 6)
         npt.assert_allclose(box2.lz, 8)
         npt.assert_allclose(box2.xy, 2)
-        
+
         # Test left multiplication
         box3 = 2 * box
         assert box2 == box3
@@ -341,11 +357,11 @@ class TestBoxUtility:
         # Free box
         box = mp.Box()
         assert repr(box) == "<Free Box>"
-        
+
         # Orthogonal box
         box = mp.Box.orth([1, 2, 3])
         assert "Orthogonal Box" in repr(box)
-        
+
         # Triclinic box
         box = mp.Box.tric([2, 2, 2], [1, 0.5, 0.1])
         assert "Triclinic Box" in repr(box)
@@ -354,23 +370,23 @@ class TestBoxUtility:
         """Test conversion to dictionary."""
         box = mp.Box.tric([2, 2, 2], [1, 0.5, 0.1])
         box_dict = box.to_dict()
-        
-        expected_keys = {
-            "matrix", "origin", "pbc"
-        }
+
+        expected_keys = {"matrix", "origin", "pbc"}
         assert set(box_dict.keys()) == expected_keys
 
     def test_isin(self):
         """Test point-in-box checking."""
         box = mp.Box.tric([2.0, 2.0, 2.0], [1.0, 0.0, 0.0])
-        
-        points = np.array([
-            [0.0, 0.0, 0.0],  # Inside
-            [2.0, 0, 0],      # Outside (on boundary)
-            [1.0, 1.0, 0.0],  # Inside
-            [0.5, 1.75, 0.0]  # Outside
-        ])
-        
+
+        points = np.array(
+            [
+                [0.0, 0.0, 0.0],  # Inside
+                [2.0, 0, 0],  # Outside (on boundary)
+                [1.0, 1.0, 0.0],  # Inside
+                [0.5, 1.75, 0.0],  # Outside
+            ]
+        )
+
         result = box.isin(points)
         expected = [True, False, True, False]
         npt.assert_array_equal(result, expected)
@@ -384,11 +400,11 @@ class TestBoxStyle:
         # Free box
         box = mp.Box()
         assert box.style == mp.Box.Style.FREE
-        
+
         # Orthogonal box
         box = mp.Box(np.diag([1, 2, 3]))
         assert box.style == mp.Box.Style.ORTHOGONAL
-        
+
         # Triclinic box
         matrix = np.array([[1, 0.5, 0], [0, 2, 0], [0, 0, 3]])
         box = mp.Box(matrix)

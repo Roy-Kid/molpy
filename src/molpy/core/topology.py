@@ -18,15 +18,12 @@ class Topology(Graph):
 
     @property
     def n_angles(self):
-        return int(
-            self.count_subisomorphisms_vf2(Graph(3, [[0, 1], [1, 2]])) / 2
-        )
+        return int(self.count_subisomorphisms_vf2(Graph(3, [[0, 1], [1, 2]])) / 2)
 
     @property
     def n_dihedrals(self):
         return int(
-            self.count_subisomorphisms_vf2(Graph(4, [[0, 1], [1, 2], [2, 3]]))
-            / 2
+            self.count_subisomorphisms_vf2(Graph(4, [[0, 1], [1, 2], [2, 3]])) / 2
         )
 
     @property
