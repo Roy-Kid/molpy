@@ -1,9 +1,8 @@
 import freud
-import numpy as np
 
-from molpy.core.frame import Frame
+import molpy as mp
 
-from ..base import Compute, ComputeContext
+from ..base import Compute
 
 
 class ChainFinder(Compute):
@@ -15,7 +14,7 @@ class ChainFinder(Compute):
     or disconnected fragments.
     """
 
-    def compute(self, context: ComputeContext) -> ComputeContext:
+    def compute(self, topo: mp.Topology):
         """
         Compute connected components from the frame's topology.
 
@@ -28,12 +27,9 @@ class ChainFinder(Compute):
         Raises:
             ValueError: If frame has no topology information
         """
-        frame = context.frame
-        topo = frame.get_topology()
         components = topo.connected_components()
         membership = components.membership
-        context.result[f"{self.name}_chain_idx"] = membership
-        return context
+        return membership
 
 
 class GyrationTensor(Compute):
@@ -41,20 +37,13 @@ class GyrationTensor(Compute):
     Compute the gyration tensor of a molecular structure.
     """
 
-    def __init__(self, name: str, cluster_field: str = "chain_idx"):
-        super().__init__(name)
-        self.cluster_field = cluster_field
-
-    def compute(self, context: ComputeContext) -> ComputeContext:
+    def compute(self, xyz, box, cluster_id):
         """
         Compute the gyration tensor of the frame.
         """
-        xyz = context.frame["atoms"]["xyz"]
-        box = context.frame.box.matrix
         cl = freud.cluster.ClusterProperties()
-        cl.compute((box, xyz), context.result[self.cluster_field])
-        context.result[f"{self.name}_gyrations"] = cl.gyrations
-        return context
+        cl.compute((box.matrix, xyz), cluster_id)
+        return cl.gyrations
 
 
 class RadiiOfGyration(Compute):
@@ -62,19 +51,10 @@ class RadiiOfGyration(Compute):
     Compute the radii of gyration of a molecular structure.
     """
 
-    def __init__(self, name: str, cluster_field: str = "chain_idx"):
-        super().__init__(name)
-        self.cluster_field = cluster_field
-
-    def compute(self, context: ComputeContext) -> ComputeContext:
+    def compute(self, xyz, box, cluster_id):
         """
         Compute the radii of gyration of the frame.
         """
-        xyz = context.frame["atoms"][["xu", "yu", "zu"]]
-        box = context.frame.box.matrix
         cl = freud.cluster.ClusterProperties()
-        print(xyz.shape)
-        print(context.result[self.cluster_field].shape)
-        cl.compute((box, xyz), context.result[self.cluster_field])
-        context.result[f"{self.name}_radii_of_gyration"] = cl.radii_of_gyration
-        return context
+        cl.compute((box, xyz), cluster_id)
+        return cl.radii_of_gyration

@@ -2,13 +2,14 @@ import csv
 from collections.abc import Iterator, MutableMapping
 from io import StringIO
 from pathlib import Path
-from typing import Any, TypeAlias, overload
+from typing import Any, TypeAlias, TypeVar, overload
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from .selection import MaskPredicate, Selection
 from .topology import Topology
+from .wrapper import Wrapper
 
 BlockLike: TypeAlias = dict[str, ArrayLike]
 

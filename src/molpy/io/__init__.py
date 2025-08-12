@@ -276,7 +276,7 @@ def read_lammps_trajectory(
     """Read LAMMPS trajectory file and return a trajectory reader."""
     from .trajectory.lammps import LammpsTrajectoryReader
 
-    return LammpsTrajectoryReader(Path(file))
+    return LammpsTrajectoryReader(file)
 
 
 def write_lammps_trajectory(

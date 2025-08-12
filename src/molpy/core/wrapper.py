@@ -24,7 +24,9 @@ class Wrapper(Generic[T]):
     without using inheritance mixins.
     """
 
-    def __init__(self, wrapped: T):
+    def __init__(
+        self, wrapped: T, key_mapping: dict[str, str | list[str]] | None = None
+    ):
         """
         Initialize wrapper with an entity to wrap.
 
@@ -32,6 +34,7 @@ class Wrapper(Generic[T]):
             wrapped: The entity to wrap
         """
         self._wrapped = wrapped
+        self._key_mapping = key_mapping if key_mapping else {}
 
     def unwrap(self) -> T:
         """Get the wrapped entity."""
@@ -50,17 +53,23 @@ class Wrapper(Generic[T]):
 
     def __getitem__(self, key, /):
         """Delegate item access to the wrapped entity."""
+        if key in self._key_mapping:
+            key = self._key_mapping[key]
         return self._wrapped[key]  # type: ignore[attr-defined]
 
     def __setitem__(self, key: Any, value: Any) -> None:
         """Set items on the wrapped entity."""
+        if key in self._key_mapping:
+            key = self._key_mapping[key]
         self._wrapped[key] = value  # type: ignore[attr-defined]
 
     def __contains__(self, key: Any) -> bool:
         """Check if the wrapped entity contains a key."""
+        if key in self._key_mapping:
+            key = self._key_mapping[key]
         return key in self._wrapped
 
-    def wrapper_chain(self) -> list[Any]:
+    def get_stack(self) -> list[Any]:
         """
         Return the list of objects from the outermost wrapper
         all the way down to the final un­wrapped entity.
@@ -78,14 +87,14 @@ class Wrapper(Generic[T]):
         Return the list of class‐names for each layer in the wrapper chain,
         from outermost to innermost.
         """
-        return [type(o).__name__ for o in self.wrapper_chain()]
+        return [type(o).__name__ for o in self.get_stack()]
 
     def wrapper_depth(self) -> int:
         """
         How many Wrapper‐layers are there?  (Does *not* count the final unwrapped.)
         """
         # subtract 1 if you don’t want to count the raw object
-        return len(self.wrapper_chain()) - 1
+        return len(self.get_stack()) - 1
 
 
 class Spatial(Wrapper):

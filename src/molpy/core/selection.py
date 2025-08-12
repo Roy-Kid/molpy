@@ -54,8 +54,7 @@ class AtomTypeSelection(MaskPredicate):
         self.field = field
 
     def mask(self, block: "Block") -> np.ndarray:
-        if self.field not in block:
-            return np.zeros(block.nrows, dtype=bool)
+        assert self.field in block, f"Field '{self.field}' not found in block"
         return block[self.field] == self.atom_type
 
 
