@@ -1,7 +1,12 @@
+"""
+Packmol-based molecular packing for molpy.
+Provides clean, composable API for molecular packing workflows using molq for orchestration.
+"""
+
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Any, Generator
 
 import molq
 import numpy as np
@@ -12,7 +17,31 @@ from molpy.core.frame import Frame
 from .base import Packer
 
 
+class PackmolComponent:
+    """Base class for all Packmol components."""
+
+    def __init__(self, executable: str = "packmol", workdir: Path | None = None):
+        """
+        Initialize Packmol component.
+
+        Args:
+            executable: Path to packmol executable
+            workdir: Working directory for temporary files
+        """
+        self.executable = executable
+        self.workdir = workdir if workdir else Path.cwd() / "packmol_work"
+        self.workdir.mkdir(parents=True, exist_ok=True)
+
+        # Check if packmol is available
+        self.packmol_path = shutil.which(self.executable)
+        if self.packmol_path is None:
+            raise FileNotFoundError(
+                f"Packmol executable '{self.executable}' not found in PATH"
+            )
+
+
 def map_region_to_packmol_definition(constraint):
+    """Convert molpy constraint objects to packmol input format."""
 
     def box(region, not_flag):
         origin = region.origin
@@ -46,17 +75,19 @@ def map_region_to_packmol_definition(constraint):
         )
 
 
-class Packmol(Packer):
+class Packmol(Packer, PackmolComponent):
+    """
+    Packmol component for molecular packing.
 
-    def __init__(self, workdir: Path = Path.cwd(), executable: str = "packmol"):
-        super().__init__()
-        self.workdir = workdir
-        self.cmd = executable
-        self.optimizer = shutil.which(self.cmd)
-        if self.optimizer is None:
-            raise FileNotFoundError("Packmol not found in PATH")
+    Usage:
+        packmol = Packmol(executable="packmol")
+        result = packmol(targets, max_steps=1000, seed=4628)
+    """
 
-    def generate_input(self, targets, max_steps, seed: int):
+    def __init__(self, executable: str = "packmol", workdir: Path | None = None):
+        """Initialize Packmol packer."""
+        Packer.__init__(self)
+        PackmolComponent.__init__(self, executable, workdir)
 
         self.intermediate_files = [
             ".optimized.pdb",
@@ -64,50 +95,111 @@ class Packmol(Packer):
             ".packmol.out",
         ]
 
+    def __call__(
+        self,
+        targets: list[mpk.Target] | None = None,
+        max_steps: int = 1000,
+        seed: int | None = None,
+        workdir: Path | None = None,
+        **kwargs,
+    ) -> Frame:
+        """
+        Pack molecules using Packmol.
+
+        Args:
+            targets: List of packing targets
+            max_steps: Maximum optimization steps
+            seed: Random seed for packing
+            workdir: Optional working directory (overrides default)
+            **kwargs: Additional arguments
+
+        Returns:
+            Packed molecular system as Frame
+        """
+        # Use provided workdir or default
+        if workdir is not None:
+            workdir = Path(workdir)
+            workdir.mkdir(parents=True, exist_ok=True)
+        else:
+            workdir = self.workdir
+
+        # Use provided targets or stored targets
+        if targets is None:
+            targets = self.targets
+
+        if seed is None:
+            seed = 4628
+
+        # Generate packmol input
+        self._generate_input(targets, max_steps, seed, workdir)
+
+        # Run packmol
+        submitor = molq.LocalSubmitor("local", {})
+        submitor.local_submit(
+            job_name="packmol",
+            cmd="packmol < .packmol.inp > .packmol.out",
+            cwd=workdir,
+            block=True,
+        )
+
+        # Read results
+        optimized_frame = self._read_packmol_output(workdir)
+
+        # Clean up intermediate files
+        self._cleanup_intermediate_files(workdir)
+
+        # Process and return results
+        return self._build_final_frame(targets, optimized_frame, workdir)
+
+    def _generate_input(
+        self, targets: list[mpk.Target], max_steps: int, seed: int, workdir: Path
+    ):
+        """Generate Packmol input file."""
         lines = []
         lines.append("tolerance 2.0")
         lines.append("filetype pdb")
         lines.append("output .optimized.pdb")
         lines.append(f"seed {seed}")
+
         for target in targets:
             frame = target.frame
             number = target.number
             constraint = target.constraint
 
+            # Create temporary PDB file
             tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+            import molpy.io as mp_io
 
-            mp.io.write_pdb(Path(tmpfile.name), frame)
+            mp_io.write_pdb(Path(tmpfile.name), frame)
 
             lines.append(f"structure {tmpfile.name}")
             lines.append(f"  number {number}")
             lines.append(map_region_to_packmol_definition(constraint))
-            lines.append(f"end structure")
+            lines.append("end structure")
 
-        with open(self.workdir / ".packmol.inp", "w") as f:
+        # Write input file
+        input_file = workdir / ".packmol.inp"
+        with open(input_file, "w") as f:
             f.write("\n".join(lines))
 
-    def remove_input(self):
+    def _read_packmol_output(self, workdir: Path) -> Frame:
+        """Read Packmol output file."""
+        import molpy.io as mp_io
+
+        output_file = workdir / ".optimized.pdb"
+        return mp_io.read_pdb(output_file)
+
+    def _cleanup_intermediate_files(self, workdir: Path):
+        """Clean up intermediate files."""
         for file in self.intermediate_files:
-            (self.workdir / file).unlink()
+            file_path = workdir / file
+            if file_path.exists():
+                file_path.unlink()
 
-    @molq.local
-    def pack(
-        self, targets=None, max_steps: int = 1000, seed: int | None = None
-    ) -> Generator[Dict, Any, Frame]:
-        if targets is None:
-            targets = self.targets
-        if seed is None:
-            seed = 4628
-        self.generate_input(targets, max_steps, seed)
-        yield {
-            "cmd": "packmol < .packmol.inp > .packmol.out",
-            "cwd": self.workdir,
-            "cleanup_temp_files": True,
-            "block": True,
-        }
-        optimized_frame = mp.io.read_pdb(self.workdir / ".optimized.pdb")
-        self.remove_input()
-
+    def _build_final_frame(
+        self, targets: list[mpk.Target], optimized_frame: Frame, workdir: Path
+    ) -> Frame:
+        """Build final frame from packing results."""
         # Count atoms per instance
         target_atoms_count = []
         for target in targets:
@@ -226,3 +318,76 @@ class Packmol(Packer):
         final_frame["dihedrals"] = concat_blocks(all_dihedrals)
 
         return final_frame
+
+    def read_packmol_output(self, workdir: Path | str) -> Frame:
+        """
+        Manually read an existing Packmol output file.
+
+        Args:
+            workdir: Working directory containing Packmol output
+
+        Returns:
+            Frame object with packed molecular system
+        """
+        workdir = Path(workdir)
+        return self._read_packmol_output(workdir)
+
+    def generate_input_only(
+        self,
+        targets: list[mpk.Target],
+        max_steps: int = 1000,
+        seed: int = 4628,
+        workdir: Path | None = None,
+    ) -> Path:
+        """
+        Generate Packmol input file without running the packing.
+
+        Args:
+            targets: List of packing targets
+            max_steps: Maximum optimization steps
+            seed: Random seed for packing
+            workdir: Optional working directory
+
+        Returns:
+            Path to generated input file
+        """
+        if workdir is None:
+            workdir = self.workdir
+
+        workdir = Path(workdir)
+        workdir.mkdir(parents=True, exist_ok=True)
+
+        self._generate_input(targets, max_steps, seed, workdir)
+        return workdir / ".packmol.inp"
+
+    # Legacy method for backward compatibility
+    def pack(
+        self,
+        targets: list[mpk.Target] | None = None,
+        max_steps: int = 1000,
+        seed: int | None = None,
+    ) -> Frame:
+        """Legacy pack method for backward compatibility."""
+        if targets is None:
+            targets = self.targets
+        if seed is None:
+            seed = 4628
+
+        # Generate input
+        self._generate_input(targets, max_steps, seed, self.workdir)
+
+        # Run packmol directly (not as generator)
+        submitor = molq.LocalSubmitor("local", {})
+        submitor.local_submit(
+            job_name="packmol",
+            cmd="packmol < .packmol.inp > .packmol.out",
+            cwd=self.workdir,
+            block=True,
+        )
+
+        # Read results and clean up
+        optimized_frame = self._read_packmol_output(self.workdir)
+        self._cleanup_intermediate_files(self.workdir)
+
+        # Build and return final frame
+        return self._build_final_frame(targets, optimized_frame, self.workdir)

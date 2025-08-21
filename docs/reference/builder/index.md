@@ -1,36 +1,23 @@
-# Builder Modules
+# Builder Module
 
-Molecular construction and assembly tools.
+Molecular construction and building tools.
 
-## Base Builder
+## Submodules
 
-::: molpy.builder.base
-    handler: python
+### [base](base.md)
+Base classes for molecular builders
 
-## Polymer Building
+### [polymer](polymer.md)
+Polymer building tools
 
-::: molpy.builder.polymer
-    handler: python
+### [polybuilder](polybuilder.md)
+Advanced polymer construction
 
-::: molpy.builder.polybuilder
-    handler: python
+### [bulk](bulk.md)
+Bulk system generation
 
-## Bulk System Building
+### [ambertools](ambertools.md)
+AmberTools integration
 
-::: molpy.builder.bulk
-    handler: python
-
-## AmberTools Integration
-
-::: molpy.builder.ambertools
-    handler: python
-
-## LAMMPS Reaction Building
-
-::: molpy.builder.reacter_lammps
-    handler: python
-
-## Preset Systems
-
-::: molpy.builder.presets
-    handler: python
+### [reacter_lammps](reacter_lammps.md)
+LAMMPS-based reaction building

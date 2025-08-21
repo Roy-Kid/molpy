@@ -1,67 +1,44 @@
-# Core Modules
+# Core Module
 
-Core data structures and fundamental classes for MolPy.
+Core data structures and fundamental functionality.
 
-## Frame & Block
+## Submodules
 
-::: molpy.core.frame
-    handler: python
-    options:
-      show_source: true
-      separate_signature: true
-      heading_level: 2
+### [atomistic](atomistic.md)
+Atom, Bond, Angle, Dihedral, and Atomistic classes
 
-## Box & Boundaries
+### [frame](frame.md)
+Frame and Block container classes
 
-::: molpy.core.box
-    handler: python
+### [trajectory](trajectory.md)
+Trajectory management and I/O
 
-## Selection System
+### [box](box.md)
+Simulation box and spatial regions
 
-::: molpy.core.selection
-    handler: python
+### [system](system.md)
+System organization and management
 
-## Topology Management
+### [topology](topology.md)
+Topological information and connectivity
 
-::: molpy.core.topology
-    handler: python
+### [selection](selection.md)
+Atom and structure selection system
 
-## Force Field System
+### [forcefield](forcefield.md)
+Force field parameter management
 
-::: molpy.core.forcefield
-    handler: python
+### [element](element.md)
+Element definitions and properties
 
-## Atomistic Structures
+### [wrapper](wrapper.md)
+Spatial and compositional wrapper classes
 
-::: molpy.core.atomistic
-    handler: python
+### [units](units.md)
+Unit conversion and management
 
-## Element & Chemistry
+### [config](config.md)
+Configuration management
 
-::: molpy.core.element
-    handler: python
-
-## System Organization
-
-::: molpy.core.system
-    handler: python
-
-## Trajectory Handling
-
-::: molpy.core.trajectory
-    handler: python
-
-## Region & Geometry
-
-::: molpy.core.region
-    handler: python
-
-## Wrapper System
-
-::: molpy.core.wrapper
-    handler: python
-
-## Protocol & Base Classes
-
-::: molpy.core.protocol
-    handler: python
+### [utils](utils.md)
+Core utility functions

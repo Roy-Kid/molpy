@@ -1,18 +1,14 @@
-# Engine Modules
+# Engine Module
 
-Simulation engine interfaces and integration.
+Simulation engine interfaces and integrations.
 
-## Base Engine
+## Submodules
 
-::: molpy.engine.base
-    handler: python
+### [base](base.md)
+Base classes for simulation engines
 
-## LAMMPS Integration
+### [lammps](lammps.md)
+LAMMPS molecular dynamics interface
 
-::: molpy.engine.lammps
-    handler: python
-
-## CP2K Integration
-
-::: molpy.engine.cp2k
-    handler: python
+### [cp2k](cp2k.md)
+CP2K quantum chemistry interface

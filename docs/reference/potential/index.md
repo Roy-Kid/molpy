@@ -1,44 +1,17 @@
-# Potential Modules
+# Potential Module
 
-Energy and force calculation tools.
+Force field and potential energy functions.
 
-## Base Potential
+## Submodules
 
-::: molpy.potential.base
-    handler: python
+### [base](base.md)
+Base classes for potential functions
 
-## Bond Potentials
+### [bond](bond.md)
+Bond stretching potentials
 
-::: molpy.potential.bond
-    handler: python
+### [angle](angle.md)
+Angle bending potentials
 
-::: molpy.potential.bond.base
-    handler: python
-
-::: molpy.potential.bond.harmonic
-    handler: python
-
-## Angle Potentials
-
-::: molpy.potential.angle
-    handler: python
-
-::: molpy.potential.angle.base
-    handler: python
-
-::: molpy.potential.angle.harmonic
-    handler: python
-
-## Pair Potentials
-
-::: molpy.potential.pair
-    handler: python
-
-::: molpy.potential.pair.base
-    handler: python
-
-::: molpy.potential.pair.lj
-    handler: python
-
-::: molpy.potential.pair.coul
-    handler: python
+### [pair](pair.md)
+Non-bonded pair potentials

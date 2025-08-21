@@ -1,18 +1,14 @@
-# Typifier Modules
+# Typifier Module
 
-Automatic atom and bond typing tools.
+Automatic atom type assignment and force field typing.
 
-## Base Typifier
+## Submodules
 
-::: molpy.typifier.typifier
-    handler: python
+### [typifier](typifier.md)
+Main typification engine
 
-## SMARTS Parser
+### [graph](graph.md)
+Graph-based typing algorithms
 
-::: molpy.typifier.parser
-    handler: python
-
-## Graph-based Typing
-
-::: molpy.typifier.graph
-    handler: python
+### [parser](parser.md)
+SMARTS pattern parsing

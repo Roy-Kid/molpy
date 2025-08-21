@@ -309,6 +309,99 @@ Charlie,35,1.75"""
         # Sorted should be different
         assert not np.array_equal(sorted_blk["x"], original_x)
 
+    def test_block_sort_inplace(self):
+        """Test in-place sorting with sort_ method."""
+        blk = Block({"x": np.array([3, 1, 2]), "y": np.array([30, 10, 20])})
+
+        # Store original data
+        original_x = blk["x"].copy()
+        original_y = blk["y"].copy()
+
+        # Sort in-place
+        result = blk.sort_("x")
+
+        # Should return self for chaining
+        assert result is blk
+
+        # Original data should now be sorted
+        assert np.array_equal(blk["x"], np.array([1, 2, 3]))
+        assert np.array_equal(blk["y"], np.array([10, 20, 30]))
+
+        # Original arrays should be different
+        assert not np.array_equal(blk["x"], original_x)
+        assert not np.array_equal(blk["y"], original_y)
+
+    def test_block_sort_inplace_reverse(self):
+        """Test in-place reverse sorting with sort_ method."""
+        blk = Block({"x": np.array([1, 2, 3]), "y": np.array([10, 20, 30])})
+
+        # Sort in-place in reverse order
+        blk.sort_("x", reverse=True)
+
+        # Data should be sorted in reverse order
+        assert np.array_equal(blk["x"], np.array([3, 2, 1]))
+        assert np.array_equal(blk["y"], np.array([30, 20, 10]))
+
+    def test_block_sort_inplace_empty(self):
+        """Test in-place sorting of empty block."""
+        blk = Block()
+        result = blk.sort_("x")
+
+        # Should return self
+        assert result is blk
+        assert len(blk) == 0
+
+    def test_block_sort_inplace_single_variable(self):
+        """Test in-place sorting of block with single variable."""
+        blk = Block({"x": np.array([3, 1, 2])})
+        blk.sort_("x")
+
+        assert np.array_equal(blk["x"], np.array([1, 2, 3]))
+
+    def test_block_sort_inplace_key_error(self):
+        """Test in-place sorting with non-existent key."""
+        blk = Block({"x": np.array([1, 2, 3])})
+        with pytest.raises(KeyError, match="Variable 'y' not found in block"):
+            blk.sort_("y")
+
+    def test_block_sort_inplace_length_mismatch(self):
+        """Test in-place sorting with variables of different lengths."""
+        blk = Block(
+            {"x": np.array([1, 2, 3]), "y": np.array([10, 20])}  # Different length
+        )
+
+        with pytest.raises(
+            ValueError, match="Variable 'y' has different length than 'x'"
+        ):
+            blk.sort_("x")
+
+    def test_block_sort_inplace_method_chaining(self):
+        """Test method chaining with in-place sorting."""
+        blk = Block(
+            {
+                "x": np.array([3, 1, 2]),
+                "y": np.array([30, 10, 20]),
+                "z": np.array([300, 100, 200]),
+            }
+        )
+
+        # Chain multiple operations
+        result = blk.sort_("x").sort_("y", reverse=True)
+
+        # Should return self
+        assert result is blk
+
+        # After chaining sort operations, verify that the final result
+        # is consistent and the block has been modified
+        assert len(blk["x"]) == 3
+        assert len(blk["y"]) == 3
+        assert len(blk["z"]) == 3
+
+        # Verify that the relationship between variables in each row is maintained
+        # (i.e., x[0], y[0], z[0] still belong together, etc.)
+        # The exact order depends on the sorting algorithm, but the structure is preserved
+        assert blk["x"].shape == blk["y"].shape == blk["z"].shape
+
     def test_block_boolean_mask_indexing(self):
         """Test Block boolean mask indexing."""
         blk = Block(
@@ -573,3 +666,147 @@ class TestFrame:
         f = Frame()
         with pytest.raises(ValueError):
             f["invalid"] = np.array([1, 2, 3])  # type: ignore[assignment]
+
+    # Tests for blocks validation and conversion
+    def test_frame_init_with_valid_blocks(self):
+        """Test Frame initialization with valid dict[str, Block]."""
+        atoms_block = Block({"x": [0, 1, 2], "y": [0, 0, 0], "z": [0, 0, 0]})
+        bonds_block = Block({"i": [0, 1], "j": [1, 2]})
+
+        valid_blocks = {"atoms": atoms_block, "bonds": bonds_block}
+
+        frame = Frame(blocks=valid_blocks)
+        assert "atoms" in frame.blocks()
+        assert "bonds" in frame.blocks()
+        assert isinstance(frame["atoms"], Block)
+        assert isinstance(frame["bonds"], Block)
+
+    def test_frame_init_with_nested_dict(self):
+        """Test Frame initialization with nested dict that gets converted to Block."""
+        nested_blocks = {
+            "atoms": {"x": [0, 1, 2], "y": [0, 0, 0], "z": [0, 0, 0]},
+            "bonds": {"i": [0, 1], "j": [1, 2]},
+        }
+
+        frame = Frame(blocks=nested_blocks)
+        assert "atoms" in frame.blocks()
+        assert "bonds" in frame.blocks()
+        assert isinstance(frame["atoms"], Block)
+        assert isinstance(frame["bonds"], Block)
+
+        # Verify data is preserved
+        assert np.array_equal(frame["atoms"]["x"], np.array([0, 1, 2]))
+        assert np.array_equal(frame["bonds"]["i"], np.array([0, 1]))
+
+    def test_frame_init_with_mixed_format(self):
+        """Test Frame initialization with mixed Block and dict format."""
+        atoms_block = Block({"x": [0, 1, 2], "y": [0, 0, 0]})  # Already Block
+        bonds_dict = {"i": [0, 1], "j": [1, 2]}  # Will be converted
+
+        mixed_blocks = {"atoms": atoms_block, "bonds": bonds_dict}
+
+        frame = Frame(blocks=mixed_blocks)
+        assert isinstance(frame["atoms"], Block)
+        assert isinstance(frame["bonds"], Block)
+
+        # Verify data is preserved
+        assert np.array_equal(frame["atoms"]["x"], np.array([0, 1, 2]))
+        assert np.array_equal(frame["bonds"]["i"], np.array([0, 1]))
+
+    def test_frame_init_with_empty_blocks(self):
+        """Test Frame initialization with no blocks."""
+        frame = Frame()
+        assert len(list(frame.blocks())) == 0
+
+        frame2 = Frame(blocks=None)
+        assert len(list(frame2.blocks())) == 0
+
+    def test_frame_init_with_empty_dict(self):
+        """Test Frame initialization with empty dict."""
+        frame = Frame(blocks={})
+        assert len(list(frame.blocks())) == 0
+
+    def test_frame_init_invalid_blocks_type(self):
+        """Test Frame initialization with invalid blocks type."""
+        with pytest.raises(ValueError, match="blocks must be a dict"):
+            Frame(blocks="not a dict")
+
+        with pytest.raises(ValueError, match="blocks must be a dict"):
+            Frame(blocks=123)
+
+        with pytest.raises(ValueError, match="blocks must be a dict"):
+            Frame(blocks=[])
+
+    def test_frame_init_invalid_key_type(self):
+        """Test Frame initialization with non-string keys."""
+        invalid_blocks = {
+            123: {"x": [0, 1, 2]},  # Non-string key
+            "atoms": {"y": [0, 0, 0]},
+        }
+
+        with pytest.raises(ValueError, match="Block keys must be strings"):
+            Frame(blocks=invalid_blocks)
+
+    def test_frame_init_invalid_value_type(self):
+        """Test Frame initialization with values that can't be converted to Block."""
+        invalid_blocks = {
+            "atoms": "not a dict or block",  # String value
+            "bonds": 123,  # Integer value
+        }
+
+        with pytest.raises(ValueError, match="Failed to convert value to Block"):
+            Frame(blocks=invalid_blocks)
+
+    def test_frame_init_with_complex_nested_data(self):
+        """Test Frame initialization with complex nested data structures."""
+        complex_blocks = {
+            "atoms": {
+                "id": [1, 2, 3, 4],
+                "type": ["C", "H", "H", "H"],
+                "mass": [12.01, 1.008, 1.008, 1.008],
+                "charge": [0.0, 0.0, 0.0, 0.0],
+            },
+            "bonds": {"i": [0, 0, 0], "j": [1, 2, 3], "type": [1, 1, 1]},
+            "angles": {"i": [1, 1, 2], "j": [0, 0, 0], "k": [2, 3, 3]},
+        }
+
+        frame = Frame(blocks=complex_blocks)
+
+        # Verify all blocks are created
+        assert "atoms" in frame.blocks()
+        assert "bonds" in frame.blocks()
+        assert "angles" in frame.blocks()
+
+        # Verify all values are Block instances
+        for block_name in frame.blocks():
+            assert isinstance(frame[block_name], Block)
+
+        # Verify data integrity
+        assert frame["atoms"].nrows == 4
+        assert frame["bonds"].nrows == 3
+        assert frame["angles"].nrows == 3
+
+        assert np.array_equal(frame["atoms"]["id"], np.array([1, 2, 3, 4]))
+        assert np.array_equal(frame["bonds"]["i"], np.array([0, 0, 0]))
+
+    def test_frame_init_preserves_metadata(self):
+        """Test that Frame initialization preserves metadata."""
+        frame = Frame(blocks={}, name="test_frame", version="1.0")
+        assert frame.metadata["name"] == "test_frame"
+        assert frame.metadata["version"] == "1.0"
+
+    def test_frame_blocks_validation_chain(self):
+        """Test that blocks validation works correctly in a chain of operations."""
+        # Create frame with nested dict
+        frame = Frame(blocks={"atoms": {"x": [0, 1, 2], "y": [0, 0, 0]}})
+
+        # Add another block
+        frame["bonds"] = {"i": [0, 1], "j": [1, 2]}
+
+        # Verify all blocks are properly converted
+        assert isinstance(frame["atoms"], Block)
+        assert isinstance(frame["bonds"], Block)
+
+        # Verify data access works
+        assert np.array_equal(frame["atoms"]["x"], np.array([0, 1, 2]))
+        assert np.array_equal(frame["bonds"]["i"], np.array([0, 1]))

@@ -1,8 +1,8 @@
-# Operations Modules
+# Operations Module
 
-Molecular transformations and manipulations.
+Geometric and spatial operations on molecular structures.
 
-## Geometry Operations
+## Submodules
 
-::: molpy.op.geometry
-    handler: python
+### [geometry](geometry.md)
+Geometric transformations and operations

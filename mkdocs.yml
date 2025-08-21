@@ -62,7 +62,6 @@ nav:
       - Installation: getting-started/installation.md
       - Quickstart: getting-started/quickstart.md
       - FAQ: getting-started/faq.md
-      - Cheat Sheet: getting-started/cheatsheet.md
   - Tutorials:
       - Block & Frame Basics: tutorials/block-frame.md
       - Force Field Basics: tutorials/forcefield.md
@@ -86,6 +85,68 @@ nav:
       - Custom I/O: developer/custom-io.md
   - API Reference:
       - Index: reference/index.md
+      - Core:
+          - Overview: reference/core/index.md
+          - Atomistic: reference/core/atomistic.md
+          - Frame: reference/core/frame.md
+          - Trajectory: reference/core/trajectory.md
+          - Box: reference/core/box.md
+          - System: reference/core/system.md
+          - Topology: reference/core/topology.md
+          - Selection: reference/core/selection.md
+          - ForceField: reference/core/forcefield.md
+          - Element: reference/core/element.md
+          - Wrapper: reference/core/wrapper.md
+          - Units: reference/core/units.md
+          - Config: reference/core/config.md
+          - Utils: reference/core/utils.md
+      - I/O:
+          - Overview: reference/io/index.md
+          - Data Formats: reference/io/data.md
+          - Force Field Files: reference/io/forcefield.md
+          - Trajectory Files: reference/io/trajectory.md
+          - Utils: reference/io/utils.md
+      - Analysis:
+          - Overview: reference/analysis/index.md
+          - Base: reference/analysis/base.md
+          - Density: reference/analysis/density.md
+          - Diffusion: reference/analysis/diffusion.md
+          - Clustering: reference/analysis/cluster.md
+          - Locality: reference/analysis/locality.md
+      - Builder:
+          - Overview: reference/builder/index.md
+          - Base: reference/builder/base.md
+          - Polymer: reference/builder/polymer.md
+          - PolyBuilder: reference/builder/polybuilder.md
+          - Bulk: reference/builder/bulk.md
+          - AmberTools: reference/builder/ambertools.md
+          - Reacter LAMMPS: reference/builder/reacter_lammps.md
+      - Operations:
+          - Overview: reference/op/index.md
+          - Geometry: reference/op/geometry.md
+      - Potential:
+          - Overview: reference/potential/index.md
+          - Base: reference/potential/base.md
+          - Bond: reference/potential/bond.md
+          - Angle: reference/potential/angle.md
+          - Pair: reference/potential/pair.md
+      - Packing:
+          - Overview: reference/pack/index.md
+          - Session: reference/pack/session.md
+          - Target: reference/pack/target.md
+          - Constraint: reference/pack/constraint.md
+          - Packer: reference/pack/packer.md
+          - Optimizer: reference/pack/optimizer.md
+      - Typifier:
+          - Overview: reference/typifier/index.md
+          - Typifier: reference/typifier/typifier.md
+          - Graph: reference/typifier/graph.md
+          - Parser: reference/typifier/parser.md
+      - Engine:
+          - Overview: reference/engine/index.md
+          - Base: reference/engine/base.md
+          - LAMMPS: reference/engine/lammps.md
+          - CP2K: reference/engine/cp2k.md
 
 extra_javascript:
   - javascripts/mathjax.js

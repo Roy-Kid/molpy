@@ -34,6 +34,7 @@ from typing import Callable
 import numpy as np
 
 from ..core.atomistic import Atomistic
+from ..core.wrapper import Spatial
 from ..op.geometry import rotation_matrix_from_vectors
 
 
@@ -51,11 +52,11 @@ class AnchorRule:
     deletes: list[int] = field(default_factory=list)
 
 
-class Monomer(Atomistic):
+class Monomer(Atomistic, Spatial):
     """
     Template for a monomer unit with anchor definitions.
 
-    Inherits from  to enable composable functionality.
+    Inherits from Atomistic and Spatial to enable composable functionality.
     Contains the structural information and anchor rules needed
     to construct and connect monomers in polymer chains.
     """
@@ -133,7 +134,7 @@ class PolymerBuilder:
         self,
         path: np.ndarray,
         seq: list[str],
-    ) -> Atomistic:
+    ) -> "Atomistic | Spatial":
         """
         Build a polymer chain along a given path with specified sequence.
 

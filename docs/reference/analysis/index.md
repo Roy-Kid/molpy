@@ -1,28 +1,20 @@
-# Analysis Modules
+# Analysis Module
 
-Molecular analysis and property calculation tools.
+Analysis tools and algorithms for molecular data.
 
-## Base Analysis
+## Submodules
 
-::: molpy.analysis.base
-    handler: python
+### [base](base.md)
+Base classes for analysis tools
 
-## Clustering Analysis
+### [density](density.md)
+Density analysis and radial distribution functions
 
-::: molpy.analysis.cluster
-    handler: python
+### [diffusion](diffusion.md)
+Diffusion analysis and mean square displacement
 
-::: molpy.analysis.cluster.chain
-    handler: python
+### [cluster](cluster.md)
+Clustering algorithms and analysis
 
-## Diffusion Analysis
-
-::: molpy.analysis.diffusion
-    handler: python
-
-
-
-## Locality Analysis
-
-::: molpy.analysis.locality
-    handler: python
+### [locality](locality.md)
+Neighborhood analysis and local structure

@@ -92,6 +92,9 @@ print(f"Oxygens: {oxygens.nrows}, Hydrogens: {hydrogens.nrows}")
 # Multiple variable access
 coordinates = water_atoms[['x', 'y', 'z']]  # 3x3 coordinate matrix
 print(f"Coordinate matrix shape: {coordinates.shape}")
+
+# Complex selection wrapper
+oxygens = water_atoms[mp.AtomTypeSelection(1)]
 ```
 
 These access patterns let you work with your data efficiently. Row-based access is useful for examining individual entities, slicing creates subsets for analysis, boolean indexing selects entities based on properties, and multiple variable access creates matrices for vector operations.

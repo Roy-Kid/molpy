@@ -156,8 +156,8 @@ class Angle(ManyBody):
     @property
     def value(self) -> float:
         """Calculate the angle value in radians."""
-        v1 = self.itom.xyz - self.jtom.xyz
-        v2 = self.jtom.xyz - self.jtom.xyz
+        v1 = self.itom["xyz"] - self.jtom["xyz"]
+        v2 = self.ktom["xyz"] - self.jtom["xyz"]
         cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
         # Clamp to handle numerical errors
         cos_angle = np.clip(cos_angle, -1.0, 1.0)
@@ -215,9 +215,9 @@ class Dihedral(ManyBody):
     def value(self) -> float:
         """Calculate the dihedral angle value in radians."""
         # Vectors along the bonds
-        b1 = self.jtom.xyz - self.itom.xyz
-        b2 = self.ktom.xyz - self.jtom.xyz
-        b3 = self.ltom.xyz - self.ktom.xyz
+        b1 = self.jtom["xyz"] - self.itom["xyz"]
+        b2 = self.ktom["xyz"] - self.jtom["xyz"]
+        b3 = self.ltom["xyz"] - self.ktom["xyz"]
 
         # Normal vectors to the planes
         n1 = np.cross(b1, b2)
@@ -290,11 +290,19 @@ class Atomistic(Wrapper):
             name: Structure name
             **props: Additional properties
         """
-        super().__init__(Struct(**props))
-        self["atoms"] = Entities[Atom]()
-        self["bonds"] = Entities[Bond]()
-        self["angles"] = Entities[Angle]()
-        self["dihedrals"] = Entities[Dihedral]()
+        super().__init__(**props)
+
+    def __post_init__(self):
+        """Post-initialization hook to set up atomic structure collections."""
+        # Set up collections if they don't exist
+        if "atoms" not in self:
+            self["atoms"] = Entities[Atom]()
+        if "bonds" not in self:
+            self["bonds"] = Entities[Bond]()
+        if "angles" not in self:
+            self["angles"] = Entities[Angle]()
+        if "dihedrals" not in self:
+            self["dihedrals"] = Entities[Dihedral]()
 
     def __repr__(self) -> str:
         """Return a string representation of the structure."""
@@ -303,62 +311,50 @@ class Atomistic(Wrapper):
     @property
     def atoms(self) -> Entities[Atom]:
         """Get the atoms in the structure."""
-        return self._wrapped["atoms"]
+        return self["atoms"]
 
     @atoms.setter
     def atoms(self, value: Iterable[Atom]):
-        self._wrapped["atoms"] = Entities[Atom](value)
+        self["atoms"] = Entities[Atom](value)
 
     @property
     def bonds(self) -> Entities[Bond]:
         """Get the bonds in the structure."""
-        return self._wrapped["bonds"]
+        return self["bonds"]
 
     @bonds.setter
     def bonds(self, value: Iterable[Bond]):
-        self._wrapped["bonds"] = Entities[Bond](value)
+        self["bonds"] = Entities[Bond](value)
 
     @property
     def angles(self) -> Entities[Angle]:
         """Get the angles in the structure."""
-        return self._wrapped["angles"]
+        return self["angles"]
 
     @angles.setter
     def angles(self, value: Iterable[Angle]):
-        self._wrapped["angles"] = Entities[Angle](value)
+        self["angles"] = Entities[Angle](value)
 
     @property
     def dihedrals(self) -> Entities[Dihedral]:
         """Get the dihedrals in the structure."""
-        return self._wrapped["dihedrals"]
+        return self["dihedrals"]
 
     @dihedrals.setter
     def dihedrals(self, value: Iterable[Dihedral]):
-        self._wrapped["dihedrals"] = Entities[Dihedral](value)
+        self["dihedrals"] = Entities[Dihedral](value)
 
     @property
     def symbols(self) -> list[str]:
-        """Get atomic symbols from all atoms."""
-        symbols = []
-        for atom in self.atoms:
-            if "symbol" in atom:
-                symbols.append(atom["symbol"])
-            elif "name" in atom:
-                symbols.append(atom["name"])
-            else:
-                symbols.append("X")  # default symbol
-        return symbols
+        """Get the symbols of all atoms in the structure."""
+        return [atom.get("symbol", atom.get("name", "")) for atom in self.atoms]
 
     @property
     def positions(self) -> np.ndarray:
-        """Get atomic positions from all atoms."""
-        positions = []
-        for atom in self.atoms:
-            if "xyz" in atom:
-                positions.append(atom["xyz"])
-            else:
-                positions.append([0.0, 0.0, 0.0])  # default position
-        return np.array(positions)
+        """Get the positions of all atoms as a numpy array."""
+        return np.array(
+            [atom.get("xyz", [0, 0, 0]) for atom in self.atoms], dtype=float
+        )
 
     def add_atom(self, atom):
         """

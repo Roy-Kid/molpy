@@ -2,14 +2,13 @@ import csv
 from collections.abc import Iterator, MutableMapping
 from io import StringIO
 from pathlib import Path
-from typing import Any, TypeAlias, TypeVar, overload
+from typing import Any, Self, TypeAlias, overload
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from .selection import MaskPredicate, Selection
 from .topology import Topology
-from .wrapper import Wrapper
 
 BlockLike: TypeAlias = dict[str, ArrayLike]
 
@@ -35,25 +34,26 @@ class Block(MutableMapping[str, np.ndarray]):
 
     __slots__ = ("_vars",)
 
-    # ------------------------------------------------------------------
-    def __init__(self, vars_: dict[str, np.ndarray | ArrayLike] = {}) -> None:
-        # NOTE: we force every value to ndarray once, so later reads are safe.
-        try:
-            self._vars: dict[str, np.ndarray] = {
-                k: np.asarray(v) for k, v in vars_.items()
-            }
-        except Exception:
-            raise ValueError(
-                "Value must be a BlockLike, i.e. dict[str, np.ndarray | ArrayLike]"
-            )
+    def __init__(self, vars_: dict[str, np.ndarray | ArrayLike] | None = None) -> None:
+        self._vars: dict[str, np.ndarray] = {}
+        if vars_ is not None:
+            if not isinstance(vars_, dict):
+                raise ValueError(f"vars_ must be a dict, got {type(vars_)}")
+            for k, v in vars_.items():
+                try:
+                    self._vars[k] = np.asarray(v)
+                except Exception as e:
+                    raise ValueError(
+                        f"Value must be a BlockLike, i.e. dict[str, np.ndarray | ArrayLike], but got {type(v)} for key {k}"
+                    ) from e
 
-    # ------------------------------------------------------------------ core mapping API
+    # --- core mapping API
 
     @overload
     def __getitem__(self, key: str) -> np.ndarray: ...
 
     @overload
-    def __getitem__(self, key: int | slice) -> dict[str, np.ndarray | int | float | str | Any]: ...  # type: ignore[override]
+    def __getitem__(self, key: int | slice) -> dict[str, np.ndarray]: ...  # type: ignore[override]
 
     @overload
     def __getitem__(self, key: list[str]) -> np.ndarray: ...  # type: ignore[override]
@@ -234,40 +234,24 @@ class Block(MutableMapping[str, np.ndarray]):
         """Shallow copy (arrays are **not** copied)."""
         return Block(self._vars.copy())  # type: ignore[arg-type]
 
-    def sort(self, key: str, *, reverse: bool = False) -> "Block":
-        """
-        Sort the block by a specific variable.
+    def _sort(self, key: str, *, reverse: bool = False) -> dict[str, np.ndarray]:
+        """Sort variables by a specific key and return sorted data.
 
-        Parameters
-        ----------
-        key : str
-            The variable name to sort by
-        reverse : bool, default=False
-            If True, sort in descending order
+        This is a private helper method that performs the actual sorting logic.
 
-        Returns
-        -------
-        Block
-            A new Block with sorted data
+        Args:
+            key: The variable name to sort by.
+            reverse: If True, sort in descending order. Defaults to False.
 
-        Raises
-        ------
-        KeyError
-            If the key variable doesn't exist
-        ValueError
-            If the key variable has different length than other variables
+        Returns:
+            Dictionary with sorted variable data.
 
-        Examples
-        --------
-        >>> blk = Block({"x": [3, 1, 2], "y": [30, 10, 20]})
-        >>> sorted_blk = blk.sort("x")
-        >>> sorted_blk["x"]
-        array([1, 2, 3])
-        >>> sorted_blk["y"]
-        array([10, 20, 30])
+        Raises:
+            KeyError: If the key variable doesn't exist in the block.
+            ValueError: If any variable has different length than the key variable.
         """
         if not self._vars:
-            return self.copy()
+            return {}
 
         if key not in self._vars:
             raise KeyError(f"Variable '{key}' not found in block")
@@ -277,8 +261,8 @@ class Block(MutableMapping[str, np.ndarray]):
         if reverse:
             sort_indices = sort_indices[::-1]
 
-        # Create new block with sorted data
-        sorted_vars = {}
+        # Create sorted data
+        sorted_vars: dict[str, np.ndarray] = {}
         for var_name, var_data in self._vars.items():
             if len(var_data) != len(self._vars[key]):
                 raise ValueError(
@@ -286,7 +270,69 @@ class Block(MutableMapping[str, np.ndarray]):
                 )
             sorted_vars[var_name] = var_data[sort_indices]
 
+        return sorted_vars
+
+    def sort(self, key: str, *, reverse: bool = False) -> "Block":
+        """Sort the block by a specific variable and return a new sorted Block.
+
+        This method creates a new Block instance with sorted data, leaving the
+        original Block unchanged.
+
+        Args:
+            key: The variable name to sort by.
+            reverse: If True, sort in descending order. Defaults to False.
+
+        Returns:
+            A new Block with sorted data.
+
+        Raises:
+            KeyError: If the key variable doesn't exist in the block.
+            ValueError: If any variable has different length than the key variable.
+
+        Example:
+            >>> blk = Block({"x": [3, 1, 2], "y": [30, 10, 20]})
+            >>> sorted_blk = blk.sort("x")
+            >>> sorted_blk["x"]
+            array([1, 2, 3])
+            >>> sorted_blk["y"]
+            array([10, 20, 30])
+            >>> # Original block is unchanged
+            >>> blk["x"]
+            array([3, 1, 2])
+        """
+        sorted_vars = self._sort(key, reverse=reverse)
         return Block(sorted_vars)
+
+    def sort_(self, key: str, *, reverse: bool = False) -> "Self":
+        """Sort the block in-place by a specific variable.
+
+        This method modifies the current Block instance by sorting all variables
+        according to the specified key. The original data is overwritten.
+
+        Args:
+            key: The variable name to sort by.
+            reverse: If True, sort in descending order. Defaults to False.
+
+        Returns:
+            Self (for method chaining).
+
+        Raises:
+            KeyError: If the key variable doesn't exist in the block.
+            ValueError: If any variable has different length than the key variable.
+
+        Example:
+            >>> blk = Block({"x": [3, 1, 2], "y": [30, 10, 20]})
+            >>> blk.sort_("x")
+            >>> blk["x"]
+            array([1, 2, 3])
+            >>> blk["y"]
+            array([10, 20, 30])
+            >>> # Original data is now sorted
+        """
+        sorted_vars = self._sort(key, reverse=reverse)
+        if sorted_vars:  # Only update if we have data to sort
+            self._vars.update(sorted_vars)
+        return self
 
     # ------------------------------------------------------------------ repr / str
     def __repr__(self) -> str:
@@ -451,8 +497,68 @@ class Frame:
 
     def __init__(self, blocks=None, **props) -> None:
         # guarantee a root block even if none supplied
-        self._blocks: dict[str, Block] = blocks if blocks is not None else {}
+        self._blocks: dict[str, Block] = {}
+        if blocks is not None:
+            self._blocks = self._validate_and_convert_blocks(blocks)
         self.metadata = props
+
+    def _validate_and_convert_blocks(self, blocks) -> dict[str, Block]:
+        """
+        Validate and convert input blocks to ensure all values are Block instances.
+
+        This method recursively processes nested dictionaries and converts
+        all leaf values to Block instances.
+
+        Parameters
+        ----------
+        blocks : dict[str, Block] | dict[str, dict] | dict[str, Any]
+            Input blocks. Can be:
+            - dict[str, Block]: Already correct format
+            - dict[str, dict]: Nested dictionaries that will be converted to Block
+            - dict[str, Any]: Mixed format that will be validated and converted
+
+        Returns
+        -------
+        dict[str, Block]
+            Validated blocks where all values are Block instances
+
+        Raises
+        ------
+        ValueError
+            If any leaf value cannot be converted to Block
+        """
+        if not isinstance(blocks, dict):
+            raise ValueError(f"blocks must be a dict, got {type(blocks)}")
+
+        validated_blocks = {}
+
+        for key, value in blocks.items():
+            if not isinstance(key, str):
+                raise ValueError(
+                    f"Block keys must be strings, got {type(key)} for key {key}"
+                )
+
+            if isinstance(value, Block):
+                # Already a Block, use as is
+                validated_blocks[key] = value
+            elif isinstance(value, dict):
+                # Nested dict, convert to Block
+                try:
+                    validated_blocks[key] = Block(value)
+                except Exception as e:
+                    raise ValueError(
+                        f"Failed to convert nested dict to Block for key '{key}': {e}"
+                    )
+            else:
+                # Try to convert to Block (e.g., list, array, etc.)
+                try:
+                    validated_blocks[key] = Block(value)
+                except Exception as e:
+                    raise ValueError(
+                        f"Failed to convert value to Block for key '{key}' (type {type(value)}): {e}"
+                    )
+
+        return validated_blocks
 
     # ---------- main get/set --------------------------------------------
 
@@ -473,10 +579,14 @@ class Frame:
         if isinstance(key, tuple):
             grp, var = key
             self._blocks.setdefault(grp, Block())[var] = value
-        else:
+        elif isinstance(key, str):
             if not isinstance(value, Block):
                 value = Block(value)
             self._blocks[key] = value
+        else:
+            raise KeyError(
+                f"Invalid key type: {type(key)}. Expected str, tuple[str, str]."
+            )
 
     def __delitem__(self, key: str | tuple[str, str]) -> None:
         del self[key]

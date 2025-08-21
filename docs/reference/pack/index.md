@@ -1,38 +1,20 @@
-# Packing Modules
+# Packing Module
 
-Molecular packing and system generation tools.
+Molecular packing algorithms and system generation.
 
-## Base Packer
+## Submodules
 
-::: molpy.pack.packer.base
-    handler: python
+### [session](session.md)
+Packing session management
 
-## Packmol Integration
+### [target](target.md)
+Target definitions for packing
 
-::: molpy.pack.packer.packmol
-    handler: python
+### [constraint](constraint.md)
+Constraint definitions and handling
 
-## NLOpt Integration
+### [packer](packer.md)
+Packing algorithms and implementations
 
-::: molpy.pack.packer.nlopt
-    handler: python
-
-## Session Management
-
-::: molpy.pack.session
-    handler: python
-
-## Target Definition
-
-::: molpy.pack.target
-    handler: python
-
-## Constraints
-
-::: molpy.pack.constraint
-    handler: python
-
-## Optimization
-
-::: molpy.pack.optimizer
-    handler: python
+### [optimizer](optimizer.md)
+Optimization algorithms for packing

@@ -22,21 +22,26 @@ import numpy as np
 # Create a simulation box
 box = mp.Box.cubic(10.0)
 
-# Create atoms data
+# Create static data
 atoms_data = {
-    'x': [0.0, 1.0, 2.0],
-    'y': [0.0, 0.0, 0.0],
-    'z': [0.0, 0.0, 0.0],
-    'element': ['C', 'C', 'C'],
-    'type': [1, 1, 1]
+    'xyz': [[0.0, -0.06, 0.0], [0.75, 0.52, 0.0], [-0.75, 0.52, 0.0]],
+    'element': ['O', 'H', 'H'],
+    'type': [1, 2, 2]
 }
+h2o = mp.Frame(data={'atoms': atoms_data}, box=box)
 
-# Create a frame
-frame = mp.Frame(data={'atoms': atoms_data}, box=box)
+# Create dynamic data
+struct = mp.Atomistic()
+struct.def_atom(xyz=[1.0, 0.0, 0.0], element='C', type=3)
+struct.def_atom(xyz=[0.0, 0.0, 0.0], element='O', type=1)
+struct.def_atom(xyz=[2.0, 0.0, 0.0], element='O', type=1)
+struct.def_bond(i=0, j=1)
+
+co2 = struct.to_frame()
 
 # Save and load
-frame_dict = frame.to_dict()  # Serialize to dictionary
-restored_frame = mp.Frame.from_dict(frame_dict)  # Restore from dictionary
+mp.io.write_pdb("frame.pdb", co2)
+frame = mp.io.read_pdb("frame.pdb")
 ```
 
 ## 📦 Installation

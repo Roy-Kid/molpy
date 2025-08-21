@@ -6,12 +6,13 @@ to molecular entities. Replaces the old mixin-based approach with a more
 flexible composition pattern.
 """
 
-from typing import Any, Callable, Generic, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Generic, TypeVar, overload
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from ..op import rotate_by_rodrigues
+from .protocol import Struct
 
 T = TypeVar("T")
 
@@ -22,19 +23,78 @@ class Wrapper(Generic[T]):
 
     Wrappers provide a composable way to add functionality to entities
     without using inheritance mixins.
+
+    Supports both explicit wrapping and multiple inheritance auto-composition.
     """
 
+    def __new__(cls, *args, **kwargs):
+        """Record other Wrapper bases from MRO for auto-composition."""
+        instance = super().__new__(cls)
+
+        # Find other Wrapper bases from MRO, but only MolPy wrapper classes
+        wrapper_bases = []
+        for base in cls.__mro__:
+            if (
+                issubclass(base, Wrapper)
+                and base != Wrapper
+                and base != cls
+                and base.__module__.startswith("molpy.")
+            ):
+                wrapper_bases.append(base)
+
+        # Store wrapper bases for later initialization
+        instance._wrapper_bases = wrapper_bases
+        instance._wrappers_initialized = False
+
+        return instance
+
     def __init__(
-        self, wrapped: T, key_mapping: dict[str, str | list[str]] | None = None
+        self,
+        wrapped: T | None = None,
+        key_mapping: dict[str, str | list[str]] | None = None,
+        **props,
     ):
         """
         Initialize wrapper with an entity to wrap.
 
         Args:
-            wrapped: The entity to wrap
+            wrapped: The entity to wrap, or None to create a base Struct(**props)
+            key_mapping: Optional key mapping for delegation
+            **props: Properties to pass to Struct if wrapped is None
         """
-        self._wrapped = wrapped
+        # Create/attach wrapped entity
+        if wrapped is None:
+            self._wrapped = Struct(**props)
+        else:
+            self._wrapped = wrapped
+
         self._key_mapping = key_mapping if key_mapping else {}
+
+        # Run __post_init__ hooks for auto-composition
+        if not self._wrappers_initialized:
+            self._run_post_init_hooks()
+            self._wrappers_initialized = True
+
+    def _run_post_init_hooks(self):
+        """Run __post_init__ hooks for auto-composition."""
+        # Call self.__post_init__ if present (Python standard naming)
+        if hasattr(self, "__post_init__"):
+            self.__post_init__()
+
+        # Call __post_init__ on other wrapper bases
+        if hasattr(self, "_wrapper_bases"):
+            for base in self._wrapper_bases:
+                if hasattr(base, "__post_init__"):
+                    base.__post_init__(self)
+
+    def __post_init__(self):
+        """
+        Post-initialization hook for wrapper setup.
+
+        Override this method in subclasses to perform one-time initialization
+        that depends on the wrapped entity being fully constructed.
+        """
+        pass
 
     def unwrap(self) -> T:
         """Get the wrapped entity."""
@@ -42,6 +102,19 @@ class Wrapper(Generic[T]):
 
     def __getattr__(self, name: str) -> Any:
         """Delegate attribute access to the wrapped entity."""
+        # For dict-like objects (like Struct), try to get as key first
+        try:
+            # Check if it's a dict-like object by trying to access as key
+            return self._wrapped[name]  # type: ignore[attr-defined]
+        except (KeyError, TypeError, AttributeError):
+            # Not a dict-like object or key doesn't exist, try attribute access
+            pass
+
+        # Try direct attribute access
+        if hasattr(self._wrapped, name):
+            return getattr(self._wrapped, name)
+
+        # Fall back to attribute access (this will raise AttributeError if not found)
         return getattr(self._wrapped, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -105,6 +178,11 @@ class Spatial(Wrapper):
     and can perform geometric transformations.
     """
 
+    def __post_init__(self):
+        """Post-initialization hook for spatial operations."""
+        # Can be no-op for now, or add any spatial-specific initialization
+        pass
+
     @property
     def xyz(self) -> np.ndarray:
         """Get the xyz coordinates as a numpy array."""
@@ -119,6 +197,21 @@ class Spatial(Wrapper):
             raise ValueError("New xyz coordinates must match the number of atoms.")
         for i, atom in enumerate(self.atoms):
             atom["xyz"] = new_xyz[i]
+
+    @property
+    def positions(self) -> np.ndarray:
+        """Get the positions as a numpy array (alias for xyz)."""
+        return self.xyz
+
+    @positions.setter
+    def positions(self, value: ArrayLike) -> None:
+        """Set the positions from an array-like object (alias for xyz)."""
+        self.xyz = value
+
+    @property
+    def symbols(self) -> list[str]:
+        """Get the symbols of all atoms in the structure."""
+        return [atom.get("symbol", atom.get("name", "")) for atom in self.atoms]
 
     def distance_to(self, other) -> float:
         """
@@ -142,9 +235,34 @@ class Spatial(Wrapper):
         """
         self.xyz = self.xyz + np.array(vector)
 
-    def scale(
-        self, factor: Union[float, ArrayLike], origin: Optional[ArrayLike] = None
+    def move_to(
+        self, target_position: ArrayLike, reference_atom_index: int = 0
     ) -> None:
+        """
+        Move the entity so that a reference atom is at the target position.
+        All other atoms maintain their relative positions.
+
+        Args:
+            target_position: Target position for the reference atom
+            reference_atom_index: Index of the atom to use as reference (default: 0)
+        """
+        target_position = np.array(target_position, dtype=float)
+
+        # Get current position of reference atom
+        current_reference_pos = self.atoms[reference_atom_index]["xyz"]
+
+        # Calculate translation vector
+        translation_vector = target_position - current_reference_pos
+
+        # Apply translation
+        self.move(translation_vector)
+
+        # Verify the reference atom is now at target position
+        assert np.allclose(
+            self.atoms[reference_atom_index]["xyz"], target_position
+        ), f"Reference atom not moved to target position. Expected {target_position}, got {self.atoms[reference_atom_index]['xyz']}"
+
+    def scale(self, factor: float | ArrayLike, origin: ArrayLike | None = None) -> None:
         """
         Scale the entity by a given factor around an origin.
 
@@ -161,7 +279,7 @@ class Spatial(Wrapper):
         self.xyz = origin + factor * (self.xyz - origin)
 
     def rotate(
-        self, axis: ArrayLike, angle: float, origin: Optional[ArrayLike] = None
+        self, axis: ArrayLike, angle: float, origin: ArrayLike | None = None
     ) -> None:
         """
         Rotate the entity around an axis by a given angle.
@@ -380,61 +498,3 @@ class HierarchyWrapper(Wrapper):
                 if found:
                     return found
         return None
-
-
-# Utility functions for working with wrappers
-def wrap(entity, *wrapper_classes, **wrapper_kwargs):
-    """
-    Wrap an entity with multiple wrapper classes.
-
-    Args:
-        entity: The entity to wrap
-        *wrapper_classes: Wrapper classes to apply
-        **wrapper_kwargs: Keyword arguments for wrapper initialization
-
-    Returns:
-        The wrapped entity
-    """
-    wrapped = entity
-    for wrapper_class in wrapper_classes:
-        # Handle different wrapper initialization signatures
-        if wrapper_class == VisualWrapper:
-            # VisualWrapper accepts keyword arguments
-            wrapped = wrapper_class(wrapped, **wrapper_kwargs)
-        elif wrapper_class == IdentifierWrapper:
-            # IdentifierWrapper accepts id parameter
-            id_arg = wrapper_kwargs.get("id", None)
-            wrapped = wrapper_class(wrapped, id=id_arg)
-        else:
-            # Other wrappers typically just take the wrapped entity
-            wrapped = wrapper_class(wrapped)
-    return wrapped
-
-
-def unwrap_all(wrapped_entity):
-    """
-    Completely unwrap an entity, removing all wrapper layers.
-
-    Args:
-        wrapped_entity: The wrapped entity
-
-    Returns:
-        The original unwrapped entity
-    """
-    current = wrapped_entity
-    while hasattr(current, "unwrap"):
-        current = current.unwrap()
-    return current
-
-
-def is_wrapped(entity) -> bool:
-    """
-    Check if an entity is wrapped.
-
-    Args:
-        entity: The entity to check
-
-    Returns:
-        True if the entity is wrapped, False otherwise
-    """
-    return hasattr(entity, "unwrap") and callable(getattr(entity, "unwrap"))
