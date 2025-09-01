@@ -55,6 +55,7 @@ plugins:
             heading_level: 2
             merge_init_into_class: true
             filters: ["!^_"]
+  - mkdocs-jupyter
 
 nav:
   - Home: index.md
@@ -73,16 +74,14 @@ nav:
       - Trajectory Analysis: tutorials/trajectory.md
       - Region & Geometric Operations: tutorials/region.md
       - Atomistic Structures: tutorials/atomistic.md
-
   - How-to Guides:
-      - IO Workflows: how-to/io-workflows.md
-      - Molecular Building: how-to/molecular-building.md
-      - Potential Calculations: how-to/potential-calculations.md
-      - Molecular Packing: how-to/molecular-packing.md
+      - Molecular Modeling: how-to/programming-modeling.ipynb
+      - Molecular Packing: how-to/packmol.md
+      - Call Externals: how-to/ambertools.md
   - Developer Guides:
-      - Custom Wrappers: developer/custom-wrappers.md
       - Custom Selection Predicates: developer/custom-selections.md
       - Custom I/O: developer/custom-io.md
+      - Plugin Development: developer/plugin-development.md
   - API Reference:
       - Index: reference/index.md
       - Core:
@@ -97,28 +96,49 @@ nav:
           - ForceField: reference/core/forcefield.md
           - Element: reference/core/element.md
           - Wrapper: reference/core/wrapper.md
+          - Region: reference/core/region.md
+          - Protocol: reference/core/protocol.md
+          - Logger: reference/core/logger.md
           - Units: reference/core/units.md
           - Config: reference/core/config.md
           - Utils: reference/core/utils.md
       - I/O:
           - Overview: reference/io/index.md
-          - Data Formats: reference/io/data.md
-          - Force Field Files: reference/io/forcefield.md
-          - Trajectory Files: reference/io/trajectory.md
+          - Data Formats:
+              - PDB: reference/io/data/pdb.md
+              - XYZ: reference/io/data/xyz.md
+              - LAMMPS: reference/io/data/lammps.md
+              - AMBER: reference/io/data/amber.md
+              - GROMACS: reference/io/data/gro.md
+              - MOL2: reference/io/data/mol2.md
+              - XSF: reference/io/data/xsf.md
+          - Force Field Files:
+              - LAMMPS: reference/io/forcefield/lammps.md
+              - AMBER: reference/io/forcefield/amber.md
+              - GROMACS: reference/io/forcefield/top.md
+              - XML: reference/io/forcefield/xml.md
+          - Trajectory Files:
+              - LAMMPS: reference/io/trajectory/lammps.md
+              - XYZ: reference/io/trajectory/xyz.md
           - Utils: reference/io/utils.md
       - Analysis:
           - Overview: reference/analysis/index.md
           - Base: reference/analysis/base.md
-          - Density: reference/analysis/density.md
-          - Diffusion: reference/analysis/diffusion.md
-          - Clustering: reference/analysis/cluster.md
-          - Locality: reference/analysis/locality.md
+          - Density:
+              - RDF: reference/analysis/density/rdf.md
+          - Diffusion:
+              - MSD: reference/analysis/diffusion/msd.md
+          - Clustering:
+              - Chain: reference/analysis/cluster/chain.md
+          - Locality:
+              - Neighbor List: reference/analysis/locality/neighborlist.md
       - Builder:
           - Overview: reference/builder/index.md
           - Base: reference/builder/base.md
           - Polymer: reference/builder/polymer.md
           - PolyBuilder: reference/builder/polybuilder.md
           - Bulk: reference/builder/bulk.md
+          - Presets: reference/builder/presets.md
           - AmberTools: reference/builder/ambertools.md
           - Reacter LAMMPS: reference/builder/reacter_lammps.md
       - Operations:
@@ -127,9 +147,16 @@ nav:
       - Potential:
           - Overview: reference/potential/index.md
           - Base: reference/potential/base.md
-          - Bond: reference/potential/bond.md
-          - Angle: reference/potential/angle.md
-          - Pair: reference/potential/pair.md
+          - Bond:
+              - Base: reference/potential/bond/base.md
+              - Harmonic: reference/potential/bond/harmonic.md
+          - Angle:
+              - Base: reference/potential/angle/base.md
+              - Harmonic: reference/potential/angle/harmonic.md
+          - Pair:
+              - Base: reference/potential/pair/base.md
+              - Lennard-Jones: reference/potential/pair/lj.md
+              - Coulomb: reference/potential/pair/coul.md
       - Packing:
           - Overview: reference/pack/index.md
           - Session: reference/pack/session.md

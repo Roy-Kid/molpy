@@ -7,7 +7,7 @@ used throughout the molecular modeling framework.
 
 from collections import UserDict
 from copy import deepcopy
-from typing import Callable, Generic, Iterable, Type, TypeVar
+from typing import Callable, Generic, Iterable, Self, Type, TypeVar
 
 T = TypeVar("T", bound="Entity")
 
@@ -189,6 +189,19 @@ class Struct(Entity):
     Provides fundamental structure functionality without requiring
     spatial or atomic properties.
     """
+
+    def merge(self, other: Self) -> Self:
+        """
+        Merge another structure into this one.
+
+        Args:
+            other: The structure to merge
+
+        Returns:
+            Self: The merged structure
+        """
+        # Implement merge logic here
+        return self
 
     def to_frame(self):
         """

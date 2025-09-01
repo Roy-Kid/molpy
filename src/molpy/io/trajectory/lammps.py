@@ -7,10 +7,10 @@ import numpy as np
 
 from molpy.core import Block, Box, Frame
 
-from .base import TrajectoryReader, TrajectoryWriter
+from .base import BaseTrajectoryReader, FrameLocation, TrajectoryWriter
 
 
-class LammpsTrajectoryReader(TrajectoryReader):
+class LammpsTrajectoryReader(BaseTrajectoryReader):
     """Reader for LAMMPS trajectory files, supporting multiple files."""
 
     def __init__(self, fpath: Union[str, Path, List[str], List[Path]]):
@@ -43,8 +43,6 @@ class LammpsTrajectoryReader(TrajectoryReader):
             frame_offsets = []
 
         # Add frame locations to the global list
-        from .base import FrameLocation
-
         for offset in frame_offsets:
             location = FrameLocation(
                 file_index=file_index,

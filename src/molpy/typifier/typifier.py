@@ -1,122 +1,85 @@
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Any, Generator
+"""
+Simple typifier implementations using mixin pattern.
+"""
 
-import molq
-
-import molpy as mp
 from molpy.core import ForceField
-from molpy.io import write_pdb
-from molpy.typifier.graph import SMARTSGraph, _find_chordless_cycles
-from molpy.typifier.parser import SmartsParser
+from molpy.typifier.base import (
+    AngleTypifierMixin,
+    AtomTypifierMixin,
+    BaseTypifier,
+    BondTypifierMixin,
+    ForceFieldMatchingMixin,
+    TopoTypifierMixin,
+)
 
 
-class BaseTypifier: ...
+class NullAtomTypifier(BaseTypifier, AtomTypifierMixin):
+    """Concrete typifier that doesn't change atom types - just uses existing ones."""
+
+    def typify(self, struct):
+        """Do nothing - assume atoms already have types."""
+        return struct
 
 
-class ForceFieldTypifier(BaseTypifier):
+class TopoTypifier(BaseTypifier, TopoTypifierMixin):
+    """Concrete typifier that focuses on topology-based typing."""
+
+    def typify(self, struct):
+        """Apply topology-based typing to the structure."""
+        struct = self.typify_bonds(struct)
+        struct = self.typify_angles(struct)
+        struct = self.typify_dihedrals(struct)
+        return struct
+
+
+class ForceFieldTypifier(BaseTypifier, ForceFieldMatchingMixin):
+    """Typifier that matches topology to force field parameters."""
+
+    def __init__(self, forcefield: ForceField):
+        ForceFieldMatchingMixin.__init__(self, forcefield)
+
+    def typify(self, struct):
+        """Apply force field typing to the structure."""
+        # Ensure atoms have types
+        for atom in struct.atoms:
+            if "type" not in atom:
+                atom["type"] = atom.get("element", "unknown")
+
+        # Match topology to force field
+        return self.match_topology_to_forcefield(struct)
+
+
+class SmartsTypifier(
+    BaseTypifier, AtomTypifierMixin, BondTypifierMixin, AngleTypifierMixin
+):
+    """Typifier that uses SMARTS patterns for typing."""
 
     def __init__(self, forcefield: ForceField):
         self.forcefield = forcefield
 
-    def typify_atoms(self, struct):
+    def typify(self, struct):
+        """Apply SMARTS-based typing to the structure."""
+        struct = self.typify_atoms(struct)
+        struct = self.typify_bonds(struct)
+        struct = self.typify_angles(struct)
         return struct
 
-    def typify_bonds(self, struct):
-        bonds = struct.bonds
-        bondtypes = self.forcefield.get_bondtypes()
-        for bond in bonds:
-            for bondtype in bondtypes:
-                if {bondtype.itype, bondtype.jtype} == {
-                    bond.itom["type"],
-                    bond.jtom["type"],
-                }:
-                    bond["type"] = str(bondtype)
-                    # bond["style"] = bondtype.style
-                    break
-        return struct
 
-    def typify_angles(self, struct):
-        angles = struct.angles
-        angletype = self.forcefield.get_angletypes()
-        for angle in angles:
-            for angletype in angletype:
-                if angletype.match(angle):
-                    angle["type"] = str(angletype)
-                    break
-            if "type" not in angle:
-                raise ValueError(
-                    f"Angle {angle} type not found in forcefield {self.forcefield}"
-                )
-        return struct
+class TopologyForceFieldTypifier(
+    BaseTypifier, TopoTypifierMixin, ForceFieldMatchingMixin
+):
+    """Typifier that combines topology typing with force field matching."""
+
+    def __init__(self, forcefield: ForceField):
+        ForceFieldMatchingMixin.__init__(self, forcefield)
 
     def typify(self, struct):
-        """
-        Typify the structure using the forcefield.
-        """
-        # Typify atoms
-        struct = self.typify_atoms(struct)
-
-        # Typify bonds
+        """Apply topology typing then match to force field."""
+        # Apply topology typing
         struct = self.typify_bonds(struct)
-
-        # Typify angles
         struct = self.typify_angles(struct)
+        struct = self.typify_dihedrals(struct)
 
+        # Match to force field
+        struct = self.match_topology_to_forcefield(struct)
         return struct
-
-
-class SmartsTypifier(ForceFieldTypifier):
-
-    def __init__(self, forcefield):
-
-        super().__init__(forcefield)
-        self.parser = SmartsParser()
-        self.smarts_graphs = self.read_smarts(forcefield)
-
-    def read_smarts(self, forcefield):
-
-        smarts_graphs = {}
-        smarts_overrides = {}
-
-        for atomtype in forcefield.get_atomtypes():
-            label = atomtype.name
-            smarts = atomtype["def"]
-            graph = SMARTSGraph(smarts, self.parser, label, overrides=None)
-            smarts_graphs[label] = graph
-            overrides = atomtype.get("overrides", None)
-            if overrides is not None:
-                smarts_overrides[label] = overrides.split(",")
-
-        for label, override in smarts_overrides.items():
-            print(f"Overriding {label} with {override}")
-            graph = smarts_graphs[label]
-            graph.override([smarts_graphs[atom] for atom in override])
-
-        print(sorted(smarts_graphs.items(), key=lambda x: x[1].priority))
-        smarts_graphs = dict(sorted(smarts_graphs.items(), key=lambda x: x[1].priority))
-
-        return smarts_graphs
-
-    def typify(self, struct, use_residue_map=False, max_iter=10):
-
-        graph = struct.get_topology(attrs=["name", "number", "type"])
-        self.prepare_graph(graph)
-        for typename, rule in self.smarts_graphs.items():
-            result = rule.find_matches(graph)
-            if result:
-                for i, j in enumerate(result):
-                    struct["atoms"][j]["type"] = typename
-                    print("atom", struct["atoms"][j], "type", typename)
-                    print()
-                # if all([atom['type'] for atom in struct['atoms']]):
-                #     break
-
-        return struct
-
-    def prepare_graph(self, graph):
-
-        all_cycles = _find_chordless_cycles(graph, max_cycle_size=8)
-        for i, cycles in zip(graph.vs, all_cycles):
-            for cycle in cycles:
-                graph.vs[i.index]["cycles"].add(tuple(cycle))

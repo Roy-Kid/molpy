@@ -10,12 +10,12 @@ This module provides the fundamental building blocks for molecular modeling:
 """
 
 import copy
-from typing import Iterable
+from typing import Iterable, Self
 
 import numpy as np
 
 from .frame import Frame
-from .protocol import Entities, Entity, Struct
+from .protocol import Entities, Entity
 from .topology import Topology
 from .utils import to_dict_of_list, to_list_of_dict
 from .wrapper import Wrapper
@@ -583,14 +583,14 @@ class Atomistic(Wrapper):
 
         return generated_items
 
-    def add_struct(self, struct):
+    def merge(self, struct) -> Self:
         """
-        Add another structure to the current structure.
+        Merge another structure into the current structure.
 
         This merges the atoms and bonds from the other structure.
 
         Args:
-            struct: The structure to add
+            struct: The structure to merge
 
         Returns:
             Self for method chaining

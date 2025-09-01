@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import IO, Any, Iterator
+from typing import IO, Any, Iterator, Union
 
 from molpy.core.frame import Frame
+
+PathLike = Union[str, Path]
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -11,7 +13,7 @@ from molpy.core.frame import Frame
 class FileBase(ABC):
     """Common logic for Context-manager + lazy file handle."""
 
-    def __init__(self, path: str | Path, mode: str, **open_kwargs):
+    def __init__(self, path: PathLike, mode: str, **open_kwargs):
         self._path = Path(path)
         self._mode = mode
         self._open_kwargs = open_kwargs
@@ -39,13 +41,14 @@ class FileBase(ABC):
 # DataReader
 # ─────────────────────────────────────────────────────────────────────
 class DataReader(FileBase, ABC):
-    """Text reader that filters out blank lines."""
+    """Base class for data file readers."""
 
-    def __init__(self, path: str | Path, **open_kwargs):
+    def __init__(self, path: PathLike, **open_kwargs):
         super().__init__(path, mode="r", **open_kwargs)
 
     # -- line helpers --------------------------------------------------
     def _iter_nonblank(self) -> Iterator[str]:
+        """Iterate over non-blank, stripped lines."""
         self.fh.seek(0)
         for raw in self.fh:
             line = raw.strip()
@@ -62,8 +65,16 @@ class DataReader(FileBase, ABC):
 
     # -- high-level parse ---------------------------------------------
     @abstractmethod
-    def read(self, frame: Frame) -> Frame:
-        """Populate / update a Frame from the underlying text."""
+    def read(self, frame: Frame | None = None) -> Frame:
+        """
+        Populate / update a Frame from the underlying file.
+
+        Args:
+            frame: Optional existing Frame to populate. If None, creates a new one.
+
+        Returns:
+            The populated Frame object
+        """
         ...
 
 
@@ -71,12 +82,17 @@ class DataReader(FileBase, ABC):
 # DataWriter
 # ─────────────────────────────────────────────────────────────────────
 class DataWriter(FileBase, ABC):
-    """Text writer that guarantees the file is open in write-mode."""
+    """Base class for data file writers."""
 
-    def __init__(self, path: str | Path, **open_kwargs):
+    def __init__(self, path: PathLike, **open_kwargs):
         super().__init__(path, mode="w", **open_kwargs)
 
     @abstractmethod
-    def write(self, frame: Frame) -> None:  # noqa: D401
-        """Serialize *frame* into the underlying text file."""
+    def write(self, frame: Frame) -> None:
+        """
+        Serialize frame into the underlying file.
+
+        Args:
+            frame: Frame object to write
+        """
         ...

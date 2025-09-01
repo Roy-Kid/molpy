@@ -1,12 +1,12 @@
 import mmap
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Iterable, Iterator, List, NamedTuple, Optional, Union
 
 if TYPE_CHECKING:
     from ...core.frame import Frame
 
-PathLike = Union[str, bytes]  # type_check_only
+PathLike = Union[str, bytes, Path]  # type_check_only
 
 
 class FrameLocation(NamedTuple):
@@ -17,12 +17,14 @@ class FrameLocation(NamedTuple):
     file_path: Path
 
 
-class TrajectoryReader(ABC):
+class BaseTrajectoryReader(ABC, Iterable["Frame"]):
     """
-    Base class for trajectory file readers that act as providers.
+    Base class for trajectory file readers that act as lazy-loading iterators.
 
     This class provides memory-mapped file reading and directly returns Frame objects
-    without needing to interact with Trajectory objects. Supports reading from multiple files.
+    without loading everything into memory. Supports reading from multiple files.
+
+    Implements Iterable[Frame] for lazy iteration over frames.
     """
 
     def __init__(self, fpath: Union[Path, str, List[Path], List[str]]):
@@ -58,9 +60,14 @@ class TrajectoryReader(ABC):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        """Close all memory-mapped files."""
         for mm in self._mms:
             if mm is not None:
                 mm.close()
+        self._mms.clear()
 
     def read_frame(self, index: int) -> "Frame":
         """
@@ -154,9 +161,19 @@ class TrajectoryReader(ABC):
         return self._total_frames
 
     def __iter__(self) -> Iterator["Frame"]:
-        """Iterate over all frames."""
+        """Iterate over all frames lazily."""
         for i in range(self._total_frames):
             yield self.read_frame(i)
+
+    def __getitem__(self, index: Union[int, slice]) -> Union["Frame", List["Frame"]]:
+        """Support indexing and slicing of frames."""
+        if isinstance(index, int):
+            return self.read_frame(index)
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(self._total_frames)
+            return self.read_range(start, stop, step)
+        else:
+            raise TypeError("Index must be int or slice")
 
     def _open_files(self):
         """Open trajectory files with memory mapping and build global index."""
@@ -165,17 +182,23 @@ class TrajectoryReader(ABC):
         for file_index, fpath in enumerate(self.fpaths):
             # Open file
             fp = open(fpath, "rb")
-            # Check if empty
-            fp.seek(0, 2)
-            if fp.tell() == 0:
-                raise ValueError(f"File is empty: {fpath}")
-            fp.seek(0)  # Seek back to beginning
+            try:
+                # Check if empty
+                fp.seek(0, 2)
+                if fp.tell() == 0:
+                    fp.close()
+                    raise ValueError(f"File is empty: {fpath}")
+                fp.seek(0)  # Seek back to beginning
 
-            mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
-            self._mms.append(mm)
+                mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
+                self._mms.append(mm)
 
-            # Parse this file to get frame locations
-            self._parse_trajectory(file_index)
+                # Parse this file to get frame locations
+                self._parse_trajectory(file_index)
+
+            finally:
+                # Always close the file handle
+                fp.close()
 
     def _get_frame_location(self, index: int) -> FrameLocation:
         """Get location information for a frame."""
@@ -198,7 +221,7 @@ class TrajectoryReader(ABC):
 
 
 class TrajectoryWriter(ABC):
-    """Base class for all chemical file writers."""
+    """Base class for all trajectory file writers."""
 
     def __init__(self, fpath: Union[str, Path]):
         self.fpath = Path(fpath)
@@ -216,4 +239,6 @@ class TrajectoryWriter(ABC):
         pass
 
     def close(self):
-        self._fp.close()
+        if hasattr(self, "_fp") and self._fp is not None:
+            self._fp.close()
+            self._fp = None

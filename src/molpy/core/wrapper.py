@@ -6,7 +6,7 @@ to molecular entities. Replaces the old mixin-based approach with a more
 flexible composition pattern.
 """
 
-from typing import Any, Callable, Generic, TypeVar, overload
+from typing import Any, Callable, Generic, Self, TypeVar
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -64,7 +64,7 @@ class Wrapper(Generic[T]):
         """
         # Create/attach wrapped entity
         if wrapped is None:
-            self._wrapped = Struct(**props)
+            self._wrapped = Struct()
         else:
             self._wrapped = wrapped
 
@@ -72,22 +72,19 @@ class Wrapper(Generic[T]):
 
         # Run __post_init__ hooks for auto-composition
         if not self._wrappers_initialized:
-            self._run_post_init_hooks()
+            self._run_post_init_hooks(**props)
             self._wrappers_initialized = True
 
-    def _run_post_init_hooks(self):
+    def _run_post_init_hooks(self, **props):
         """Run __post_init__ hooks for auto-composition."""
-        # Call self.__post_init__ if present (Python standard naming)
-        if hasattr(self, "__post_init__"):
-            self.__post_init__()
-
         # Call __post_init__ on other wrapper bases
         if hasattr(self, "_wrapper_bases"):
-            for base in self._wrapper_bases:
+            for base in self._wrapper_bases[::-1]:
                 if hasattr(base, "__post_init__"):
                     base.__post_init__(self)
+        self.__post_init__(**props)
 
-    def __post_init__(self):
+    def __post_init__(self, **props):
         """
         Post-initialization hook for wrapper setup.
 
@@ -226,7 +223,7 @@ class Spatial(Wrapper):
         other_xyz = other.xyz if hasattr(other, "xyz") else other
         return float(np.linalg.norm(self.xyz - other_xyz))
 
-    def move(self, vector: ArrayLike) -> None:
+    def move(self, vector: ArrayLike) -> Self:
         """
         Translate the entity by a given vector.
 
@@ -235,9 +232,11 @@ class Spatial(Wrapper):
         """
         self.xyz = self.xyz + np.array(vector)
 
+        return self
+
     def move_to(
         self, target_position: ArrayLike, reference_atom_index: int = 0
-    ) -> None:
+    ) -> Self:
         """
         Move the entity so that a reference atom is at the target position.
         All other atoms maintain their relative positions.
@@ -262,7 +261,9 @@ class Spatial(Wrapper):
             self.atoms[reference_atom_index]["xyz"], target_position
         ), f"Reference atom not moved to target position. Expected {target_position}, got {self.atoms[reference_atom_index]['xyz']}"
 
-    def scale(self, factor: float | ArrayLike, origin: ArrayLike | None = None) -> None:
+        return self
+
+    def scale(self, factor: float | ArrayLike, origin: ArrayLike | None = None) -> Self:
         """
         Scale the entity by a given factor around an origin.
 
@@ -277,10 +278,11 @@ class Spatial(Wrapper):
 
         factor = np.array(factor)
         self.xyz = origin + factor * (self.xyz - origin)
+        return self
 
     def rotate(
         self, axis: ArrayLike, angle: float, origin: ArrayLike | None = None
-    ) -> None:
+    ) -> Self:
         """
         Rotate the entity around an axis by a given angle.
 
@@ -300,6 +302,7 @@ class Spatial(Wrapper):
             rotated = rotated[0]
         rotated = np.where(np.abs(rotated) < 1e-12, 0.0, rotated)
         self.xyz = origin + rotated
+        return self
 
     def rotate_with_matrix(self, R: np.ndarray):
         """
@@ -347,7 +350,7 @@ class Spatial(Wrapper):
         return new_instance
 
 
-class HierarchyWrapper(Wrapper):
+class Hierarchy(Wrapper):
     """
     Wrapper class providing hierarchical structure functionality.
 
@@ -355,7 +358,10 @@ class HierarchyWrapper(Wrapper):
     methods for navigating and manipulating the hierarchy.
     """
 
-    def __init__(self, wrapped):
+    _parent: Wrapper | None
+    _children: list[Wrapper]
+
+    def __init__(self, wrapped=None):
         """
         Initialize hierarchy wrapper.
 
@@ -399,19 +405,18 @@ class HierarchyWrapper(Wrapper):
         parent_depth = self.parent.depth if hasattr(self.parent, "depth") else 0
         return parent_depth + 1
 
-    def add_child(self, child) -> None:
+    def add_child(self, child) -> Self:
         """
         Add a child entity to this entity.
 
         Args:
             child: The child entity to add (can be wrapped or unwrapped)
         """
-        # Get the underlying entity if child is wrapped
-        child_entity = child.unwrap() if hasattr(child, "unwrap") else child
-
-        if child_entity not in self._wrapped._children:
-            self._wrapped._children.append(child_entity)
-            child_entity._parent = self._wrapped
+        self._children.append(child)
+        self.merge(child)
+        if isinstance(child, Hierarchy):
+            child._parent = self
+        return child
 
     def remove_child(self, child) -> None:
         """
@@ -471,7 +476,7 @@ class HierarchyWrapper(Wrapper):
                 descendants.extend(child.get_descendants())
             elif hasattr(child, "_children"):
                 # Recursively get descendants for unwrapped children
-                child_wrapper = HierarchyWrapper(child)
+                child_wrapper = Hierarchy(child)
                 descendants.extend(child_wrapper.get_descendants())
         return descendants
 
@@ -493,7 +498,7 @@ class HierarchyWrapper(Wrapper):
                 return child
             # Recursively search child's descendants
             if hasattr(child, "_children"):
-                child_wrapper = HierarchyWrapper(child)
+                child_wrapper = Hierarchy(child)
                 found = child_wrapper.find_by_condition(condition)
                 if found:
                     return found
