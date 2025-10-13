@@ -1,21 +1,65 @@
 import re
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Union
 
 import numpy as np
 
 from molpy.core import Block, Box, Frame
 
-from .base import BaseTrajectoryReader, FrameLocation, TrajectoryWriter
+from .base import BaseTrajectoryReader, FrameLocation, PathLike, TrajectoryWriter
+
+column_type_mappings = {
+    "id": int,
+    "type": int,
+    "typelabel": str,
+    "mol": int,
+    "x": float,
+    "y": float,
+    "z": float,
+    "xu": float,
+    "yu": float,
+    "zu": float,
+    "xs": float,
+    "ys": float,
+    "zs": float,
+    "vx": float,
+    "vy": float,
+    "vz": float,
+    "fx": float,
+    "fy": float,
+    "fz": float,
+    "q": float,
+    "mux": float,
+    "muy": float,
+    "muz": float,
+    "radius": float,
+    "diameter": float,
+    "omegax": float,
+    "omegay": float,
+    "omegaz": float,
+    "angmomx": float,
+    "angmomy": float,
+    "angmomz": float,
+    "tqx": float,
+    "tqy": float,
+    "tqz": float,
+}
 
 
 class LammpsTrajectoryReader(BaseTrajectoryReader):
     """Reader for LAMMPS trajectory files, supporting multiple files."""
 
-    def __init__(self, fpath: Union[str, Path, List[str], List[Path]]):
+    def __init__(
+        self,
+        fpath: PathLike | list[PathLike],
+        frame: Frame | None = None,
+        extra_type_mappings: dict | None = None,
+    ):
         # Pass the fpath (single or multiple) to the base class
         super().__init__(fpath)
+        self.frame = frame
+        if extra_type_mappings:
+            column_type_mappings.update(extra_type_mappings)
 
     def _parse_trajectory(self, file_index: int):
         """Parse trajectory file at given index and update frame count."""
@@ -53,7 +97,7 @@ class LammpsTrajectoryReader(BaseTrajectoryReader):
 
         self._total_frames += len(frame_offsets)
 
-    def _parse_frame(self, frame_lines: List[str]) -> Frame:
+    def _parse_frame(self, frame_lines: list[str]) -> Frame:
         """Parse frame lines into a Frame object."""
 
         header = []
@@ -108,34 +152,22 @@ class LammpsTrajectoryReader(BaseTrajectoryReader):
         # Create box
         box = Box(matrix=box_matrix, origin=origin)
 
-        frame = Frame(timestep=timestep)
+        # frame = Frame(timestep=timestep)
+        frame = self.frame if self.frame is not None else Frame()
+        frame.metadata["timestep"] = timestep
         frame["atoms"] = Block.from_csv(
             StringIO("\n".join(frame_lines[data_start:])), header=header, delimiter=" "
         )
 
-        # 优化后的列类型映射 - 更加智能的类型推断
-        int_columns = ["id", "type", "mol"]
-        str_columns = []
-        field_type_mappings = {c: int for c in int_columns} | {
-            c: str for c in str_columns
-        }
-
+        # Cast columns using predefined type mappings only
         for col_name in header:
-            if col_name in field_type_mappings:
-                try:
-                    frame["atoms"][col_name] = frame["atoms"][col_name].astype(
-                        field_type_mappings[col_name]
-                    )
-                except (ValueError, TypeError):
-                    # 如果转换失败，保持原始类型
-                    pass
-            else:
-                # 对于其他列，尝试转换为浮点数，失败则保持原样
-                try:
-                    frame["atoms"][col_name] = frame["atoms"][col_name].astype(float)
-                except (ValueError, TypeError):
-                    # 保持原始类型（可能是字符串）
-                    pass
+            dtype = column_type_mappings.get(col_name)
+            if dtype is None:
+                continue
+            try:
+                frame["atoms"][col_name] = frame["atoms"][col_name].astype(dtype)
+            except (ValueError, TypeError):
+                pass
 
         frame.metadata["box"] = box
         return frame
@@ -144,16 +176,18 @@ class LammpsTrajectoryReader(BaseTrajectoryReader):
 class LammpsTrajectoryWriter(TrajectoryWriter):
     """Writer for LAMMPS trajectory files."""
 
-    def __init__(self, fpath: Union[str, Path], atom_style: str = "full"):
+    def __init__(self, fpath: str | Path, atom_style: str = "full"):
         super().__init__(fpath)
         self.atom_style = atom_style
 
-    def write_frame(self, frame: "Frame", timestep: Optional[int] = None):
+    def write_frame(self, frame: "Frame", timestep: int | None = None):
         """Write a single frame to the file."""
         if timestep is None:
             timestep = frame.metadata.get("timestep", 0)
 
         # Write timestep
+        if self._fp is None:
+            raise ValueError("File is not open for writing.")
         self._fp.write(f"ITEM: TIMESTEP\n{timestep}\n".encode())
 
         # Write number of atoms

@@ -358,7 +358,7 @@ class TestRegionWithBlock:
 
     def test_region_as_selection(self):
         """Test that Region works as a MaskPredicate/Selection."""
-        from molpy.core.selection import AtomTypeSelection
+        from molpy.core.selector import AtomTypeSelector
 
         block = Block(
             {
@@ -374,7 +374,7 @@ class TestRegionWithBlock:
         )
 
         box = BoxRegion(np.array([2.0, 2.0, 2.0]))
-        type1 = AtomTypeSelection(1)
+        type1 = AtomTypeSelector(1)
 
         # Test region and selection separately first
         box_filtered = box(block)
@@ -387,5 +387,5 @@ class TestRegionWithBlock:
         assert len(type_filtered["type"]) == 2  # Type 1 atoms
         assert np.all(type_filtered["type"] == 1)
 
-        # Note: Direct composition of Region & AtomTypeSelection requires
+        # Note: Direct composition of Region & AtomTypeSelector requires
         # both to implement the same interface consistently

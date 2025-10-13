@@ -13,7 +13,6 @@ import numpy as np
 from molpy.core.box import Box
 from molpy.core.element import Element
 from molpy.core.frame import Block, Frame
-from molpy.core.system import FrameSystem
 
 from .base import DataReader, DataWriter
 
@@ -34,18 +33,18 @@ class XsfReader(DataReader):
         super().__init__(Path(file))
         self._file = Path(file)
 
-    def read(self) -> FrameSystem:
+    def read(self, frame: Frame | None = None) -> Frame:
         """
-        Read XSF file and return FrameSystem.
+        Read XSF file and return Frame.
 
         Returns
         -------
-        FrameSystem
-            FrameSystem with:
+        Frame
+            Frame with:
             - frame containing atomic data
             - box: unit cell for CRYSTAL, Free Box for MOLECULE
         """
-        frame = Frame()
+        frame = Frame() if frame is None else frame
 
         lines = self.read_lines()
         lines = [line.strip() for line in lines if line.strip()]
@@ -107,12 +106,14 @@ class XsfReader(DataReader):
         # Create atoms block
         if atoms_data:
             atoms_dict = {
-                "atomic_number": [atom["atomic_number"] for atom in atoms_data],
-                "xyz": [atom["xyz"] for atom in atoms_data],
-                "element": [atom["element"] for atom in atoms_data],
-                "x": [atom["xyz"][0] for atom in atoms_data],
-                "y": [atom["xyz"][1] for atom in atoms_data],
-                "z": [atom["xyz"][2] for atom in atoms_data],
+                "atomic_number": np.array(
+                    [atom["atomic_number"] for atom in atoms_data]
+                ),
+                "xyz": np.array([atom["xyz"] for atom in atoms_data]),
+                "element": np.array([atom["element"] for atom in atoms_data]),
+                "x": np.array([atom["xyz"][0] for atom in atoms_data]),
+                "y": np.array([atom["xyz"][1] for atom in atoms_data]),
+                "z": np.array([atom["xyz"][2] for atom in atoms_data]),
             }
             frame["atoms"] = Block(atoms_dict)
 
@@ -129,8 +130,9 @@ class XsfReader(DataReader):
             # For molecular structures, use free box
             box = Box()  # Free box for non-periodic molecules
 
-        system = FrameSystem(frame=frame, box=box)
-        return system
+        frame.metadata["box"] = box
+
+        return frame
 
     def _parse_vectors(self, lines: list[str]) -> np.ndarray:
         """Parse 3 lines of box vectors."""
@@ -197,17 +199,16 @@ class XsfWriter(DataWriter):
         super().__init__(Path(file))
         self._file = Path(file)
 
-    def write(self, system: FrameSystem) -> None:
+    def write(self, frame: Frame) -> None:
         """
-        Write FrameSystem to XSF file.
+        Write Frame to XSF file.
 
         Parameters
         ----------
-        system : FrameSystem
-            FrameSystem containing atomic data and optional box information
+        frame : Frame
+            Frame containing atomic data and optional box information
         """
-        frame = system._wrapped
-        box = system.box
+        box: Box | None = frame.metadata.get("box", None)
 
         with open(self._file, "w") as f:
             # Write header comment
@@ -216,9 +217,8 @@ class XsfWriter(DataWriter):
             # Determine structure type
             has_box = (
                 box is not None
-                and hasattr(box, "matrix")
+                and box.style != Box.Style.FREE
                 and box.matrix is not None
-                and not np.allclose(box.matrix, 0)
             )
 
             if has_box:

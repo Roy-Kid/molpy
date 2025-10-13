@@ -15,7 +15,7 @@ from typing import Iterable, Self
 import numpy as np
 
 from .frame import Frame
-from .protocol import Entities, Entity
+from .protocol import Entities, Entity, Struct
 from .topology import Topology
 from .utils import to_dict_of_list, to_list_of_dict
 from .wrapper import Wrapper
@@ -78,17 +78,33 @@ class ManyBody(Entity):
 class Bond(ManyBody):
     """Class representing a bond between two atoms."""
 
-    def __init__(self, itom=None, jtom=None, **kwargs):
+    def __init__(
+        self,
+        itom: Atom | None = None,
+        jtom: Atom | None = None,
+        atom1: Atom | None = None,
+        atom2: Atom | None = None,
+        **kwargs,
+    ):
         """
         Initialize a bond between two atoms.
 
         Args:
-            itom: First atom in the bond
-            jtom: Second atom in the bond
+            itom: First atom in the bond (alias: atom1)
+            jtom: Second atom in the bond (alias: atom2)
+            atom1: Alternative name for itom
+            atom2: Alternative name for jtom
             **kwargs: Additional properties (e.g., bond_type, length)
         """
+        # Support both naming conventions
+        itom = itom if itom is not None else atom1
+        jtom = jtom if jtom is not None else atom2
+
+        if itom is None or jtom is None:
+            raise ValueError("Both atoms must be provided")
         if itom is jtom:
             raise ValueError("Cannot create bond between same atom")
+
         sorted_atoms = sorted([itom, jtom], key=lambda a: id(a))
         super().__init__(*sorted_atoms, **kwargs)
 
@@ -282,7 +298,12 @@ class Atomistic(Wrapper):
     for spatial operations and hierarchical management.
     """
 
-    def __init__(self, **props):
+    def __init__(
+        self,
+        wrapped: Struct | None = None,
+        key_mapping: dict[str, str] | None = None,
+        **props,
+    ):
         """
         Initialize an atomic structure.
 
@@ -290,23 +311,39 @@ class Atomistic(Wrapper):
             name: Structure name
             **props: Additional properties
         """
-        super().__init__(**props)
+        wrapped = wrapped or Struct()
+        # Initialize collections before calling super().__init__
+        # so they're available in __post_init__
+        if "atoms" not in wrapped:
+            wrapped["atoms"] = Entities[Atom]()
+        if "bonds" not in wrapped:
+            wrapped["bonds"] = Entities[Bond]()
+        if "angles" not in wrapped:
+            wrapped["angles"] = Entities[Angle]()
+        if "dihedrals" not in wrapped:
+            wrapped["dihedrals"] = Entities[Dihedral]()
 
-    def __post_init__(self):
-        """Post-initialization hook to set up atomic structure collections."""
-        # Set up collections if they don't exist
-        if "atoms" not in self:
-            self["atoms"] = Entities[Atom]()
-        if "bonds" not in self:
-            self["bonds"] = Entities[Bond]()
-        if "angles" not in self:
-            self["angles"] = Entities[Angle]()
-        if "dihedrals" not in self:
-            self["dihedrals"] = Entities[Dihedral]()
+        super().__init__(wrapped=wrapped, key_mapping=key_mapping, **props)
 
     def __repr__(self) -> str:
         """Return a string representation of the structure."""
         return f"<Atomistic: {len(self.atoms)} atoms>"
+
+    @property
+    def xyz(self) -> np.ndarray:
+        """
+        Get coordinates of all atoms.
+        """
+        atoms = self["atoms"]
+        return np.array([atom["xyz"] for atom in atoms])
+
+    @xyz.setter
+    def xyz(self, value: np.ndarray) -> None:
+        """
+        Set coordinates for atoms.
+        """
+        for i, atom in enumerate(self["atoms"]):
+            atom["xyz"] = value[i]
 
     @property
     def atoms(self) -> Entities[Atom]:
@@ -616,10 +653,10 @@ class Atomistic(Wrapper):
         Returns:
             New structure containing all input structures
         """
-        result = cls(**new_prop)
+        new_struct = cls(**new_prop)
         for struct in structs:
-            result.add_struct(struct)
-        return result
+            new_struct.merge(struct)
+        return new_struct
 
     def to_dict(self):
 
@@ -812,7 +849,7 @@ class Atomistic(Wrapper):
 
         atom_mapping = {}
         for old_atom in self.atoms:
-            new_atom = Atom(**copy.deepcopy(old_atom.to_dict()))
+            new_atom = copy.deepcopy(old_atom)
             new_instance.add_atom(new_atom)
             atom_mapping[old_atom] = new_atom
 

@@ -1,6 +1,6 @@
 from itertools import islice
 from pathlib import Path
-from typing import Iterator, TextIO, Union
+from typing import Iterator, TextIO
 
 import molpy as mp
 from molpy.core.forcefield import ForceField
@@ -13,9 +13,9 @@ class LAMMPSForceFieldReader:
         self.scripts = scripts if isinstance(scripts, list) else [scripts]
         self.data = data
 
-    def read(self, system) -> ForceField:
+    def read(self, forcefield: ForceField) -> ForceField:
 
-        self.forcefield: ForceField = system.forcefield
+        self.forcefield: ForceField = forcefield
         lines = []
         for script in self.scripts:
             with open(script, "r") as f:
@@ -24,11 +24,16 @@ class LAMMPSForceFieldReader:
             lines.extend(f.readlines())
         lines = filter(lambda line: line, map(LAMMPSForceFieldReader.sanitizer, lines))
         n_pairtypes = 0
+        n_atomtypes = 0
+        n_bondtypes = 0
+        n_angletypes = 0
+        n_dihedraltypes = 0
+        n_impropertypes = 0
         for line in lines:
             kw = line[0]
 
             if kw == "units":
-                self.forcefield.unit = line[1]
+                forcefield.units = line[1]
 
             elif kw == "bond_style":
                 self.read_bondstyle(line[1:])
@@ -95,7 +100,7 @@ class LAMMPSForceFieldReader:
                         dihedralstyle_name = line[line.index("#") + 1]
                     else:
                         if isinstance(self.dihedralstyle, list):
-                            dihedralstyle_name = None
+                            dihedralstyle_name = ""
                         else:
                             dihedralstyle_name = self.dihedralstyle.name
                     self.read_dihedral_coeff_section(
@@ -159,10 +164,10 @@ class LAMMPSForceFieldReader:
         #     f"Number of pair types mismatch: {self.forcefield.n_pairtypes} != {n_atomtypes * n_atomtypes}"
         # )
 
-        return system
+        return self.forcefield
 
     @staticmethod
-    def sanitizer(line: str) -> str:
+    def sanitizer(line: str) -> list[str]:
         return line.split()
 
     def read_atomstyle(self, line):
@@ -231,21 +236,21 @@ class LAMMPSForceFieldReader:
     def read_mass_line(self, line: list[str]):
         return line[0], float(line[1])
 
-    def read_bondcoeff_section(self, stylename: str, lines: Iterator[str]):
+    def read_bondcoeff_section(self, stylename: str, lines: islice):
         bondstyle = self.forcefield.get_bondstyle(stylename)
         if bondstyle is None:
             bondstyle = self.forcefield.def_bondstyle(stylename)
         for line in lines:
             self.read_bondcoeff(bondstyle, line)
 
-    def read_angle_coeff_section(self, stylename: str, lines: Iterator[str]):
+    def read_angle_coeff_section(self, stylename: str, lines: islice):
         anglestyle = self.forcefield.get_anglestyle(stylename)
         if anglestyle is None:
             anglestyle = self.forcefield.def_anglestyle(stylename)
         for line in lines:
             self.read_angle_coeff(anglestyle, line)
 
-    def read_dihedral_coeff_section(self, stylename: str, lines: Iterator[str]):
+    def read_dihedral_coeff_section(self, stylename: str, lines: islice):
         if stylename is not None:
             dihedralstyle = self.forcefield.get_dihedralstyle(stylename)
             if dihedralstyle is None:
@@ -255,7 +260,7 @@ class LAMMPSForceFieldReader:
         for line in lines:
             self.read_dihedral_coeff(dihedralstyle, line)
 
-    def read_improper_coeff_section(self, stylename: str, lines: Iterator[str]):
+    def read_improper_coeff_section(self, stylename: str, lines: islice):
         improperstyle = self.forcefield.get_improperstyle(stylename)
         if improperstyle is None:
             improperstyle = self.forcefield.def_improperstyle(stylename)
@@ -265,7 +270,7 @@ class LAMMPSForceFieldReader:
                 break
             self.read_improper_coeff(improperstyle, line)
 
-    def read_pair_coeff_section(self, stylename: str, lines: Iterator[str]):
+    def read_pair_coeff_section(self, stylename: str, lines: islice):
         pairstyle = self.forcefield.get_pairstyle(stylename)
         if pairstyle is None:
             pairstyle = self.forcefield.def_pairstyle(stylename)
@@ -407,7 +412,7 @@ class LAMMPSForceFieldReader:
 
 
 class LAMMPSForceFieldWriter:
-    def __init__(self, fpath: Union[str, Path, TextIO], precision: int = 6):
+    def __init__(self, fpath: str | Path | TextIO, precision: int = 6):
         self.precision = precision
         self._fpath = fpath
 

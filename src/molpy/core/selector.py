@@ -8,11 +8,11 @@ if TYPE_CHECKING:
 
 __all__ = [
     "MaskPredicate",
-    "AtomTypeSelection",
-    "AtomIndexSelection",
-    "ElementSelection",
-    "CoordinateRangeSelection",
-    "DistanceSelection",
+    "AtomTypeSelector",
+    "AtomIndexSelector",
+    "ElementSelector",
+    "CoordinateRangeSelector",
+    "DistanceSelector",
 ]
 
 
@@ -39,12 +39,15 @@ class MaskPredicate(ABC):
     __ror__ = __or__
 
 
-class AtomTypeSelection(MaskPredicate):
+Selector = MaskPredicate
+
+
+class AtomTypeSelector(MaskPredicate):
     """Select atoms by their type (integer or string)."""
 
     def __init__(self, atom_type: Union[int, str], field: str = "type"):
         """
-        Initialize atom type selection.
+        Initialize atom type Selector.
 
         Args:
             atom_type: The atom type to select (integer or string)
@@ -58,12 +61,12 @@ class AtomTypeSelection(MaskPredicate):
         return block[self.field] == self.atom_type
 
 
-class AtomIndexSelection(MaskPredicate):
+class AtomIndexSelector(MaskPredicate):
     """Select atoms by their indices."""
 
     def __init__(self, indices: Union[List[int], np.ndarray], id_field: str = "id"):
         """
-        Initialize atom index selection.
+        Initialize atom index Selector.
 
         Args:
             indices: List or array of atom indices to select
@@ -85,12 +88,12 @@ class AtomIndexSelection(MaskPredicate):
         return np.isin(block[self.id_field], self.indices)
 
 
-class ElementSelection(MaskPredicate):
+class ElementSelector(MaskPredicate):
     """Select atoms by their element symbol."""
 
     def __init__(self, element: str, field: str = "element"):
         """
-        Initialize element selection.
+        Initialize element Selector.
 
         Args:
             element: The element symbol to select (e.g., "C", "H", "O")
@@ -107,7 +110,7 @@ class ElementSelection(MaskPredicate):
         return block[self.field] == self.element
 
 
-class CoordinateRangeSelection(MaskPredicate):
+class CoordinateRangeSelector(MaskPredicate):
     """Select atoms within a coordinate range."""
 
     def __init__(
@@ -117,7 +120,7 @@ class CoordinateRangeSelection(MaskPredicate):
         max_value: Optional[float] = None,
     ):
         """
-        Initialize coordinate range selection.
+        Initialize coordinate range Selector.
 
         Args:
             axis: The coordinate axis ("x", "y", or "z")
@@ -150,7 +153,7 @@ class CoordinateRangeSelection(MaskPredicate):
         return mask
 
 
-class DistanceSelection(MaskPredicate):
+class DistanceSelector(MaskPredicate):
     """Select atoms within a distance from a reference point."""
 
     def __init__(
@@ -160,7 +163,7 @@ class DistanceSelection(MaskPredicate):
         min_distance: Optional[float] = None,
     ):
         """
-        Initialize distance-based selection.
+        Initialize distance-based Selector.
 
         Args:
             center: Reference point [x, y, z]
@@ -237,7 +240,3 @@ class _Not(MaskPredicate):
 
     def mask(self, block: "Block") -> np.ndarray:
         return ~self.a.mask(block)
-
-
-# Backward compatible alias
-Selection = MaskPredicate

@@ -5,7 +5,7 @@ from .forcefield import *
 from .frame import *
 from .protocol import *
 from .region import *
-from .selection import *
+from .selector import *
 from .system import *
 from .topology import *
 from .trajectory import *

@@ -6,6 +6,7 @@ to molecular entities. Replaces the old mixin-based approach with a more
 flexible composition pattern.
 """
 
+import copy
 from typing import Any, Callable, Generic, Self, TypeVar
 
 import numpy as np
@@ -31,14 +32,13 @@ class Wrapper(Generic[T]):
         """Record other Wrapper bases from MRO for auto-composition."""
         instance = super().__new__(cls)
 
-        # Find other Wrapper bases from MRO, but only MolPy wrapper classes
+        # Find other Wrapper bases from MRO (excluding the current class and base Wrapper)
         wrapper_bases = []
-        for base in cls.__mro__:
+        for base in cls.__mro__[1:]:  # Skip cls itself
             if (
                 issubclass(base, Wrapper)
                 and base != Wrapper
-                and base != cls
-                and base.__module__.startswith("molpy.")
+                and base not in wrapper_bases  # Avoid duplicates
             ):
                 wrapper_bases.append(base)
 
@@ -62,27 +62,56 @@ class Wrapper(Generic[T]):
             key_mapping: Optional key mapping for delegation
             **props: Properties to pass to Struct if wrapped is None
         """
-        # Create/attach wrapped entity
-        if wrapped is None:
-            self._wrapped = Struct()
-        else:
-            self._wrapped = wrapped
-
+        self._wrapped = wrapped
         self._key_mapping = key_mapping if key_mapping else {}
 
         # Run __post_init__ hooks for auto-composition
         if not self._wrappers_initialized:
-            self._run_post_init_hooks(**props)
+            remaining_props = self._run_post_init_hooks(**props)
+
+            # If no wrapped entity, create a Struct with remaining props
+            if self._wrapped is None:
+                self._wrapped = Struct(**remaining_props)
+            # Otherwise, assign remaining props to the innermost Struct
+            elif remaining_props:
+                innermost = self._get_innermost()
+                for k, v in remaining_props.items():
+                    innermost[k] = v
+
             self._wrappers_initialized = True
 
     def _run_post_init_hooks(self, **props):
-        """Run __post_init__ hooks for auto-composition."""
-        # Call __post_init__ on other wrapper bases
-        if hasattr(self, "_wrapper_bases"):
-            for base in self._wrapper_bases[::-1]:
-                if hasattr(base, "__post_init__"):
-                    base.__post_init__(self)
-        self.__post_init__(**props)
+        """
+        Run __post_init__ hooks for auto-composition.
+
+        Each wrapper's __post_init__ can consume (pop) kwargs it needs.
+        Remaining kwargs are passed down and eventually assigned to innermost Struct.
+
+        The __post_init__ methods are called following MRO order (most derived first).
+        Each can pop kwargs and return the remaining dict.
+
+        Returns:
+            dict: Remaining props after all __post_init__ calls
+        """
+        remaining_props = dict(props)
+
+        # Get all __post_init__ methods in MRO order
+        # We want to call them from most derived to least derived
+        post_inits = []
+        for klass in type(self).__mro__:
+            if klass is object:
+                continue
+            # Only get __post_init__ defined directly on this class
+            if "__post_init__" in klass.__dict__:
+                post_inits.append(klass.__post_init__)
+
+        # Call each __post_init__ in order
+        for post_init_method in post_inits:
+            result = post_init_method(self, **remaining_props)
+            if result is not None:
+                remaining_props = result
+
+        return remaining_props
 
     def __post_init__(self, **props):
         """
@@ -90,54 +119,284 @@ class Wrapper(Generic[T]):
 
         Override this method in subclasses to perform one-time initialization
         that depends on the wrapped entity being fully constructed.
+
+        Subclasses should:
+        1. Pop any kwargs they need from props
+        2. Process those kwargs to set up wrapper-specific state
+        3. Return the remaining props dict (or None to keep all remaining)
+
+        Args:
+            **props: Properties passed during initialization
+
+        Returns:
+            dict or None: Remaining props to pass down, or None to keep all
         """
-        pass
+        return props
 
     def unwrap(self) -> T:
         """Get the wrapped entity."""
         return self._wrapped
 
-    def __getattr__(self, name: str) -> Any:
-        """Delegate attribute access to the wrapped entity."""
-        # For dict-like objects (like Struct), try to get as key first
+    def _get_innermost(self) -> Any:
+        """Get the innermost (unwrapped) entity in the wrapper chain."""
         try:
-            # Check if it's a dict-like object by trying to access as key
-            return self._wrapped[name]  # type: ignore[attr-defined]
-        except (KeyError, TypeError, AttributeError):
-            # Not a dict-like object or key doesn't exist, try attribute access
-            pass
+            obj = object.__getattribute__(self, "_wrapped")
+        except AttributeError:
+            return None
 
-        # Try direct attribute access
-        if hasattr(self._wrapped, name):
-            return getattr(self._wrapped, name)
+        if obj is None:
+            return None
 
-        # Fall back to attribute access (this will raise AttributeError if not found)
-        return getattr(self._wrapped, name)
+        while isinstance(obj, Wrapper):
+            obj = obj._wrapped
+        return obj
+
+    def __getattr__(self, name: str):
+        """
+        Get attribute by searching through wrapper chain.
+
+        Searches from outer to inner layers, raising AttributeError if not found.
+        """
+        sentinel = object()
+
+        # Access _wrapped using object.__getattribute__ to avoid recursion
+        try:
+            obj = object.__getattribute__(self, "_wrapped")
+        except AttributeError:
+            raise AttributeError(f"{type(self).__name__} has no attribute {name!r}")
+
+        if obj is None:
+            raise AttributeError(f"{type(self).__name__} has no attribute {name!r}")
+
+        seen = set()
+
+        while True:
+            oid = id(obj)
+            if oid in seen:
+                raise RuntimeError("cycle detected in _wrapped chain")
+            seen.add(oid)
+
+            try:
+                return obj[name]  # dict / dict-like
+            except (KeyError, TypeError, AttributeError):
+                pass
+
+            val = getattr(obj, name, sentinel)
+            if val is not sentinel:
+                return val
+
+            next_obj = getattr(obj, "_wrapped", sentinel)
+            if next_obj is sentinel:
+                break
+            obj = next_obj
+
+        raise AttributeError(
+            f"{type(self).__name__} (and its wrapped chain) has no attribute {name!r}"
+        )
 
     def __setattr__(self, name: str, value: Any) -> None:
-        """Set attributes on wrapper or delegate to wrapped entity."""
-        if name.startswith("_") or name in self.__dict__ or hasattr(type(self), name):
+        """
+        Set attribute by searching from outer to inner layers.
+
+        Private attributes (_*) are set on the wrapper itself.
+        For other attributes:
+        - If exists in any layer, update it there
+        - If doesn't exist, assign to innermost Struct
+        """
+        # Private attributes and class properties go to wrapper
+        if name.startswith("_") or hasattr(type(self), name):
             super().__setattr__(name, value)
+            return
+
+        # If attribute already exists in wrapper's __dict__, update it
+        try:
+            wrapper_dict = object.__getattribute__(self, "__dict__")
+            if name in wrapper_dict:
+                super().__setattr__(name, value)
+                return
+        except AttributeError:
+            pass
+
+        # Get _wrapped using object.__getattribute__ to avoid recursion
+        try:
+            obj = object.__getattribute__(self, "_wrapped")
+        except AttributeError:
+            # During __init__, _wrapped might not exist yet
+            super().__setattr__(name, value)
+            return
+
+        # If _wrapped is None (during initialization), set on wrapper
+        if obj is None:
+            super().__setattr__(name, value)
+            return
+
+        # Search through wrapper chain for existing attribute
+        seen = set()
+
+        while obj is not None:
+            oid = id(obj)
+            if oid in seen:
+                raise RuntimeError("cycle detected in _wrapped chain")
+            seen.add(oid)
+
+            # Check if attribute exists in current layer
+            if hasattr(obj, name):
+                setattr(obj, name, value)
+                return
+
+            # Check if it's dict-like and contains the key
+            if hasattr(obj, "__contains__") and name in obj:
+                obj[name] = value
+                return
+
+            # Move to next layer
+            obj = getattr(obj, "_wrapped", None)
+
+        # Attribute not found anywhere, assign to innermost
+        innermost = self._get_innermost()
+        if innermost is not None:
+            if hasattr(innermost, "__setitem__"):
+                innermost[name] = value
+            else:
+                setattr(innermost, name, value)
         else:
-            setattr(self._wrapped, name, value)
+            # If no innermost exists (during initialization), set on wrapper
+            super().__setattr__(name, value)
 
     def __getitem__(self, key, /):
-        """Delegate item access to the wrapped entity."""
+        """
+        Get item by searching from outer to inner layers.
+
+        Searches through the wrapper chain from outermost to innermost,
+        raising KeyError if not found anywhere.
+        """
         if key in self._key_mapping:
             key = self._key_mapping[key]
-        return self._wrapped[key]  # type: ignore[attr-defined]
+
+        # Search through wrapper chain from outer to inner
+        obj = self
+        seen = set()
+
+        while True:
+            oid = id(obj)
+            if oid in seen:
+                raise RuntimeError("cycle detected in _wrapped chain")
+            seen.add(oid)
+
+            # Try direct __dict__ access first (for wrapper's own attributes)
+            if hasattr(obj, "__dict__") and key in obj.__dict__:
+                return obj.__dict__[key]
+
+            # Try dict-like access
+            if hasattr(obj, "_wrapped"):
+                wrapped = obj._wrapped
+                if hasattr(wrapped, "__getitem__"):
+                    try:
+                        return wrapped[key]
+                    except (KeyError, TypeError):
+                        pass
+
+                # Move to next layer
+                if isinstance(wrapped, Wrapper):
+                    obj = wrapped
+                    continue
+                else:
+                    # Reached innermost non-wrapper, try one more time
+                    if hasattr(wrapped, "__getitem__"):
+                        return wrapped[key]  # Let it raise KeyError
+                    break
+            else:
+                break
+
+        raise KeyError(f"Key {key!r} not found in wrapper chain")
 
     def __setitem__(self, key: Any, value: Any) -> None:
-        """Set items on the wrapped entity."""
+        """
+        Set item by searching from outer to inner layers.
+
+        If key exists in any layer, update it there.
+        If key doesn't exist anywhere, assign to innermost Struct.
+        """
         if key in self._key_mapping:
             key = self._key_mapping[key]
-        self._wrapped[key] = value  # type: ignore[attr-defined]
+
+        # Search through wrapper chain to find existing key
+        obj = self
+        seen = set()
+
+        while True:
+            oid = id(obj)
+            if oid in seen:
+                raise RuntimeError("cycle detected in _wrapped chain")
+            seen.add(oid)
+
+            # Check if key exists in current layer's __dict__
+            if hasattr(obj, "__dict__") and key in obj.__dict__:
+                obj.__dict__[key] = value
+                return
+
+            # Check if key exists in wrapped entity
+            if hasattr(obj, "_wrapped"):
+                wrapped = obj._wrapped
+                if hasattr(wrapped, "__contains__") and key in wrapped:
+                    wrapped[key] = value
+                    return
+
+                # Move to next layer
+                if isinstance(wrapped, Wrapper):
+                    obj = wrapped
+                    continue
+                else:
+                    # Reached innermost, check one more time
+                    if hasattr(wrapped, "__contains__") and key in wrapped:
+                        wrapped[key] = value
+                        return
+                    break
+            else:
+                break
+
+        # Key not found anywhere, assign to innermost
+        innermost = self._get_innermost()
+        innermost[key] = value
 
     def __contains__(self, key: Any) -> bool:
-        """Check if the wrapped entity contains a key."""
+        """
+        Check if key exists anywhere in the wrapper chain.
+
+        Searches from outer to inner layers.
+        """
         if key in self._key_mapping:
             key = self._key_mapping[key]
-        return key in self._wrapped
+
+        # Search through wrapper chain
+        obj = self
+        seen = set()
+
+        while True:
+            oid = id(obj)
+            if oid in seen:
+                return False
+            seen.add(oid)
+
+            # Check wrapper's __dict__
+            if hasattr(obj, "__dict__") and key in obj.__dict__:
+                return True
+
+            # Check wrapped entity
+            if hasattr(obj, "_wrapped"):
+                wrapped = obj._wrapped
+                if hasattr(wrapped, "__contains__") and key in wrapped:
+                    return True
+
+                # Move to next layer
+                if isinstance(wrapped, Wrapper):
+                    obj = wrapped
+                    continue
+                else:
+                    # Reached innermost
+                    return hasattr(wrapped, "__contains__") and key in wrapped
+            else:
+                return False
 
     def get_stack(self) -> list[Any]:
         """
@@ -166,6 +425,21 @@ class Wrapper(Generic[T]):
         # subtract 1 if you don’t want to count the raw object
         return len(self.get_stack()) - 1
 
+    def copy(self: Self) -> Self:
+        """
+        Create a deep copy of the wrapper and its wrapped entity.
+
+        Always returns a complete deep copy, including all wrapper layers
+        and the innermost wrapped entity.
+
+        Returns:
+            A new instance with the same wrapper hierarchy and deep-copied data
+        """
+        return copy.deepcopy(self)
+
+    def __call__(self):
+        return self.copy()
+
 
 class Spatial(Wrapper):
     """
@@ -175,40 +449,15 @@ class Spatial(Wrapper):
     and can perform geometric transformations.
     """
 
-    def __post_init__(self):
-        """Post-initialization hook for spatial operations."""
-        # Can be no-op for now, or add any spatial-specific initialization
-        pass
+    def __post_init__(self, **props):
+        """
+        Initialize Spatial wrapper.
 
-    @property
-    def xyz(self) -> np.ndarray:
-        """Get the xyz coordinates as a numpy array."""
-        atoms = self.atoms
-        return np.array([atom["xyz"] for atom in atoms], dtype=float)
-
-    @xyz.setter
-    def xyz(self, value: ArrayLike) -> None:
-        """Set the xyz coordinates from an array-like object."""
-        new_xyz = np.array(value, dtype=float)
-        if new_xyz.shape[0] != len(self.atoms):
-            raise ValueError("New xyz coordinates must match the number of atoms.")
-        for i, atom in enumerate(self.atoms):
-            atom["xyz"] = new_xyz[i]
-
-    @property
-    def positions(self) -> np.ndarray:
-        """Get the positions as a numpy array (alias for xyz)."""
-        return self.xyz
-
-    @positions.setter
-    def positions(self, value: ArrayLike) -> None:
-        """Set the positions from an array-like object (alias for xyz)."""
-        self.xyz = value
-
-    @property
-    def symbols(self) -> list[str]:
-        """Get the symbols of all atoms in the structure."""
-        return [atom.get("symbol", atom.get("name", "")) for atom in self.atoms]
+        Can consume 'anchor' prop to specify default anchor point for move_to.
+        """
+        # Store anchor if provided (can be int index or coordinate)
+        self._anchor = props.pop("anchor", None)
+        return props
 
     def distance_to(self, other) -> float:
         """
@@ -220,8 +469,7 @@ class Spatial(Wrapper):
         Returns:
             The Euclidean distance between the two entities
         """
-        other_xyz = other.xyz if hasattr(other, "xyz") else other
-        return float(np.linalg.norm(self.xyz - other_xyz))
+        return float(np.linalg.norm(self.xyz - other.xyz))
 
     def move(self, vector: ArrayLike) -> Self:
         """
@@ -234,32 +482,52 @@ class Spatial(Wrapper):
 
         return self
 
-    def move_to(
-        self, target_position: ArrayLike, reference_atom_index: int = 0
-    ) -> Self:
+    def move_to(self, target: ArrayLike, anchor: ArrayLike | int | None = None) -> Self:
         """
         Move the entity so that a reference atom is at the target position.
         All other atoms maintain their relative positions.
 
         Args:
-            target_position: Target position for the reference atom
-            reference_atom_index: Index of the atom to use as reference (default: 0)
+            target: Target position for the reference atom
+            anchor: Either:
+                   - None: use self._anchor if set, otherwise use first atom (xyz[0])
+                   - int: use xyz[anchor] as reference point
+                   - ArrayLike: use this coordinate as reference point
         """
-        target_position = np.array(target_position, dtype=float)
+        target = np.array(target, dtype=float)
+
+        # Determine which anchor to use
+        if anchor is None and hasattr(self, "_anchor"):
+            anchor = self._anchor
 
         # Get current position of reference atom
-        current_reference_pos = self.atoms[reference_atom_index]["xyz"]
+        xyz = np.atleast_2d(self.xyz)  # Ensure 2D array for consistent indexing
+        if anchor is None:
+            anchor_pos = xyz[0]
+        elif isinstance(anchor, int):
+            anchor_pos = xyz[anchor]
+        else:
+            anchor_pos = np.array(anchor, dtype=float)
 
         # Calculate translation vector
-        translation_vector = target_position - current_reference_pos
+        translation_vector = target - anchor_pos
 
         # Apply translation
         self.move(translation_vector)
 
         # Verify the reference atom is now at target position
+        # (check the position that was used as anchor)
+        xyz_after = np.atleast_2d(self.xyz)
+        if isinstance(anchor, int):
+            new_pos = xyz_after[anchor]
+        elif anchor is None:
+            new_pos = xyz_after[0]
+        else:
+            new_pos = anchor_pos + translation_vector
+
         assert np.allclose(
-            self.atoms[reference_atom_index]["xyz"], target_position
-        ), f"Reference atom not moved to target position. Expected {target_position}, got {self.atoms[reference_atom_index]['xyz']}"
+            new_pos, target
+        ), f"Reference atom not moved to target position. Expected {target}, got {new_pos}"
 
         return self
 
@@ -302,6 +570,29 @@ class Spatial(Wrapper):
             rotated = rotated[0]
         rotated = np.where(np.abs(rotated) < 1e-12, 0.0, rotated)
         self.xyz = origin + rotated
+        return self
+
+    def rotate_to(
+        self, target_direction: ArrayLike, current_direction: ArrayLike
+    ) -> Self:
+        """
+        Rotate the entity so that a current direction aligns with a target direction.
+        Args:
+            target_direction: The desired direction vector after rotation.
+            current_direction: The current direction vector before rotation.
+        """
+        target_direction = np.array(target_direction, dtype=float)
+        current_direction = np.array(current_direction, dtype=float)
+        target_direction /= np.linalg.norm(target_direction)
+        current_direction /= np.linalg.norm(current_direction)
+        rotation_axis = np.cross(current_direction, target_direction)
+        if np.linalg.norm(rotation_axis) < 1e-12:
+            # Directions are parallel, no rotation needed
+            return self
+        rotation_axis /= np.linalg.norm(rotation_axis)
+        cos_angle = np.clip(np.dot(current_direction, target_direction), -1.0, 1.0)
+        angle = np.arccos(cos_angle)
+        self.rotate(rotation_axis, angle)
         return self
 
     def rotate_with_matrix(self, R: np.ndarray):
@@ -361,18 +652,28 @@ class Hierarchy(Wrapper):
     _parent: Wrapper | None
     _children: list[Wrapper]
 
-    def __init__(self, wrapped=None):
+    def __init__(self, wrapped=None, **props):
         """
         Initialize hierarchy wrapper.
 
         Args:
             wrapped: The entity to wrap
+            **props: Properties to pass to parent __init__
         """
-        super().__init__(wrapped)
+        super().__init__(wrapped, **props)
+
+    def __post_init__(self, **props):
+        """
+        Initialize Hierarchy wrapper.
+
+        Hierarchy doesn't consume any specific props, so pass them all down.
+        Also initializes parent/children if needed.
+        """
         if not hasattr(self._wrapped, "_parent"):
             self._wrapped._parent = None
         if not hasattr(self._wrapped, "_children"):
             self._wrapped._children = []
+        return props
 
     @property
     def parent(self):

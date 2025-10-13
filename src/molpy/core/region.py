@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from .frame import Block
-from .selection import MaskPredicate
+from .selector import MaskPredicate
 
 __all__ = [
     "Region",

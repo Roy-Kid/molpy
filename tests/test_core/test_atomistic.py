@@ -143,7 +143,6 @@ def assert_dihedrals_deepcopied(orig_dihedrals, copy_dihedrals, orig_atoms, copy
 
 
 class TestAtomisticDeepCopy:
-    """更正交、更全面的 Atomistic 深拷贝测试（不含 improper）"""
 
     def test_atom_bond_angle_dihedral_deepcopy(self):
         struct = mp.Atomistic(name="all_topo")

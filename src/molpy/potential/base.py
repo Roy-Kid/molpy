@@ -2,8 +2,21 @@ from collections import UserList
 
 import numpy as np
 
-from molpy.core.forcefield import KernelMeta
+from molpy.core.forcefield import ForceField
 from molpy.core.frame import Frame
+
+
+class KernelMeta(type):
+
+    def __new__(cls, clsname, bases, namespace, **kwargs):
+        cls = super().__new__(cls, clsname, bases, namespace)
+        typename = namespace.get("type", "root")
+        if typename not in ForceField._kernel_registry:
+            registry = ForceField._kernel_registry[typename] = {}
+        else:
+            registry = ForceField._kernel_registry[typename]
+        registry[namespace.get("name", clsname)] = cls
+        return cls
 
 
 class Potential(metaclass=KernelMeta):

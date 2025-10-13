@@ -7,11 +7,11 @@ from molpy.io.data.pdb import PDBReader, PDBWriter
 
 @pytest.fixture(scope="module")
 def pdb_test_files(TEST_DATA_DIR):
-    """Provide paths to PDB test files in chemfile-testcases/data/pdb."""
-    base = TEST_DATA_DIR / "data/pdb"
+    """Provide paths to PDB test files in chemfile-testcases/pdb."""
+    base = TEST_DATA_DIR / "pdb"
     files = list(base.glob("*.pdb"))
     if not files:
-        pytest.skip("No PDB test files found in chemfile-testcases/data/pdb")
+        pytest.skip("No PDB test files found in chemfile-testcases/pdb")
     return {f.name: f for f in files}
 
 

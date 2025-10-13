@@ -5,10 +5,10 @@ from typing import Callable
 from molpy.core.atomistic import Angle, Atom, Bond, Entity
 
 
-class DictWithList(UserDict):
+class DictWithList:
 
     def __init__(self, parms, kwparms):
-        super().__init__(kwparms)
+        self.kwparms = kwparms
         self.parms = parms
 
     def __getitem__(self, key: int | str):
@@ -23,7 +23,36 @@ class DictWithList(UserDict):
         """
         if isinstance(key, int):
             return self.parms[key]
-        return super().__getitem__(key)
+        return self.kwparms[key]
+
+    def __setitem__(self, key: int | str, value):
+        """
+        Set an item in the dictionary.
+
+        Args:
+            key (int|str): The key to set.
+            value: The value to associate with the key.
+        """
+        if isinstance(key, int):
+            if key < len(self.parms):
+                self.parms[key] = value
+            else:
+                raise IndexError("Index out of range")
+        else:
+            self.kwparms[key] = value
+
+    def __contains__(self, key: int | str) -> bool:
+        """
+        Check if the dictionary contains a key.
+
+        Args:
+            key (int|str): The key to check.
+        Returns:
+            bool: True if the key exists, False otherwise.
+        """
+        if isinstance(key, int):
+            return 0 <= key < len(self.parms)
+        return key in self.kwparms
 
 
 class Type(DictWithList):
@@ -97,7 +126,7 @@ class TypeContainer:
     def __init__(self):
         self._types = list()
 
-    def __getitem__(self, key: int | str) -> Type:
+    def __getitem__(self, key: int | str) -> Type | None:
         """
         Retrieve a type by its index or name.
 
@@ -279,7 +308,7 @@ class Style(DictWithList):
         Returns:
             Style: The updated Style object after merging.
         """
-        self.update(other)  # data
+        self.parms.extend(other.parms)
         self.types.update(other.types)
         return self
 
@@ -354,15 +383,6 @@ class AtomType(Type):
         if hasattr(other, "__getitem__") and "type" in other:
             return self.name == other["type"]
         return False
-
-    def apply(self, other: Atom):
-        """
-        Apply the atom type to the given atom.
-
-        Args:
-            other (Atom): The atom to apply the type to.
-        """
-        other.update(self)
 
 
 class BondType(Type):
@@ -1095,7 +1115,7 @@ class ForceField:
                 "parms": style.parms,
                 "types": [],
             }
-            result.update(style.data)  # Add any additional data from DictWithList
+            result.update(style)  # Add any additional data from DictWithList
 
             # Convert types to dictionaries
             for type_obj in style.types:
@@ -1327,7 +1347,7 @@ class ForceField:
 
         # Use style's parms and data as initialization parameters
         init_kwargs = {}
-        init_kwargs.update(style.data)  # Add style's data dictionary
+        init_kwargs.update(style)  # Add style's data dictionary
         init_kwargs.update(kwargs)  # Override with user-provided kwargs
 
         # Filter kwargs to only include parameters that the potential class accepts
@@ -1341,16 +1361,3 @@ class ForceField:
 
         # Create potential instance using filtered kwargs only
         return potential_class(**filtered_kwargs)
-
-
-class KernelMeta(type):
-
-    def __new__(cls, clsname, bases, namespace, **kwargs):
-        cls = super().__new__(cls, clsname, bases, namespace)
-        typename = namespace.get("type", "root")
-        if typename not in ForceField._kernel_registry:
-            registry = ForceField._kernel_registry[typename] = {}
-        else:
-            registry = ForceField._kernel_registry[typename]
-        registry[namespace.get("name", clsname)] = cls
-        return cls

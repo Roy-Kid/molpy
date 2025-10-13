@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.core.forcefield import ForceField, KernelMeta
-from molpy.potential import Potential
+from molpy.core.forcefield import ForceField
+from molpy.potential.base import KernelMeta, Potential
 
 
 class TestRegisterPotential:

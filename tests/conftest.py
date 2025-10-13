@@ -9,36 +9,34 @@ from pathlib import Path
 import molq
 import pytest
 
-_REPO_URL = "https://github.com/molcrafts/chemfile-testcases.git"
-_DEFAULT_DIR = Path(__file__).parent / "chemfile-testcases"
+_REPO_URL = "https://github.com/molcrafts/tests-data.git"
+_DEFAULT_DIR = Path(__file__).parent / "tests-data"
 
 
 @pytest.fixture(scope="session", name="TEST_DATA_DIR")
 def find_test_data() -> Path:
     """
-    Ensure the chemfile-testcases repository is present and up-to-date.
-
-    * Set env var **CHEMFILE_DATA_DIR** to override the clone location.
+    Ensure the tests-data repository is present and up-to-date.
     * If the directory already contains a `.git` folder → `git pull`.
       Otherwise clone afresh.
     """
-    data_dir = Path(os.getenv("CHEMFILE_DATA_DIR", _DEFAULT_DIR)).expanduser()
     local_submitor = molq.LocalSubmitor("download-test-data")
-    if (data_dir / ".git").exists():
+    if (_DEFAULT_DIR / ".git").exists():
         local_submitor.local_submit(
             cmd=["git", "pull", "--ff-only"],
-            cwd=data_dir,
+            cwd=_DEFAULT_DIR,
             job_name="update-test-data",
             block=True,
             quiet=True,
+            cleanup_temp_files=True,
         )
     else:
-        data_dir.parent.mkdir(parents=True, exist_ok=True)
+        _DEFAULT_DIR.parent.mkdir(parents=True, exist_ok=True)
         local_submitor.local_submit(
-            cmd=["git", "clone", "--depth", "1", _REPO_URL, str(data_dir)],
-            cwd=data_dir.parent,
+            cmd=["git", "clone", "--depth", "1", _REPO_URL, str(_DEFAULT_DIR)],
+            cwd=_DEFAULT_DIR.parent,
             job_name="download-test-data",
             block=True,
             quiet=True,
         )
-    return data_dir
+    return _DEFAULT_DIR

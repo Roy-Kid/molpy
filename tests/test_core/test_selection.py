@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from molpy.core.frame import Block
-from molpy.core.selection import AtomIndexSelection, AtomTypeSelection, MaskPredicate
+from molpy.core.selector import AtomIndexSelector, AtomTypeSelector, MaskPredicate
 
 
 class TestMaskPredicate:
@@ -11,8 +11,8 @@ class TestMaskPredicate:
     def test_mask_predicate_composition(self):
         """Test that MaskPredicate can be combined with & | ~ operators."""
         # Create concrete instances for testing
-        type1 = AtomTypeSelection(1)
-        type2 = AtomTypeSelection(2)
+        type1 = AtomTypeSelector(1)
+        type2 = AtomTypeSelector(2)
 
         # Test AND operator
         and_pred = type1 & type2
@@ -39,7 +39,7 @@ class TestMaskPredicate:
             }
         )
 
-        type1 = AtomTypeSelection(1)
+        type1 = AtomTypeSelector(1)
         filtered_block = type1(block)
 
         assert isinstance(filtered_block, Block)
@@ -47,48 +47,48 @@ class TestMaskPredicate:
         assert np.all(filtered_block["type"] == 1)
 
 
-class TestAtomTypeSelection:
-    """Test AtomTypeSelection predicate."""
+class TestAtomTypeSelector:
+    """Test AtomTypeSelector predicate."""
 
     def test_atom_type_init(self):
-        """Test AtomTypeSelection initialization."""
+        """Test AtomTypeSelector initialization."""
         # Test with integer type
-        pred1 = AtomTypeSelection(1)
+        pred1 = AtomTypeSelector(1)
         assert pred1.atom_type == 1
         assert pred1.field == "type"
 
         # Test with string type
-        pred2 = AtomTypeSelection("C")
+        pred2 = AtomTypeSelector("C")
         assert pred2.atom_type == "C"
         assert pred2.field == "type"
 
         # Test with custom field
-        pred3 = AtomTypeSelection(42, field="element")
+        pred3 = AtomTypeSelector(42, field="element")
         assert pred3.atom_type == 42
         assert pred3.field == "element"
 
     def test_atom_type_mask(self):
-        """Test AtomTypeSelection.mask method."""
+        """Test AtomTypeSelector.mask method."""
         block = Block({"type": np.array([1, 2, 1, 3, 1]), "id": np.arange(5)})
 
-        pred = AtomTypeSelection(1)
+        pred = AtomTypeSelector(1)
         mask = pred.mask(block)
 
         expected = np.array([True, False, True, False, True])
         assert np.array_equal(mask, expected)
 
     def test_atom_type_with_string(self):
-        """Test AtomTypeSelection with string values."""
+        """Test AtomTypeSelector with string values."""
         block = Block({"type": np.array(["C", "O", "C", "N"]), "id": np.arange(4)})
 
-        pred = AtomTypeSelection("C")
+        pred = AtomTypeSelector("C")
         mask = pred.mask(block)
 
         expected = np.array([True, False, True, False])
         assert np.array_equal(mask, expected)
 
     def test_atom_type_custom_field(self):
-        """Test AtomTypeSelection with custom field name."""
+        """Test AtomTypeSelector with custom field name."""
         block = Block(
             {
                 "element": np.array([6, 8, 6, 7]),  # C, O, C, N atomic numbers
@@ -96,43 +96,43 @@ class TestAtomTypeSelection:
             }
         )
 
-        pred = AtomTypeSelection(6, field="element")
+        pred = AtomTypeSelector(6, field="element")
         mask = pred.mask(block)
 
         expected = np.array([True, False, True, False])
         assert np.array_equal(mask, expected)
 
 
-class TestAtomIndexSelection:
-    """Test AtomIndexSelection predicate."""
+class TestAtomIndexSelector:
+    """Test AtomIndexSelector predicate."""
 
     def test_atom_index_init(self):
-        """Test AtomIndexSelection initialization."""
+        """Test AtomIndexSelector initialization."""
         # Test with list of indices
-        pred1 = AtomIndexSelection([0, 2, 4])
+        pred1 = AtomIndexSelector([0, 2, 4])
         assert np.array_equal(pred1.indices, np.array([0, 2, 4]))
         assert pred1.id_field == "id"
 
         # Test with custom field
-        pred2 = AtomIndexSelection([10, 20], id_field="atom_id")
+        pred2 = AtomIndexSelector([10, 20], id_field="atom_id")
         assert np.array_equal(pred2.indices, np.array([10, 20]))
         assert pred2.id_field == "atom_id"
 
     def test_atom_index_mask(self):
-        """Test AtomIndexSelection.mask method."""
+        """Test AtomIndexSelector.mask method."""
         block = Block({"id": np.array([10, 20, 30, 40, 50]), "type": np.ones(5)})
 
-        pred = AtomIndexSelection([20, 40])
+        pred = AtomIndexSelector([20, 40])
         mask = pred.mask(block)
 
         expected = np.array([False, True, False, True, False])
         assert np.array_equal(mask, expected)
 
     def test_atom_index_custom_field(self):
-        """Test AtomIndexSelection with custom id field."""
+        """Test AtomIndexSelector with custom id field."""
         block = Block({"atom_id": np.array([100, 200, 300]), "type": np.ones(3)})
 
-        pred = AtomIndexSelection([200], id_field="atom_id")
+        pred = AtomIndexSelector([200], id_field="atom_id")
         mask = pred.mask(block)
 
         expected = np.array([False, True, False])
@@ -154,8 +154,8 @@ class TestBooleanComposition:
 
     def test_and_composition(self):
         """Test AND composition of predicates."""
-        type1 = AtomTypeSelection(1)
-        indices = AtomIndexSelection([10, 30])  # First and third atoms
+        type1 = AtomTypeSelector(1)
+        indices = AtomIndexSelector([10, 30])  # First and third atoms
 
         # Both type=1 AND id in [10, 30]
         combined = type1 & indices
@@ -167,8 +167,8 @@ class TestBooleanComposition:
 
     def test_or_composition(self):
         """Test OR composition of predicates."""
-        type1 = AtomTypeSelection(1)
-        type2 = AtomTypeSelection(2)
+        type1 = AtomTypeSelector(1)
+        type2 = AtomTypeSelector(2)
 
         # Either type=1 OR type=2
         combined = type1 | type2
@@ -180,7 +180,7 @@ class TestBooleanComposition:
 
     def test_not_composition(self):
         """Test NOT composition of predicates."""
-        type1 = AtomTypeSelection(1)
+        type1 = AtomTypeSelector(1)
 
         # NOT type=1
         negated = ~type1
@@ -192,9 +192,9 @@ class TestBooleanComposition:
 
     def test_complex_composition(self):
         """Test complex boolean expressions."""
-        type1 = AtomTypeSelection(1)
-        type2 = AtomTypeSelection(2)
-        indices = AtomIndexSelection([20, 40])  # Second and fourth atoms
+        type1 = AtomTypeSelector(1)
+        type2 = AtomTypeSelector(2)
+        indices = AtomIndexSelector([20, 40])  # Second and fourth atoms
 
         # (type=1 OR type=2) AND id in [20, 40]
         combined = (type1 | type2) & indices
@@ -208,7 +208,7 @@ class TestBooleanComposition:
 
     def test_filter_block_with_composition(self):
         """Test filtering Block with composed predicates."""
-        type1 = AtomTypeSelection(1)
+        type1 = AtomTypeSelector(1)
         filtered_block = type1(self.block)
 
         # Should get only atoms with type=1

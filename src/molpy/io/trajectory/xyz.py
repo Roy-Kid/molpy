@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import List
 
-from molpy.core import Frame
+from molpy.core import Block, Frame
 
-from .base import BaseTrajectoryReader, TrajectoryWriter
+from .base import BaseTrajectoryReader, FrameLocation, TrajectoryWriter
 
 
 class XYZTrajectoryReader(BaseTrajectoryReader):
@@ -129,8 +129,6 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
         if atoms_data:
             import numpy as np
 
-            from molpy.core import make_block_from_arrays
-
             # Extract arrays
             elements = [atom["element"] for atom in atoms_data]
             x_coords = np.array([atom["x"] for atom in atoms_data])
@@ -139,8 +137,7 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
             ids = np.array([atom["id"] for atom in atoms_data])
 
             # Create block
-            atoms_block = make_block_from_arrays(
-                "atoms",
+            atoms_block = Block(
                 {
                     "element": elements,
                     "x": x_coords,
@@ -150,11 +147,9 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
                 },
             )
 
-            frame.set_block("atoms", atoms_block)
-
         # Store comment if present
         if comment_line:
-            frame.set("comment", comment_line)
+            frame.metadata.setdefault("comment", comment_line)
 
         return frame
 
@@ -162,7 +157,7 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
 class XYZTrajectoryWriter(TrajectoryWriter):
     """Writer for XYZ trajectory files."""
 
-    def __init__(self, fpath: str):
+    def __init__(self, fpath: str | Path):
         super().__init__(fpath)
         self.fobj = open(fpath, "w")
 
@@ -173,13 +168,13 @@ class XYZTrajectoryWriter(TrajectoryWriter):
     def write_frame(self, frame: Frame):
         """Write a single frame to the XYZ file."""
         atoms = frame["atoms"]
-        box = frame.box
+        box = frame.metadata.get("box", None)
         n_atoms = len(atoms)
 
         self.fobj.write(f"{n_atoms}\n")
 
         # Write comment line
-        comment = frame.get("comment", f"Step={frame.get('step', 0)}")
+        comment = frame.metadata.get("comment", f"Step={frame.metadata.get('step', 0)}")
         if box is not None:
             comment += f' Lattice="{box.matrix.tolist()}"'
         self.fobj.write(f"{comment}\n")

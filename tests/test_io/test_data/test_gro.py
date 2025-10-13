@@ -11,7 +11,7 @@ class TestGMXGroReader:
     """Basic GRO reading tests."""
 
     def test_gro(self, TEST_DATA_DIR):
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("gro test data not available")
         frame = mp.io.read_gro(fpath, frame=mp.Frame())
@@ -57,7 +57,7 @@ class TestGROReaderComprehensive:
 
     def test_read_cod_4020641_gro(self, TEST_DATA_DIR):
         """Test reading cod_4020641.gro file."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -97,7 +97,7 @@ class TestGROReaderComprehensive:
 
     def test_read_lysozyme_gro(self, TEST_DATA_DIR):
         """Test reading lysozyme.gro file."""
-        fpath = TEST_DATA_DIR / "data/gro/lysozyme.gro"
+        fpath = TEST_DATA_DIR / "gro/lysozyme.gro"
         if not fpath.exists():
             pytest.skip("lysozyme.gro test data not available")
 
@@ -120,7 +120,7 @@ class TestGROReaderComprehensive:
 
     def test_read_triclinic_gro(self, TEST_DATA_DIR):
         """Test reading triclinic unit cell GRO file."""
-        fpath = TEST_DATA_DIR / "data/gro/1vln-triclinic.gro"
+        fpath = TEST_DATA_DIR / "gro/1vln-triclinic.gro"
         if not fpath.exists():
             pytest.skip("1vln-triclinic.gro test data not available")
 
@@ -133,14 +133,14 @@ class TestGROReaderComprehensive:
     def test_read_malformed_gro(self, TEST_DATA_DIR):
         """Test handling of malformed GRO files."""
         # Test truncated file
-        fpath = TEST_DATA_DIR / "data/gro/truncated.gro"
+        fpath = TEST_DATA_DIR / "gro/truncated.gro"
         if fpath.exists():
             frame = mp.io.read_gro(fpath, frame=mp.Frame())
             # Should handle gracefully, possibly with fewer atoms
             assert "atoms" in frame
 
         # Test file without final line
-        fpath = TEST_DATA_DIR / "data/gro/no-final-line.gro"
+        fpath = TEST_DATA_DIR / "gro/no-final-line.gro"
         if fpath.exists():
             frame = mp.io.read_gro(fpath, frame=mp.Frame())
             assert "atoms" in frame
@@ -162,7 +162,7 @@ class TestGROReaderComprehensive:
 
     def test_gro_coordinate_precision(self, TEST_DATA_DIR):
         """Test that coordinate precision is maintained."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -177,7 +177,7 @@ class TestGROReaderComprehensive:
 
     def test_gro_residue_information(self, TEST_DATA_DIR):
         """Test that residue information is correctly parsed."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -234,7 +234,7 @@ class TestGROWriter:
 
     def test_gro_roundtrip(self, TEST_DATA_DIR):
         """Test GRO read-write roundtrip."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -298,7 +298,7 @@ class TestGROEdgeCases:
 
     def test_read_basic_structure(self, TEST_DATA_DIR):
         """Test reading basic GRO structure."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -316,7 +316,7 @@ class TestGROEdgeCases:
         """Test reading GRO files with velocity information."""
         # Look for GRO files with velocities
         for gro_file in ["lysozyme.gro", "cod_4020641.gro"]:
-            fpath = TEST_DATA_DIR / f"data/gro/{gro_file}"
+            fpath = TEST_DATA_DIR / f"gro/{gro_file}"
             if fpath.exists():
                 frame = mp.io.read_gro(fpath, frame=mp.Frame())
                 atoms = frame["atoms"]
@@ -331,7 +331,7 @@ class TestGROEdgeCases:
 
     def test_read_without_velocities(self, TEST_DATA_DIR):
         """Test reading GRO files without velocity information."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -344,7 +344,7 @@ class TestGROEdgeCases:
 
     def test_coordinate_precision(self, TEST_DATA_DIR):
         """Test coordinate precision handling."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -357,7 +357,7 @@ class TestGROEdgeCases:
 
     def test_box_handling(self, TEST_DATA_DIR):
         """Test various box format handling."""
-        fpath = TEST_DATA_DIR / "data/gro/cod_4020641.gro"
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
             pytest.skip("cod_4020641.gro test data not available")
 
@@ -369,7 +369,7 @@ class TestGROEdgeCases:
 
     def test_large_structures(self, TEST_DATA_DIR):
         """Test handling of large GRO structures."""
-        fpath = TEST_DATA_DIR / "data/gro/lysozyme.gro"
+        fpath = TEST_DATA_DIR / "gro/lysozyme.gro"
         if not fpath.exists():
             pytest.skip("lysozyme.gro test data not available")
 

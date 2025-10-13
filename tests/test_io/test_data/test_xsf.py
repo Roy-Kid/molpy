@@ -25,8 +25,7 @@ class TestXSFCore:
             tmp.write("1  0.0  0.0  0.0\n")
             tmp.write("8  1.5  1.5  1.5\n")
 
-        system = mp.io.read_xsf(Path(tmp.name))
-        frame = system._wrapped
+        frame = mp.io.read_xsf(Path(tmp.name))
 
         # Check atoms
         assert len(frame["atoms"]["atomic_number"]) == 2
@@ -34,9 +33,9 @@ class TestXSFCore:
         assert frame["atoms"]["atomic_number"][1] == 8  # Oxygen
 
         # Check box
-        assert system.box.style == mp.Box.Style.ORTHOGONAL
+        assert frame.metadata["box"].style == mp.Box.Style.ORTHOGONAL
         np.testing.assert_array_almost_equal(
-            system.box.matrix, np.diag([3.0, 3.0, 3.0])
+            frame.metadata["box"].matrix, np.diag([3.0, 3.0, 3.0])
         )
 
     def test_read_molecule_structure(self):
@@ -48,15 +47,14 @@ class TestXSFCore:
             tmp.write("1  0.0  0.0  0.0\n")
             tmp.write("1  1.0  0.0  0.0\n")
 
-        system = mp.io.read_xsf(Path(tmp.name))
-        frame = system._wrapped
+        frame = mp.io.read_xsf(Path(tmp.name))
 
         # Check atoms
         assert len(frame["atoms"]["atomic_number"]) == 2
         assert all(an == 1 for an in frame["atoms"]["atomic_number"])
 
         # Should have a free box for molecule (non-periodic)
-        assert system.box.style == mp.Box.Style.FREE
+        assert frame.metadata["box"].style == mp.Box.Style.FREE
 
     def test_write_crystal_structure(self):
         """Test writing a crystal structure."""
@@ -74,24 +72,23 @@ class TestXSFCore:
         )
 
         box = mp.Box(matrix=np.diag([3.0, 3.0, 3.0]))
-        system = mp.FrameSystem(frame=frame, box=box)
+        frame.metadata["box"] = box
 
         # Write to file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xsf", delete=False) as tmp:
-            mp.io.write_xsf(tmp.name, system)
+            mp.io.write_xsf(tmp.name, frame)
 
         # Read back and verify
-        system2 = mp.io.read_xsf(Path(tmp.name))
-        frame2 = system2._wrapped
+        frame2 = mp.io.read_xsf(Path(tmp.name))
 
         # Check atoms
         assert len(frame2["atoms"]["atomic_number"]) == 2
         np.testing.assert_array_equal(frame2["atoms"]["atomic_number"], [1, 8])
 
         # Check box
-        assert system2.box.style == mp.Box.Style.ORTHOGONAL
+        assert frame2.metadata["box"].style == mp.Box.Style.ORTHOGONAL
         np.testing.assert_array_almost_equal(
-            system2.box.matrix, np.diag([3.0, 3.0, 3.0])
+            frame2.metadata["box"].matrix, np.diag([3.0, 3.0, 3.0])
         )
 
     def test_write_molecule_structure(self):
@@ -111,22 +108,21 @@ class TestXSFCore:
 
         # Create with free box
         box = mp.Box()  # Free box
-        system = mp.FrameSystem(frame=frame, box=box)
+        frame.metadata["box"] = box
 
         # Write to file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xsf", delete=False) as tmp:
-            mp.io.write_xsf(tmp.name, system)
+            mp.io.write_xsf(tmp.name, frame)
 
         # Read back and verify
-        system2 = mp.io.read_xsf(Path(tmp.name))
-        frame2 = system2._wrapped
+        frame2 = mp.io.read_xsf(Path(tmp.name))
 
         # Check atoms
         assert len(frame2["atoms"]["atomic_number"]) == 2
         assert all(an == 1 for an in frame2["atoms"]["atomic_number"])
 
         # Should have free box
-        assert system2.box.style == mp.Box.Style.FREE
+        assert frame2.metadata["box"].style == mp.Box.Style.FREE
 
     def test_roundtrip_consistency(self):
         """Test that write->read maintains data consistency."""
@@ -152,24 +148,23 @@ class TestXSFCore:
         )
 
         box = mp.Box(matrix=[[5.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 5.0]])
-        system1 = mp.FrameSystem(frame=frame, box=box)
+        frame.metadata["box"] = box
 
         # Write and read back
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xsf", delete=False) as tmp:
-            mp.io.write_xsf(tmp.name, system1)
-            system2 = mp.io.read_xsf(Path(tmp.name))
-
-        frame1 = system1._wrapped
-        frame2 = system2._wrapped
+            mp.io.write_xsf(tmp.name, frame)
+            frame2 = mp.io.read_xsf(Path(tmp.name))
 
         # Check consistency
         np.testing.assert_array_equal(
-            frame1["atoms"]["atomic_number"], frame2["atoms"]["atomic_number"]
+            frame["atoms"]["atomic_number"], frame2["atoms"]["atomic_number"]
         )
         np.testing.assert_array_almost_equal(
-            frame1["atoms"]["xyz"], frame2["atoms"]["xyz"]
+            frame["atoms"]["xyz"], frame2["atoms"]["xyz"]
         )
-        np.testing.assert_array_almost_equal(system1.box.matrix, system2.box.matrix)
+        np.testing.assert_array_almost_equal(
+            frame.metadata["box"].matrix, frame2.metadata["box"].matrix
+        )
 
     def test_error_handling(self):
         """Test basic error handling."""

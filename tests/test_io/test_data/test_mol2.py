@@ -11,7 +11,7 @@ class TestMol2Reader:
 
     def test_read(self, TEST_DATA_DIR):
         frame = mp.Frame()
-        mol2 = mp.io.read_mol2(TEST_DATA_DIR / "data/mol2/ethane.mol2", frame)
+        mol2 = mp.io.read_mol2(TEST_DATA_DIR / "mol2/ethane.mol2", frame)
         atoms = mol2["atoms"]
 
         # Check that we have 8 atoms (ethane: 2 C + 6 H)
@@ -33,7 +33,7 @@ class TestMol2Comprehensive:
 
     def test_ethane_basic_structure(self, TEST_DATA_DIR):
         """Test basic ethane structure reading."""
-        fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
+        fpath = TEST_DATA_DIR / "mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
 
@@ -56,7 +56,7 @@ class TestMol2Comprehensive:
 
     def test_imatinib_large_molecule(self, TEST_DATA_DIR):
         """Test reading larger molecule (imatinib)."""
-        fpath = TEST_DATA_DIR / "data/mol2/imatinib.mol2"
+        fpath = TEST_DATA_DIR / "mol2/imatinib.mol2"
         if not fpath.exists():
             pytest.skip("imatinib.mol2 test data not available")
 
@@ -78,7 +78,7 @@ class TestMol2Comprehensive:
         """Test MOL2 files with bond status information."""
         # Test any available MOL2 file
         for mol2_file in ["ethane.mol2", "imatinib.mol2"]:
-            fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
+            fpath = TEST_DATA_DIR / f"mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
 
@@ -97,7 +97,7 @@ class TestMol2Comprehensive:
         """Test small molecules like Li/PF6."""
         # Test available small molecule files
         for mol2_file in ["ethane.mol2", "imatinib.mol2"]:
-            fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
+            fpath = TEST_DATA_DIR / f"mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
 
@@ -115,7 +115,7 @@ class TestMol2Comprehensive:
 
     def test_ring_detection_structures(self, TEST_DATA_DIR):
         """Test MOL2 files with ring structures."""
-        fpath = TEST_DATA_DIR / "data/mol2/imatinib.mol2"
+        fpath = TEST_DATA_DIR / "mol2/imatinib.mol2"
         if not fpath.exists():
             pytest.skip("imatinib.mol2 test data not available")
 
@@ -132,7 +132,7 @@ class TestMol2Comprehensive:
 
     def test_coordinate_precision(self, TEST_DATA_DIR):
         """Test coordinate precision in MOL2 files."""
-        fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
+        fpath = TEST_DATA_DIR / "mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
 
@@ -156,7 +156,7 @@ class TestMol2Comprehensive:
 
     def test_charge_handling(self, TEST_DATA_DIR):
         """Test charge information handling."""
-        fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
+        fpath = TEST_DATA_DIR / "mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
 
@@ -171,7 +171,7 @@ class TestMol2Comprehensive:
 
     def test_substructure_handling(self, TEST_DATA_DIR):
         """Test substructure information."""
-        fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
+        fpath = TEST_DATA_DIR / "mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
 
@@ -189,7 +189,7 @@ class TestMol2Comprehensive:
 
     def test_atomic_number_assignment(self, TEST_DATA_DIR):
         """Test atomic number assignment from atom types."""
-        fpath = TEST_DATA_DIR / "data/mol2/ethane.mol2"
+        fpath = TEST_DATA_DIR / "mol2/ethane.mol2"
         if not fpath.exists():
             pytest.skip("ethane.mol2 test data not available")
 
@@ -209,7 +209,7 @@ class TestMol2Comprehensive:
     def test_bond_type_variations(self, TEST_DATA_DIR):
         """Test various bond type handling."""
         for mol2_file in ["ethane.mol2", "imatinib.mol2"]:
-            fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
+            fpath = TEST_DATA_DIR / f"mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
 
@@ -232,7 +232,7 @@ class TestMol2Comprehensive:
         """Test handling of MOL2 files with missing sections."""
         # Test that files with missing sections are handled gracefully
         for mol2_file in ["ethane.mol2", "imatinib.mol2"]:
-            fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
+            fpath = TEST_DATA_DIR / f"mol2/{mol2_file}"
             if fpath.exists():
                 frame = mp.io.read_mol2(fpath, frame=mp.Frame())
 
@@ -248,7 +248,7 @@ class TestMol2Comprehensive:
         """Test consistency across multiple MOL2 files."""
         mol2_files = []
         for mol2_file in ["ethane.mol2", "imatinib.mol2"]:
-            fpath = TEST_DATA_DIR / f"data/mol2/{mol2_file}"
+            fpath = TEST_DATA_DIR / f"mol2/{mol2_file}"
             if fpath.exists():
                 mol2_files.append(fpath)
 

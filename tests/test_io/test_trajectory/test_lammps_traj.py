@@ -11,9 +11,7 @@ from molpy.io.trajectory.lammps import LammpsTrajectoryReader, LammpsTrajectoryW
 class TestReadLammpsTrajectory:
 
     def test_read_frame_simple(self, TEST_DATA_DIR):
-        reader = LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
-        )
+        reader = LammpsTrajectoryReader(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
         frame = reader.read_frame(0)
 
         assert frame.metadata["timestep"] is not None
@@ -22,9 +20,7 @@ class TestReadLammpsTrajectory:
         assert frame["atoms"].nrows > 0
 
     def test_read_frame_with_properties(self, TEST_DATA_DIR):
-        reader = LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/properties.lammpstrj"
-        )
+        reader = LammpsTrajectoryReader(TEST_DATA_DIR / "lammps/properties.lammpstrj")
         frame = reader.read_frame(0)
 
         assert frame.metadata["timestep"] is not None
@@ -38,9 +34,7 @@ class TestReadLammpsTrajectory:
 
     def test_trajectory_iteration(self, TEST_DATA_DIR):
         """Test iterating through trajectory frames."""
-        reader = LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
-        )
+        reader = LammpsTrajectoryReader(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
 
         # Test iterator protocol
         frames = []
@@ -58,9 +52,7 @@ class TestReadLammpsTrajectory:
 
     def test_frame_properties(self, TEST_DATA_DIR):
         """Test that frames have correct properties."""
-        reader = LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
-        )
+        reader = LammpsTrajectoryReader(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
         frame = reader.read_frame(0)
 
         # Check timestep
@@ -75,7 +67,7 @@ class TestReadLammpsTrajectory:
     def test_context_manager(self, TEST_DATA_DIR):
         """Test using trajectory reader as context manager."""
         with LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
+            TEST_DATA_DIR / "lammps/unwrapped.lammpstrj"
         ) as reader:
             frame = reader.read_frame(0)
             assert frame.metadata["timestep"] is not None
@@ -83,8 +75,8 @@ class TestReadLammpsTrajectory:
 
     def test_multiple_files_support(self, TEST_DATA_DIR):
         """Test reading from multiple trajectory files."""
-        file1 = TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
-        file2 = TEST_DATA_DIR / "trajectory/lammps/properties.lammpstrj"
+        file1 = TEST_DATA_DIR / "lammps/unwrapped.lammpstrj"
+        file2 = TEST_DATA_DIR / "lammps/properties.lammpstrj"
 
         # Test with multiple files if they exist
         if file1.exists() and file2.exists():
@@ -258,9 +250,7 @@ class TestErrorHandling:
 
     def test_invalid_frame_index(self, TEST_DATA_DIR):
         """Test reading invalid frame indices."""
-        reader = LammpsTrajectoryReader(
-            TEST_DATA_DIR / "trajectory/lammps/unwrapped.lammpstrj"
-        )
+        reader = LammpsTrajectoryReader(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
 
         # Test too large index
         with pytest.raises((IndexError, ValueError)):

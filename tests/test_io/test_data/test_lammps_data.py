@@ -17,17 +17,11 @@ from molpy.io.data.lammps import LammpsDataReader, LammpsDataWriter
 
 
 @pytest.fixture
-def test_files():
+def test_files(TEST_DATA_DIR) -> dict[str, Path]:
     """Provide paths to test files."""
     # Calculate path relative to the test file location
-    test_file_dir = Path(__file__).parent
-    test_data_dir = (
-        test_file_dir.parent.parent.parent
-        / "tests"
-        / "chemfile-testcases"
-        / "data"
-        / "lammps-data"
-    )
+
+    test_data_dir = TEST_DATA_DIR / "lammps-data"
 
     files = {
         "molid": test_data_dir / "molid.lmp",
@@ -38,10 +32,7 @@ def test_files():
         "solvated": test_data_dir / "solvated.lmp",
         "data_body": test_data_dir / "data.body",
     }
-
-    # Check which files actually exist
-    existing_files = {k: v for k, v in files.items() if v.exists()}
-    return existing_files
+    return files
 
 
 class TestLammpsDataReader:
@@ -49,8 +40,6 @@ class TestLammpsDataReader:
 
     def test_molid_file(self, test_files):
         """Test reading molid.lmp - file with molecular IDs and full style."""
-        if "molid" not in test_files:
-            pytest.skip("molid.lmp not found")
 
         reader = LammpsDataReader(test_files["molid"], atom_style="full")
         frame = reader.read()
@@ -90,8 +79,6 @@ class TestLammpsDataReader:
 
     def test_whitespaces_file(self, test_files):
         """Test reading whitespaces.lmp - file with extra whitespaces."""
-        if "whitespaces" not in test_files:
-            pytest.skip("whitespaces.lmp not found")
 
         reader = LammpsDataReader(test_files["whitespaces"], atom_style="full")
         frame = reader.read()
@@ -113,8 +100,6 @@ class TestLammpsDataReader:
 
     def test_triclinic_file(self, test_files):
         """Test reading triclinic-1.lmp - file with triclinic box."""
-        if "triclinic_1" not in test_files:
-            pytest.skip("triclinic-1.lmp not found")
 
         reader = LammpsDataReader(test_files["triclinic_1"], atom_style="atomic")
         frame = reader.read()
@@ -130,8 +115,6 @@ class TestLammpsDataReader:
 
     def test_labelmap_file(self, test_files):
         """Test reading labelmap.lmp - file with type labels and connectivity."""
-        if "labelmap" not in test_files:
-            pytest.skip("labelmap.lmp not found")
 
         reader = LammpsDataReader(test_files["labelmap"], atom_style="full")
         frame = reader.read()
@@ -174,8 +157,6 @@ class TestLammpsDataReader:
 
     def test_atomic_style(self, test_files):
         """Test reading with atomic atom style."""
-        if "molid" not in test_files:
-            pytest.skip("molid.lmp not found")
 
         reader = LammpsDataReader(test_files["molid"], atom_style="atomic")
         frame = reader.read()
@@ -189,8 +170,6 @@ class TestLammpsDataReader:
 
     def test_charge_style(self, test_files):
         """Test reading with charge atom style."""
-        if "molid" not in test_files:
-            pytest.skip("molid.lmp not found")
 
         reader = LammpsDataReader(test_files["molid"], atom_style="charge")
         frame = reader.read()
@@ -208,8 +187,6 @@ class TestLammpsDataWriter:
 
     def test_write_read_roundtrip(self, test_files):
         """Test that we can write and read back the same data."""
-        if "molid" not in test_files:
-            pytest.skip("molid.lmp not found")
 
         # Read original file
         reader = LammpsDataReader(test_files["molid"], atom_style="full")

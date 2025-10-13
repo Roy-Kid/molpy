@@ -1,337 +1,219 @@
 """
-Comprehensive tests for the MolPy wrapper system.
+Comprehensive tests for the MolPy Wrapper base class.
 
-This module tests both explicit wrapping and multiple inheritance auto-composition
-using the actual MolPy wrapper classes. Tests cover:
-- Basic wrapper functionality
-- Multiple inheritance composition
-- Wrapper chains and delegation
-- Post-initialization hooks
-- Wrapper independence and state management
+Tests core Wrapper functionality including deep copy, attribute lookup,
+assignment behavior, and post-init kwargs handling.
 """
 
 import numpy as np
 import pytest
 
-from molpy.core.atomistic import Atomistic
 from molpy.core.protocol import Struct
-from molpy.core.wrapper import Spatial, Wrapper
+from molpy.core.wrapper import Wrapper
+
+
+# Custom wrapper classes for testing
+class CustomWrapperA(Wrapper):
+    """Custom wrapper that consumes specific kwargs."""
+
+    def __post_init__(self, **props):
+        """Consume prop_a if present."""
+        self.prop_a_value = props.pop("prop_a", None)
+        return props
+
+
+class CustomWrapperB(Wrapper):
+    """Another custom wrapper for testing multi-layer."""
+
+    def __post_init__(self, **props):
+        """Consume prop_b if present."""
+        self.prop_b_value = props.pop("prop_b", None)
+        return props
+
+
+class CombinedWrapper(CustomWrapperA, CustomWrapperB):
+    """Combined wrapper for testing multiple inheritance."""
+
+    def __post_init__(self, **props):
+        """Consume prop_c if present."""
+        self.prop_c_value = props.pop("prop_c", None)
+        # Don't call super().__post_init__ - the framework handles calling all __post_init__ methods
+        return props
 
 
 class TestWrapperBasic:
     """Test basic wrapper functionality."""
 
     def test_explicit_wrapping_works(self):
-        """Test that explicit wrapping still works as before."""
-        # Create base struct
+        """Test that explicit wrapping works."""
         base = Struct(name="test_struct")
-
-        # Wrap with Spatial
-        spatial_wrapper = Spatial(base)
-        assert spatial_wrapper.name == "test_struct"
-
-        # Test that wrapper chain works
-        assert spatial_wrapper.wrapper_depth() == 1
-        assert "Spatial" in spatial_wrapper.wrapper_types()
+        wrapper = Wrapper(base)
+        assert wrapper.name == "test_struct"
+        assert wrapper.wrapper_depth() == 1
+        assert "Wrapper" in wrapper.wrapper_types()
 
     def test_wrapped_passthrough(self):
         """Test that delegation methods remain functional."""
-        # Test __getattr__
-        wrapper = Atomistic(name="test")
+        base = Struct(name="test_struct", value=42)
+        wrapper = Wrapper(base)
         assert hasattr(wrapper, "name")
-        assert wrapper.name == "test"
-
-        # Test __getitem__
-        assert wrapper["name"] == "test"
-
-        # Test __setitem__
+        assert wrapper.name == "test_struct"
+        assert wrapper["name"] == "test_struct"
         wrapper["test_key"] = "test_value"
         assert wrapper["test_key"] == "test_value"
-
-        # Test unwrap
         wrapped = wrapper.unwrap()
         assert isinstance(wrapped, Struct)
 
-    def test_struct_creation_when_wrapped_is_none(self):
-        """Test that Struct is created when wrapped is None."""
-        wrapper = Atomistic(name="test")
-
-        # Should have created a Struct internally
-        wrapped = wrapper.unwrap()
-        assert isinstance(wrapped, Struct)
-        assert wrapped["name"] == "test"
-
-        # Should have collections initialized
-        assert "atoms" in wrapper
-        assert "bonds" in wrapper
-        assert "angles" in wrapper
-        assert "dihedrals" in wrapper
-
-
-class TestWrapperComposition:
-    """Test multiple inheritance auto-composition."""
-
-    def test_multiple_inheritance_auto_composition(self):
-        """Test that multiple inheritance auto-composition works."""
-
-        # Define class with multiple inheritance using actual MolPy classes
-        class NewWrappedStruct(Atomistic, Spatial):
-            def __init__(self, name="test"):
-                super().__init__(name=name)
-
-            def __post_init__(self):
-                """Custom __post_init__ for the combined class."""
-                self.combined_initialized = True
-
-        # Create instance
-        combined = NewWrappedStruct("combined_test")
-
-        # Test that it has both Atomistic and Spatial capabilities
-        assert hasattr(combined, "atoms")
-        assert hasattr(combined, "bonds")
-        assert hasattr(combined, "move")
-        assert hasattr(combined, "rotate")
-
-        # Test that all __post_init__ methods were called
-        assert combined.combined_initialized
-
-        # Test that collections are initialized
-        assert "atoms" in combined
-        assert "bonds" in combined
-        assert "angles" in combined
-        assert "dihedrals" in combined
-
-    def test_post_init_runs_once(self):
-        """Test that __post_init__ is called exactly once per instance."""
-        call_count = 0
-
-        class TestWrapper(Atomistic):
-            def __post_init__(self):
-                nonlocal call_count
-                call_count += 1
-
-        # Create instance
-        wrapper = TestWrapper(name="test")
-        assert call_count == 1
-
-        # Create another instance
-        wrapper2 = TestWrapper(name="test2")
-        assert call_count == 2
-
-    def test_multiple_inheritance_mro_safe(self):
-        """Test that multiple inheritance respects MRO."""
-
-        class BaseWrapper(Atomistic):
-            def __post_init__(self):
-                self.base_initialized = True
-
-        class MiddleWrapper(BaseWrapper):
-            def __post_init__(self):
-                super().__post_init__()
-                self.middle_initialized = True
-
-        class TopWrapper(MiddleWrapper, Spatial):
-            def __post_init__(self):
-                super().__post_init__()
-                self.top_initialized = True
-
-        # Create instance
-        wrapper = TopWrapper(name="test")
-
-        # Check that all __post_init__ methods were called
-        assert wrapper.base_initialized
-        assert wrapper.middle_initialized
-        assert wrapper.top_initialized
-
-        # Check that it has both wrapper capabilities
-        assert hasattr(wrapper, "atoms")
-        assert hasattr(wrapper, "move")
-
-    def test_wrapper_bases_recording(self):
-        """Test that wrapper bases are correctly recorded in __new__."""
-
-        class TestWrapper1(Atomistic):
-            pass
-
-        class TestWrapper2(TestWrapper1, Spatial):
-            pass
-
-        # Create instance
-        wrapper = TestWrapper2(name="test")
-
-        # Check that wrapper bases are recorded
-        assert hasattr(wrapper, "_wrapper_bases")
-        assert len(wrapper._wrapper_bases) == 2  # Atomistic and Spatial
-        assert Atomistic in wrapper._wrapper_bases
-        assert Spatial in wrapper._wrapper_bases
-
-    def test_wrappers_initialized_flag(self):
-        """Test that _wrappers_initialized flag prevents double initialization."""
-
-        class TestWrapper(Atomistic):
-            def __init__(self, **props):
-                super().__init__(**props)
-                # The flag should be True after initialization
-                assert self._wrappers_initialized
-                # Collections should be initialized
-                assert hasattr(self, "atoms")
-
-        wrapper = TestWrapper(name="test")
-        # Flag should remain True
-        assert wrapper._wrappers_initialized
-        assert "atoms" in wrapper
-
-
-class TestWrapperChains:
-    """Test wrapper chain functionality and independence."""
-
-    def test_wrapper_chain_functionality(self):
-        """Test wrapper chain functionality."""
-        # Create wrapper chain
-        base = Atomistic(name="base")
-        spatial_wrapper = Spatial(base)
-
-        # Test that spatial_wrapper can access base through Atomistic
-        assert spatial_wrapper.name == "base"
-        assert hasattr(spatial_wrapper, "atoms")
-        assert hasattr(spatial_wrapper, "move")
-
-        # Test data modification through chain
-        spatial_wrapper["chain_key"] = "chain_value"
-        assert base["chain_key"] == "chain_value"
-
-    def test_wrapper_independence(self):
-        """Test that wrappers work independently."""
-        base = Atomistic(name="base")
-
-        # Create independent wrappers
-        spatial1 = Spatial(base)
-        spatial2 = Spatial(base)
-
-        # Modify data through one wrapper
-        spatial1["key"] = "value1"
-
-        # Other wrapper should see the change
-        assert spatial2["key"] == "value1"
-
-        # But each wrapper maintains its own state
-        # Note: depth is 2 because Atomistic is itself a wrapper, and Spatial wraps it
-        assert spatial1.wrapper_depth() == 2
-        assert spatial2.wrapper_depth() == 2
-
-    def test_wrapper_with_custom_properties(self):
-        """Test wrapper with custom properties."""
-
-        class CustomWrapper(Atomistic):
-            def __init__(self, name="custom", custom_prop="default"):
-                super().__init__(name=name)
-                self.custom_prop = custom_prop
-
-            def __post_init__(self):
-                super().__post_init__()
-                self.custom_initialized = True
-
-        wrapper = CustomWrapper("test", "custom_value")
-
-        # Check custom property
-        assert wrapper.custom_prop == "custom_value"
-        assert wrapper.custom_initialized
-
-        # Check wrapped functionality
-        assert wrapper.name == "test"
-        assert "atoms" in wrapper
-
-
-class TestSpatialOperations:
-    """Test spatial operations in wrapper composition."""
-
-    def test_spatial_operations_in_multiple_inheritance(self):
-        """Test that spatial operations work in multiple inheritance."""
-
-        class H2O(Atomistic, Spatial):
-            def __init__(self, name="water"):
-                super().__init__(name=name)
-
-                # Build molecule
-                self.oxygen = self.def_atom(name="O", element="O", xyz=[0, 0, 0])
-                self.hydrogen1 = self.def_atom(
-                    name="H1", element="H", xyz=[0.9572, 0, 0]
-                )
-                self.hydrogen2 = self.def_atom(
-                    name="H2", element="H", xyz=[-0.2400, 0, 0]
-                )
-                self.def_bond(self.oxygen, self.hydrogen1)
-                self.def_bond(self.oxygen, self.hydrogen2)
-
-        # Create instance
-        water = H2O("water")
-
-        # Test spatial operations
-        assert hasattr(water, "move")
-        assert hasattr(water, "rotate")
-        assert hasattr(water, "scale")
-        assert hasattr(water, "move_to")
-
-        # Test that collections are initialized
-        assert len(water.atoms) == 3
-        assert len(water.bonds) == 2
-
-    def test_spatial_properties_access(self):
-        """Test that spatial properties are accessible through wrapper."""
-        # Create a structure with spatial wrapper
-        base = Atomistic(name="test")
-        base.def_atom(name="C", element="C", xyz=[0, 0, 0])
-        base.def_atom(name="H", element="H", xyz=[1, 0, 0])
-
-        spatial_wrapper = Spatial(base)
-
-        # Test spatial properties
-        assert hasattr(spatial_wrapper, "xyz")
-        assert hasattr(spatial_wrapper, "positions")
-        assert hasattr(spatial_wrapper, "symbols")
-
-        # Test that properties work correctly
-        assert spatial_wrapper.xyz.shape == (2, 3)
-        assert spatial_wrapper.positions.shape == (2, 3)
-        assert spatial_wrapper.symbols == ["C", "H"]
-
-
-class TestWrapperEdgeCases:
-    """Test edge cases and error conditions."""
-
-    def test_wrapper_with_empty_collections(self):
-        """Test wrapper behavior with empty collections."""
-        wrapper = Atomistic(name="empty")
-
-        # Collections should exist but be empty
-        assert len(wrapper.atoms) == 0
-        assert len(wrapper.bonds) == 0
-        assert len(wrapper.angles) == 0
-        assert len(wrapper.dihedrals) == 0
-
-    def test_wrapper_method_delegation(self):
-        """Test that wrapper methods are properly delegated."""
-        wrapper = Atomistic(name="test")
-
-        # Test that wrapper methods work
-        assert hasattr(wrapper, "add_atom")
-        assert hasattr(wrapper, "def_atom")
-        assert hasattr(wrapper, "add_bond")
-
-        # Test that methods can be called
-        atom = wrapper.def_atom(name="C", element="C", xyz=[0, 0, 0])
-        assert atom.name == "C"
-        assert len(wrapper.atoms) == 1
-
-    def test_wrapper_repr_and_str(self):
-        """Test wrapper string representations."""
-        wrapper = Atomistic(name="test")
-
-        # Test that repr works
-        repr_str = repr(wrapper)
-        assert "Atomistic" in repr_str
-        assert "0 atoms" in repr_str
-
-        # Test that str works
-        str_str = str(wrapper)
-        assert "Atomistic" in str_str
+    def test_get_innermost(self):
+        """Test _get_innermost method."""
+        base = Struct(name="innermost")
+        middle = Wrapper(base)
+        outer = Wrapper(middle)
+        innermost = outer._get_innermost()
+        assert innermost is base
+        assert isinstance(innermost, Struct)
+
+
+class TestDeepCopy:
+    """Test requirement 1: .copy() always returns a deep copy."""
+
+    def test_copy_creates_deep_copy(self):
+        """Test that copy method creates a deep copy."""
+        base = Struct(name="test_struct", data=np.array([1, 2, 3]))
+        wrapper = Wrapper(base)
+        wrapper["key"] = "value"
+        wrapper_copy = wrapper.copy()
+        assert wrapper_copy is not wrapper
+        assert wrapper_copy.unwrap() is not wrapper.unwrap()
+        assert wrapper_copy["key"] == "value"
+        wrapper_copy["key"] = "new_value"
+        assert wrapper["key"] == "value"
+        assert wrapper_copy["key"] == "new_value"
+        wrapper_copy["data"][0] = 999
+        assert wrapper["data"][0] == 1, "Original should be unaffected"
+
+    def test_copy_with_nested_wrappers(self):
+        """Test deep copy with nested wrapper chain."""
+        base = Struct(name="innermost", inner_data=[1, 2, 3])
+        middle = Wrapper(base)
+        outer = Wrapper(middle)
+        outer["middle_data"] = {"key": "value"}
+        copied = outer.copy()
+        base["inner_data"].append(4)
+        outer["middle_data"]["key"] = "modified"
+        assert len(copied["inner_data"]) == 3
+        assert copied["middle_data"]["key"] == "value"
+
+
+class TestAttributeLookup:
+    """Test requirement 2: Attribute/key lookup searches from outer to inner."""
+
+    def test_getattr_searches_outer_to_inner(self):
+        """Test __getattr__ searches from outer layers to inner layers."""
+        base = Struct(inner_attr="inner_value", shared_attr="from_inner")
+        wrapper = Wrapper(base)
+        wrapper["wrapper_attr"] = "wrapper_value"
+        wrapper["shared_attr"] = "from_wrapper"
+        assert wrapper.wrapper_attr == "wrapper_value"
+        assert wrapper.inner_attr == "inner_value"
+        assert wrapper.shared_attr == "from_wrapper"
+
+    def test_getitem_searches_outer_to_inner(self):
+        """Test __getitem__ searches from outer layers to inner layers."""
+        base = Struct(inner_key="inner_value", shared_key="from_inner")
+        wrapper = Wrapper(base)
+        wrapper["wrapper_key"] = "wrapper_value"
+        wrapper["shared_key"] = "from_wrapper"
+        assert wrapper["wrapper_key"] == "wrapper_value"
+        assert wrapper["inner_key"] == "inner_value"
+        assert wrapper["shared_key"] == "from_wrapper"
+
+    def test_getitem_raises_keyerror_when_not_found(self):
+        """Test __getitem__ raises KeyError when key doesn't exist."""
+        base = Struct(name="test")
+        wrapper = Wrapper(base)
+        with pytest.raises(KeyError):
+            _ = wrapper["nonexistent_key"]
+
+    def test_contains_searches_through_chain(self):
+        """Test __contains__ searches through wrapper chain."""
+        base = Struct(inner_key="value")
+        wrapper = Wrapper(base)
+        wrapper["outer_key"] = "value"
+        assert "inner_key" in wrapper
+        assert "outer_key" in wrapper
+        assert "nonexistent" not in wrapper
+
+
+class TestAttributeAssignment:
+    """Test requirement 3: Assignment searches outer to inner, creates in innermost if not found."""
+
+    def test_setattr_modifies_existing_in_place(self):
+        """Test __setattr__ modifies existing attributes where they are."""
+        base = Struct(existing_attr="original")
+        wrapper = Wrapper(base)
+        wrapper.existing_attr = "modified"
+        assert base["existing_attr"] == "modified"
+        assert wrapper.existing_attr == "modified"
+
+    def test_setattr_creates_in_innermost_when_new(self):
+        """Test __setattr__ creates new attributes in innermost Struct."""
+        base = Struct(name="test")
+        wrapper = Wrapper(base)
+        wrapper.new_attr = "new_value"
+        assert "new_attr" in base
+        assert base["new_attr"] == "new_value"
+        assert wrapper.new_attr == "new_value"
+
+    def test_setitem_modifies_existing_in_place(self):
+        """Test __setitem__ modifies existing keys where they are."""
+        base = Struct(existing_key="original")
+        wrapper = Wrapper(base)
+        wrapper["existing_key"] = "modified"
+        assert base["existing_key"] == "modified"
+        assert wrapper["existing_key"] == "modified"
+
+    def test_setitem_creates_in_innermost_when_new(self):
+        """Test __setitem__ creates new keys in innermost Struct."""
+        base = Struct(name="test")
+        wrapper = Wrapper(base)
+        wrapper["new_key"] = "new_value"
+        assert "new_key" in base
+        assert base["new_key"] == "new_value"
+        assert wrapper["new_key"] == "new_value"
+
+
+class TestPostInitKwargs:
+    """Test requirement 4: Post-init kwargs handling."""
+
+    def test_post_init_consumes_kwargs(self):
+        """Test __post_init__ can consume specific kwargs."""
+        wrapper = CustomWrapperA(
+            wrapped=None, prop_a="value_a", prop_other="value_other"
+        )
+        assert wrapper.prop_a_value == "value_a"
+        innermost = wrapper._get_innermost()
+        assert isinstance(innermost, Struct)
+        assert "prop_other" in innermost
+        assert innermost["prop_other"] == "value_other"
+        assert "prop_a" not in innermost
+
+    def test_post_init_with_multiple_wrappers(self):
+        """Test __post_init__ with multiple inheritance."""
+        wrapper = CombinedWrapper(
+            wrapped=None,
+            prop_a="value_a",
+            prop_b="value_b",
+            prop_c="value_c",
+            prop_struct="value_struct",
+        )
+        assert wrapper.prop_a_value == "value_a"
+        assert wrapper.prop_b_value == "value_b"
+        assert wrapper.prop_c_value == "value_c"
+        innermost = wrapper._get_innermost()
+        assert isinstance(innermost, Struct)
+        assert "prop_struct" in innermost
+        assert innermost["prop_struct"] == "value_struct"
+        assert "prop_a" not in innermost
+        assert "prop_b" not in innermost
+        assert "prop_c" not in innermost

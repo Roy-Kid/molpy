@@ -9,10 +9,8 @@ import sys
 import numpy as np
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
-
 from molpy.core.forcefield import AtomType, ForceField
-from molpy.potential.base import Potentials
+from molpy.potential.base import Potential, Potentials
 from molpy.potential.pair.lj import LJ126
 
 

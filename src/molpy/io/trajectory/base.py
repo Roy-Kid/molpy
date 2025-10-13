@@ -1,12 +1,17 @@
+import json
 import mmap
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Iterator, List, NamedTuple, Optional, Union
+from typing import Iterable, Iterator, NamedTuple
 
-if TYPE_CHECKING:
-    from ...core.frame import Frame
+from mollog import get_logger
 
-PathLike = Union[str, bytes, Path]  # type_check_only
+from molpy.core import Frame
+
+logger = get_logger(__name__)
+
+
+PathLike = str | Path
 
 
 class FrameLocation(NamedTuple):
@@ -27,7 +32,7 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
     Implements Iterable[Frame] for lazy iteration over frames.
     """
 
-    def __init__(self, fpath: Union[Path, str, List[Path], List[str]]):
+    def __init__(self, fpath: PathLike | list[PathLike]):
         """
         Initialize the trajectory reader.
 
@@ -45,10 +50,10 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
             if not path.exists():
                 raise FileNotFoundError(f"File not found: {path}")
 
-        self._frame_locations: List[FrameLocation] = []  # location info for each frame
-        self._mms: List[mmap.mmap] = []  # memory-mapped file objects for each file
+        self._frame_locations: list[FrameLocation] = []  # location info for each frame
+        self._mms: list[mmap.mmap] = []  # memory-mapped file objects for each file
         self._total_frames = 0
-
+        self._index_files = self._get_index_file_paths()
         self._open_files()
 
     @property
@@ -108,19 +113,19 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
         # Parse the frame lines using the derived class implementation
         return self._parse_frame(frame_lines)
 
-    def read_frames(self, indices: List[int]) -> List["Frame"]:
+    def read_frames(self, indices: list[int]) -> list["Frame"]:
         """
         Read multiple frames from the trajectory file.
 
         Args:
-            indices: List of frame indices to read
+            indices: list of frame indices to read
 
         Returns:
-            List of Frame objects
+            list of Frame objects
         """
         return [self.read_frame(i) for i in indices]
 
-    def read_range(self, start: int, stop: int, step: int = 1) -> List["Frame"]:
+    def read_range(self, start: int, stop: int, step: int = 1) -> list["Frame"]:
         """
         Read a range of frames from the trajectory file.
 
@@ -130,22 +135,22 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
             step: Step size
 
         Returns:
-            List of Frame objects
+            list of Frame objects
         """
         indices = list(range(start, stop, step))
         return self.read_frames(indices)
 
-    def read_all(self) -> List["Frame"]:
+    def read_all(self) -> list["Frame"]:
         """Read all frames from the trajectory file."""
         return [self.read_frame(i) for i in range(self._total_frames)]
 
     @abstractmethod
-    def _parse_frame(self, frame_lines: List[str]) -> "Frame":
+    def _parse_frame(self, frame_lines: list[str]) -> "Frame":
         """
         Parse frame lines into a Frame object.
 
         Args:
-            frame_lines: List of strings representing the frame data
+            frame_lines: list of strings representing the frame data
 
         Returns:
             Frame object
@@ -165,7 +170,7 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
         for i in range(self._total_frames):
             yield self.read_frame(i)
 
-    def __getitem__(self, index: Union[int, slice]) -> Union["Frame", List["Frame"]]:
+    def __getitem__(self, index: int | slice) -> "Frame | list[Frame]":
         """Support indexing and slicing of frames."""
         if isinstance(index, int):
             return self.read_frame(index)
@@ -178,6 +183,20 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
     def _open_files(self):
         """Open trajectory files with memory mapping and build global index."""
         self._mms = []
+
+        # Try to load existing indexes first
+        if self._load_indexes():
+            print(f"Loaded existing indexes")
+            # Still need to open memory-mapped files
+            for file_index, fpath in enumerate(self.fpaths):
+                fp = open(fpath, "rb")
+                fp.seek(0, 2)
+                if fp.tell() == 0:
+                    raise ValueError(f"File is empty: {fpath}")
+                fp.seek(0)
+                mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
+                self._mms.append(mm)
+            return
 
         for file_index, fpath in enumerate(self.fpaths):
             # Open file
@@ -193,8 +212,14 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
                 mm = mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)
                 self._mms.append(mm)
 
-                # Parse this file to get frame locations
+                logger.info(
+                    f"Processing file {file_index + 1}/{len(self.fpaths)}: {fpath}"
+                )
                 self._parse_trajectory(file_index)
+
+                # Save index for this specific file after processing
+                self._save_index_for_file(file_index)
+                logger.info(f"Index saved for {fpath}")
 
             finally:
                 # Always close the file handle
@@ -219,11 +244,100 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
             raise ValueError("No files available")
         return self.fpaths[0]
 
+    def _get_index_file_paths(self) -> list[Path]:
+        """Get the paths for individual index files."""
+        index_files = []
+        for fpath in self.fpaths:
+            index_filename = f"{fpath.stem}_index.json"
+            index_files.append(fpath.parent / index_filename)
+        return index_files
+
+    def _save_index_for_file(self, file_index: int) -> None:
+        """Save frame locations for a specific file to its index file."""
+        try:
+            # Get frames belonging to this file and create timestep: offset mapping
+            frame_offsets = {}
+            timestep = 0
+            for loc in self._frame_locations:
+                if loc.file_index == file_index:
+                    frame_offsets[timestep] = loc.byte_offset
+                    timestep += 1
+
+            index_data = {
+                "trajectory_file": str(self.fpaths[file_index]),
+                "total_frames": len(frame_offsets),
+                "frame_offsets": frame_offsets,  # timestep: offset dictionary
+            }
+
+            index_file = self._index_files[file_index]
+            with open(index_file, "w") as f:
+                json.dump(index_data, f, indent=2)
+        except Exception as e:
+            print(
+                f"Warning: Failed to save index file for {self.fpaths[file_index]}: {e}"
+            )
+
+    def _load_indexes(self) -> bool:
+        """
+        Load frame locations from individual index files.
+
+        Returns:
+            True if all indexes were successfully loaded, False otherwise.
+        """
+        # Check if all index files exist
+        for index_file in self._index_files:
+            if not index_file.exists():
+                return False
+
+        try:
+            self._frame_locations = []
+            total_frames = 0
+
+            for file_index, (index_file, fpath) in enumerate(
+                zip(self._index_files, self.fpaths)
+            ):
+                with open(index_file, "r") as f:
+                    index_data = json.load(f)
+
+                # Verify that the trajectory file matches
+                stored_file = index_data.get("trajectory_file", "")
+                current_file = str(fpath)
+
+                if stored_file != current_file:
+                    print(
+                        f"Warning: Trajectory file path changed for {fpath}, rebuilding indexes"
+                    )
+                    return False
+
+                # Load frame offsets for this file
+                frame_offsets = index_data[
+                    "frame_offsets"
+                ]  # timestep: offset dictionary
+
+                # Add each frame location to global list (sorted by timestep)
+                for timestep in sorted(frame_offsets.keys(), key=int):
+                    byte_offset = frame_offsets[timestep]
+                    location = FrameLocation(
+                        file_index=file_index,
+                        byte_offset=int(byte_offset),
+                        file_path=fpath,
+                    )
+                    self._frame_locations.append(location)
+
+                total_frames += index_data["total_frames"]
+
+            self._total_frames = total_frames
+            return True
+
+        except Exception as e:
+            print(f"Warning: Failed to load index files: {e}, rebuilding indexes")
+            return False
+
 
 class TrajectoryWriter(ABC):
     """Base class for all trajectory file writers."""
 
-    def __init__(self, fpath: Union[str, Path]):
+    def __init__(self, fpath: str | Path):
         self.fpath = Path(fpath)
         self._fp = open(self.fpath, "w+b")
 

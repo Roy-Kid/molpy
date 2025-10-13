@@ -14,8 +14,8 @@ from molpy.core.element import Element
 from molpy.core.frame import Frame
 from molpy.core.protocol import Entities
 
+from ..builder.reacter_lammps import ReactantWrapper
 from .polymer import Monomer
-from .reacter_lammps import ReactantWrapper
 
 logger = logging.getLogger(__name__)
 

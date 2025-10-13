@@ -1,5 +1,5 @@
 """
-Tests for XYZReader and XYZWriter using chemfiles-testcases/data/xyz files.
+Tests for XYZReader and XYZWriter using chemfiles-testcases/xyz files.
 """
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from molpy.io.data.xyz import XYZReader
 
 @pytest.fixture
 def xyz_test_files(TEST_DATA_DIR) -> Path:
-    return TEST_DATA_DIR / "data/xyz/extended.xyz"
+    return TEST_DATA_DIR / "xyz/extended.xyz"
 
 
 class TestXYZReader:

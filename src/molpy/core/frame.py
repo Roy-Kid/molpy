@@ -2,15 +2,15 @@ import csv
 from collections.abc import Iterator, MutableMapping
 from io import StringIO
 from pathlib import Path
-from typing import Any, Self, TypeAlias, overload
+from typing import Any, Mapping, Self, TypeAlias, overload
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
-from .selection import MaskPredicate, Selection
+from .selector import Selector
 from .topology import Topology
 
-BlockLike: TypeAlias = dict[str, ArrayLike]
+BlockLike: TypeAlias = Mapping[str, ArrayLike]
 
 
 class Block(MutableMapping[str, np.ndarray]):
@@ -34,8 +34,8 @@ class Block(MutableMapping[str, np.ndarray]):
 
     __slots__ = ("_vars",)
 
-    def __init__(self, vars_: dict[str, np.ndarray | ArrayLike] | None = None) -> None:
-        self._vars: dict[str, np.ndarray] = {}
+    def __init__(self, vars_: BlockLike | None = None) -> None:
+        self._vars: dict[str, np.ndarray] = {k: np.asarray(v) for k, v in {}.items()}
         if vars_ is not None:
             if not isinstance(vars_, dict):
                 raise ValueError(f"vars_ must be a dict, got {type(vars_)}")
@@ -44,7 +44,7 @@ class Block(MutableMapping[str, np.ndarray]):
                     self._vars[k] = np.asarray(v)
                 except Exception as e:
                     raise ValueError(
-                        f"Value must be a BlockLike, i.e. dict[str, np.ndarray | ArrayLike], but got {type(v)} for key {k}"
+                        f"Value must be a BlockLike, i.e. dict[str, np.ndarray], but got {type(v)} for key {k}"
                     ) from e
 
     # --- core mapping API
@@ -62,7 +62,7 @@ class Block(MutableMapping[str, np.ndarray]):
     def __getitem__(self, key: np.ndarray) -> "Block": ...  # type: ignore[override]
 
     @overload
-    def __getitem__(self, key: Selection) -> "Block": ...  # type: ignore[override]
+    def __getitem__(self, key: Selector) -> "Block": ...  # type: ignore[override]
 
     def __getitem__(self, key):  # type: ignore[override]
         if isinstance(key, (int, slice)):
@@ -106,7 +106,7 @@ class Block(MutableMapping[str, np.ndarray]):
             return np.array([self[k] for k in key])
         elif isinstance(key, np.ndarray):
             return Block({k: v[key] for k, v in self._vars.items()})
-        elif isinstance(key, MaskPredicate):  # Selection alias covers old API
+        elif isinstance(key, Selector):
             return key(self)
         else:
             raise KeyError(
@@ -234,7 +234,7 @@ class Block(MutableMapping[str, np.ndarray]):
         """Shallow copy (arrays are **not** copied)."""
         return Block(self._vars.copy())  # type: ignore[arg-type]
 
-    def _sort(self, key: str, *, reverse: bool = False) -> dict[str, np.ndarray]:
+    def _sort(self, key: str, *, reverse: bool = False) -> dict[str, NDArray[Any]]:
         """Sort variables by a specific key and return sorted data.
 
         This is a private helper method that performs the actual sorting logic.
