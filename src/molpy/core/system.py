@@ -13,7 +13,7 @@ import numpy as np
 from .box import Box
 from .forcefield import ForceField
 from .frame import Frame
-from .protocol import Struct
+from .entity import Struct
 from .wrapper import Wrapper
 
 

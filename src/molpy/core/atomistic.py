@@ -10,44 +10,25 @@ This module provides the fundamental building blocks for molecular modeling:
 """
 
 import copy
-from typing import Iterable, Self
+from typing import Any, Iterable, Self, Sequence
 
 import numpy as np
 
 from .frame import Frame
-from .protocol import Entities, Entity, Struct
+from .entity import Entities, Entity, Struct
 from .topology import Topology
 from .utils import to_dict_of_list, to_list_of_dict
 from .wrapper import Wrapper
 
 
 class Atom(Entity):
-    """
-    Class representing an atom with spatial coordinates.
+    """Simple atom entity that stores properties directly on the instance."""
 
-    Combines Entity's dictionary behavior with spatial operations through wrappers.
-    """
+    def __init__(self, **props: Any) -> None:
+        super().__init__(props)
 
-    def __init__(self, name: str = "", **kwargs):
-        """
-        Initialize an atom.
-
-        Args:
-            name: Atom name/symbol
-            xyz: 3D coordinates
-            **kwargs: Additional properties
-        """
-        super().__init__(name=name, **kwargs)
-
-    def __repr__(self) -> str:
-        """Return a string representation of the atom."""
-        return f"<Atom {self.name}>"
-
-    @property
-    def name(self) -> str:
-        """Get the name of the atom."""
-        return self.get("name", "")
-
+    def __repr__(self) -> str:  # pragma: no cover (repr convenience)
+        return f"<Atom: {self}>"
 
 class ManyBody(Entity):
     """
@@ -56,7 +37,7 @@ class ManyBody(Entity):
     Handles bonds, angles, dihedrals, and other multi-atom entities.
     """
 
-    def __init__(self, *atoms, **kwargs):
+    def __init__(self, *atoms: Atom, **kwargs: Any):
         """
         Initialize a ManyBody entity.
 
@@ -65,12 +46,10 @@ class ManyBody(Entity):
             **kwargs: Additional properties
         """
         super().__init__(**kwargs)
-        if not all(isinstance(atom, Atom) for atom in atoms):
-            raise TypeError("All arguments must be Atom instances")
-        self._atoms = tuple(atoms)
+        self._atoms: tuple[Atom, ...] = tuple(atoms)
 
     @property
-    def atoms(self):
+    def atoms(self) -> tuple[Atom, ...]:
         """Get the atoms involved in the entity."""
         return self._atoms
 
@@ -80,10 +59,8 @@ class Bond(ManyBody):
 
     def __init__(
         self,
-        itom: Atom | None = None,
-        jtom: Atom | None = None,
-        atom1: Atom | None = None,
-        atom2: Atom | None = None,
+        itom: Atom,
+        jtom: Atom,
         **kwargs,
     ):
         """
@@ -96,31 +73,29 @@ class Bond(ManyBody):
             atom2: Alternative name for jtom
             **kwargs: Additional properties (e.g., bond_type, length)
         """
-        # Support both naming conventions
-        itom = itom if itom is not None else atom1
-        jtom = jtom if jtom is not None else atom2
 
         if itom is None or jtom is None:
             raise ValueError("Both atoms must be provided")
         if itom is jtom:
             raise ValueError("Cannot create bond between same atom")
 
-        sorted_atoms = sorted([itom, jtom], key=lambda a: id(a))
-        super().__init__(*sorted_atoms, **kwargs)
+        # Canonicalize order by object id for stable equality/hash semantics
+        ordered = tuple(sorted((itom, jtom), key=id))
+        super().__init__(*ordered, **kwargs)
 
     @property
-    def itom(self):
+    def itom(self) -> Atom:
         """Get the first atom in the bond."""
         return self._atoms[0]
 
     @property
-    def jtom(self):
+    def jtom(self) -> Atom:
         """Get the second atom in the bond."""
         return self._atoms[1]
 
     def __repr__(self) -> str:
         """Return a string representation of the bond."""
-        return f"<Bond: {self.itom.name}-{self.jtom.name}>"
+        return f"<Bond: {self.itom}-{self.jtom}>"
 
     def __eq__(self, other) -> bool:
         """Check equality based on the atoms in the bond."""
@@ -167,7 +142,10 @@ class Angle(ManyBody):
 
     def __repr__(self) -> str:
         """Return a string representation of the angle."""
-        return f"<Angle: {self.itom.name}-{self.jtom.name}-{self.ktom.name}>"
+        n1 = self.itom.get("name", self.itom.get("element", "?"))
+        n2 = self.jtom.get("name", self.jtom.get("element", "?"))
+        n3 = self.ktom.get("name", self.ktom.get("element", "?"))
+        return f"<Angle: {n1}-{n2}-{n3}>"
 
     @property
     def value(self) -> float:
@@ -225,7 +203,11 @@ class Dihedral(ManyBody):
 
     def __repr__(self) -> str:
         """Return a string representation of the dihedral."""
-        return f"<Dihedral: {self.itom.name}-{self.jtom.name}-{self.ktom.name}-{self.ltom.name}>"
+        n1 = self.itom.get("name", self.itom.get("element", "?"))
+        n2 = self.jtom.get("name", self.jtom.get("element", "?"))
+        n3 = self.ktom.get("name", self.ktom.get("element", "?"))
+        n4 = self.ltom.get("name", self.ltom.get("element", "?"))
+        return f"<Dihedral: {n1}-{n2}-{n3}-{n4}>"
 
     @property
     def value(self) -> float:
@@ -287,7 +269,11 @@ class Improper(Dihedral):
 
     def __repr__(self) -> str:
         """Return a string representation of the improper dihedral."""
-        return f"<Improper: {self.itom.name}({self.jtom.name},{self.ktom.name},{self.ltom.name})>"
+        n1 = self.itom.get("name", self.itom.get("element", "?"))
+        n2 = self.jtom.get("name", self.jtom.get("element", "?"))
+        n3 = self.ktom.get("name", self.ktom.get("element", "?"))
+        n4 = self.ltom.get("name", self.ltom.get("element", "?"))
+        return f"<Improper: {n1}({n2},{n3},{n4})>"
 
 
 class Atomistic(Wrapper):
@@ -301,7 +287,7 @@ class Atomistic(Wrapper):
     def __init__(
         self,
         wrapped: Struct | None = None,
-        key_mapping: dict[str, str] | None = None,
+        key_mapping: dict[str, str | list[str]] | None = None,
         **props,
     ):
         """
@@ -838,7 +824,7 @@ class Atomistic(Wrapper):
             frame["impropers"] = impropers_block
 
         # --- Metadata ---
-        frame.metadata["name"] = self.get("name", "")
+        frame.metadata["name"] = self["name"] if "name" in self else ""
 
         # Optionally add more metadata as needed
         return frame

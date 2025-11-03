@@ -1,0 +1,133 @@
+# big_smiles.lark
+# 依赖：同目录下的 smiles.lark
+# 使用方式（示例）：
+#   from lark import Lark
+#   grammar = Path("big_smiles.lark").read_text()
+#   parser = Lark(grammar, start="big_smiles", parser="earley", lexer="dynamic")
+#   tree = parser.parse("[*]{[>:|1,Type=HB|]C[<]}[*]")
+
+############################################
+# 导入基础 SMILES 定义（只复用需要的符号/规则）
+############################################
+%import .smiles (smiles, atom, bracket_atom, atom_symbol, STAR)
+%import .smiles (AROMATIC_SYM, ALIPHATIC_ORGANIC, AROMATIC_ORGANIC, ELEMENT_SYM)
+%import .smiles (isotope, h_count, chiral, atom_charge, atom_class)
+%import .smiles (DOT, RING_BOND_SYM, RING_NUM, CHAIN_BOND_SYM)
+%import .smiles (CHG_DMINUS, CHG_DPLUS, CHG_MINUS, CHG_PLUS, CHIRAL_TOKEN)
+%import common.DIGIT
+%import common.INT
+%import common.NUMBER
+%import common.WS_INLINE
+%ignore WS_INLINE
+
+############################################
+# 入口
+############################################
+?start: big_smiles
+big_smiles: big_smiles_molecule* big_smiles_fragment_definition*
+
+# BigSMILES 分子由若干 SMILES 片段与重复组交替构成；允许末尾有 dot_generation
+big_smiles_molecule: (smiles | smiles? _big_smiles_repeat)+ dot_generation?
+
+############################################
+# 重复单元（stochastic object）
+############################################
+_big_smiles_repeat: stochastic_object+ smiles?
+
+stochastic_object: "{" WS_INLINE* terminal_bond_descriptor WS_INLINE* _repeat_units WS_INLINE* _end_group? WS_INLINE* terminal_bond_descriptor "}" stochastic_generation?
+
+# 重复单元列表：一个或多个 (smiles 或 big_smiles_molecule)，逗号分隔
+_repeat_units: (smiles | big_smiles_molecule) _monomer_list*
+_monomer_list: WS_INLINE* "," WS_INLINE* (smiles | big_smiles_molecule)
+
+# 端基（可选）：以分号 ";" 开头，后随 1+ 单元
+_end_group.-1: ";" WS_INLINE* (smiles | big_smiles_molecule) _monomer_list*
+
+############################################
+# 片段声明 / 定义（BigSMILES 片段）
+############################################
+# 片段名采用“可打印串”的近似安全子集，避免与分隔符冲突
+_printable_character: /[^{}\[\](),;.=:\|#\s]+/
+_big_smiles_fragment_name: _printable_character+
+big_smiles_fragment_declaration: "[#" _big_smiles_fragment_name "]"
+big_smiles_fragment_definition: DOT "{#" _big_smiles_fragment_name "=" big_smiles_molecule+ "}"
+
+############################################
+# 描述符（端口、ladder、非共价等）
+############################################
+# 端口符号
+bond_descriptor_symbol: "$" | ">" | "<"
+bond_descriptor_symbol_idx: bond_descriptor_symbol INT?
+
+# 生成器（如 |1| 或 |1 2 3| 等）
+bond_descriptor_generation: "|" WS_INLINE* NUMBER WS_INLINE* "|"
+  | "|" WS_INLINE* NUMBER  _number_list_repeat* WS_INLINE* "|"
+_number_list_repeat.-1: WS_INLINE+ NUMBER
+
+# —— G-BigSMILES 关键点：优先匹配“带冒号的非共价” —— #
+# 这样 ">: ... " 不会先走 covalent 分支而在冒号处失败
+inner_ambi_covalent_descriptor: inner_non_covalent_descriptor | inner_bond_descriptor
+
+# 共价端口（可带编号与生成器）
+inner_bond_descriptor: bond_descriptor_symbol_idx bond_descriptor_generation?
+
+# 非共价端口： '>'|'<': 可带 index 与上下文
+inner_non_covalent_descriptor: bond_descriptor_symbol ":" INT? _non_covalent_context?
+
+# 上下文：形如 | idx_expr ,k=v ,k=v ... |
+#   其中 idx_expr 支持一元 '!' 与二元 '~' '&' 的组合表达式
+_unary_index_operator: "!"
+_binary_index_operator: "~" | "&"
+_index_statement: INT | _branched_index_expression | _unbranched_index_expression
+_branched_index_expression: "(" WS_INLINE* _index_statement WS_INLINE* _binary_index_operator WS_INLINE* _index_statement WS_INLINE* ")"
+_unbranched_index_expression:  _index_statement WS_INLINE* _binary_index_operator WS_INLINE* _index_statement
+_index_expression: _unary_index_operator? WS_INLINE* _index_statement
+
+# key=value 的内容采用尽量宽松的“非保留字符”匹配，避免与分隔符冲突
+_non_covalent_context: WS_INLINE* "|" WS_INLINE* _index_expression _non_covalent_key_value_pair* WS_INLINE* "|"
+_non_covalent_key_value_pair: WS_INLINE* "," WS_INLINE* _kv_key "=" _kv_val
+_kv_key: /[^,\|\s=]+/
+_kv_val: /[^,\|\s=]+/
+
+# 短描述符与阶梯描述符
+simple_bond_descriptor: "[" inner_bond_descriptor "]"
+non_covalent_bond_descriptor: "[" inner_non_covalent_descriptor "]"
+ladder_bond_descriptor: "[" inner_ambi_covalent_descriptor simple_bond_descriptor INT? "]"
+  | "[" inner_ambi_covalent_descriptor non_covalent_bond_descriptor INT? "]"
+
+# 端口（任何形式）
+bond_descriptor: simple_bond_descriptor | ladder_bond_descriptor | non_covalent_bond_descriptor
+
+# 终端端口：用于重复单元左右端口
+# 支持：
+#  1) 梯子描述符（优先）
+#  2) 非共价描述符
+#  3) 简单描述符
+#  4) 空端口或仅含编号/生成器
+terminal_bond_descriptor: ladder_bond_descriptor
+  | non_covalent_bond_descriptor
+  | simple_bond_descriptor
+  | "[" bond_descriptor_symbol_idx? bond_descriptor_generation? "]"
+
+############################################
+# 分布（Flory-Schulz 等）
+############################################
+stochastic_generation: "|" stochastic_distribution "|"
+flory_schulz: "flory_schulz(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
+schulz_zimm: "schulz_zimm(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+gauss: "gauss(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+uniform: "uniform(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+log_normal: "log_normal(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+poisson: "poisson(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
+stochastic_distribution: flory_schulz
+  | schulz_zimm
+  | gauss
+  | uniform
+  | log_normal
+  | poisson
+
+############################################
+# 点连接（体系大小可选）
+############################################
+dot_system_size: "|" WS_INLINE* NUMBER WS_INLINE* "|"
+dot_generation: DOT dot_system_size?

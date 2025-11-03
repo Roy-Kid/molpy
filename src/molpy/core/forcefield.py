@@ -54,6 +54,20 @@ class DictWithList:
             return 0 <= key < len(self.parms)
         return key in self.kwparms
 
+    # Provide a mapping-like view over keyword parameters for convenience
+    @property
+    def data(self) -> dict:
+        return self.kwparms
+
+    def items(self):  # pragma: no cover - convenience for mapping protocol
+        return self.kwparms.items()
+
+    def keys(self):  # pragma: no cover
+        return self.kwparms.keys()
+
+    def values(self):  # pragma: no cover
+        return self.kwparms.values()
+
 
 class Type(DictWithList):
 
@@ -1347,7 +1361,8 @@ class ForceField:
 
         # Use style's parms and data as initialization parameters
         init_kwargs = {}
-        init_kwargs.update(style)  # Add style's data dictionary
+        # Add style's data dictionary (keyword parameters)
+        init_kwargs.update(getattr(style, "data", {}))
         init_kwargs.update(kwargs)  # Override with user-provided kwargs
 
         # Filter kwargs to only include parameters that the potential class accepts

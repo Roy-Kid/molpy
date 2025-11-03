@@ -12,7 +12,7 @@ from molq.submitor import LocalSubmitor
 from molpy.core.atomistic import Angle, Atom, Atomistic, Bond, Dihedral
 from molpy.core.element import Element
 from molpy.core.frame import Frame
-from molpy.core.protocol import Entities
+from molpy.src.molpy.core.entity import Entities
 
 from ..builder.reacter_lammps import ReactantWrapper
 from .polymer import Monomer

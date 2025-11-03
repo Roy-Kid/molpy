@@ -1,0 +1,71 @@
+?start: smiles
+
+smiles: chain (DOT chain)*
+chain: branched_atom (ring_bond | atom_assembly)*
+atom_assembly: CHAIN_BOND_SYM? branched_atom
+
+branched_atom: atom branch*
+branch: "(" CHAIN_BOND_SYM? smiles ")"
+
+atom: bracket_atom | atom_simple
+atom_simple: ALIPHATIC_ORGANIC | AROMATIC_ORGANIC | STAR
+STAR: "*"
+
+bracket_atom: "[" isotope? atom_symbol chiral? h_count? atom_charge? atom_class? "]"
+
+atom_symbol: ELEMENT_SYM | AROMATIC_SYM | STAR
+
+# ---- TOKENS (UPPERCASE) ----
+# Avoid treating '-' in bracket charges (e.g., [O-], [N+4]) as a bond symbol by
+# preventing a BOND_SYM '-' when the next char is a digit or a closing bracket.
+BOND_SYM: /-(?![0-9\]])|=|#|\$|:|\/|\\/
+# Chain bond symbols cannot be immediately followed by a ring number
+CHAIN_BOND_SYM: /(?:-|=|#|\$|:|\/|\\)(?!%[0-9]{1,2}|[0-9])/
+RING_NUM: DIGIT | "%" DIGIT? DIGIT
+
+# Support optional explicit bond symbol for ring closures (e.g., C=1) without
+# conflicting with chain bonds like C=C by only allowing the symbol when a ring
+# number follows immediately.
+RING_BOND_SYM.2: /(?:-|=|#|\$|:|\/|\\)(?=%[0-9]{1,2}|[0-9])/
+ring_bond: RING_BOND_SYM? RING_NUM
+DOT: "."
+
+# ---- Atom pieces ----
+isotope: INT
+h_count: "H" | "H" INT
+
+# Explicit charge tokens to expose sign in parse tree
+CHG_DMINUS: "--"
+CHG_DPLUS:  "++"
+CHG_MINUS:  "-"
+CHG_PLUS:   "+"
+atom_charge: CHG_DMINUS
+           | CHG_DPLUS
+           | CHG_MINUS INT?
+           | CHG_PLUS INT?
+atom_class: ":" INT
+
+# Terminals
+AROMATIC_SYM: AROMATIC_ORGANIC | "se" | "as"
+ALIPHATIC_ORGANIC: "B" | "C" | "N" | "O" | "S" | "P" | "F" | "Cl" | "Br" | "I"
+AROMATIC_ORGANIC:  "b" | "c" | "n" | "o" | "s" | "p"
+
+chiral: CHIRAL_TOKEN
+
+CHIRAL_TOKEN: /@(?:@|TH[12]|AL[12]|SP[1-3]|TB[0-9]+|OH[0-9]+)?/
+
+ELEMENT_SYM: "H" | "He" | "Li" | "Be" | "B" | "C" | "N" | "O" | "F" | "Ne"
+  | "Na" | "Mg" | "Al" | "Si" | "P" | "S" | "Cl" | "Ar" | "K" | "Ca" | "Sc" | "Ti" | "V"
+  | "Cr" | "Mn" | "Fe" | "Co" | "Ni" | "Cu" | "Zn" | "Ga" | "Ge" | "As" | "Se" | "Br"
+  | "Kr" | "Rb" | "Sr" | "Y" | "Zr" | "Nb" | "Mo" | "Tc" | "Ru" | "Rh" | "Pd" | "Ag"
+  | "Cd" | "In" | "Sn" | "Sb" | "Te" | "I" | "Xe" | "Cs" | "Ba" | "Hf" | "Ta" | "W"
+  | "Re" | "Os" | "Ir" | "Pt" | "Au" | "Hg" | "Tl" | "Pb" | "Bi" | "Po" | "At" | "Rn"
+  | "Fr" | "Ra" | "Rf" | "Db" | "Sg" | "Bh" | "Hs" | "Mt" | "Ds" | "Rg" | "Cn" | "Fl"
+  | "Lv" | "La" | "Ce" | "Pr" | "Nd" | "Pm" | "Sm" | "Eu" | "Gd" | "Tb" | "Dy" | "Ho"
+  | "Er" | "Tm" | "Yb" | "Lu" | "Ac" | "Th" | "Pa" | "U" | "Np" | "Pu" | "Am" | "Cm"
+  | "Bk" | "Cf" | "Es" | "Fm" | "Md" | "No" | "Lr"
+
+%import common.DIGIT
+%import common.INT
+%import common.WS_INLINE
+%ignore WS_INLINE

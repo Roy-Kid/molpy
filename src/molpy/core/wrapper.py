@@ -13,7 +13,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from ..op import rotate_by_rodrigues
-from .protocol import Struct
+from .entity import Struct
 
 T = TypeVar("T")
 
