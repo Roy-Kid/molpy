@@ -8,7 +8,7 @@ and assembly operations.
 
 import numpy as np
 
-from molpy.core.atomistic import Atomistic
+from molpy.core._atomistic import Atomistic
 from molpy.core.wrapper import Spatial
 
 

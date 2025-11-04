@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-from molpy.core.atomistic import Atomistic
+from molpy.core._atomistic import Atomistic
 from molpy.core.forcefield import (
     AngleStyle,
     AtomStyle,

@@ -1,464 +1,1032 @@
-# smiles_parser.py
-"""
-SMILES -> IR single-file parser using Lark (Python 3.11+)
-
-Features:
-- Atoms (including bracket form with isotope/charge/H count/chirality/class)
-- Bonds: implicit, -, =, #, $, :, /, \
-- Branches (...) and ring closures (1..9 and %NN)
-- Aromatic small letters treated as aromatic by writing convention
-
-Limitations:
-- No aromaticity perception beyond "as-written"
-- Stereochemistry kept as up/down for / and \\ (no full E/Z inference)
-"""
-
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum, auto
 from pathlib import Path
-from typing import Iterable
+from typing import Sequence, cast, Literal
 
-from lark import Tree, Token
+from lark import Lark, Token, Tree, UnexpectedInput
 
-from .base import GrammarConfig, GrammarParserBase
+from .smiles_ir import (
+    Span,
+    IRAtom,
+    IRBond,
+    IRRingBond,
+    IRBranch,
+    IRDiagnostic,
+    # SMILES
+    IRSmilesDot,
+    IRSmilesMolecule,
+    IRSmilesDocument,
+    IRSmilesPart,
+    # BigSMILES
+    IRBigGeneration,
+    IRBigIndexContext,
+    IRBigIndexExpr,
+    IRBigNonCovalent,
+    IRBigConnector,
+    IRBigDistribution,
+    IRBigSystemDot,
+    IRBigStochasticBlock,
+    IRBigFragmentRef,
+    IRBigFragmentDef,
+    IRBigPart,
+    IRBigSmilesMolecule,
+    IRBigSmilesDocument,
+    # G-BigSMILES
+    IRGPart,
+    IRGBigSmilesMolecule,
+    IRGBigSmilesDocument,
+)
 
+__all__ = ["parse_smiles", "parse_bigsmiles", "parse_gbigsmiles"]
 
-# =========================
-# IR (enums + data classes)
-# =========================
+_GRAMMAR_PATH = Path(__file__).with_name("grammar").joinpath("smiles.lark")
+_GRAMMAR = _GRAMMAR_PATH.read_text(encoding="utf-8")
+_PARSER = Lark(
+    _GRAMMAR,
+    start="document",
+    parser="earley",
+    lexer="dynamic",
+    propagate_positions=True,
+    maybe_placeholders=False,
+    import_paths=[str(_GRAMMAR_PATH.parent)],
+)
 
-class BondOrder(Enum):
-    """Standardized bond order labels."""
-    SINGLE = auto()
-    DOUBLE = auto()
-    TRIPLE = auto()
-    QUAD = auto()
-    AROMATIC = auto()
-    UNKNOWN = auto()
+def _span_from_exception(exc: UnexpectedInput) -> Span | None:
+    if exc.pos_in_stream is None:
+        return None
+    column = getattr(exc, "column", None) or 1
+    line = getattr(exc, "line", None) or 1
+    return Span(
+        start=exc.pos_in_stream,
+        end=exc.pos_in_stream,
+        line=line,
+        column=column,
+    )
 
+def parse_smiles(smiles: str) -> IRSmilesDocument:
+    parser = SmilesParser()
+    return cast(IRSmilesDocument, parser.parse(smiles, flavor="smiles"))
 
-class BondStereo(Enum):
-    """Stereochemical decoration for bonds."""
-    NONE = auto()
-    UP = auto()      # "/" direction as written
-    DOWN = auto()    # "\" direction as written
-    E = auto()       # placeholder (not inferred here)
-    Z = auto()       # placeholder (not inferred here)
-    UNKNOWN = auto()
+def parse_bigsmiles(smiles: str) -> IRBigSmilesDocument:
+    parser = SmilesParser()
+    return cast(IRBigSmilesDocument, parser.parse(smiles, flavor="bigsmiles"))
 
-
-AROMATIC_ELEMENTS: set[str] = {"b", "c", "n", "o", "s", "p", "se", "as"}
-
-
-@dataclass
-class AtomIR:
-    """
-    Atom node in the molecular graph IR.
-    - element: kept as written ("c" means aromatic carbon)
-    - h_count_explicit: explicit H count in bracket form (None if absent)
-    - atom_map: value from [X:12] if present
-    """
-    id: int
-    element: str
-    aromatic: bool = False
-    isotope: int | None = None
-    charge: int = 0
-    h_count_explicit: int | None = None
-    chiral: str | None = None
-    atom_map: int | None = None
-    # Future extension (e.g., BigSMILES ports)
-    port_tag: str | None = None
-    meta: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass
-class BondIR:
-    """Undirected edge between atoms u and v."""
-    u: int
-    v: int
-    order: BondOrder = BondOrder.SINGLE
-    stereo: BondStereo = BondStereo.NONE
-    aromatic: bool = False
-
-
-@dataclass
-class MolGraphIR:
-    """
-    Molecule graph IR without coordinates.
-    - atoms: list of AtomIR
-    - bonds: list of BondIR
-    - total_charge: integer sum of atomic charges
-    - has_disconnected: should remain False for plain SMILES (no ".")
-    """
-    atoms: list[AtomIR] = field(default_factory=list)
-    bonds: list[BondIR] = field(default_factory=list)
-    total_charge: int = 0
-    has_disconnected: bool = False
-    source: str | None = None
+def parse_gbigsmiles(smiles: str) -> IRGBigSmilesDocument:
+    parser = SmilesParser()
+    return cast(IRGBigSmilesDocument, parser.parse(smiles, flavor="gbigsmiles"))
 
 
-# =========================
-# SmilesParser (from file)
-# =========================
+class SmilesParser:
 
-# Map a bond symbol to (BondOrder, BondStereo)
-BOND_MAP: dict[str, tuple[BondOrder, BondStereo]] = {
-    "":   (BondOrder.SINGLE,   BondStereo.NONE),   # implicit
-    "-":  (BondOrder.SINGLE,   BondStereo.NONE),
-    "=":  (BondOrder.DOUBLE,   BondStereo.NONE),
-    "#":  (BondOrder.TRIPLE,   BondStereo.NONE),
-    "$":  (BondOrder.QUAD,     BondStereo.NONE),
-    ":":  (BondOrder.AROMATIC, BondStereo.NONE),
-    "/":  (BondOrder.SINGLE,   BondStereo.UP),
-    "\\": (BondOrder.SINGLE,   BondStereo.DOWN),
-}
+    def __init__(self):
+        self._parser = _PARSER
+        self.features: set[str] = set()
+        self.errors: list[IRDiagnostic] = []
+        # Holds current input text during a parse; used for node text slicing
+        self._input_text: str | None = None
 
-
-class SmilesParser(GrammarParserBase[MolGraphIR]):
-    """
-    SMILES parser that loads a Lark grammar from a .lark file.
-
-    Usage:
-        parser = SmilesParser()  # looks for ./smiles.lark by default
-        ir = parser.parse("C(=O)O")
-    """
-
-    def __init__(
-        self,
-        grammar_path: Path | None = None,
-        *,
-        start: str = "smiles",
-        auto_reload: bool = True,
-    ):
-        if grammar_path is None:
-            grammar_dir = Path(__file__).parent / "grammar"
-            new_path = grammar_dir / "smiles.lark"
-            legacy_path = grammar_dir / "base_smiles.lark"
-            grammar_path = new_path if new_path.exists() else legacy_path
-        cfg = GrammarConfig(
-            grammar_path=grammar_path,
-            start=start,
-            parser="lalr",
-            propagate_positions=False,
-            maybe_placeholders=False,
-            auto_reload=auto_reload,
-        )
-        # 在 GrammarParserBase 里给 Lark(...) 传 lexer="contextual"
-        # 如果没暴露参数，就在 _compile_grammar 里加：lexer="contextual"
-
-        super().__init__(cfg)
-        # runtime state per-parse
-        self._ring_open: dict[int, tuple[int, str | None]] = {}
-        self._next_atom_id: int = 0
-
-    # ---------- public API ----------
-
-    def build(self, tree: Tree) -> MolGraphIR:
-        """Convert the Lark parse tree to MolGraphIR."""
-        self._ring_open.clear()
-        self._next_atom_id = 0
-        self._ir = MolGraphIR(source=None)
-        self._parse_smiles(tree)
-        return self._ir
-
-    # ---------- primitives ----------
-
-    def _new_atom(
-        self,
-        element: str,
-        aromatic: bool = False,
-        isotope: int | None = None,
-        charge: int = 0,
-        h_explicit: int | None = None,
-        chiral: str | None = None,
-        atom_map: int | None = None,
-    ) -> int:
-        aid = self._next_atom_id
-        self._next_atom_id += 1
-        self._ir.atoms.append(
-            AtomIR(
-                id=aid,
-                element=element,
-                aromatic=aromatic,
-                isotope=isotope,
-                charge=charge,
-                h_count_explicit=h_explicit,
-                chiral=chiral,
-                atom_map=atom_map,
-            )
-        )
-        self._ir.total_charge += charge
-        return aid
-
-    def _add_bond(self, u: int, v: int, symbol: str | None):
-        sym = symbol or ""
-        order, stereo = BOND_MAP.get(sym, (BondOrder.UNKNOWN, BondStereo.NONE))
-
-        # Implicit bond between aromatic atoms: treat as aromatic
-        if sym == "" and self._ir.atoms[u].aromatic and self._ir.atoms[v].aromatic:
-            order = BondOrder.AROMATIC
-
-        self._ir.bonds.append(
-            BondIR(u=u, v=v, order=order, stereo=stereo, aromatic=(order == BondOrder.AROMATIC))
-        )
-
-    # ---------- walkers ----------
-
-    def _parse_smiles(self, node: Tree) -> tuple[int, int]:
+    def parse(self, smiles: str, flavor) -> IRSmilesDocument | IRBigSmilesDocument | IRGBigSmilesDocument:
         """
-        smiles: chain (DOT chain)*
-        Returns (first_atom_id, last_atom_id).
+        Parse input string and convert to IR via build().
         """
-        assert node.data == "smiles"
-        assert node.children, "SMILES grammar should yield at least one chain"
-        first_id, last_id = self._parse_chain(node.children[0])
+        try:
+            # Stash the current input for downstream helpers that need original text
+            self._input_text = smiles
+            tree = _PARSER.parse(smiles)
+            return self.build(tree, flavor)
+        except UnexpectedInput as exc:
+            self.errors.append(IRDiagnostic(level="error", message=str(exc), span=_span_from_exception(exc)))
+            match flavor:
+                case "smiles":
+                    return IRSmilesDocument(
+                        molecules=[],
+                        features=set(),
+                        errors=self.errors,
+                    )
+                case "bigsmiles":
+                    return IRBigSmilesDocument(
+                        molecules=[],
+                        fragments=[],
+                        features=set(),
+                        errors=self.errors,
+                    )
+                case "gbigsmiles":
+                    return IRGBigSmilesDocument(
+                        molecules=[],
+                        fragments=[],
+                        features=set(),
+                        errors=self.errors,
+                    )
+                case _:
+                    return IRSmilesDocument(
+                        molecules=[],
+                        features=set(),
+                        errors=self.errors,
+                    )
+        finally:
+            # Ensure no lingering references between parses
+            self._input_text = None
 
-        i = 1
-        while i < len(node.children):
-            child = node.children[i]
-            if isinstance(child, Token) and child.type == "DOT":
-                self._ir.has_disconnected = True
-                if i + 1 >= len(node.children):
-                    raise ValueError("Dangling disconnected component without a chain")
-                next_chain = node.children[i + 1]
-                if not isinstance(next_chain, Tree) or next_chain.data != "chain":
-                    raise ValueError("Expected chain after dot in SMILES")
-                _, last_id = self._parse_chain(next_chain)
-                i += 2
-                continue
-            if isinstance(child, Tree) and child.data == "chain":
-                _, last_id = self._parse_chain(child)
-                i += 1
-                continue
-            raise ValueError(f"Unexpected node in smiles: {child!r}")
+    def build(self, tree: Tree, flavor: str) -> IRSmilesDocument | IRBigSmilesDocument | IRGBigSmilesDocument:
+        big_molecules: list[IRBigSmilesMolecule] = []
+        fragments: list[IRBigFragmentDef] = []
 
-        return first_id, last_id
-
-    def _parse_chain(self, node: Tree) -> tuple[int, int]:
-        """
-        chain: branched_atom (ring_bond | atom_assembly)*
-        """
-        assert node.data == "chain"
-        first_id, last_id = self._parse_branched_atom(node.children[0])
-
-        for child in node.children[1:]:
+        for child in tree.children:
             if isinstance(child, Tree):
-                if child.data == "atom_assembly":
-                    # atom_assembly: BOND_SYM? branched_atom
-                    bsym: str | None = None
-                    ba: Tree | None = None
-                    for c in child.children:
-                        if isinstance(c, Token) and c.type in ("BOND_SYM", "CHAIN_BOND_SYM"):
-                            bsym = c.value
-                        elif isinstance(c, Tree) and c.data == "branched_atom":
-                            ba = c
-                    assert ba is not None
-                    bf, bl = self._parse_branched_atom(ba)
-                    self._add_bond(last_id, bf, bsym)
-                    last_id = bl
-                elif child.data == "ring_bond":
-                    self._handle_ring_bond(last_id, child)
-                else:
-                    raise ValueError(f"Unexpected node in chain: {child.data}")
-            else:
-                raise ValueError(f"Unexpected token in chain: {child!r}")
+                if child.data == "molecule":
+                    big_molecules.append(self._build_molecule_big(child))
+                elif child.data == "fragment_definition":
+                    fragments.append(self._build_fragment_definition(child))
 
-        return first_id, last_id
+        if big_molecules:
+            self.features.add("smiles")
 
-    def _parse_branched_atom(self, node: Tree) -> tuple[int, int]:
-        """
-        branched_atom: atom branch* ring_bond*
-        Returns (first_atom_id, last_atom_id).
-        """
-        assert node.data == "branched_atom"
-        atom_node = node.children[0]
-        cur = self._parse_atom(atom_node)
-        first = cur
-
-        i = 1
-        # branch*
-        while i < len(node.children) and isinstance(node.children[i], Tree) and node.children[i].data == "branch":
-            br = node.children[i]
-            # branch: "(" BOND_SYM? smiles ")"
-            bsym: str | None = None
-            subtree: Tree | None = None
-            for bc in br.children:
-                if isinstance(bc, Token) and bc.type in ("BOND_SYM", "CHAIN_BOND_SYM"):
-                    bsym = bc.value
-                elif isinstance(bc, Tree) and bc.data == "smiles":
-                    subtree = bc
-            assert subtree is not None
-            bf, _ = self._parse_smiles(subtree)
-            self._add_bond(cur, bf, bsym)
-            i += 1
-
-        # ring_bond*
-        while i < len(node.children) and isinstance(node.children[i], Tree) and node.children[i].data == "ring_bond":
-            self._handle_ring_bond(cur, node.children[i])
-            i += 1
-
-        return first, cur
-
-    def _handle_ring_bond(self, cur: int, node: Tree):
-        """
-        ring_bond: RING_BOND_SYM? RING_NUM
-        """
-        bsym: str | None = None
-        idx_str = ""
-
-        for c in node.children:
-            if isinstance(c, Token) and c.type == "RING_BOND_SYM":
-                bsym = c.value
-            elif isinstance(c, Token) and c.type == "RING_NUM":
-                val = c.value
-                if val.startswith("%"):
-                    idx_str = val[1:]
-                else:
-                    idx_str = val
-
-        if not idx_str:
-            return
-        idx = int(idx_str)
-
-        if idx not in self._ring_open:
-            self._ring_open[idx] = (cur, bsym)
-        else:
-            other, bsym0 = self._ring_open.pop(idx)
-            use_sym = bsym if bsym is not None else bsym0
-            self._add_bond(other, cur, use_sym)
-
-    def _parse_atom(self, node: Tree | Token) -> int:
-        if isinstance(node, Token):
-            # ATOM_SIMPLE or STAR as token
-            el = node.value
-            if el == "*":
-                return self._new_atom("*", False)
-            aromatic = (el in AROMATIC_ELEMENTS)
-            return self._new_atom(el, aromatic)
-
-        if node.data == "atom":
-            return self._parse_atom(node.children[0])
-
-        if node.data == "atom_simple":
-            t = node.children[0]
-            if isinstance(t, Token):
-                if t.type == "STAR":
-                    return self._new_atom("*", False)
-                elif t.type in ("ALIPHATIC_ORGANIC", "ELEMENT_SYM"):
-                    el = t.value
-                    aromatic = (el in AROMATIC_ELEMENTS)
-                    return self._new_atom(el, aromatic)
-                elif t.type in ("AROMATIC_ORGANIC", "AROMATIC_SYM"):
-                    el = t.value
-                    aromatic = True
-                    return self._new_atom(el, aromatic)
-            # Fallback
-            raise ValueError(f"Unhandled atom_simple node: {node}")
-
-        if node.data == "bracket_atom":
-            # "[" isotope? atom_symbol chiral? h_count? atom_charge? atom_class? "]"
-            isotope: int | None = None
-            symbol: str | None = None
-            chiral: str | None = None
-            h_explicit: int | None = None
-            charge: int = 0
-            atom_map: int | None = None
-
-            for c in node.children:
-                if isinstance(c, Tree):
-                    if c.data == "isotope":
-                        isotope = int(c.children[0].value)
-                    elif c.data == "atom_symbol":
-                        symbol = self._atom_symbol(c)
-                    elif c.data == "chiral":
-                        chiral = c.children[0].value if c.children else "@"
-                    elif c.data == "h_count":
-                        h_explicit = 1 if len(c.children) == 0 else int(c.children[-1].value)
-                    elif c.data == "atom_charge":
-                        charge = self._parse_charge(c)
-                    elif c.data == "atom_class":
-                        atom_map = int(c.children[-1].value)
-
-            el = symbol or "*"
-            aromatic = (el.lower() in AROMATIC_ELEMENTS and el.islower())
-            return self._new_atom(
-                element=el,
-                aromatic=aromatic,
-                isotope=isotope,
-                charge=charge,
-                h_explicit=h_explicit,
-                chiral=chiral,
-                atom_map=atom_map,
+        if flavor == "smiles":
+            smiles_molecules: list[IRSmilesMolecule] = []
+            for m in big_molecules:
+                parts_smiles: list[IRSmilesPart] = [p for p in m.parts if isinstance(p, IRAtom)]
+                smiles_molecules.append(IRSmilesMolecule(parts=parts_smiles, span=m.span))
+            return IRSmilesDocument(
+                flavor="smiles",
+                molecules=smiles_molecules,
+                features=self.features | {"smiles"},
+                errors=self.errors,
             )
-        
-        elif node.data == "ALIPHATIC_ORGANIC":
-            # Unused with current grammar (wrapped by atom_simple)
-            el = node.children[0].value
-            aromatic = (el in AROMATIC_ELEMENTS)
-            return self._new_atom(el, aromatic)
 
-        elif node.data == "AROMATIC_ORGANIC":
-            # Unused with current grammar (wrapped by atom_simple)
-            el = node.children[0].value
-            aromatic = (el in AROMATIC_ELEMENTS)
-            return self._new_atom(el, aromatic)
+        if flavor == "gbigsmiles":
+            return IRGBigSmilesDocument(
+                flavor="gbigsmiles",
+                molecules=[IRGBigSmilesMolecule(parts=cast(list[IRGPart], list(m.parts)), generation=m.generation, span=m.span) for m in big_molecules],
+                fragments=fragments,
+                features=self.features,
+                errors=self.errors,
+            )
 
-        raise ValueError(f"Unhandled atom node: {node}")
+        return IRBigSmilesDocument(
+            flavor="bigsmiles",
+            molecules=big_molecules,
+            fragments=fragments,
+            features=self.features,
+            errors=self.errors,
+        )
 
-    # ---------- helpers ----------
+    # ---------- Molecules ----------
 
-    @staticmethod
-    def _atom_symbol(node: Tree) -> str:
-        """Return symbol from atom_symbol rule."""
-        c = node.children[0]
-        return c.value if isinstance(c, Token) else c.children[0].value  # aromatic_symbol tree
+    def _build_molecule_big(self, node: Tree) -> IRBigSmilesMolecule:
+        parts: list[IRBigPart] = []
+        generation: IRBigSystemDot | None = None
 
-    @staticmethod
-    def _parse_charge(node: Tree) -> int:
-        """
-        Parse atom_charge:
-          "-", "+", "--", "++", "-2", "+3"
-        """
-        if not node.children:
+        for child in node.children:
+            if isinstance(child, Tree):
+                if child.data == "molecule_body":
+                    parts.extend(self._build_molecule_body(child))
+                elif child.data == "dot_generation":
+                    generation = self._build_dot_generation(child)
+
+        return IRBigSmilesMolecule(parts=parts, generation=generation, span=self._span(node))
+
+    def _build_molecule_body(self, node: Tree) -> list[IRBigPart]:
+        parts: list[IRBigPart] = []
+
+        for child in node.children:
+            if not isinstance(child, Tree):
+                continue
+            if child.data == "smiles":
+                parts.extend(self._build_smiles(child))
+            elif child.data == "repeat_block":
+                parts.extend(self._build_repeat_block(child))
+            elif child.data == "stochastic_object":
+                parts.append(self._build_stochastic_object(child))
+            elif child.data == "bond_descriptor":
+                parts.append(self._build_bond_descriptor(child))
+            elif child.data == "fragment_declaration":
+                parts.append(self._build_fragment_ref(child))
+
+        return parts
+
+    def _build_smiles(self, node: Tree) -> list[IRBigPart]:
+        parts: list[IRBigPart] = []
+        children = [child for child in node.children if isinstance(child, Tree)]
+        if not children:
+            return parts
+
+        first = children[0]
+        parts.append(cast(IRBigPart, self._build_branched_atom(first, leading_bond=None)))
+
+        for atom_assembly in children[1:]:
+            if atom_assembly.data != "atom_assembly":
+                continue
+            bond: IRBond | None = None
+            target: Tree | None = None
+            for child in atom_assembly.children:
+                if isinstance(child, Tree) and child.data == "bond_symbol":
+                    bond = self._build_bond(child)
+                elif isinstance(child, Tree):
+                    target = child
+            if target is None:
+                continue
+            parts.append(cast(IRBigPart, self._build_branched_atom(target, leading_bond=bond)))
+
+        return parts
+
+    def _build_repeat_block(self, node: Tree) -> list[IRBigPart]:
+        parts: list[IRBigPart] = []
+        for child in node.children:
+            if isinstance(child, Tree):
+                if child.data == "stochastic_object":
+                    parts.append(self._build_stochastic_object(child))
+                elif child.data == "smiles":
+                    parts.extend(self._build_smiles(child))
+                elif child.data == "molecule_body":
+                    parts.extend(self._build_molecule_body(child))
+        return parts
+
+    # ---------- Branched atoms ----------
+
+    def _build_branched_atom(self, node: Tree, *, leading_bond: IRBond | None) -> object:
+        atom_entry: Tree | None = None
+        ring_nodes: list[Tree] = []
+        branch_nodes: list[Tree] = []
+
+        for child in node.children:
+            if not isinstance(child, Tree):
+                continue
+            if child.data == "atom_entry":
+                atom_entry = child
+            elif child.data == "ring_bond":
+                ring_nodes.append(child)
+            elif child.data == "branch":
+                branch_nodes.append(child)
+
+        part = self._build_atom_entry(atom_entry, node)
+
+        if isinstance(part, IRAtom):
+            part.bond_to_prev = leading_bond
+            part.rings.extend(self._build_ring_bonds(ring_nodes))
+            part.branches.extend(self._build_branches(branch_nodes))
+        return part
+
+    def _build_atom_entry(self, node: Tree | None, parent: Tree) -> object:
+        if node is None:
+            return self._make_placeholder_atom(parent)
+
+        child = next((c for c in node.children if isinstance(c, Tree)), None)
+        if child is None:
+            return self._make_placeholder_atom(parent)
+
+        if child.data == "atom":
+            return self._build_atom(child, parent)
+        if child.data == "stochastic_object":
+            return self._build_stochastic_object(child)
+        if child.data == "bond_descriptor":
+            descriptor = self._build_bond_descriptor(child)
+            self.features.add("bigsmiles")
+            if descriptor.connector == ":" or descriptor.mode == "non_covalent" or descriptor.noncovalent:
+                self.features.add("gbigsmiles")
+            return descriptor
+        if child.data == "fragment_declaration":
+            self.features.add("bigsmiles")
+            return self._build_fragment_ref(child)
+
+        return self._make_placeholder_atom(parent)
+
+    def _build_atom(self, node: Tree, parent: Tree) -> IRAtom:
+        atom_kind: Literal['bracket','aliphatic','aromatic','star'] = "aliphatic"
+        symbol: str | None = None
+        isotope: int | None = None
+        chiral: str | None = None
+        hcount: int | None = None
+        charge: int | None = None
+        clazz: int | None = None
+
+        for child in node.children:
+            if not isinstance(child, Tree):
+                continue
+            if child.data == "bracket_atom":
+                (
+                    atom_kind,
+                    symbol,
+                    isotope,
+                    chiral,
+                    hcount,
+                    charge,
+                    clazz,
+                ) = self._build_bracket_atom(child)
+            elif child.data == "aliphatic_organic":
+                atom_kind = "aliphatic"
+                symbol = self._node_text(child)
+            elif child.data == "aromatic_organic":
+                atom_kind = "aromatic"
+                symbol = self._node_text(child)
+            elif child.data == "STAR":
+                atom_kind = "star"
+                symbol = "*"
+
+        self.features.add("smiles")
+
+        return IRAtom(
+            kind=atom_kind,
+            symbol=symbol,
+            isotope=isotope,
+            chiral=chiral,
+            hcount=hcount,
+            charge=charge,
+            clazz=clazz,
+            rings=[],
+            branches=[],
+            span=self._span(parent),
+        )
+
+    def _build_bracket_atom(
+        self, node: Tree
+    ) -> tuple[Literal['bracket'], str | None, int | None, str | None, int | None, int | None, int | None]:
+        symbol: str | None = None
+        isotope: int | None = None
+        chiral: str | None = None
+        hcount: int | None = None
+        charge: int | None = None
+        clazz: int | None = None
+
+        for child in node.children:
+            if isinstance(child, Tree):
+                if child.data == "isotope":
+                    value = self._find_token(child, "INT")
+                    isotope = int(value) if value else None
+                elif child.data == "atom_symbol":
+                    text = self._node_text(child)
+                    symbol = text if text else None
+                elif child.data == "chiral":
+                    chiral = self._node_text(child)
+                elif child.data == "h_count":
+                    hcount = self._parse_h_count(child)
+                elif child.data == "atom_charge":
+                    charge = self._parse_charge(child)
+                elif child.data == "atom_class":
+                    value = self._find_token(child, "INT")
+                    clazz = int(value) if value else None
+
+        return "bracket", symbol, isotope, chiral, hcount, charge, clazz
+
+    def _parse_h_count(self, node: Tree) -> int:
+        token = self._find_token(node, "INT")
+        return int(token) if token else 1
+
+    def _parse_charge(self, node: Tree) -> int | None:
+        value = self._node_text(node)
+        if not value:
+            sign = "+"
+            token = self._find_token(node, "INT")
+            if token is None:
+                return None
+            amount = int(token)
+            return amount if sign == "+" else -amount
+
+        if value in ("+", "-"):
+            return 1 if value == "+" else -1
+        if value in ("++", "--"):
+            return 2 if value == "++" else -2
+
+        sign = 1 if value[0] == "+" else -1
+        magnitude = int(value[1:]) if len(value) > 1 else 1
+        return sign * magnitude
+
+    def _build_ring_bonds(self, nodes: Sequence[Tree]) -> list[IRRingBond]:
+        return [self._build_ring_bond(node) for node in nodes]
+
+    def _build_ring_bond(self, node: Tree) -> IRRingBond:
+        bond: IRBond | None = None
+        digits: list[str] = []
+
+        for child in node.children:
+            if isinstance(child, Tree) and child.data == "bond_symbol":
+                bond = self._build_bond(child)
+            elif isinstance(child, Token) and child.type in {"DIGIT", "INT"}:
+                digits.append(child.value)
+
+        if not digits:
+            text = self._node_text(node)
+            digits = [ch for ch in text if ch.isdigit()]
+
+        index = int("".join(digits)) if digits else 0
+
+        return IRRingBond(
+            bond=bond,
+            index=index,
+            span=self._span(node),
+        )
+
+    def _build_branches(self, nodes: Sequence[Tree]) -> list[IRBranch]:
+        return [self._build_branch(node) for node in nodes]
+
+    def _build_branch(self, node: Tree) -> IRBranch:
+        bond: IRBond | None = None
+        content: list[object] = []
+
+        for child in node.children:
+            if isinstance(child, Tree) and child.data == "bond_symbol":
+                bond = self._build_bond(child)
+            elif isinstance(child, Tree) and child.data == "molecule_body":
+                content.extend(self._build_molecule_body(child))
+
+        branch = IRBranch(bond=bond, content=content, span=self._span(node))
+        first_atom = next((part for part in content if isinstance(part, IRAtom)), None)
+        if isinstance(first_atom, IRAtom) and first_atom.bond_to_prev is None:
+            first_atom.bond_to_prev = bond
+        return branch
+
+    # ---------- Stochastic objects ----------
+
+    def _build_stochastic_object(self, node: Tree) -> IRBigStochasticBlock:
+        left_descriptor: IRBigConnector | None = None
+        right_descriptor: IRBigConnector | None = None
+        repeat_units: list[IRBigSmilesMolecule] = []
+        end_group: list[IRBigSmilesMolecule] | None = None
+        distribution: IRBigDistribution | None = None
+
+        for child in node.children:
+            if not isinstance(child, Tree):
+                continue
+            if child.data == "terminal_bond_descriptor":
+                descriptor = self._build_terminal_descriptor(child)
+                if left_descriptor is None:
+                    left_descriptor = descriptor
+                else:
+                    right_descriptor = descriptor
+            elif child.data == "repeat_units":
+                repeat_units = self._build_repeat_units(child)
+            elif child.data == "end_group":
+                end_group = self._build_end_group(child)
+            elif child.data == "stochastic_generation":
+                distribution = self._build_stochastic_distribution(child)
+
+        if left_descriptor is None:
+            left_descriptor = IRBigConnector(
+                mode="simple",
+                connector=None,
+                index=None,
+                span=self._span(node),
+                generation=None,
+                inner=None,
+                noncovalent=None,
+            )
+        if right_descriptor is None:
+            right_descriptor = IRBigConnector(
+                mode="simple",
+                connector=None,
+                index=None,
+                span=self._span(node),
+                generation=None,
+                inner=None,
+                noncovalent=None,
+            )
+
+        self.features.add("bigsmiles")
+        if distribution is not None:
+            self.features.add("gbigsmiles")
+
+        return IRBigStochasticBlock(
+            left_terminal=left_descriptor,
+            right_terminal=right_descriptor,
+            units=repeat_units,
+            end_group=end_group,
+            distribution=distribution,
+            span=self._span(node),
+        )
+
+    def _build_repeat_units(self, node: Tree) -> list[IRBigSmilesMolecule]:
+        molecules: list[IRBigSmilesMolecule] = []
+        for child in node.children:
+            if isinstance(child, Tree):
+                if child.data == "smiles":
+                    molecules.append(self._inline_molecule_from_smiles(child))
+                elif child.data == "molecule_body":
+                    parts = self._build_molecule_body(child)
+                    molecules.append(IRBigSmilesMolecule(parts=parts, span=self._span(child)))
+                elif child.data == "monomer_list":
+                    molecules.extend(self._build_repeat_units(child))
+        return molecules
+
+    def _build_end_group(self, node: Tree) -> list[IRBigSmilesMolecule]:
+        molecules: list[IRBigSmilesMolecule] = []
+        for child in node.children:
+            if isinstance(child, Tree):
+                if child.data == "smiles":
+                    molecules.append(self._inline_molecule_from_smiles(child))
+                elif child.data == "molecule_body":
+                    parts = self._build_molecule_body(child)
+                    molecules.append(IRBigSmilesMolecule(parts=parts, span=self._span(child)))
+                elif child.data == "monomer_list":
+                    molecules.extend(self._build_repeat_units(child))
+        return molecules
+
+    def _inline_molecule_from_smiles(self, node: Tree) -> IRBigSmilesMolecule:
+        parts = self._build_smiles(node)
+        return IRBigSmilesMolecule(parts=parts, span=self._span(node))
+
+    # ---------- Bond descriptors ----------
+
+    def _build_terminal_descriptor(self, node: Tree) -> IRBigConnector:
+        connector: str | None = None
+        index: int | None = None
+        generation: IRBigGeneration | None = None
+
+        for child in node.children:
+            if isinstance(child, Tree) and child.data == "bond_descriptor_symbol_idx":
+                symbol = self._find_token(child, "INT")
+                raw = self._node_text(child)
+                connector = raw[:-len(symbol)] if symbol else raw
+                if symbol:
+                    index = int(symbol)
+                else:
+                    index = None
+                if connector:
+                    connector = connector.strip()
+                if connector == "":
+                    connector = None
+            elif isinstance(child, Tree) and child.data == "bond_descriptor_generation":
+                generation = self._build_generation(child)
+
+        descriptor = IRBigConnector(
+            mode="simple",
+            connector=self._as_connector(connector),
+            index=index,
+            generation=generation,
+            inner=None,
+            noncovalent=None,
+            span=self._span(node),
+        )
+        if connector in {"$", "<", ">"}:
+            self.features.add("bigsmiles")
+        return descriptor
+
+    def _build_bond_descriptor(self, node: Tree) -> IRBigConnector:
+        if node.data == "bond_descriptor":
+            child = next((c for c in node.children if isinstance(c, Tree)), None)
+            if child is None:
+                return IRBigConnector(
+                    mode="simple",
+                    connector=None,
+                    index=None,
+                    generation=None,
+                    inner=None,
+                    noncovalent=None,
+                    span=self._span(node),
+                )
+            return self._build_bond_descriptor(child)
+
+        if node.data == "simple_bond_descriptor":
+            inner = next((c for c in node.children if isinstance(c, Tree)), None)
+            return self._build_simple_descriptor(inner, node)
+
+        if node.data == "non_covalent_bond_descriptor":
+            inner = next((c for c in node.children if isinstance(c, Tree)), None)
+            descriptor = self._build_non_covalent_descriptor(inner, node)
+            self.features.add("gbigsmiles")
+            return descriptor
+
+        if node.data == "ladder_bond_descriptor":
+            parts: list[IRBigConnector] = []
+            index: int | None = None
+            for child in node.children:
+                if isinstance(child, Tree):
+                    if child.data in {
+                        "simple_bond_descriptor",
+                        "non_covalent_bond_descriptor",
+                        "bond_descriptor",
+                        "inner_bond_descriptor",
+                        "inner_non_covalent_descriptor",
+                        "inner_ambi_covalent_descriptor",
+                    }:
+                        parts.append(self._build_bond_descriptor(child))
+                    elif child.data == "bond_descriptor_symbol_idx":
+                        token = self._find_token(child, "INT")
+                        index = int(token) if token else None
+                elif isinstance(child, Token) and child.type == "INT":
+                    index = int(child.value)
+
+            descriptor = IRBigConnector(
+                mode="ladder",
+                connector=None,
+                index=index,
+                generation=None,
+                inner=parts,
+                noncovalent=None,
+                span=self._span(node),
+            )
+            self.features.add("bigsmiles")
+            if any(part.noncovalent for part in parts):
+                self.features.add("gbigsmiles")
+            return descriptor
+
+        if node.data in {"inner_bond_descriptor", "bond_descriptor_symbol_idx"}:
+            return self._build_simple_descriptor(node, node)
+
+        if node.data == "inner_non_covalent_descriptor":
+            descriptor = self._build_non_covalent_descriptor(node, node)
+            self.features.add("gbigsmiles")
+            return descriptor
+
+        return IRBigConnector(
+            mode="simple",
+            connector=None,
+            index=None,
+            generation=None,
+            inner=None,
+            noncovalent=None,
+            span=self._span(node),
+        )
+
+    def _build_simple_descriptor(self, node: Tree | None, span_node: Tree) -> IRBigConnector:
+        connector: str | None = None
+        index: int | None = None
+        generation: IRBigGeneration | None = None
+
+        if node is not None:
+            for child in node.children:
+                if isinstance(child, Tree) and child.data == "bond_descriptor_symbol_idx":
+                    text = self._node_text(child)
+                    token = self._find_token(child, "INT")
+                    connector = text[:-len(token)] if token else text
+                    if connector:
+                        connector = connector.strip()
+                    index = int(token) if token else None
+                elif isinstance(child, Tree) and child.data == "bond_descriptor_generation":
+                    generation = self._build_generation(child)
+
+        descriptor = IRBigConnector(
+            mode="simple",
+            connector=self._as_connector(connector),
+            index=index,
+            generation=generation,
+            inner=None,
+            noncovalent=None,
+            span=self._span(span_node),
+        )
+
+        if descriptor.connector in {"$", "<", ">"}:
+            self.features.add("bigsmiles")
+        return descriptor
+
+    def _build_non_covalent_descriptor(self, node: Tree | None, span_node: Tree) -> IRBigConnector:
+        connector = None
+        index: int | None = None
+        label: int | None = None
+        context: IRBigIndexContext | None = None
+
+        if node is not None:
+            for child in node.children:
+                if isinstance(child, Tree):
+                    if child.data == "bond_descriptor_symbol":
+                        connector = self._node_text(child) or ":"
+                    elif child.data == "INT":
+                        label = int(self._node_text(child))
+                    elif child.data == "non_covalent_context":
+                        context = self._build_non_covalent_context(child)
+                elif isinstance(child, Token) and child.type == "INT":
+                    label = int(child.value)
+
+        index = label if label is not None else index
+
+        noncovalent = IRBigNonCovalent(
+            label=label,
+            context=context,
+            span=self._span(node) if node is not None else self._span(span_node),
+        )
+
+        descriptor = IRBigConnector(
+            mode="non_covalent",
+            connector=":",
+            index=index,
+            generation=None,
+            inner=None,
+            noncovalent=noncovalent,
+            span=self._span(span_node),
+        )
+        self.features.add("gbigsmiles")
+        return descriptor
+
+    def _build_non_covalent_context(self, node: Tree) -> IRBigIndexContext:
+        expr: IRBigIndexExpr | None = None
+        kv: dict[str, str] = {}
+
+        for child in node.children:
+            if isinstance(child, Tree) and child.data == "index_expression" and expr is None:
+                expr = self._build_index_expression(child)
+            elif isinstance(child, Tree) and child.data == "non_covalent_key_value_pair":
+                key = self._read_text_block(child, "non_covalent_key")
+                value = self._read_text_block(child, "non_covalent_value")
+                if key:
+                    kv[key] = value
+
+        if expr is None:
+            expr = IRBigIndexExpr(left=0, op=None, right=None, unary=None, span=self._span(node))
+
+        if kv:
+            self.features.add("gbigsmiles")
+
+        return IRBigIndexContext(expr=expr, kv=kv, span=self._span(node))
+
+    def _read_text_block(self, node: Tree, name: str) -> str:
+        target = next((c for c in node.children if isinstance(c, Tree) and c.data == name), None)
+        if target is None:
+            return ""
+        chars: list[str] = []
+        for child in target.children:
+            if isinstance(child, Token):
+                chars.append(child.value)
+        if not chars:
+            text = self._node_text(target)
+            if text:
+                return text
+        return "".join(chars)
+
+    # ---------- Index expressions ----------
+
+    def _build_index_expression(self, node: Tree) -> IRBigIndexExpr:
+        # Robust text-based parser for index expressions: handles parentheses, !, ~, &
+        text = self._node_text(node)
+        return self._parse_index_expr_text(text, self._span(node))
+
+    def _build_index_statement(self, node: Tree | Token) -> IRBigIndexExpr | int:
+        if isinstance(node, Token):
+            if node.type == "INT":
+                return int(node.value)
+            text = node.value if hasattr(node, "value") else ""
+            return int(text) if text.isdigit() else 0
+
+        children = [child for child in node.children if isinstance(child, (Tree, Token))]
+        if not children:
             return 0
-        t0 = node.children[0]
-        if isinstance(t0, Token):
-            ttype = t0.type
-            if ttype == "CHG_DMINUS":
-                return -2
-            if ttype == "CHG_DPLUS":
-                return +2
-            if ttype in ("CHG_MINUS", "CHG_PLUS"):
-                n = 1
-                if len(node.children) > 1 and isinstance(node.children[1], Token) and node.children[1].type == "INT":
-                    n = int(node.children[1].value)
-                return -n if ttype == "CHG_MINUS" else +n
-        return 0
 
-    @staticmethod
-    def _extract_bond_symbol(node: Tree | Token | None) -> str | None:
-        """
-        Extracts a bond symbol from a `bond_symbol` rule node or returns None.
-        """
+        first = children[0]
+        if isinstance(first, Tree) and first.data == "unary_index_operator":
+            unary = self._node_text(first)
+            rest = self._build_index_statement(children[1])
+            return IRBigIndexExpr(left=rest, op=None, right=None, unary=("!" if unary == "!" else None), span=self._span(node))
+
+        # handle binary op when operator token is directly present
+        if len(children) >= 3 and isinstance(children[1], Token) and children[1].value in {"&", "~"}:
+            return self._build_index_binary(node)
+
+        if len(children) == 1 and isinstance(children[0], Token):
+            return int(children[0].value)
+
+        if len(children) == 1 and isinstance(children[0], Tree):
+            child = children[0]
+            if child.data in {"branched_index_expression", "unbranched_index_expression"}:
+                return self._build_index_binary(child)
+            if child.data == "index_statement":
+                return self._build_index_statement(child)
+
+        if isinstance(first, Tree) and first.data in {"branched_index_expression", "unbranched_index_expression"}:
+            return self._build_index_binary(first)
+
+        if len(children) >= 3 and isinstance(children[1], Tree) and children[1].data == "binary_index_operator":
+            return self._build_index_binary(node)
+
+        token = self._find_token(node, "INT")
+        return int(token) if token else 0
+
+    def _build_index_binary(self, node: Tree) -> IRBigIndexExpr:
+        items = [child for child in node.children if isinstance(child, (Tree, Token))]
+        if len(items) < 3:
+            return IRBigIndexExpr(left=0, op=None, right=None, unary=None, span=self._span(node))
+
+        left = self._build_index_statement(items[0])
+        op_token = items[1]
+        op_text = self._node_text(op_token)
+        op: Literal['~','&'] | None = "~" if op_text == "~" else ("&" if op_text == "&" else None)
+        right = self._build_index_statement(items[2])
+
+        return IRBigIndexExpr(
+            left=left,
+            op=op,
+            right=right,
+            unary=None,
+            span=self._span(node),
+        )
+
+    # ---------- Text parsing for index expressions ----------
+
+    def _parse_index_expr_text(self, s: str, span: Span | None) -> IRBigIndexExpr:
+        i = 0
+
+        def peek() -> str:
+            return s[i] if i < len(s) else ""
+
+        def consume() -> str:
+            nonlocal i
+            ch = peek()
+            i += 1
+            return ch
+
+        def skip_ws() -> None:
+            nonlocal i
+            while i < len(s) and s[i].isspace():
+                i += 1
+
+        def parse_int() -> int:
+            nonlocal i
+            skip_ws()
+            start = i
+            while i < len(s) and s[i].isdigit():
+                i += 1
+            if start == i:
+                return 0
+            return int(s[start:i])
+
+        def parse_term():
+            skip_ws()
+            if peek() == "!":
+                consume()
+                inner = parse_term()
+                return IRBigIndexExpr(left=inner, op=None, right=None, unary="!", span=span)
+            if peek() == "(":
+                consume()
+                expr = parse_expr()
+                if peek() == ")":
+                    consume()
+                return expr
+            # number
+            return parse_int()
+
+        def parse_expr():
+            left = parse_term()
+            skip_ws()
+            while True:
+                opch = peek()
+                if opch not in {"~", "&"}:
+                    break
+                consume()
+                right = parse_term()
+                op_lit: Literal['~','&'] | None = "~" if opch == "~" else "&"
+                left = IRBigIndexExpr(left=left, op=op_lit, right=right, unary=None, span=span)
+                skip_ws()
+            return left
+
+        # strip surrounding pipes if present (defensive)
+        if s and s[0] == "|" and s[-1:] == "|":
+            s = s[1:-1]
+        result = parse_expr()
+        if isinstance(result, int):
+            return IRBigIndexExpr(left=result, op=None, right=None, unary=None, span=span)
+        return result
+
+    # ---------- Generations & distributions ----------
+
+    def _build_generation(self, node: Tree) -> IRBigGeneration:
+        values: list[float] = []
+        for child in node.children:
+            if isinstance(child, Token) and child.type == "NUMBER":
+                values.append(float(child.value))
+        return IRBigGeneration(values=values, span=self._span(node))
+
+    def _build_stochastic_distribution(self, node: Tree) -> IRBigDistribution | None:
+        distribution = next((c for c in node.children if isinstance(c, Tree) and c.data == "stochastic_distribution"), None)
+        if distribution is None:
+            return None
+        variant = next((c for c in distribution.children if isinstance(c, Tree)), None)
+        target = variant or distribution
+        kind = str(variant.data) if variant is not None else str(distribution.data)
+        params = [
+            float(tok.value)
+            for tok in target.children
+            if isinstance(tok, Token) and tok.type == "NUMBER"
+        ]
+        p1 = params[0] if params else None
+        p2 = params[1] if len(params) > 1 else None
+
+        self.features.add("gbigsmiles")
+
+        return IRBigDistribution(
+            kind=self._as_distribution_kind(kind),
+            p1=p1,
+            p2=p2,
+            span=self._span(target),
+        )
+
+    # ---------- Fragments & dots ----------
+
+    def _build_fragment_definition(self, node: Tree) -> IRBigFragmentDef:
+        name_node = next((c for c in node.children if isinstance(c, Tree) and c.data == "fragment_name"), None)
+        name = self._node_text(name_node) if name_node is not None else ""
+        molecules: list[IRBigSmilesMolecule] = []
+        for child in node.children:
+            if isinstance(child, Tree) and child.data == "molecule":
+                molecules.append(self._build_molecule_big(child))
+
+        self.features.add("bigsmiles")
+
+        return IRBigFragmentDef(name=name, molecules=molecules, span=self._span(node))
+
+    def _build_fragment_ref(self, node: Tree) -> IRBigFragmentRef:
+        name_node = next((c for c in node.children if isinstance(c, Tree) and c.data == "fragment_name"), None)
+        name = self._node_text(name_node) if name_node is not None else ""
+        return IRBigFragmentRef(name=name, span=self._span(node))
+
+    def _build_dot_generation(self, node: Tree) -> IRBigSystemDot:
+        system_size: float | None = None
+        size_node = next((c for c in node.children if isinstance(c, Tree) and c.data == "dot_system_size"), None)
+        if size_node is not None:
+            token = self._find_token(size_node, "NUMBER")
+            system_size = float(token) if token else None
+        return IRBigSystemDot(system_size=system_size, span=self._span(node))
+
+    # ---------- Helpers ----------
+
+    def _build_bond(self, node: Tree | Token | None) -> IRBond | None:
+        if node is None:
+            return None
+        text = self._node_text(node)
+        text = text.strip()
+        if not text:
+            return None
+        return IRBond(kind=self._as_bond_kind(text))
+
+    def _make_placeholder_atom(self, node: Tree) -> IRAtom:
+        return IRAtom(
+            kind="aliphatic",
+            symbol=None,
+            isotope=None,
+            chiral=None,
+            hcount=None,
+            charge=None,
+            clazz=None,
+            rings=[],
+            branches=[],
+            span=self._span(node),
+        )
+
+    def _find_token(self, node: Tree, token_type: str) -> str | None:
+        for child in node.children:
+            if isinstance(child, Token) and child.type == token_type:
+                return child.value
+        return None
+
+    def _node_text(self, node: Tree | Token | None) -> str:
+        if node is None:
+            return ""
+        if isinstance(node, Token):
+            value = getattr(node, "value", None)
+            return str(value) if value is not None else ""
+        meta = getattr(node, "meta", None)
+        if meta and meta.start_pos is not None and meta.end_pos is not None:
+            # Prefer slicing from the current input text if available
+            if isinstance(self._input_text, str) and meta.end_pos <= len(self._input_text):
+                return self._input_text[meta.start_pos : meta.end_pos]
+            # Fallback: return empty string if input text isn't available
+            return ""
+        return ""
+
+    def _span(self, node: Tree | Token | None) -> Span | None:
         if node is None:
             return None
         if isinstance(node, Token):
-            # Not expected with current grammar; kept for robustness.
-            return node.value
-        if isinstance(node, Tree) and node.data == "bond_symbol":
-            # bond_symbol is a rule consisting of a single literal token.
-            # e.g., children: [Token('-')] or [Token('/')] ...
-            for ch in node.children:
-                if isinstance(ch, Token):
-                    return ch.value
+            start = getattr(node, "pos_in_stream", None)
+            end = getattr(node, "end_pos", None)
+            line = getattr(node, "line", None)
+            column = getattr(node, "column", None)
+            if None in (start, end, line, column):
+                return None
+            assert isinstance(start, int) and isinstance(end, int) and isinstance(line, int) and isinstance(column, int)
+            return Span(start=start, end=end, line=line, column=column)
+        meta = getattr(node, "meta", None)
+        if meta is None:
+            return None
+        start = getattr(meta, "start_pos", None)
+        end = getattr(meta, "end_pos", None)
+        line = getattr(meta, "line", None)
+        column = getattr(meta, "column", None)
+        if None in (start, end, line, column):
+            return None
+        assert isinstance(start, int) and isinstance(end, int) and isinstance(line, int) and isinstance(column, int)
+        return Span(start=start, end=end, line=line, column=column)
+
+    # ---------- Type adaptation helpers ----------
+
+    def _as_connector(self, value: str | None) -> Literal['$', '<', '>', ':'] | None:
+        if value in {"$", "<", ">", ":"}:
+            return cast(Literal['$', '<', '>', ':'], value)
         return None
 
+    def _as_bond_kind(self, text: str) -> Literal['-', '=', '#', ';', ':', '/', '\\']:
+        if text in {"-", "=", "#", ";", ":", "/", "\\"}:
+            return cast(Literal['-', '=', '#', ';', ':', '/', '\\'], text)
+        # Fallback to single bond
+        return "-"
 
-def parse_smiles(text: str, grammar_path: Path | None = None) -> MolGraphIR:
-    """
-    Convenience function if you don't want to instantiate the class yourself.
-    """
-    parser = SmilesParser(grammar_path=grammar_path)
-    return parser.parse(text)
+    def _as_distribution_kind(self, name: str) -> "Literal['flory_schulz', 'schulz_zimm', 'gauss', 'uniform', 'log_normal', 'poisson']":
+        n = name.lower()
+        if "flory" in n:
+            return "flory_schulz"
+        if "schulz" in n:
+            return "schulz_zimm"
+        if "gauss" in n:
+            return "gauss"
+        if "uniform" in n:
+            return "uniform"
+        if "log" in n:
+            return "log_normal"
+        if "poisson" in n:
+            return "poisson"
+        return "uniform"

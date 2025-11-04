@@ -1,71 +1,229 @@
-?start: smiles
+//////////////////////////////////////////////////
+// Unified SMILES / BigSMILES / G-BigSMILES Grammar
+//////////////////////////////////////////////////
 
-smiles: chain (DOT chain)*
-chain: branched_atom (ring_bond | atom_assembly)*
-atom_assembly: CHAIN_BOND_SYM? branched_atom
+?start: document
 
-branched_atom: atom branch*
-branch: "(" CHAIN_BOND_SYM? smiles ")"
+document: molecule* fragment_definition*
 
-atom: bracket_atom | atom_simple
-atom_simple: ALIPHATIC_ORGANIC | AROMATIC_ORGANIC | STAR
+molecule: molecule_body dot_generation?
+molecule_body: (smiles | smiles? repeat_block)+
+repeat_block: stochastic_object+ smiles?
+
+fragment_definition: dot "{#" fragment_name "=" molecule+ "}"
+fragment_declaration: "[#" fragment_name "]"
+fragment_name: _printable_character+
+
+//////////////////////////////////////////////////
+// SMILES Core
+//////////////////////////////////////////////////
+
+smiles: branched_atom atom_assembly*
+
+branched_atom: atom_entry ring_bond* branch*
+branch: "(" bond_symbol? molecule_body ")"
+atom_assembly: bond_symbol? branched_atom
+
+atom_entry: atom
+  | stochastic_object
+  | bond_descriptor
+  | fragment_declaration
+
+atom: bracket_atom
+  | aliphatic_organic
+  | aromatic_organic
+  | STAR
+
 STAR: "*"
 
 bracket_atom: "[" isotope? atom_symbol chiral? h_count? atom_charge? atom_class? "]"
 
-atom_symbol: ELEMENT_SYM | AROMATIC_SYM | STAR
+atom_symbol: _element_symbols
+  | aromatic_symbol
+  | STAR
 
-# ---- TOKENS (UPPERCASE) ----
-# Avoid treating '-' in bracket charges (e.g., [O-], [N+4]) as a bond symbol by
-# preventing a BOND_SYM '-' when the next char is a digit or a closing bracket.
-BOND_SYM: /-(?![0-9\]])|=|#|\$|:|\/|\\/
-# Chain bond symbols cannot be immediately followed by a ring number
-CHAIN_BOND_SYM: /(?:-|=|#|\$|:|\/|\\)(?!%[0-9]{1,2}|[0-9])/
-RING_NUM: DIGIT | "%" DIGIT? DIGIT
+bond_symbol: "-"
+  | "="
+  | "#"
+  | ":"
+  | "/"
+  | "\\"
 
-# Support optional explicit bond symbol for ring closures (e.g., C=1) without
-# conflicting with chain bonds like C=C by only allowing the symbol when a ring
-# number follows immediately.
-RING_BOND_SYM.2: /(?:-|=|#|\$|:|\/|\\)(?=%[0-9]{1,2}|[0-9])/
-ring_bond: RING_BOND_SYM? RING_NUM
-DOT: "."
+ring_bond: bond_symbol? DIGIT
+  | bond_symbol? "%" DIGIT? DIGIT
 
-# ---- Atom pieces ----
 isotope: INT
-h_count: "H" | "H" INT
 
-# Explicit charge tokens to expose sign in parse tree
-CHG_DMINUS: "--"
-CHG_DPLUS:  "++"
-CHG_MINUS:  "-"
-CHG_PLUS:   "+"
-atom_charge: CHG_DMINUS
-           | CHG_DPLUS
-           | CHG_MINUS INT?
-           | CHG_PLUS INT?
+h_count: "H"
+  | "H" INT
+
+atom_charge: "-" INT?
+  | "+" INT?
+  | "--"
+  | "++"
+
 atom_class: ":" INT
 
-# Terminals
-AROMATIC_SYM: AROMATIC_ORGANIC | "se" | "as"
-ALIPHATIC_ORGANIC: "B" | "C" | "N" | "O" | "S" | "P" | "F" | "Cl" | "Br" | "I"
-AROMATIC_ORGANIC:  "b" | "c" | "n" | "o" | "s" | "p"
+//////////////////////////////////////////////////
+// Bond Descriptors & Non-covalent Context
+//////////////////////////////////////////////////
 
-chiral: CHIRAL_TOKEN
+bond_descriptor_symbol: "$"
+  | ">"
+  | "<"
+  | ":"
 
-CHIRAL_TOKEN: /@(?:@|TH[12]|AL[12]|SP[1-3]|TB[0-9]+|OH[0-9]+)?/
+bond_descriptor_symbol_idx: bond_descriptor_symbol INT?
 
-ELEMENT_SYM: "H" | "He" | "Li" | "Be" | "B" | "C" | "N" | "O" | "F" | "Ne"
-  | "Na" | "Mg" | "Al" | "Si" | "P" | "S" | "Cl" | "Ar" | "K" | "Ca" | "Sc" | "Ti" | "V"
-  | "Cr" | "Mn" | "Fe" | "Co" | "Ni" | "Cu" | "Zn" | "Ga" | "Ge" | "As" | "Se" | "Br"
-  | "Kr" | "Rb" | "Sr" | "Y" | "Zr" | "Nb" | "Mo" | "Tc" | "Ru" | "Rh" | "Pd" | "Ag"
-  | "Cd" | "In" | "Sn" | "Sb" | "Te" | "I" | "Xe" | "Cs" | "Ba" | "Hf" | "Ta" | "W"
-  | "Re" | "Os" | "Ir" | "Pt" | "Au" | "Hg" | "Tl" | "Pb" | "Bi" | "Po" | "At" | "Rn"
-  | "Fr" | "Ra" | "Rf" | "Db" | "Sg" | "Bh" | "Hs" | "Mt" | "Ds" | "Rg" | "Cn" | "Fl"
-  | "Lv" | "La" | "Ce" | "Pr" | "Nd" | "Pm" | "Sm" | "Eu" | "Gd" | "Tb" | "Dy" | "Ho"
-  | "Er" | "Tm" | "Yb" | "Lu" | "Ac" | "Th" | "Pa" | "U" | "Np" | "Pu" | "Am" | "Cm"
-  | "Bk" | "Cf" | "Es" | "Fm" | "Md" | "No" | "Lr"
+bond_descriptor_generation: "|" WS_INLINE* NUMBER WS_INLINE* "|"
+  | "|" WS_INLINE* NUMBER _number_list_repeat* WS_INLINE* "|"
+
+ladder_bond_descriptor: "[" inner_ambi_covalent_descriptor simple_bond_descriptor INT? "]"
+  | "[" inner_ambi_covalent_descriptor non_covalent_bond_descriptor INT? "]"
+
+inner_bond_descriptor: bond_descriptor_symbol_idx bond_descriptor_generation?
+inner_non_covalent_descriptor: bond_descriptor_symbol ":" INT? non_covalent_context?
+inner_ambi_covalent_descriptor: inner_bond_descriptor | inner_non_covalent_descriptor
+
+simple_bond_descriptor: "[" inner_bond_descriptor "]"
+non_covalent_bond_descriptor: "[" inner_non_covalent_descriptor "]"
+
+bond_descriptor: simple_bond_descriptor | ladder_bond_descriptor | non_covalent_bond_descriptor
+terminal_bond_descriptor: "[" bond_descriptor_symbol_idx? bond_descriptor_generation? "]"
+
+//////////////////////////////////////////////////
+// Stochastic Objects & G-BigSMILES Extensions
+//////////////////////////////////////////////////
+
+stochastic_object: "{" WS_INLINE* terminal_bond_descriptor WS_INLINE* repeat_units WS_INLINE* end_group? WS_INLINE* terminal_bond_descriptor "}" stochastic_generation?
+
+stochastic_generation: "|" stochastic_distribution "|"
+flory_schulz: "flory_schulz(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
+schulz_zimm: "schulz_zimm(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+gauss: "gauss(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+uniform: "uniform(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+log_normal: "log_normal(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
+poisson: "poisson(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
+stochastic_distribution: flory_schulz
+  | schulz_zimm
+  | gauss
+  | uniform
+  | log_normal
+  | poisson
+
+unary_index_operator: "!"
+binary_index_operator: "~" | "&"
+index_statement: unary_index_operator? WS_INLINE* INT
+  | branched_index_expression
+  | unbranched_index_expression
+branched_index_expression: "(" WS_INLINE* index_statement WS_INLINE* binary_index_operator WS_INLINE* index_statement WS_INLINE* ")"
+unbranched_index_expression: index_statement WS_INLINE* binary_index_operator WS_INLINE* index_statement
+index_expression: unary_index_operator? WS_INLINE* index_statement
+non_covalent_key_value_pair: WS_INLINE* "," WS_INLINE* non_covalent_key "=" non_covalent_value WS_INLINE*
+non_covalent_key: _printable_character+
+non_covalent_value: _printable_character+
+non_covalent_context: WS_INLINE* "|" WS_INLINE* index_expression non_covalent_key_value_pair* WS_INLINE* "|"
+
+//////////////////////////////////////////////////
+// Dot & Fragment Utilities
+//////////////////////////////////////////////////
+
+dot_system_size: "|" WS_INLINE* NUMBER WS_INLINE* "|"
+dot_generation: dot dot_system_size?
+dot: "."
+
+_number_list_repeat.-1: WS_INLINE+ NUMBER
+
+repeat_units: (smiles | molecule_body) monomer_list*
+monomer_list: WS_INLINE* "," WS_INLINE* (smiles | molecule_body)
+end_group.-1: ";" WS_INLINE* (smiles | molecule_body) monomer_list*
+
+//////////////////////////////////////////////////
+// Terminals & Imports
+//////////////////////////////////////////////////
+
+_printable_character: /['?'-Z]/
+  | /['^'-z]/
+  | /[!-']/
+  | /[*-;]/
+  | "~"
+
+aliphatic_organic: "B"
+  | "C"
+  | "N"
+  | "O"
+  | "S"
+  | "P"
+  | "F"
+  | "Cl"
+  | "Br"
+  | "I"
+
+aromatic_organic: "b"
+  | "c"
+  | "n"
+  | "o"
+  | "s"
+  | "p"
+
+aromatic_symbol: aromatic_organic
+  | "se"
+  | "as"
+
+chiral: "@"
+  | "@@"
+  | "@TH1"
+  | "@TH2"
+  | "@AL1"
+  | "@AL2"
+  | "@SP1"
+  | "@SP2"
+  | "@SP3"
+  | "@TB" INT
+  | "@OH" INT
+
+_element_symbols: "H"
+  | "He"
+  | "Li"
+  | "Be"
+  | "B"
+  | "C"
+  | "N"
+  | "O"
+  | "F"
+  | "Ne"
+  | "Na"
+  | "Mg"
+  | "Al"
+  | "Si"
+  | "P"
+  | "S"
+  | "Cl"
+  | "Ar"
+  | "K"
+  | "Ca"
+  | "Sc"
+  | "Ti"
+  | "V"
+  | "Cr"
+  | "Mn"
+  | "Fe"
+  | "Co"
+  | "Ni"
+  | "Cu"
+  | "Zn"
+  | "Ga"
+  | "Ge"
+  | "As"
+  | "Se"
+  | "Br"
+  | "Kr"
+  | "Rb"
+  | "Sr"
 
 %import common.DIGIT
 %import common.INT
+%import common.SIGNED_NUMBER
+%import common.NUMBER
+%import common.WS
 %import common.WS_INLINE
-%ignore WS_INLINE

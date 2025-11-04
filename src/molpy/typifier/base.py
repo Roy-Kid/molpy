@@ -4,7 +4,7 @@ Simple base typifier classes using mixin pattern.
 
 from abc import ABC, abstractmethod
 
-from molpy.core.atomistic import Atomistic
+from molpy.core._atomistic import Atomistic
 from molpy.core.forcefield import ForceField
 
 

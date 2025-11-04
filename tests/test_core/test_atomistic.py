@@ -1,12 +1,13 @@
-from molpy.core.aa.assembly import Atomistic
-from molpy.core.aa.types import Atom, Bond
+from molpy.core.aa.base import Atomistic
+from molpy.core.aa import Atom, Bond
 
 
 class TestAtomistic:
     def test_basic_buckets_and_attach(self) -> None:
         aa = Atomistic()
         a, b = Atom(), Atom()
-        l = aa.attach(a, b, Bond)
+        l = Bond(a, b)
+        aa.add_link(l)
         assert a in set(aa.atoms) and b in set(aa.atoms)
         assert l in set(aa.bonds)
 

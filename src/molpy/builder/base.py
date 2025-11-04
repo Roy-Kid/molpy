@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from itertools import product
-from typing import Iterable, Optional, Protocol, Sequence, Union, runtime_checkable
+from typing import Protocol
 
 import numpy as np
 
-from molpy.core.atomistic import Atomistic
+from molpy.core._atomistic import Atomistic
 
 
 class BaseSiteProvider(Protocol):

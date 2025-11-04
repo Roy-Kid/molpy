@@ -1,14 +1,12 @@
-from __future__ import annotations
+from ..entity import Entity, Assembly
+from .base import Wrapper
+from typing import TypeVar
+from ..entity import Assembly
 
-from typing import Any
+T = TypeVar("T", bound=Assembly)
 
-from ..assembly import Assembly
-from ..entity import Entity
-from ..wrapper import Wrapper
-
-
-class Monomer(Wrapper[Assembly]):
-    def __init__(self, core: Assembly):
+class Monomer[T: Assembly](Wrapper[T]):
+    def __init__(self, core: T):
         super().__init__(core)
         self.ports: dict[str, Entity] = {}
 
@@ -18,7 +16,7 @@ class Monomer(Wrapper[Assembly]):
     def port_names(self) -> list[str]:
         return list(self.ports.keys())
 
-    def copy_graph(self) -> Assembly:
+    def copy_graph(self) -> T:
         core = self.unwrap()
         return core.copy()
 

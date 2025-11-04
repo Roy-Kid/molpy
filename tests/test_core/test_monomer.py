@@ -1,7 +1,5 @@
-from __future__ import annotations
-
-from molpy.core.aa.assembly import Atomistic
-from molpy.core.aa.types import Atom, Bond
+from molpy.core.aa.base import Atomistic
+from molpy.core.aa import Atom, Bond
 from molpy.core.wrappers.monomer import Monomer
 
 

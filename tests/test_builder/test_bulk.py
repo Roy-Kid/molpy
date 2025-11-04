@@ -1,7 +1,7 @@
 import numpy as np
 
 from molpy.builder.bulk import BCCBuilder, FCCBuilder
-from molpy.core.atomistic import Atomistic
+from molpy.core._atomistic import Atomistic
 from molpy.core.region import BoxRegion
 
 
