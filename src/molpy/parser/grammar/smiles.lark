@@ -1,109 +1,89 @@
-//////////////////////////////////////////////////
-// Unified SMILES / BigSMILES / G-BigSMILES Grammar
-//////////////////////////////////////////////////
+?start: big_smiles big_smiles_molecule stochastic_object atom BOND_SYM ring_bond ALIPHATIC_ORGANIC AROMATIC_ORGANIC branch smiles bond_descriptor_symbol bond_descriptor_generation ladder_bond_descriptor non_covalent_bond_descriptor bond_descriptor simple_bond_descriptor terminal_bond_descriptor stochastic_generation stochastic_distribution dot_system_size dot_generation dot isotope ATOM_SYM AROMATIC_SYM bracket_atom flory_schulz uniform schulz_zimm log_normal gauss poisson
 
-?start: document
+big_smiles: big_smiles_molecule* big_smiles_fragment_definition*
 
-document: molecule* fragment_definition*
+big_smiles_molecule: big_smiles_chain dot_generation?
 
-molecule: molecule_body dot_generation?
-molecule_body: (smiles | smiles? repeat_block)+
-repeat_block: stochastic_object+ smiles?
+big_smiles_chain: smiles repeat_segment*
+repeat_segment: stochastic_object+ smiles?
 
-fragment_definition: dot "{#" fragment_name "=" molecule+ "}"
-fragment_declaration: "[#" fragment_name "]"
-fragment_name: _printable_character+
+_repeat_unit_item: smiles | big_smiles_chain
 
-//////////////////////////////////////////////////
-// SMILES Core
-//////////////////////////////////////////////////
+stochastic_object: "{" WS_INLINE* terminal_bond_descriptor WS_INLINE* _repeat_units WS_INLINE* _end_group? WS_INLINE* terminal_bond_descriptor "}" stochastic_generation?
 
-smiles: branched_atom atom_assembly*
-
-branched_atom: atom_entry ring_bond* branch*
-branch: "(" bond_symbol? molecule_body ")"
-atom_assembly: bond_symbol? branched_atom
-
-atom_entry: atom
+_atom_stand_in: atom
   | stochastic_object
   | bond_descriptor
-  | fragment_declaration
+  | big_smiles_fragment_declaration
 
+
+# --- SMILES ---
 atom: bracket_atom
-  | aliphatic_organic
-  | aromatic_organic
-  | STAR
+  | ALIPHATIC_ORGANIC
+  | AROMATIC_ORGANIC
+  | ELEMENT_SYM
+  | "*"
 
-STAR: "*"
+bracket_atom: "[" isotope? ATOM_SYM chiral? h_count? atom_charge? atom_class? "]"
 
-bracket_atom: "[" isotope? atom_symbol chiral? h_count? atom_charge? atom_class? "]"
+ATOM_SYM: ELEMENT_SYM | AROMATIC_SYM | "*"
 
-atom_symbol: _element_symbols
-  | aromatic_symbol
-  | STAR
+BOND_SYM: "-" | "=" | "#" | "$" | ":" | "/" | "\\"
 
-bond_symbol: "-"
-  | "="
-  | "#"
-  | ":"
-  | "/"
-  | "\\"
+ring_bond: BOND_SYM? DIGIT
+         | BOND_SYM? "%" DIGIT? DIGIT
 
-ring_bond: bond_symbol? DIGIT
-  | bond_symbol? "%" DIGIT? DIGIT
+branched_atom: _atom_stand_in ring_bond* branch*
+
+branch: "(" BOND_SYM? smiles ")"
+
+atom_assembly: BOND_SYM? branched_atom
+smiles: branched_atom atom_assembly*
+
+_printable_character: /['?'-Z]/ | /['^'-z]/ | /[!-']/ | /[*-;]/ | "~"
+_big_smiles_fragment_name: _printable_character+
+big_smiles_fragment_declaration: "[#" _big_smiles_fragment_name "]"
+big_smiles_fragment_definition: dot "{#" _big_smiles_fragment_name "=" big_smiles_molecule+ "}"
 
 isotope: INT
-
-h_count: "H"
-  | "H" INT
-
-atom_charge: "-" INT?
-  | "+" INT?
-  | "--"
-  | "++"
-
+h_count: "H" | "H" INT
+atom_charge: "-" INT? | "+" INT? | "--" | "++"
 atom_class: ":" INT
 
-//////////////////////////////////////////////////
-// Bond Descriptors & Non-covalent Context
-//////////////////////////////////////////////////
+chiral: "@" 
+      | "@@" 
+      | "@TH1" | "@TH2" 
+      | "@AL1" | "@AL2"
+      | "@SP1" | "@SP2" | "@SP3"
+      | "@TB" INT | "@OH" INT
 
-bond_descriptor_symbol: "$"
-  | ">"
-  | "<"
-  | ":"
-
+bond_descriptor_symbol: "$" | ">" | "<"
 bond_descriptor_symbol_idx: bond_descriptor_symbol INT?
 
 bond_descriptor_generation: "|" WS_INLINE* NUMBER WS_INLINE* "|"
-  | "|" WS_INLINE* NUMBER _number_list_repeat* WS_INLINE* "|"
-
-ladder_bond_descriptor: "[" inner_ambi_covalent_descriptor simple_bond_descriptor INT? "]"
-  | "[" inner_ambi_covalent_descriptor non_covalent_bond_descriptor INT? "]"
+    | "|" WS_INLINE* NUMBER _number_list_repeat* WS_INLINE* "|"
 
 inner_bond_descriptor: bond_descriptor_symbol_idx bond_descriptor_generation?
-inner_non_covalent_descriptor: bond_descriptor_symbol ":" INT? non_covalent_context?
+inner_non_covalent_descriptor: bond_descriptor_symbol ":" INT? _non_covalent_context?
 inner_ambi_covalent_descriptor: inner_bond_descriptor | inner_non_covalent_descriptor
 
 simple_bond_descriptor: "[" inner_bond_descriptor "]"
 non_covalent_bond_descriptor: "[" inner_non_covalent_descriptor "]"
+ladder_bond_descriptor: "[" inner_ambi_covalent_descriptor simple_bond_descriptor INT? "]"
+    | "[" inner_ambi_covalent_descriptor non_covalent_bond_descriptor INT? "]"
 
 bond_descriptor: simple_bond_descriptor | ladder_bond_descriptor | non_covalent_bond_descriptor
 terminal_bond_descriptor: "[" bond_descriptor_symbol_idx? bond_descriptor_generation? "]"
 
-//////////////////////////////////////////////////
-// Stochastic Objects & G-BigSMILES Extensions
-//////////////////////////////////////////////////
-
-stochastic_object: "{" WS_INLINE* terminal_bond_descriptor WS_INLINE* repeat_units WS_INLINE* end_group? WS_INLINE* terminal_bond_descriptor "}" stochastic_generation?
-
 stochastic_generation: "|" stochastic_distribution "|"
+
 flory_schulz: "flory_schulz(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
 schulz_zimm: "schulz_zimm(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
 gauss: "gauss(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
 uniform: "uniform(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
 log_normal: "log_normal(" WS_INLINE* NUMBER WS_INLINE* "," WS_INLINE* NUMBER WS_INLINE* ")"
 poisson: "poisson(" WS_INLINE* NUMBER WS_INLINE* ","? WS_INLINE* ")"
+
 stochastic_distribution: flory_schulz
   | schulz_zimm
   | gauss
@@ -111,22 +91,16 @@ stochastic_distribution: flory_schulz
   | log_normal
   | poisson
 
-unary_index_operator: "!"
-binary_index_operator: "~" | "&"
-index_statement: unary_index_operator? WS_INLINE* INT
-  | branched_index_expression
-  | unbranched_index_expression
-branched_index_expression: "(" WS_INLINE* index_statement WS_INLINE* binary_index_operator WS_INLINE* index_statement WS_INLINE* ")"
-unbranched_index_expression: index_statement WS_INLINE* binary_index_operator WS_INLINE* index_statement
-index_expression: unary_index_operator? WS_INLINE* index_statement
-non_covalent_key_value_pair: WS_INLINE* "," WS_INLINE* non_covalent_key "=" non_covalent_value WS_INLINE*
-non_covalent_key: _printable_character+
-non_covalent_value: _printable_character+
-non_covalent_context: WS_INLINE* "|" WS_INLINE* index_expression non_covalent_key_value_pair* WS_INLINE* "|"
+_unary_index_operator: "!"
+_binary_index_operator: "~" | "&"
 
-//////////////////////////////////////////////////
-// Dot & Fragment Utilities
-//////////////////////////////////////////////////
+_index_statement: INT | _branched_index_expression | _unbranched_index_expression
+_branched_index_expression: "(" WS_INLINE* _index_statement WS_INLINE* _binary_index_operator WS_INLINE* _index_statement WS_INLINE* ")"
+_unbranched_index_expression: _index_statement WS_INLINE* _binary_index_operator WS_INLINE* _index_statement
+_index_expression: _unary_index_operator? WS_INLINE* _index_statement
+
+_non_covalent_key_value_pair: WS_INLINE* "," WS_INLINE* _printable_character+ "=" _printable_character+ WS_INLINE*
+_non_covalent_context: WS_INLINE* "|" WS_INLINE* _index_expression _non_covalent_key_value_pair*
 
 dot_system_size: "|" WS_INLINE* NUMBER WS_INLINE* "|"
 dot_generation: dot dot_system_size?
@@ -134,96 +108,30 @@ dot: "."
 
 _number_list_repeat.-1: WS_INLINE+ NUMBER
 
-repeat_units: (smiles | molecule_body) monomer_list*
-monomer_list: WS_INLINE* "," WS_INLINE* (smiles | molecule_body)
-end_group.-1: ";" WS_INLINE* (smiles | molecule_body) monomer_list*
+_repeat_units: _repeat_unit_item (_monomer_list)*
+_monomer_list: WS_INLINE* "," WS_INLINE* _repeat_unit_item
+_end_group.-1: ";" WS_INLINE* _repeat_unit_item (_monomer_list)*
 
-//////////////////////////////////////////////////
-// Terminals & Imports
-//////////////////////////////////////////////////
+ALIPHATIC_ORGANIC: "B" | "C" | "N" | "O" | "S" | "P" | "F" | "Cl" | "Br" | "I"
+AROMATIC_ORGANIC: "b" | "c" | "n" | "o" | "s" | "p"
+AROMATIC_SYM: AROMATIC_ORGANIC | "se" | "as"
 
-_printable_character: /['?'-Z]/
-  | /['^'-z]/
-  | /[!-']/
-  | /[*-;]/
-  | "~"
-
-aliphatic_organic: "B"
-  | "C"
-  | "N"
-  | "O"
-  | "S"
-  | "P"
-  | "F"
-  | "Cl"
-  | "Br"
-  | "I"
-
-aromatic_organic: "b"
-  | "c"
-  | "n"
-  | "o"
-  | "s"
-  | "p"
-
-aromatic_symbol: aromatic_organic
-  | "se"
-  | "as"
-
-chiral: "@"
-  | "@@"
-  | "@TH1"
-  | "@TH2"
-  | "@AL1"
-  | "@AL2"
-  | "@SP1"
-  | "@SP2"
-  | "@SP3"
-  | "@TB" INT
-  | "@OH" INT
-
-_element_symbols: "H"
-  | "He"
-  | "Li"
-  | "Be"
-  | "B"
-  | "C"
-  | "N"
-  | "O"
-  | "F"
-  | "Ne"
-  | "Na"
-  | "Mg"
-  | "Al"
-  | "Si"
-  | "P"
-  | "S"
-  | "Cl"
-  | "Ar"
-  | "K"
-  | "Ca"
-  | "Sc"
-  | "Ti"
-  | "V"
-  | "Cr"
-  | "Mn"
-  | "Fe"
-  | "Co"
-  | "Ni"
-  | "Cu"
-  | "Zn"
-  | "Ga"
-  | "Ge"
-  | "As"
-  | "Se"
-  | "Br"
-  | "Kr"
-  | "Rb"
-  | "Sr"
+ELEMENT_SYM: "H" | "He" | "Li" | "Be" | "B" | "C" | "N" | "O" | "F" | "Ne"
+    | "Na" | "Mg" | "Al" | "Si" | "P" | "S" | "Cl" | "Ar" | "K" | "Ca"
+    | "Sc" | "Ti" | "V" | "Cr" | "Mn" | "Fe" | "Co" | "Ni" | "Cu" | "Zn"
+    | "Ga" | "Ge" | "As" | "Se" | "Br" | "Kr" | "Rb" | "Sr" | "Y" | "Zr"
+    | "Nb" | "Mo" | "Tc" | "Ru" | "Rh" | "Pd" | "Ag" | "Cd" | "In" | "Sn"
+    | "Sb" | "Te" | "I" | "Xe" | "Cs" | "Ba" | "Hf" | "Ta" | "W" | "Re"
+    | "Os" | "Ir" | "Pt" | "Au" | "Hg" | "Tl" | "Pb" | "Bi" | "Po" | "At"
+    | "Rn" | "Fr" | "Ra" | "Rf" | "Db" | "Sg" | "Bh" | "Hs" | "Mt" | "Ds"
+    | "Rg" | "Cn" | "Fl" | "Lv" | "La" | "Ce" | "Pr" | "Nd" | "Pm" | "Sm"
+    | "Eu" | "Gd" | "Tb" | "Dy" | "Ho" | "Er" | "Tm" | "Yb" | "Lu" | "Ac"
+    | "Th" | "Pa" | "U" | "Np" | "Pu" | "Am" | "Cm" | "Bk" | "Cf" | "Es"
+    | "Fm" | "Md" | "No" | "Lr"
 
 %import common.DIGIT
 %import common.INT
-%import common.SIGNED_NUMBER
 %import common.NUMBER
 %import common.WS
 %import common.WS_INLINE
+%ignore WS

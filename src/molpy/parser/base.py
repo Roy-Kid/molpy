@@ -1,6 +1,3 @@
-# grammar_parser_base.py
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,22 +52,6 @@ class GrammarParserBase(ABC, Generic[T]):
         assert self._lark is not None
         return self._lark.parse(text)
 
-    def parse(self, text: str) -> T:
-        """
-        Parse input string and convert to IR via build().
-        """
-        tree = self.parse_tree(text)
-        return self.build(tree)
-
-    # ---------- Subclass hook ----------
-
-    @abstractmethod
-    def build(self, tree: Tree) -> T:
-        """
-        Convert a Lark parse tree into your IR (to be implemented by subclasses).
-        """
-        raise NotImplementedError
-
     # ---------- Internal helpers ----------
 
     def _maybe_reload(self) -> None:
@@ -101,5 +82,6 @@ class GrammarParserBase(ABC, Generic[T]):
             propagate_positions=self.config.propagate_positions,
             maybe_placeholders=self.config.maybe_placeholders,
             import_paths=[str(path.parent)],
+            keep_all_tokens=True,
         )
         self._mtime = path.stat().st_mtime

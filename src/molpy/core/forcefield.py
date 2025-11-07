@@ -1,1378 +1,187 @@
-from collections import UserDict, defaultdict
-from functools import reduce
-from typing import Callable
+from collections import defaultdict
+from typing import Any, TypeVar, Generic, Iterator
 
-from molpy.core._atomistic import Angle, Atom, Bond, Entity
+# --- 泛型变量和 TypeBucket 实现 ---
 
+T = TypeVar("T")
+S = TypeVar("S", bound="Style")
+Ty = TypeVar("Ty", bound="Type")
 
-class DictWithList:
+def get_nearest_type(item: T) -> type[T]:
+    return type(item)
 
-    def __init__(self, parms, kwparms):
-        self.kwparms = kwparms
-        self.parms = parms
+class TypeBucket(Generic[T]):
+    def __init__(self) -> None:
+        self._items: dict[type[T], set[T]] = defaultdict(set)
 
-    def __getitem__(self, key: int | str):
-        """
-        Retrieve an item from the dictionary.
+    def add(self, item: T) -> None:
+        cls = get_nearest_type(item)
+        self._items[cls].add(item)
 
-        Args:
-            key (int|str): The key to retrieve.
+    def remove(self, item: T) -> None:
+        cls = get_nearest_type(item)
+        self._items[cls].discard(item)
 
-        Returns:
-            object: The value associated with the key.
-        """
-        if isinstance(key, int):
-            return self.parms[key]
-        return self.kwparms[key]
+    def bucket(self, cls: type[T]) -> list[T]:
+        result: list[T] = []
+        for k, items in self._items.items():
+            if issubclass(k, cls):
+                result.extend(items)
+        return result
 
-    def __setitem__(self, key: int | str, value):
-        """
-        Set an item in the dictionary.
+    def classes(self) -> Iterator[type[T]]:
+        return iter(self._items.keys())
 
-        Args:
-            key (int|str): The key to set.
-            value: The value to associate with the key.
-        """
-        if isinstance(key, int):
-            if key < len(self.parms):
-                self.parms[key] = value
-            else:
-                raise IndexError("Index out of range")
-        else:
-            self.kwparms[key] = value
+# --- 基础组件 ---
 
-    def __contains__(self, key: int | str) -> bool:
-        """
-        Check if the dictionary contains a key.
+class Parameters:
+    def __init__(self, *args: Any, **kwargs: Any):
+        self.args = list(args)
+        self.kwargs = kwargs
 
-        Args:
-            key (int|str): The key to check.
-        Returns:
-            bool: True if the key exists, False otherwise.
-        """
-        if isinstance(key, int):
-            return 0 <= key < len(self.parms)
-        return key in self.kwparms
+    def __repr__(self) -> str:
+        return f"Parameters(args={self.args}, kwargs={self.kwargs})"
 
-    # Provide a mapping-like view over keyword parameters for convenience
-    @property
-    def data(self) -> dict:
-        return self.kwparms
-
-    def items(self):  # pragma: no cover - convenience for mapping protocol
-        return self.kwparms.items()
-
-    def keys(self):  # pragma: no cover
-        return self.kwparms.keys()
-
-    def values(self):  # pragma: no cover
-        return self.kwparms.values()
-
-
-class Type(DictWithList):
-
-    def __init__(self, name: str, parms: list = [], **kwparms):
-        """
-        Initialize a ForceField object.
-
-        Args:
-            parms: Positional parameters (unnamed, order-dependent).
-            kwparms: Keyword parameters (named, as a dict).
-        """
-        super().__init__(parms, kwparms)
+class Type:
+    def __init__(self, name: str, *args: Any, **kwargs: Any):
         self._name = name
-
-    def __hash__(self):
-        """
-        Compute a hash value for the object.
-
-        Returns:
-            int: A hash value based on the `name` attribute.
-        """
-        return hash(self.name)
-
-    def __repr__(self) -> str:
-        """
-        Provide a string representation of the object.
-
-        Returns:
-            str: A string in the format "<ClassName: name>", where `ClassName`
-            is the name of the class and `name` is the value of the `name` attribute.
-        """
-        return f"<{self.__class__.__name__}: {self.name}>"
-
-    def __str__(self) -> str:
-        return self.name
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, value: str):
-        """
-        Set the name of the type.
-
-        Args:
-            value (str): The new name for the type.
-        """
-        self._name = value
-
-    def __eq__(self, other: object) -> bool:
-        """
-        Compare this object with another for equality.
-
-        Args:
-            other: The object to compare with.
-
-        Returns:
-            bool: True if the `name` attribute of both objects is equal, False otherwise.
-        """
-        if isinstance(other, str):
-            return self.name == other
-        if isinstance(other, Type):
-            return self.name == other.name
-        return False
-
-
-class TypeContainer:
-
-    def __init__(self):
-        self._types = list()
-
-    def __getitem__(self, key: int | str) -> Type | None:
-        """
-        Retrieve a type by its index or name.
-
-        Args:
-            key (int | str): The index or name of the type to retrieve.
-
-        Returns:
-            Type: The type associated with the given index or name.
-        """
-        if isinstance(key, int):
-            return self._types[key]
-        return self.get(key)
-
-    def add(self, t: Type):
-        """
-        Add a type to the container.
-
-        Args:
-            t (Type): The type to be added.
-        """
-        self._types.append(t)
-
-    def __iter__(self):
-        """
-        Iterate over the types in the container.
-
-        Returns:
-            iterator: An iterator over the types in the container.
-        """
-        return iter(self._types)
-
-    def get(self, name: str, default=None) -> Type | None:
-        """
-        Retrieve a type by its name.
-
-        Args:
-            name (str): The name of the type to retrieve.
-            default: The value to return if the type is not found. Defaults to None.
-
-        Returns:
-            Type | None: The type associated with the given name, or the `default` value if not found.
-        """
-        return next((t for t in self._types if t.name == name), default)
-
-    def get_all_by(self, condition: Callable) -> list[Type]:
-        """
-        Retrieve all types that satisfy a given condition.
-
-        Args:
-            condition (Callable): A function that takes a type as input and returns
-                                  a boolean indicating whether the type satisfies the condition.
-
-        Returns:
-            list[Type]: A list of types that meet the specified condition.
-        """
-        return [t for t in self._types if condition(t)]
-
-    def update(self, other):
-        """
-        Update the container with types from another container.
-
-        Args:
-            other (TypeContainer): Another TypeContainer object to merge with.
-        """
-        _types = {t.name: t for t in self._types} | {t.name: t for t in other._types}
-        self._types = list(_types.values())
-
-    def __len__(self):
-        """
-        Get the number of types in the container.
-
-        Returns:
-            int: The number of types in the container.
-        """
-        return len(self._types)
-
-
-class Style(DictWithList):
-
-    def __init__(self, name: str, parms=[], **kwparms):
-        """
-        Initialize a ForceField instance.
-
-        Args:
-            name (str): The name of the force field.
-            parms: Positional parameters for global configuration.
-            kwparms: Keyword parameters for global configuration.
-
-        Attributes:
-            name (str): The name of the force field.
-            types (TypeContainer): A collection of types.
-            parms (tuple): Positional parameters passed during initialization.
-        """
-        super().__init__(parms, kwparms)
-        self.name = name
-        self.types: TypeContainer = TypeContainer()
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.name}>"
-
-    @property
-    def n_types(self):
-        """
-        Calculate the number of unique types in the forcefield.
-
-        Returns:
-            int: The number of unique types.
-        """
-        return len(self.types)
-
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Style) and self.name == other.name
+        self.params = Parameters(*args, **kwargs)
 
     def __hash__(self) -> int:
-        """
-        Compute a hash value for the object.
+        return hash((self.__class__, self.name))
 
-        Returns:
-            int: A hash value based on the `name` attribute.
-        """
-        return hash(self.name)
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.name}>"
 
-    def get_types(self):
-        return list(self.types._types)
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, self.__class__) and self.name == other.name
 
-    def get_by(self, condition: Callable[[Type], bool], default=None) -> Type | None:
-        """
-        Retrieve the first element from `self.types` that satisfies the given condition.
+class Style:
+    def __init__(self, name: str, *args: Any, **kwargs: Any):
+        self.name = name
+        self.params = Parameters(*args, **kwargs)
+        self.types = TypeBucket[Type]()
 
-        Args:
-            condition (Callable[[Type], bool]): A function that takes an element and returns a boolean,
-                                  used to determine if the element meets the desired criteria.
-            default (Optional[Any]): The value to return if no element satisfies the condition.
-                                     Defaults to None.
+    def __hash__(self) -> int:
+        return hash((self.__class__, self.name))
 
-        Returns:
-            Type | None: The first element that satisfies the condition, or the `default` value if none is found.
-        """
-        return next((t for t in self.types if condition(t)), default)
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.name}>"
 
-    def get(self, name: str, default=None) -> Type | None:
-        """
-        Retrieve the type associated with the given name from the forcefield.
-
-        Args:
-            name (str): The name of the type to retrieve.
-            default (optional): The value to return if the name is not found. Defaults to None.
-
-        Returns:
-            Type | None: The type associated with the given name, or the default value if the name is not found.
-        """
-        return self.types.get(name, default)
-
-    def get_all_by(self, condition: Callable) -> list[Type]:
-        """
-        Retrieve all items from the `types` dictionary that satisfy a given condition.
-
-        Args:
-            condition (Callable): A function that takes an item as input and returns
-                                  a boolean indicating whether the item satisfies the condition.
-
-        Returns:
-            list[Type]: A list of items from the `types` dictionary that meet the specified condition.
-        """
-        return self.types.get_all_by(condition)
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, self.__class__) and self.name == other.name
 
     def merge(self, other: "Style"):
-        """
-        Merges the current Style object with another Style object.
-
-        This method updates the current Style object with the attributes and types
-        from the provided `other` Style object. If there are overlapping type names,
-        the types from the `other` Style object will overwrite those in the current
-        object.
-
-        Args:
-            other (Style): Another Style object to merge into the current one.
-
-        Returns:
-            Style: The updated Style object after merging.
-        """
-        self.parms.extend(other.parms)
-        self.types.update(other.types)
+        self.params.args.extend(other.params.args)
+        self.params.kwargs.update(other.params.kwargs)
+        for t in other.types.bucket(Type):
+            self.types.add(t)
         return self
 
+# ===================================================================
+#                    ForceField 基类
+# ===================================================================
 
-class StyleContainer:
+class ForceField:
+    def __init__(self, name: str = "", units: str = "real"):
+        self.name = name
+        self.units = units
+        self.styles = TypeBucket[Style]()
 
-    def __init__(self):
-        self._styles = set()
+    def def_style(self, style_class: type[S], name: str, *args: Any, **kwargs: Any) -> S:
+        existing_styles = self.styles.bucket(style_class)
+        for style in existing_styles:
+            if style.name == name:
+                return style
+        
+        new_style = style_class(name, *args, **kwargs)
+        self.styles.add(new_style)
+        return new_style
 
-    def add(self, style: Style):
-        """
-        Add a style to the container.
+    def get_styles(self, style_class: type[S]) -> list[S]:
+        return self.styles.bucket(style_class)
 
-        Args:
-            style (Style): The style to be added.
-        """
-        self._styles.add(style)
+    def get_types(self, type_class: type[Ty]) -> list[Ty]:
+        all_types = set()
+        for style in self.styles.bucket(Style):
+            all_types.update(style.types.bucket(type_class))
+        return list(all_types)
 
-    def __iter__(self):
-        """
-        Iterate over the styles in the container.
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.name}>"
 
-        Returns:
-            iterator: An iterator over the styles in the container.
-        """
-        return iter(self._styles)
+    def merge(self, other: "ForceField"):
+        for other_style in other.styles.bucket(Style):
+            style_bucket = self.styles.bucket(type(other_style))
+            found = False
+            for style in style_bucket:
+                if style.name == other_style.name:
+                    style.merge(other_style)
+                    found = True
+                    break
+            if not found:
+                self.styles.add(other_style)
+        return self
 
-    def get(self, name: str, default=None) -> Style | None:
-        """
-        Retrieve a style by its name.
+# ===================================================================
+#               扩展的 AtomisticForcefield 类
+# ===================================================================
 
-        Args:
-            name (str): The name of the style to retrieve.
-            default: The value to return if the style is not found. Defaults to None.
-
-        Returns:
-            Style | None: The style associated with the given name, or the `default` value if not found.
-        """
-        return next((s for s in self._styles if s.name == name), default)
-
-
-class AtomType(Type):
-    """
-    Represents an atom type in a molecular force field.
-
-    This class is used to define the properties and behavior of a specific type of atom
-    within the context of a molecular simulation. It inherits from the `Type` class
-    and may include additional attributes or methods specific to atom types.
-    """
-
-    def __init__(self, name: str, parms=[], **kwparms):
-        """
-        Initialize an atom type object.
-
-        Args:
-            name (str): The name of the atom type.
-            parms: Additional positional parameters.
-            kwparms: Additional keyword parameters.
-        """
-        super().__init__(name, parms, **kwparms)
-
-    def match(self, other: Entity) -> bool:
-        """
-        Check if the current atom type matches the given atom.
-
-        Args:
-            other (Entity): The entity to compare with (should be an Atom).
-
-        Returns:
-            bool: True if the types match, False otherwise.
-        """
-        if hasattr(other, "__getitem__") and "type" in other:
-            return self.name == other["type"]
-        return False
-
-
-class BondType(Type):
-
-    def __init__(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        name: str = "",
-        parms: list = [],
-        **kwparms,
-    ):
-        """
-        Initialize a bond type object.
-
-        Args:
-            name (str): The name of the forcefield.
-            itype (AtomType | None, optional): The atom type for the "i" atom. Defaults to None.
-            jtype (AtomType | None, optional): The atom type for the "j" atom. Defaults to None.
-            parms: Additional positional parameters.
-            kwparms: Additional keyword parameters.
-        """
-        self.itype = itype
-        self.jtype = jtype
-        name = name or f"{itype.name}-{jtype.name}"
-        super().__init__(name, parms, **kwparms)
-
-    @property
-    def atomtypes(self):
-        """
-        Retrieve the atom types associated with the object.
-
-        Returns:
-            list: A list containing the atom types `itype` and `jtype`.
-        """
-        return [self.itype, self.jtype]
-
-
-class AngleType(Type):
-
-    def __init__(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        name: str = "",
-        parms=[],
-        **kwparms,
-    ):
-        """
-        Initialize an angle type object.
-
-        Args:
-            name (str): The name of the force field.
-            itype (AtomType | None, optional): The atom type for the "i" atom. Defaults to None.
-            jtype (AtomType | None, optional): The atom type for the "j" atom. Defaults to None.
-            ktype (AtomType | None, optional): The atom type for the "k" atom. Defaults to None.
-            parms: Additional positional parameters for the base class initialization.
-            kwparms: Additional keyword parameters for the base class initialization.
-        """
-        self.itype = itype
-        self.jtype = jtype
-        self.ktype = ktype
-        name = name or f"{itype.name}-{jtype.name}-{ktype.name}"
-        super().__init__(name, parms, **kwparms)
-
-    @property
-    def atomtypes(self):
-        return [self.itype, self.jtype, self.ktype]
-
-
-class DihedralType(Type):
-
-    def __init__(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        ltype: AtomType,
-        name: str = "",
-        parms=[],
-        **kwparms,
-    ):
-        super().__init__(
-            name or "-".join([itype.name, jtype.name, ktype.name, ltype.name]),
-            parms,
-            **kwparms,
-        )
-        self.itype = itype
-        self.jtype = jtype
-        self.ktype = ktype
-        self.ltype = ltype
-
-    @property
-    def atomtypes(self):
-        return [self.itype, self.jtype, self.ktype, self.ltype]
-
-
-class ImproperType(Type):
-
-    def __init__(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        ltype: AtomType,
-        name: str = "",
-        parms=[],
-        **kwparms,
-    ):
-        self.itype = itype
-        self.jtype = jtype
-        self.ktype = ktype
-        self.ltype = ltype
-        name = name or "-".join([a.name for a in self.atomtypes])
-        super().__init__(name, parms, **kwparms)
-
-    @property
-    def atomtypes(self):
-        return [self.itype, self.jtype, self.ktype, self.ltype]
-
-
-class PairType(Type):
-
-    def __init__(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        name: str = "",
-        parms=[],
-        **kwparms,
-    ):
-        super().__init__(name or f"{itype.name}-{jtype.name}", parms=parms, **kwparms)
-        self.itype = itype
-        self.jtype = jtype
-
-    @property
-    def atomtypes(self):
-        return [self.itype, self.jtype]
-
+class AtomType(Type): pass
+class BondType(Type): pass
+class AngleType(Type): pass
+class DihedralType(Type): pass
+class ImproperType(Type): pass
+class PairType(Type): pass
 
 class AtomStyle(Style):
-
-    def __init__(self, name: str, parms, **kwparms):
-        super().__init__(name, parms, **kwparms)
-        self.classes = defaultdict(set)
-
-    def def_type(self, name: str, class_=None, parms=[], **kwparms) -> AtomType:
-        at = AtomType(name, parms, **kwparms)
+    def def_type(self, name: str, *args: Any, **kwargs: Any) -> AtomType:
+        at = AtomType(name, *args, **kwargs)
         self.types.add(at)
-        if class_:
-            self.classes[class_].add(name)
         return at
 
-    def get_class(self, class_name: str) -> list[AtomType]:
-        """
-        Retrieve a list of types that belong to a specified class.
-
-        Args:
-            class_name (str): The name of the class to filter types by.
-
-        Returns:
-            list[Type]: A list of types where the "class" attribute matches the given class_name.
-        """
-        return list(self.classes.get(class_name, []))
-
-
 class BondStyle(Style):
-
-    def def_type(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        name="",
-        parms=[],
-        **kwparms,
-    ) -> BondType:
-        bt = BondType(itype, jtype, name=name, parms=parms, **kwparms)
+    def def_type(self, *atom_types: AtomType, name: str = "", **kwargs: Any) -> BondType:
+        type_names = '-'.join(at.name for at in atom_types)
+        bt = BondType(name or type_names, *atom_types, **kwargs)
         self.types.add(bt)
         return bt
 
-
 class AngleStyle(Style):
-
-    def def_type(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        name="",
-        parms=[],
-        **kwparms,
-    ) -> AngleType:
-        at = AngleType(itype, jtype, ktype, name=name, parms=parms, **kwparms)
+    def def_type(self, *atom_types: AtomType, name: str = "", **kwargs: Any) -> AngleType:
+        type_names = '-'.join(at.name for at in atom_types)
+        at = AngleType(name or type_names, *atom_types, **kwargs)
         self.types.add(at)
         return at
 
+class DihedralStyle(Style): pass
+class ImproperStyle(Style): pass
+class PairStyle(Style): pass
 
-class DihedralStyle(Style):
+class AtomisticForcefield(ForceField):
+    def def_atomstyle(self, name: str, *args: Any, **kwargs: Any) -> AtomStyle:
+        return self.def_style(AtomStyle, name, *args, **kwargs)
 
-    def def_type(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        ltype: AtomType,
-        name="",
-        parms=[],
-        **kwparms,
-    ) -> DihedralType:
-        dt = DihedralType(itype, jtype, ktype, ltype, name=name, parms=parms, **kwparms)
-        self.types.add(dt)
-        return dt
+    def def_bondstyle(self, name: str, *args: Any, **kwargs: Any) -> BondStyle:
+        return self.def_style(BondStyle, name, *args, **kwargs)
 
+    def def_anglestyle(self, name: str, *args: Any, **kwargs: Any) -> AngleStyle:
+        return self.def_style(AngleStyle, name, *args, **kwargs)
 
-class ImproperStyle(Style):
+    def def_dihedralstyle(self, name: str, *args: Any, **kwargs: Any) -> DihedralStyle:
+        return self.def_style(DihedralStyle, name, *args, **kwargs)
 
-    def def_type(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        ktype: AtomType,
-        ltype: AtomType,
-        name="",
-        parms=[],
-        **kwparms,
-    ) -> ImproperType:
-        it = ImproperType(itype, jtype, ktype, ltype, name=name, parms=parms, **kwparms)
-        self.types.add(it)
-        return it
+    def def_improperstyle(self, name: str, *args: Any, **kwargs: Any) -> ImproperStyle:
+        return self.def_style(ImproperStyle, name, *args, **kwargs)
 
-
-class PairStyle(Style):
-
-    def def_type(
-        self,
-        itype: AtomType,
-        jtype: AtomType,
-        name="",
-        parms=[],
-        **kwparms,
-    ):
-        pt = PairType(itype, jtype, name=name, parms=parms, **kwparms)
-        self.types.add(pt)
-        return pt
-
-
-class ForceField:
-    """
-    ForceField class represents a molecular force field, which defines the styles and types
-    of interactions between atoms, bonds, angles, dihedrals, and impropers in a molecular system.
-    """
-
-    _kernel_registry = {}
-
-    def __init__(self, name: str = "", units: str = "real"):
-
-        self.name = name
-        self.units = units
-        self.atomstyles: list[AtomStyle] = []
-        self.bondstyles: list[BondStyle] = []
-        self.pairstyles: list[PairStyle] = []
-        self.anglestyles: list[AngleStyle] = []
-        self.dihedralstyles: list[DihedralStyle] = []
-        self.improperstyles: list[ImproperStyle] = []
-
-    @classmethod
-    def from_forcefields(
-        cls, name: str = "", *forcefields: "ForceField"
-    ) -> "ForceField":
-        forcefield = cls(name)
-        for ff in forcefields:
-            forcefield.merge_(ff)
-
-        return forcefield
-
-    def __repr__(self) -> str:
-        return f"<ForceField: {self.name}>"
-
-    def __str__(self) -> str:
-        detail = f"<ForceField: {self.name}"
-        if len(self.atomstyles) > 0:
-            detail += f"\nn_atomstyles: {len(self.atomstyles)}, n_atomtypes: {len(self.get_atomtypes())}"
-        if len(self.bondstyles) > 0:
-            detail += f"\nn_bondstyles: {len(self.bondstyles)}, n_bondtypes: {len(self.get_bondtypes())}"
-        if len(self.pairstyles) > 0:
-            detail += f"\nn_pairstyles: {len(self.pairstyles)}, n_pairtypes: {len(self.get_pairtypes())}"
-        if len(self.anglestyles) > 0:
-            detail += f"\nn_anglestyles: {len(self.anglestyles)}, n_angletypes: {len(self.get_angletypes())}"
-        if len(self.dihedralstyles) > 0:
-            detail += f"\nn_dihedralstyles: {len(self.dihedralstyles)}, n_dihedraltypes: {len(self.get_dihedraltypes())}"
-        if len(self.improperstyles) > 0:
-            detail += f"\nn_improperstyles: {len(self.improperstyles)}, n_impropertypes: {len(self.get_impropertypes())}"
-        return detail + ">"
-
-    @property
-    def n_atomstyles(self) -> int:
-        """
-        Get the number of atom styles in the force field.
-
-        Returns:
-            int: The number of atom styles.
-        """
-        return len(self.atomstyles)
-
-    @property
-    def n_bondstyles(self) -> int:
-        """
-        Get the number of bond styles in the force field.
-
-        Returns:
-            int: The number of bond styles.
-        """
-        return len(self.bondstyles)
-
-    @property
-    def n_pairstyles(self) -> int:
-        """
-        Get the number of pair styles in the force field.
-
-        Returns:
-            int: The number of pair styles.
-        """
-        return len(self.pairstyles)
-
-    @property
-    def n_anglestyles(self) -> int:
-        """
-        Get the number of angle styles in the force field.
-
-        Returns:
-            int: The number of angle styles.
-        """
-        return len(self.anglestyles)
-
-    @property
-    def n_dihedralstyles(self) -> int:
-        """
-        Get the number of dihedral styles in the force field.
-
-        Returns:
-            int: The number of dihedral styles.
-        """
-        return len(self.dihedralstyles)
-
-    @property
-    def n_improperstyles(self) -> int:
-        """
-        Get the number of improper styles in the force field.
-
-        Returns:
-            int: The number of improper styles.
-        """
-        return len(self.improperstyles)
-
-    @property
-    def n_atomtypes(self) -> int:
-        """
-        Get the number of atom types in the force field.
-
-        Returns:
-            int: The number of atom types.
-        """
-        return len(self.get_atomtypes())
-
-    @property
-    def n_bondtypes(self) -> int:
-        """
-        Get the number of bond types in the force field.
-
-        Returns:
-            int: The number of bond types.
-        """
-        return len(self.get_bondtypes())
-
-    @property
-    def n_angletypes(self) -> int:
-        """
-        Get the number of angle types in the force field.
-
-        Returns:
-            int: The number of angle types.
-        """
-        return len(self.get_angletypes())
-
-    @property
-    def n_dihedraltypes(self) -> int:
-        """
-        Get the number of dihedral types in the force field.
-
-        Returns:
-            int: The number of dihedral types.
-        """
-        return len(self.get_dihedraltypes())
-
-    @property
-    def n_impropertypes(self) -> int:
-        """
-        Get the number of improper types in the force field.
-
-        Returns:
-            int: The number of improper types.
-        """
-        return len(self.get_impropertypes())
-
-    @property
-    def n_pairtypes(self) -> int:
-        """
-        Get the number of pair types in the force field.
-
-        Returns:
-            int: The number of pair types.
-        """
-        return len(self.get_pairtypes())
-
-    def def_atomstyle(self, name: str, parms=[], **data):
-        atomstyle = self.get_atomstyle(name)
-        if atomstyle is not None:
-            return atomstyle
-        else:
-            atomstyle = AtomStyle(name, parms, **data)
-            self.atomstyles.append(atomstyle)
-        return atomstyle
-
-    def def_bondstyle(self, style: str, parms=[], **data):
-        bondstyle = self.get_bondstyle(style)
-        if bondstyle is not None:
-            return bondstyle
-        else:
-            bondstyle = BondStyle(style, parms, **data)
-            self.bondstyles.append(bondstyle)
-        return bondstyle
-
-    def def_anglestyle(self, style: str, parms=[], **data) -> AngleStyle:
-        """
-        Define or retrieve an angle style by its name.
-
-        Args:
-            style (str): The name of the angle style.
-            *parms: Positional parameters for the angle style.
-            **data: Keyword parameters for the angle style.
-
-        Returns:
-            AngleStyle: The defined or retrieved AngleStyle object.
-        """
-        anglestyle = self.get_anglestyle(style)
-        if anglestyle is not None:
-            return anglestyle
-        else:
-            anglestyle = AngleStyle(style, parms, **data)
-            self.anglestyles.append(anglestyle)
-        return anglestyle
-
-    def def_dihedralstyle(self, style: str, parms=[], **data):
-        dihe = self.get_dihedralstyle(style)
-        if dihe is not None:
-            return dihe
-        else:
-            dihe = DihedralStyle(style, parms, **data)
-            self.dihedralstyles.append(dihe)
-        return dihe
-
-    def def_improperstyle(self, style: str, parms=[], **data):
-        improper = self.get_improperstyle(style)
-        if improper is not None:
-            return improper
-        else:
-            improper = ImproperStyle(style, parms, **data)
-            self.improperstyles.append(improper)
-        return improper
-
-    def def_pairstyle(self, style: str, parms=[], **data):
-        pairstyle = self.get_pairstyle(style)
-        if pairstyle is not None:
-            return pairstyle
-        else:
-            pairstyle = PairStyle(style, parms, **data)
-            self.pairstyles.append(pairstyle)
-        return pairstyle
-
-    def get_atomstyle(self, name: str) -> AtomStyle | None:
-        """
-        Retrieve an atom style by its name.
-
-        Args:
-            name (str): The name of the atom style to retrieve.
-
-        Returns:
-            AtomStyle | None: The AtomStyle object if found, otherwise None.
-        """
-        return next(
-            (atomstyle for atomstyle in self.atomstyles if atomstyle.name == name), None
-        )
-
-    def get_bondstyle(self, name: str):
-        """
-        Retrieve a bond style by its name.
-
-        Args:
-            name (str): The name of the bond style to retrieve.
-
-        Returns:
-            BondStyle | None: The BondStyle object if found, otherwise None.
-        """
-        return next(
-            (bondstyle for bondstyle in self.bondstyles if bondstyle.name == name), None
-        )
-
-    def get_anglestyle(self, name: str) -> AngleStyle | None:
-        """
-        Retrieve an angle style by its name.
-
-        Args:
-            name (str): The name of the angle style to retrieve.
-
-        Returns:
-            AngleStyle | None: The AngleStyle object if found, otherwise None.
-        """
-        return next(
-            (anglestyle for anglestyle in self.anglestyles if anglestyle.name == name),
-            None,
-        )
-
-    def get_dihedralstyle(self, name: str) -> DihedralStyle | None:
-        """
-        Retrieve a dihedral style by its name.
-
-        Args:
-            name (str): The name of the dihedral style to retrieve.
-
-        Returns:
-            DihedralStyle | None: The DihedralStyle object if found, otherwise None.
-        """
-        return next(
-            (
-                dihedralstyle
-                for dihedralstyle in self.dihedralstyles
-                if dihedralstyle.name == name
-            ),
-            None,
-        )
-
-    def get_improperstyle(self, name: str) -> ImproperStyle | None:
-        """
-        Retrieve an improper style by its name.
-
-        Args:
-            name (str): The name of the improper style to retrieve.
-
-        Returns:
-            ImproperStyle | None: The ImproperStyle object if found, otherwise None.
-        """
-        return next(
-            (
-                improperstyle
-                for improperstyle in self.improperstyles
-                if improperstyle.name == name
-            ),
-            None,
-        )
-
-    def get_pairstyle(self, name: str) -> PairStyle | None:
-        """
-        Retrieve a pair style by its name.
-
-        Args:
-            name (str): The name of the pair style to retrieve.
-
-        Returns:
-            PairStyle | None: The PairStyle object if found, otherwise None.
-        """
-        return next(
-            (pairstyle for pairstyle in self.pairstyles if pairstyle.name == name),
-            None,
-        )
+    def def_pairstyle(self, name: str, *args: Any, **kwargs: Any) -> PairStyle:
+        return self.def_style(PairStyle, name, *args, **kwargs)
 
     def get_atomtypes(self) -> list[AtomType]:
-        """
-        Get all atom types from all atomstyles.
-        Returns:
-            list[AtomType]: All atom types in the forcefield.
-        """
-        return reduce(
-            lambda x, y: x + y,
-            [atomstyle.get_types() for atomstyle in self.atomstyles],
-            [],
-        )
+        return self.get_types(AtomType)
 
     def get_bondtypes(self) -> list[BondType]:
-        """
-        Get all bond types from all bondstyles.
-        Returns:
-            list[BondType]: All bond types in the forcefield.
-        """
-        bondtypes = []
-        for bondstyle in self.bondstyles:
-            bondtypes.extend(bondstyle.get_types())
-        return bondtypes
+        return self.get_types(BondType)
 
     def get_angletypes(self) -> list[AngleType]:
-        """
-        Get all angle types from all anglestyles.
-        Returns:
-            list[AngleType]: All angle types in the forcefield.
-        """
-        angletypes = []
-        for angstyle in self.anglestyles:
-            angletypes.extend(angstyle.get_types())
-        return angletypes
-
-    def get_dihedraltypes(self) -> list[DihedralType]:
-        """
-        Get all dihedral types from all dihedralstyles.
-        Returns:
-            list[DihedralType]: All dihedral types in the forcefield.
-        """
-        dihedraltypes = []
-        for dihe in self.dihedralstyles:
-            dihedraltypes.extend(dihe.get_types())
-        return dihedraltypes
-
-    def get_impropertypes(self) -> list[ImproperType]:
-        """
-        Get all improper types from all improperstyles.
-        Returns:
-            list[ImproperType]: All improper types in the forcefield.
-        """
-        impropertypes = []
-        for imp in self.improperstyles:
-            impropertypes.extend(imp.get_types())
-        return impropertypes
-
-    def get_pairtypes(self) -> list[PairType]:
-        """
-        Get all pair types from all pairstyles.
-        Returns:
-            list[PairType]: All pair types in the forcefield.
-        """
-        pairtypes = []
-        for pairstyle in self.pairstyles:
-            pairtypes.extend(pairstyle.get_types())
-        return pairtypes
-
-    def __contains__(self, name: str) -> bool:
-        """Check if a style or type exists by name."""
-        return (
-            self.get_atomstyle(name) is not None
-            or self.get_bondstyle(name) is not None
-            or self.get_anglestyle(name) is not None
-            or self.get_dihedralstyle(name) is not None
-            or self.get_improperstyle(name) is not None
-            or self.get_pairstyle(name) is not None
-        )
-
-    def __getitem__(self, name: str) -> Style:
-        """Get a style by name (atom, bond, angle, dihedral, improper, pair)."""
-        for getter in [
-            self.get_atomstyle,
-            self.get_bondstyle,
-            self.get_anglestyle,
-            self.get_dihedralstyle,
-            self.get_improperstyle,
-            self.get_pairstyle,
-        ]:
-            style = getter(name)
-            if style is not None:
-                return style
-        raise KeyError(f"No style named '{name}' found.")
-
-    def __len__(self) -> int:
-        """Return the number of styles in the forcefield."""
-        return sum(
-            [
-                len(self.atomstyles),
-                len(self.bondstyles),
-                len(self.anglestyles),
-                len(self.dihedralstyles),
-                len(self.improperstyles),
-                len(self.pairstyles),
-            ]
-        )
-
-    def merge(self, other: "ForceField"):
-        """
-        Merge another ForceField into this one (in-place).
-        Args:
-            other (ForceField): The other forcefield to merge.
-        Returns:
-            self
-        """
-        for style in other.atomstyles:
-            if self.get_atomstyle(style.name) is None:
-                self.atomstyles.append(style)
-        for style in other.bondstyles:
-            if self.get_bondstyle(style.name) is None:
-                self.bondstyles.append(style)
-        for style in other.anglestyles:
-            if self.get_anglestyle(style.name) is None:
-                self.anglestyles.append(style)
-        for style in other.dihedralstyles:
-            if self.get_dihedralstyle(style.name) is None:
-                self.dihedralstyles.append(style)
-        for style in other.improperstyles:
-            if self.get_improperstyle(style.name) is None:
-                self.improperstyles.append(style)
-        for style in other.pairstyles:
-            if self.get_pairstyle(style.name) is None:
-                self.pairstyles.append(style)
-        return self
-
-    def merge_(self, other: "ForceField"):
-        """
-        Merge another ForceField into this one (in-place, alias for merge).
-        """
-        return self.merge(other)
-
-    def to_dict(self) -> dict:
-        """
-        Convert ForceField to a dictionary for serialization.
-
-        Returns:
-            dict: Dictionary containing all forcefield components and metadata
-        """
-
-        def style_to_dict(style):
-            """Convert a style object to dictionary"""
-            result = {
-                "__class__": f"{style.__class__.__module__}.{style.__class__.__qualname__}",
-                "name": style.name,
-                "parms": style.parms,
-                "types": [],
-            }
-            result.update(style)  # Add any additional data from DictWithList
-
-            # Convert types to dictionaries
-            for type_obj in style.types:
-                type_dict = {
-                    "__class__": f"{type_obj.__class__.__module__}.{type_obj.__class__.__qualname__}",
-                    "name": type_obj.name,
-                    "parms": type_obj.parms,
-                }
-                type_dict.update(type_obj.data)  # Add any additional data
-                result["types"].append(type_dict)
-
-            return result
-
-        return {
-            "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}",
-            "name": self.name,
-            "units": self.units,
-            "atomstyles": [style_to_dict(style) for style in self.atomstyles],
-            "bondstyles": [style_to_dict(style) for style in self.bondstyles],
-            "pairstyles": [style_to_dict(style) for style in self.pairstyles],
-            "anglestyles": [style_to_dict(style) for style in self.anglestyles],
-            "dihedralstyles": [style_to_dict(style) for style in self.dihedralstyles],
-            "improperstyles": [style_to_dict(style) for style in self.improperstyles],
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "ForceField":
-        """
-        Create ForceField from dictionary representation.
-
-        Args:
-            data: Dictionary containing forcefield data
-
-        Returns:
-            ForceField: Reconstructed ForceField instance
-        """
-        # Extract class info if present for validation
-        class_info = data.get("__class__")
-        if class_info and not class_info.endswith("ForceField"):
-            raise ValueError(f"Cannot create ForceField from class {class_info}")
-
-        def dict_to_style(style_data, default_class_name):
-            """Convert dictionary to style object"""
-            class_path = style_data.get(
-                "__class__", f"molpy.core.forcefield.{default_class_name}"
-            )
-            try:
-                # Import and get the class
-                module_name, class_name = class_path.rsplit(".", 1)
-                module = __import__(module_name, fromlist=[class_name])
-                style_class = getattr(module, class_name)
-
-                # Create style instance
-                style = style_class(style_data["name"], style_data.get("parms", []))
-
-                # Add any additional data
-                for key, value in style_data.items():
-                    if key not in ["__class__", "name", "parms", "types"]:
-                        style[key] = value
-
-                # Reconstruct types
-                for type_data in style_data.get("types", []):
-                    type_class_path = type_data.get("__class__")
-                    if type_class_path:
-                        try:
-                            type_module_name, type_class_name = type_class_path.rsplit(
-                                ".", 1
-                            )
-                            type_module = __import__(
-                                type_module_name, fromlist=[type_class_name]
-                            )
-                            type_class = getattr(type_module, type_class_name)
-
-                            # Create type instance
-                            type_obj = type_class(
-                                type_data["name"], type_data.get("parms", [])
-                            )
-
-                            # Add any additional data
-                            for key, value in type_data.items():
-                                if key not in ["__class__", "name", "parms"]:
-                                    type_obj[key] = value
-
-                            style.types.add(type_obj)
-                        except (ImportError, AttributeError):
-                            # Skip if type class cannot be imported
-                            pass
-
-                return style
-            except (ImportError, AttributeError):
-                # Return None if style class cannot be imported
-                return None
-
-        # Create new forcefield instance
-        forcefield = cls(name=data.get("name", ""), units=data.get("units", "real"))
-
-        # Reconstruct all style lists
-        for style_data in data.get("atomstyles", []):
-            style = dict_to_style(style_data, "AtomStyle")
-            if style:
-                forcefield.atomstyles.append(style)
-
-        for style_data in data.get("bondstyles", []):
-            style = dict_to_style(style_data, "BondStyle")
-            if style:
-                forcefield.bondstyles.append(style)
-
-        for style_data in data.get("pairstyles", []):
-            style = dict_to_style(style_data, "PairStyle")
-            if style:
-                forcefield.pairstyles.append(style)
-
-        for style_data in data.get("anglestyles", []):
-            style = dict_to_style(style_data, "AngleStyle")
-            if style:
-                forcefield.anglestyles.append(style)
-
-        for style_data in data.get("dihedralstyles", []):
-            style = dict_to_style(style_data, "DihedralStyle")
-            if style:
-                forcefield.dihedralstyles.append(style)
-
-        for style_data in data.get("improperstyles", []):
-            style = dict_to_style(style_data, "ImproperStyle")
-            if style:
-                forcefield.improperstyles.append(style)
-
-        return forcefield
-
-    def get_potential(self, style_name: str, **kwargs):
-        """
-        Get a potential instance from forcefield definition.
-
-        Args:
-            style_name: Name of the style to get potential for
-            **kwargs: Additional parameters to pass to potential constructor
-
-        Returns:
-            Potential instance or None if not found
-        """
-        # Find the style by name from all style lists
-        style = None
-        potential_type = None
-
-        # Check in all style containers
-        for style_list, ptype in [
-            (self.pairstyles, "pair"),
-            (self.bondstyles, "bond"),
-            (self.anglestyles, "angle"),
-            (self.dihedralstyles, "dihedral"),
-            (self.improperstyles, "improper"),
-        ]:
-            for s in style_list:
-                if s.name == style_name:
-                    style = s
-                    potential_type = ptype
-                    break
-            if style:
-                break
-
-        if not style or not potential_type:
-            return None
-
-        return self._create_potential_from_style(style, potential_type, **kwargs)
-
-    def get_potentials(self, style_names: list[str] | None = None, **kwargs):
-        """
-        Get multiple potential instances from forcefield definition.
-
-        Args:
-            style_names: List of style names to get potentials for. If None, gets all available styles.
-            **kwargs: Additional parameters to pass to potential constructors
-
-        Returns:
-            Potentials instance containing all created potentials
-        """
-        from molpy.potential.base import Potentials
-
-        potentials = Potentials()
-
-        # If no style names provided, get all available styles
-        if style_names is None:
-            style_names = []
-            # Collect all style names from all style lists
-            for style_list in [
-                self.pairstyles,
-                self.bondstyles,
-                self.anglestyles,
-                self.dihedralstyles,
-                self.improperstyles,
-            ]:
-                style_names.extend([s.name for s in style_list])
-
-        # Get potential for each style name
-        for style_name in style_names:
-            potential = self.get_potential(style_name, **kwargs)
-            if potential is not None:
-                potentials.append(potential)
-
-        return potentials
-
-    def _create_potential_from_style(self, style, potential_type: str, **kwargs):
-        """
-        Create a potential instance from a style definition.
-
-        Args:
-            style: Style object containing types and parameters
-            potential_type: Type of potential ("pair", "bond", "angle", etc.)
-            **kwargs: Additional parameters
-
-        Returns:
-            Potential instance
-        """
-        # Check if we have the potential type in kernel registry
-        if potential_type not in self._kernel_registry:
-            return None  # Return None instead of raising exception
-
-        potential_registry = self._kernel_registry[potential_type]
-
-        # Look for potential implementation by style name
-        potential_class = None
-        for name, cls in potential_registry.items():
-            if name == style.name or getattr(cls, "name", None) == style.name:
-                potential_class = cls
-                break
-
-        if not potential_class:
-            return None  # Return None instead of raising exception
-
-        # Use style's parms and data as initialization parameters
-        init_kwargs = {}
-        # Add style's data dictionary (keyword parameters)
-        init_kwargs.update(getattr(style, "data", {}))
-        init_kwargs.update(kwargs)  # Override with user-provided kwargs
-
-        # Filter kwargs to only include parameters that the potential class accepts
-        import inspect
-
-        sig = inspect.signature(potential_class.__init__)
-        accepted_params = set(sig.parameters.keys()) - {"self"}
-
-        # Keep only the parameters that the potential class can accept
-        filtered_kwargs = {k: v for k, v in init_kwargs.items() if k in accepted_params}
-
-        # Create potential instance using filtered kwargs only
-        return potential_class(**filtered_kwargs)
+        return self.get_types(AngleType)
