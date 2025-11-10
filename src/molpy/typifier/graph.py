@@ -2,6 +2,7 @@
 
 import itertools
 from collections import OrderedDict, defaultdict
+from typing import Any, Callable
 
 from igraph import Graph, plot
 
@@ -12,55 +13,166 @@ from molpy.parser.smarts import SmartsParser, SmartsIR, AtomExpressionIR, AtomPr
 class SMARTSGraph(Graph):
     """A graph representation of a SMARTS pattern.
 
-    Attributes
-    ----------
-    smarts_string : str
-        The SMARTS string outlined in the force field
-    parser : SmartsParser
-        The parser that converts SMARTS string into IR
-    name : str
-    overrides : set
-        Rules or SMARTSGraph over which this SMARTSGraph takes precedence
-    ir : SmartsIR
-        The intermediate representation of the SMARTS pattern
+    This class supports two modes of construction:
+    1. From SMARTS string (legacy mode)
+    2. From predicates (new predicate-based mode)
 
     Attributes
     ----------
-    graph_matcher : smarts_graph.SMARTSMatcher
-        implementation of VF2 that handles subgraph matching
+    atomtype_name : str
+        The atom type this pattern assigns
+    priority : int
+        Priority for conflict resolution (higher wins)
+    target_vertices : list[int]
+        Which pattern vertices should receive the atom type (empty = all)
+    source : str
+        Source identifier for debugging
+    smarts_string : str | None
+        The SMARTS string (if constructed from string)
+    ir : SmartsIR | None
+        The intermediate representation (if constructed from string)
 
     Notes
     -----
     SMARTSGraph inherits from igraph.Graph
+    
+    Vertex attributes:
+        - preds: list[Callable] - list of predicates that must all pass
+    
+    Edge attributes:
+        - preds: list[Callable] - list of predicates that must all pass
+    
+    Graph attributes:
+        - atomtype_name: str
+        - priority: int
+        - target_vertices: list[int]
+        - source: str
+        - specificity_score: int (computed)
     """
 
     def __init__(
         self,
-        smarts_string: str,
+        smarts_string: str | None = None,
         parser: SmartsParser | None = None,
-        name=None,
-        overrides=None,
+        name: str | None = None,
+        atomtype_name: str | None = None,
+        priority: int = 0,
+        target_vertices: list[int] | None = None,
+        source: str = "",
+        overrides: set | None = None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
-        self.smarts_string = smarts_string
-        self.name = name
+        # Metadata
+        self.atomtype_name = atomtype_name or name or ""
+        self._priority = priority  # Use _priority as internal storage
+        self.target_vertices = target_vertices or []
+        self.source = source
         self.overrides = overrides
 
-        if parser is None:
-            self.ir = SmartsParser().parse_smarts(smarts_string)
-        else:
-            self.ir = parser.parse_smarts(smarts_string)
+        # Legacy support
+        self.smarts_string = smarts_string
+        self.ir: SmartsIR | None = None
+        
+        if smarts_string is not None:
+            # Legacy mode: construct from SMARTS string
+            if parser is None:
+                self.ir = SmartsParser().parse_smarts(smarts_string)
+            else:
+                self.ir = parser.parse_smarts(smarts_string)
 
-        self._atom_indices = OrderedDict()
-        self._add_nodes()
-        self._add_edges()
+            self._atom_indices = OrderedDict()
+            self._add_nodes()
+            self._add_edges()
+        
         self._graph_matcher = None
+        self._specificity_score: int | None = None
+
+    @classmethod
+    def from_igraph(
+        cls,
+        graph: Graph,
+        atomtype_name: str,
+        priority: int = 0,
+        target_vertices: list[int] | None = None,
+        source: str = "",
+    ) -> "SMARTSGraph":
+        """Create SmartsGraph from an existing igraph.Graph.
+        
+        Args:
+            graph: igraph.Graph with vertex/edge predicates
+            atomtype_name: Atom type this pattern assigns
+            priority: Priority for conflict resolution
+            target_vertices: Which vertices should be typed (empty = all)
+            source: Source identifier
+        
+        Returns:
+            SMARTSGraph instance
+        """
+        # Create empty instance
+        instance = cls(
+            atomtype_name=atomtype_name,
+            priority=priority,
+            target_vertices=target_vertices or [],
+            source=source,
+        )
+        
+        # Copy graph structure and attributes
+        instance.add_vertices(graph.vcount())
+        if graph.ecount() > 0:
+            instance.add_edges(graph.get_edgelist())
+        
+        # Copy vertex attributes
+        for attr in graph.vs.attributes():
+            instance.vs[attr] = graph.vs[attr]
+        
+        # Copy edge attributes
+        for attr in graph.es.attributes():
+            instance.es[attr] = graph.es[attr]
+        
+        return instance
 
     def __repr__(self):
-        return f"<SmartsGraph({self.smarts_string})>"
+        if self.smarts_string:
+            return f"<SmartsGraph({self.smarts_string})>"
+        return f"<SmartsGraph(name={self.atomtype_name}, vertices={self.vcount()}, edges={self.ecount()})>"
+    
+    def get_specificity_score(self) -> int:
+        """Compute specificity score for this pattern.
+        
+        Scoring heuristic:
+            +0 per element predicate (baseline)
+            +1 per charge/degree/hyb constraint
+            +2 per aromatic/in_ring constraint
+            +3 per bond order predicate
+            +4 per custom predicate
+        
+        Returns:
+            Specificity score (higher = more specific)
+        """
+        if self._specificity_score is not None:
+            return self._specificity_score
+        
+        score = 0
+        
+        # Score vertex predicates
+        for v in self.vs:
+            preds = v["preds"] if "preds" in v.attributes() else []
+            for pred in preds:
+                if hasattr(pred, "meta"):
+                    score += pred.meta.weight
+        
+        # Score edge predicates
+        for e in self.es:
+            preds = e["preds"] if "preds" in e.attributes() else []
+            for pred in preds:
+                if hasattr(pred, "meta"):
+                    score += pred.meta.weight
+        
+        self._specificity_score = score
+        return score
 
     def plot(self, *args, **kwargs):
         """Plot the SMARTS graph."""
@@ -71,10 +183,21 @@ class SMARTSGraph(Graph):
     def override(self, overrides):
         """Set the priority of this SMART"""
         self.overrides = overrides
-        # self.priority = max([override.priority for override in overrides]) + 1
+        # Legacy behavior: compute priority from overrides
+        # Now priority is set explicitly, but keep this for compatibility
+        if hasattr(self, '_priority'):
+            # New mode: use explicit priority
+            pass
+        else:
+            # Legacy mode: compute from overrides
+            if self.overrides:
+                self._priority = max([override.priority for override in overrides]) + 1
 
-    @property
-    def priority(self):
+    def get_priority(self) -> int:
+        """Get priority value (supports both new and legacy modes)."""
+        if hasattr(self, '_priority'):
+            return self._priority
+        # Legacy: compute from overrides
         if self.overrides is None:
             return 0
         return max([override.priority for override in self.overrides]) + 1
@@ -95,13 +218,51 @@ class SMARTSGraph(Graph):
             self.add_edge(start_idx, end_idx, bond_type=bond.bond_type)
 
     def _node_match_fn(self, g1, g2, v1, v2):
-        """Determine if two graph nodes are equal."""
+        """Determine if two graph nodes are equal.
+        
+        This method supports both legacy (SMARTS IR) and new (predicate) modes.
+        """
         host = g1.vs[v1]
         pattern = g2.vs[v2]
-        atom_ir = pattern["atom"]  # This is a SmartsAtomIR
-        neighbors = g1.neighbors(v1)
-        result = self._atom_expr_matches(atom_ir.expression, host, neighbors, g1)
-        return result
+        
+        # New predicate mode
+        if "preds" in pattern.attributes():
+            preds = pattern["preds"]
+            host_attrs = host.attributes()
+            return all(pred(host_attrs) for pred in preds)
+        
+        # Legacy mode (SMARTS IR)
+        if "atom" in pattern.attributes():
+            atom_ir = pattern["atom"]
+            neighbors = g1.neighbors(v1)
+            result = self._atom_expr_matches(atom_ir.expression, host, neighbors, g1)
+            return result
+        
+        # No constraints - match anything
+        return True
+    
+    def _edge_match_fn(self, g1, g2, e1, e2):
+        """Determine if two graph edges are equal.
+        
+        This method supports both legacy (bond_type) and new (predicate) modes.
+        """
+        host_edge = g1.es[e1]
+        pattern_edge = g2.es[e2]
+        
+        # New predicate mode
+        if "preds" in pattern_edge.attributes():
+            preds = pattern_edge["preds"]
+            host_attrs = host_edge.attributes()
+            return all(pred(host_attrs) for pred in preds)
+        
+        # Legacy mode (bond_type)
+        if "bond_type" in pattern_edge.attributes():
+            # Simple bond type matching for now
+            # TODO: Implement full bond type matching logic
+            return True
+        
+        # No constraints - match anything
+        return True
 
     def _atom_expr_matches(self, atom_expr: AtomExpressionIR | AtomPrimitiveIR, atom, bond_partners, graph):
         """Evaluate SMARTS IR expressions."""
@@ -211,7 +372,9 @@ class SMARTSGraph(Graph):
         self.calc_signature(graph)
 
         self._graph_matcher = SMARTSMatcher(
-            graph, self, node_match_fn=self._node_match_fn
+            graph, self, 
+            node_match_fn=self._node_match_fn,
+            edge_match_fn=self._edge_match_fn
         )
 
         matches = self._graph_matcher.subgraph_isomorphisms()
@@ -245,10 +408,11 @@ class SMARTSGraph(Graph):
 class SMARTSMatcher:
     """Inherits and implements VF2 for a SMARTSGraph."""
 
-    def __init__(self, G1: Graph, G2: Graph, node_match_fn):
+    def __init__(self, G1: Graph, G2: Graph, node_match_fn, edge_match_fn=None):
         self.G1 = G1
         self.G2 = G2
         self.node_match_fn = node_match_fn
+        self.edge_match_fn = edge_match_fn
 
     @property
     def is_isomorphic(self):
@@ -257,8 +421,15 @@ class SMARTSMatcher:
 
     def subgraph_isomorphisms(self):
         """Iterate over all subgraph isomorphisms between G1 and G2."""
+        # Build edge compatibility function if provided
+        edge_compat_fn = None
+        if self.edge_match_fn is not None:
+            edge_compat_fn = lambda g1, g2, e1, e2: self.edge_match_fn(g1, g2, e1, e2)
+        
         matches = self.G1.get_subisomorphisms_vf2(
-            self.G2, node_compat_fn=self.node_match_fn
+            self.G2, 
+            node_compat_fn=self.node_match_fn,
+            edge_compat_fn=edge_compat_fn
         )
         results = []
         for sgi in matches:

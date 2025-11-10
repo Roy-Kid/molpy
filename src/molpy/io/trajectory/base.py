@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Iterator, NamedTuple
 
-from mollog import get_logger
+from logging import getLogger as get_logger
 
 from molpy.core import Frame
 
