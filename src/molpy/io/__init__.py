@@ -6,16 +6,31 @@ file formats. It supports both data files and trajectory files with lazy loading
 capabilities.
 """
 
+from collections import namedtuple
 from pathlib import Path
 from typing import List, Union
 
 import numpy as np
 
 from molpy.core.forcefield import ForceField
-from molpy.core.frame import Frame
-from molpy.core.system import FrameSystem
 
-from . import data, forcefield, log, trajectory
+# Import frame if available
+try:
+    from molpy.core.frame import Frame
+except ImportError:
+    Frame = None
+
+from . import forcefield, log, trajectory
+from .forcefield.xml import read_xml_forcefield
+
+# Only import data if Frame is available
+if Frame is not None:
+    try:
+        from . import data
+    except ImportError:
+        pass
+
+FrameSystem = namedtuple("FrameSystem", ["frame", "forcefield", "box"])
 
 # Type aliases for convenience
 PathLike = Union[str, Path]
@@ -163,10 +178,14 @@ def read_amber_system(
     return FrameSystem(frame=frame, forcefield=ff, box=system.box)
 
 
-def read_xml_forcefield(
+def read_xml_forcefield_legacy(
     name_or_path: PathLike, system: FrameSystem | None = None
 ) -> FrameSystem:
-    """Read an XML force field file and return a FrameSystem."""
+    """
+    (Legacy) Read an XML force field file and return a FrameSystem.
+    
+    Deprecated: Use read_xml_forcefield from molpy.io.forcefield.xml instead.
+    """
     from .forcefield.xml import XMLForceFieldReader
 
     # Handle built-in force fields

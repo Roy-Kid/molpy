@@ -1,12 +1,16 @@
 import pytest
-from molpy.parser.smiles import SmilesParser, SmilesIR, AtomIR, BondIR
+
 from molpy.parser.smiles import (
+    AtomIR,
+    BigSmilesChainIR,
     BigSmilesIR,
     BondDescriptorIR,
-    StochasticObjectIR,
-    StochasticDistributionIR,
+    BondIR,
     RepeatSegmentIR,
-    BigSmilesChainIR,
+    SmilesIR,
+    SmilesParser,
+    StochasticDistributionIR,
+    StochasticObjectIR,
 )
 
 
@@ -657,10 +661,14 @@ def mk_bigsmiles_ir(start_specs, segments_specs):
             "implicit": (atom_specs, bond_tuples) or None
         }
 
-    Returns tuple (BigSmilesIR_cls, expected_ir) or raises skip if not available.
+    Returns BigSmilesIR with properly collected atoms and bonds.
     """
 
     start_smiles = mk_smiles_ir(*start_specs) if start_specs else mk_smiles_ir([], [])
+
+    # Collect all atoms and bonds
+    all_atoms = list(start_smiles.atoms)
+    all_bonds = list(start_smiles.bonds)
 
     segments = []
     for seg_spec in segments_specs:
@@ -677,11 +685,24 @@ def mk_bigsmiles_ir(start_specs, segments_specs):
                 else BondDescriptorIR()
             )
             units = [mk_smiles_ir(*u) for u in obj_spec["units"]]
+            
+            # Collect atoms and bonds from units
+            for unit in units:
+                all_atoms.extend(unit.atoms)
+                all_bonds.extend(unit.bonds)
+            
             end_groups = (
                 [mk_smiles_ir(*eg) for eg in obj_spec["end_groups"]]
                 if obj_spec.get("end_groups")
                 else None
             )
+            
+            # Collect atoms and bonds from end groups
+            if end_groups:
+                for eg in end_groups:
+                    all_atoms.extend(eg.atoms)
+                    all_bonds.extend(eg.bonds)
+            
             dist = (
                 StochasticDistributionIR(**obj_spec["distribution"])
                 if obj_spec.get("distribution")
@@ -699,12 +720,18 @@ def mk_bigsmiles_ir(start_specs, segments_specs):
         implicit = (
             mk_smiles_ir(*seg_spec["implicit"]) if seg_spec.get("implicit") else None
         )
+        
+        # Collect atoms and bonds from implicit smiles
+        if implicit:
+            all_atoms.extend(implicit.atoms)
+            all_bonds.extend(implicit.bonds)
+        
         segments.append(
             RepeatSegmentIR(stochastic_objects=objs, implicit_smiles=implicit)
         )
 
     chain = BigSmilesChainIR(start_smiles=start_smiles, repeat_segments=segments)
-    return BigSmilesIR(atoms=[], bonds=[], chain=chain)
+    return BigSmilesIR(atoms=all_atoms, bonds=all_bonds, chain=chain)
 
 
 # Bond descriptor test cases (field variants)
@@ -972,6 +999,237 @@ class TestBigSmilesIR:
             pytest.xfail("SmilesParser.parse_bigsmiles not implemented yet")
 
 
+# ======================== BigSMILES Parser tests ========================
+
+
+# 1️⃣ Basic SMILES compatibility (baseline)
+basic_bigsmiles_compat = [
+    ("CCO", mk_bigsmiles_ir((["C", "C", "O"], [(0, 1, "-"), (1, 2, "-")]), [])),
+    ("C1CCCCC1", mk_bigsmiles_ir((["C", "C", "C", "C", "C", "C"], [(0, 1, "-"), (1, 2, "-"), (2, 3, "-"), (3, 4, "-"), (4, 5, "-"), (5, 0, "-")]), [])),
+    ("CC(=O)O", mk_bigsmiles_ir((["C", "C", "O", "O"], [(0, 1, "-"), (1, 2, "="), (1, 3, "-")]), [])),
+]
+
+
+# 2️⃣ Simple repeat units {} (basic stochastic polymerization)
+simple_repeat_bigsmiles = [
+    (
+        "{[<]CC[>]}",
+        mk_bigsmiles_ir(
+            ([], []),  # empty start_smiles
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [(["C", "C"], [(0, 1, "-")])],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+    (
+        "{[<]CCO[>]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [(["C", "C", "O"], [(0, 1, "-"), (1, 2, "-")])],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+    (
+        "{[<]C(=O)O[>]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [(["C", "O", "O"], [(0, 1, "="), (0, 2, "-")])],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+]
+
+
+# 3️⃣ Repeat units with comma-separated monomers (random copolymer)
+stochastic_copolymer_bigsmiles = [
+    (
+        "{[<]CC[>],[<]OCC[>]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [
+                        (["C", "C"], [(0, 1, "-")]),
+                        (["O", "C", "C"], [(0, 1, "-"), (1, 2, "-")]),
+                    ],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+]
+
+
+# 4️⃣ Block copolymers (multiple {} segments)
+block_copolymer_bigsmiles = [
+    (
+        "{[<]CC[>]}{[<]O[>]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [
+                {
+                    "objects": [{
+                        "left": {"symbol": "<"},
+                        "right": {"symbol": ">"},
+                        "units": [(["C", "C"], [(0, 1, "-")])],
+                    }],
+                    "implicit": None,
+                },
+                {
+                    "objects": [{
+                        "left": {"symbol": "<"},
+                        "right": {"symbol": ">"},
+                        "units": [(["O"], [])],
+                    }],
+                    "implicit": None,
+                }
+            ]
+        )
+    ),
+    (
+        "{[<]CC[>]}{[<]OCCO[>]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [
+                {
+                    "objects": [{
+                        "left": {"symbol": "<"},
+                        "right": {"symbol": ">"},
+                        "units": [(["C", "C"], [(0, 1, "-")])],
+                    }],
+                    "implicit": None,
+                },
+                {
+                    "objects": [{
+                        "left": {"symbol": "<"},
+                        "right": {"symbol": ">"},
+                        "units": [(["O", "C", "C", "O"], [(0, 1, "-"), (1, 2, "-"), (2, 3, "-")])],
+                    }],
+                    "implicit": None,
+                }
+            ]
+        )
+    ),
+]
+
+
+# 5️⃣ Mixed with plain SMILES
+mixed_bigsmiles = [
+    (
+        "CC{[<]O[>]}",
+        mk_bigsmiles_ir(
+            (["C", "C"], [(0, 1, "-")]),  # start_smiles
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [(["O"], [])],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+    (
+        "{[<]CC[>]}O",
+        mk_bigsmiles_ir(
+            ([], []),
+            [{
+                "objects": [{
+                    "left": {"symbol": "<"},
+                    "right": {"symbol": ">"},
+                    "units": [(["C", "C"], [(0, 1, "-")])],
+                }],
+                "implicit": (["O"], []),  # implicit smiles after stochastic object
+            }]
+        )
+    ),
+]
+
+
+# 6️⃣ Bond descriptors with indices
+indexed_descriptor_bigsmiles = [
+    (
+        "{[<1]CC[>1]}",
+        mk_bigsmiles_ir(
+            ([], []),
+            [{
+                "objects": [{
+                    "left": {"symbol": "<", "index": 1},
+                    "right": {"symbol": ">", "index": 1},
+                    "units": [(["C", "C"], [(0, 1, "-")])],
+                }],
+                "implicit": None,
+            }]
+        )
+    ),
+]
+
+
+class TestBigSmilesParser:
+    """Test BigSMILES string parsing into IR structures."""
+
+    @pytest.mark.parametrize("smiles,expected", basic_bigsmiles_compat)
+    def test_basic_smiles_compatibility(self, smiles, expected):
+        """BigSMILES is SMILES superset - all plain SMILES must parse."""
+        ir = parser.parse_bigsmiles(smiles)
+        assert ir == expected
+
+    @pytest.mark.parametrize("bigsmiles,expected", simple_repeat_bigsmiles)
+    def test_simple_repeat_units(self, bigsmiles, expected):
+        """Test basic {} repeat unit parsing."""
+        ir = parser.parse_bigsmiles(bigsmiles)
+        assert ir == expected
+
+    @pytest.mark.parametrize("bigsmiles,expected", stochastic_copolymer_bigsmiles)
+    def test_stochastic_copolymer(self, bigsmiles, expected):
+        """Test random copolymer with comma-separated monomers."""
+        ir = parser.parse_bigsmiles(bigsmiles)
+        assert ir == expected
+
+    @pytest.mark.parametrize("bigsmiles,expected", block_copolymer_bigsmiles)
+    def test_block_copolymers(self, bigsmiles, expected):
+        """Test block copolymer with multiple {} segments."""
+        ir = parser.parse_bigsmiles(bigsmiles)
+        assert ir == expected
+
+    @pytest.mark.parametrize("bigsmiles,expected", mixed_bigsmiles)
+    def test_mixed_with_smiles(self, bigsmiles, expected):
+        """Test BigSMILES mixed with plain SMILES fragments."""
+        ir = parser.parse_bigsmiles(bigsmiles)
+        assert ir == expected
+
+    @pytest.mark.parametrize("bigsmiles,expected", indexed_descriptor_bigsmiles)
+    def test_indexed_descriptors(self, bigsmiles, expected):
+        """Test bond descriptors with indices."""
+        ir = parser.parse_bigsmiles(bigsmiles)
+        assert ir == expected
+
+    def test_empty_bigsmiles(self):
+        """Test empty string returns valid IR."""
+        ir = parser.parse_bigsmiles("")
+        expected = mk_bigsmiles_ir(([], []), [])
+        assert ir == expected
+
+
 class TestRDKitConverter:
     """Test SmilesIR → RDKit Mol conversion."""
     
@@ -998,6 +1256,7 @@ class TestRDKitConverter:
     def test_smilesir_to_mol_basic(self, smiles, n_atoms, n_bonds):
         """Test basic IR → Mol conversion."""
         from rdkit import Chem
+
         from molpy.parser.smiles import smilesir_to_mol
         
         ir = parser.parse_smiles(smiles)
@@ -1010,8 +1269,9 @@ class TestRDKitConverter:
     def test_smilesir_to_mol_charged_atoms(self):
         """Test conversion with charged atoms."""
         from rdkit import Chem
+
         from molpy.parser.smiles import smilesir_to_mol
-        
+
         # [NH4+]
         ir = parser.parse_smiles("[NH4+]")
         mol = smilesir_to_mol(ir)
@@ -1025,8 +1285,9 @@ class TestRDKitConverter:
     def test_smilesir_to_mol_isotopes(self):
         """Test conversion with isotopes."""
         from rdkit import Chem
+
         from molpy.parser.smiles import smilesir_to_mol
-        
+
         # [13C]
         ir = parser.parse_smiles("[13C]")
         mol = smilesir_to_mol(ir)
@@ -1039,8 +1300,9 @@ class TestRDKitConverter:
     def test_smilesir_to_mol_aromatic(self):
         """Test conversion with aromatic atoms."""
         from rdkit import Chem
+
         from molpy.parser.smiles import smilesir_to_mol
-        
+
         # Benzene
         ir = parser.parse_smiles("c1ccccc1")
         mol = smilesir_to_mol(ir)
@@ -1053,8 +1315,9 @@ class TestRDKitConverter:
     def test_smilesir_to_mol_chirality(self):
         """Test conversion with chiral centers."""
         from rdkit import Chem
+
         from molpy.parser.smiles import smilesir_to_mol
-        
+
         # L-alanine: N[C@@H](C)C(=O)O
         ir = parser.parse_smiles("N[C@@H](C)C(=O)O")
         mol = smilesir_to_mol(ir)
@@ -1066,9 +1329,10 @@ class TestRDKitConverter:
     def test_converter_registration(self):
         """Test that converter is registered in REG."""
         from rdkit import Chem
-        from molpy.parser.smiles import SmilesIR
+
         from molpy.adapter.registry import REG
-        
+        from molpy.parser.smiles import SmilesIR
+
         # Verify converter can be resolved
         converter = REG.resolve(SmilesIR(), Chem.Mol)
         assert converter is not None

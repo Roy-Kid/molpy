@@ -1,6 +1,6 @@
 from collections import UserDict
 from copy import deepcopy
-from typing import Any, Iterable, Protocol, Self, Iterator
+from typing import Any, Iterable, Protocol, Self, Iterator, TypeVar, Generic, cast, overload
 from collections import defaultdict
 from molpy.core.ops.geometry import (
     _dot,
@@ -38,6 +38,10 @@ class LinkLike(Protocol):
     """Protocol for objects that can act as Links (Link or subclass)."""
 
     endpoints: tuple[EntityLike, ...]
+    def __getitem__(self, key: str) -> Any: ...
+    def __setitem__(self, key: str, value: Any) -> None: ...
+    def __hash__(self) -> int: ...
+    def get(self, key: str, default: Any = None) -> Any: ...
 
 
 class Link[T: Entity](UserDict):
@@ -64,38 +68,124 @@ class Link[T: Entity](UserDict):
 
     def __hash__(self) -> int:  # pragma: no cover - trivial identity
         return id(self)
+    
 
+# ---------- Entity protocol (customize to your real API) ----------
+class EntityLike(Protocol):
+    def get(self, key: str) -> Any: ...
+    # Replace with your actual interface (e.g., __getitem__, attributes, etc.)
 
-def get_nearest_type[U](item: U) -> type[U]:
-    return type(item)
+E = TypeVar("E", bound=EntityLike)
+U = TypeVar("U", bound=E)
 
+# ---------- Column-friendly list ----------
+class Entities(list[E], Generic[E]):
+    """A list of Entity-like objects supporting column-style access via a string key."""
 
-class TypeBucket[T]:
+    @overload
+    def __getitem__(self, index: int) -> E: ...
+    @overload
+    def __getitem__(self, s: slice) -> list[E]: ...
+    @overload
+    def __getitem__(self, key: str) -> list[Any]: ...
+
+    def __getitem__(self, arg: int | slice | str) -> E | list[E] | list[Any]:
+        if isinstance(arg, str):
+            # Column access (switch to getattr/ent[arg] if needed)
+            return [ent.get(arg) for ent in self]
+        return super().__getitem__(arg)
+
+# ---------- Helper: choose bucket key (override if needed) ----------
+def get_nearest_type(obj: E) -> type:
+    """Default: bucket by the object's concrete type."""
+    return type(obj)
+
+# ---------- Bucket that stores Entities instead of lists ----------
+class TypeBucket(Generic[E]):
+    """
+    Bucket objects by (concrete) type using dict[type, Entities].
+    - Key:  type[U], where U <: E
+    - Item: Entities[U], paired with the same U as in the key
+
+    Query methods return Entities[...] so you can do column-style access directly.
+    """
+
     def __init__(self) -> None:
-        # Map concrete classes to a set of instances
-        self._items: dict[type[Any], set[T]] = defaultdict(set)
+        # Internal store uses wide types; method signatures enforce proper pairing.
+        self._items: dict[type[Any], Entities[Any]] = {}
 
-    def add(self, item: T) -> None:
-        cls = get_nearest_type(item)
-        self._items[cls].add(item)
+    # ----- mutate -----
+    def add(self, item: U) -> None:
+        """Add one object to the bucket for its nearest type."""
+        cls = get_nearest_type(item)                 # type: ignore[arg-type]
+        bucket = self._items.setdefault(cls, Entities())
+        bucket.append(item)
 
-    def remove(self, item: T) -> None:
-        cls = get_nearest_type(item)
-        self._items[cls].discard(item)
+    def add_many(self, items: Iterable[U]) -> None:
+        """Add multiple objects."""
+        for it in items:
+            self.add(it)
 
-    def bucket(self, cls: type[Any]) -> list[T]:
-        # Return all items whose concrete class is the same as
-        # or a subclass of the requested class.
-        result: list[T] = []
+    def remove(self, item: U) -> bool:
+        """Remove an object from its bucket; returns True if removed."""
+        cls = get_nearest_type(item)                 # type: ignore[arg-type]
+        bucket = self._items.get(cls)
+        if not bucket:
+            return False
+        try:
+            bucket.remove(item)
+        except ValueError:
+            return False
+        if not bucket:
+            self._items.pop(cls, None)
+        return True
+    
+    def register_type(self, cls: type[U]) -> None:
+        """Ensure a bucket exists for the given class."""
+        self._items.setdefault(cls, Entities())
+
+    # ----- queries (return Entities) -----
+    def all(self) -> Entities[E]:
+        """All items across all buckets (returns a new Entities)."""
+        out: Entities[E] = Entities()
+        for b in self._items.values():
+            out.extend(cast(Entities[E], b))
+        return out
+
+    def exact_bucket(self, cls: type[U]) -> Entities[U]:
+        """Items whose concrete class is exactly 'cls' (no subclasses)."""
+        b = self._items.get(cls)
+        return Entities(cast(Entities[U], b)) if b else Entities()
+
+    def bucket(self, cls: type[U]) -> Entities[U]:
+        """
+        Items whose concrete class is 'cls' or any subclass of 'cls'.
+        Returns a new Entities[U].
+        """
+        out: Entities[U] = Entities()
         if cls in self._items:
-            result.extend(self._items[cls])
-        for k, items in self._items.items():
+            out.extend(cast(Entities[U], self._items[cls]))
+        for k, b in self._items.items():
             if k is not cls and isinstance(k, type) and issubclass(k, cls):
-                result.extend(items)
-        return result
+                out.extend(cast(Entities[U], b))
+        return out
 
-    def classes(self) -> Iterator[type[Any]]:
-        return iter(self._items.keys())
+    def classes(self) -> Iterator[type[E]]:
+        """Concrete classes that currently have buckets."""
+        return cast(Iterator[type[E]], iter(self._items.keys()))
+
+    def __len__(self) -> int:
+        """Total number of stored objects across all buckets."""
+        return sum(len(b) for b in self._items.values())
+    
+    def __getitem__(self, cls: type[U]) -> Entities[U]:
+        """Shortcut for bucket(cls)."""
+        return self._items[cls]
+    
+    def __setitem__(self, cls: type[U], items: Iterable[U]) -> None:
+        """Set the bucket for a given class."""
+        self._items[cls] = Entities(items)
+
 
 
 class AssemblyLike(Protocol):
@@ -108,9 +198,10 @@ class AssemblyLike(Protocol):
 class Assembly:
     """Container holding entities and links via typed buckets."""
 
-    def __init__(self) -> None:
+    def __init__(self, **props) -> None:
         self.entities: TypeBucket[Entity] = TypeBucket()
         self.links: TypeBucket[Link] = TypeBucket()
+        self._props = dict(props)
 
     # ---------- helpers ----------
     def _iter_all_entities(self) -> Iterable[Entity]:
@@ -173,9 +264,10 @@ class SpatialMixin:
     entities: TypeBucket[Entity]
     links: TypeBucket[Link]
 
-    def move(self, delta: list[float], *, entity_type: type[Entity]) -> None:
+    def move(self, delta: list[float], *, entity_type: type[Entity]) -> Self:
         for e in self.entities.bucket(entity_type):
             e["xyz"] = _vec_add(e.get("xyz", [0, 0, 0]), delta)
+        return self
 
     def rotate(
         self,
@@ -184,13 +276,14 @@ class SpatialMixin:
         about: list[float] | None = None,
         *,
         entity_type: type[Entity],
-    ) -> None:
+    ) -> Self:
         k = _unit(axis)
         o = [0.0, 0.0, 0.0] if about is None else about
         for e in self.entities.bucket(entity_type):
             pos = e.get("xyz")
             if isinstance(pos, list) and len(pos) == 3:
                 e["xyz"] = _rodrigues_rotate(pos, k, angle, o)
+        return self
 
     def scale(
         self,
@@ -198,13 +291,14 @@ class SpatialMixin:
         about: list[float] | None = None,
         *,
         entity_type: type[Entity],
-    ) -> None:
+    ) -> Self:
         o = [0.0, 0.0, 0.0] if about is None else about
         for e in self.entities.bucket(entity_type):
             pos = e.get("xyz")
             if isinstance(pos, list) and len(pos) == 3:
                 v = _vec_sub(pos, o)
                 e["xyz"] = _vec_add(o, _vec_scale(v, factor))
+        return self
 
     def align(
         self,
@@ -215,7 +309,7 @@ class SpatialMixin:
         b_dir: list[float] | None = None,
         flip: bool = False,
         entity_type: type[Entity],
-    ) -> None:
+    ) -> Self:
         pa = a.get("xyz")
         pb = b.get("xyz")
         if not (
@@ -224,7 +318,7 @@ class SpatialMixin:
             and len(pa) == 3
             and len(pb) == 3
         ):
-            return  # silently skip if missing positions
+            return self  # silently skip if missing positions
 
         ents = self.entities.bucket(entity_type)
 
@@ -253,6 +347,8 @@ class SpatialMixin:
         if isinstance(new_pa, list) and len(new_pa) == 3:
             delta = _vec_sub(pb, new_pa)
             self.move(delta, entity_type=entity_type)
+        
+        return self
 
 
 class MembershipMixin:
@@ -260,6 +356,9 @@ class MembershipMixin:
 
     entities: TypeBucket[Entity]
     links: TypeBucket[Link]
+
+    def register_type(self, cls: type[Entity]) -> None:
+        self.entities._items.setdefault(cls, Entities())
 
     # Entities -------------------------------------------------------------
     def add_entity(self, *ents: Entity) -> None:

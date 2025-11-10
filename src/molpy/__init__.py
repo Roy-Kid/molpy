@@ -5,5 +5,6 @@ unit tests that target the new core architecture.
 """
 
 from .version import version  # noqa: F401
-
-__all__: list[str] = ["version"]
+from .core.atomistic import Atomistic, Atom, Bond, Angle, Dihedral  # noqa: F401
+from . import typifier
+from . import io

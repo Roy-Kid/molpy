@@ -2,9 +2,9 @@ from typing import Any, Generic, TypeVar, Self
 from ..entity import Assembly
 import copy
 
-T = TypeVar("T", bound=Assembly)
+T = TypeVar("T")
 
-class Wrapper[T: Assembly]:
+class Wrapper(Generic[T]):
     """
     Base class for all wrappers.
 
@@ -426,3 +426,72 @@ class Wrapper[T: Assembly]:
 
     def __call__(self):
         return self.copy()
+    
+    def __repr__(self) -> str:
+        """
+        Simple representation showing wrapper type and wrapped object type.
+        
+        For detailed tree view, use tree_repr().
+        """
+        wrapped = self.unwrap()
+        wrapped_type = type(wrapped).__name__
+        return f"{type(self).__name__}({wrapped_type})"
+    
+    def tree_repr(self, _indent: str = "", _is_last: bool = True) -> str:
+        """
+        Generate a tree-style representation of the wrapper stack.
+        
+        Returns:
+            Multi-line string showing the wrapper hierarchy
+            
+        Example:
+            Monomer(Atomistic)
+            └── Atomistic: 2 atoms, 1 bond
+        """
+        # Get current wrapper info
+        lines = []
+        
+        # Prefix for current level
+        if _indent == "":
+            # Root level - no prefix
+            prefix = ""
+        else:
+            # Child level
+            prefix = _indent + ("└── " if _is_last else "├── ")
+        
+        # Current wrapper line
+        wrapper_info = self._repr_info()
+        lines.append(f"{prefix}{type(self).__name__}: {wrapper_info}")
+        
+        # Get wrapped object
+        wrapped = self.unwrap()
+        
+        # Prepare indent for next level
+        if _indent == "":
+            next_indent = ""
+        else:
+            next_indent = _indent + ("    " if _is_last else "│   ")
+        
+        # Recursively print wrapped object
+        if isinstance(wrapped, Wrapper):
+            # Another wrapper - recurse
+            lines.append(wrapped.tree_repr(_indent=next_indent, _is_last=True))
+        else:
+            # Final wrapped object
+            final_prefix = next_indent + "└── "
+            if hasattr(wrapped, '__repr__'):
+                final_repr = repr(wrapped)
+            else:
+                final_repr = f"{type(wrapped).__name__}"
+            lines.append(f"{final_prefix}{final_repr}")
+        
+        return "\n".join(lines)
+    
+    def _repr_info(self) -> str:
+        """
+        Override this to provide wrapper-specific info in tree_repr.
+        
+        Returns:
+            String describing this wrapper's state
+        """
+        return "wrapper"

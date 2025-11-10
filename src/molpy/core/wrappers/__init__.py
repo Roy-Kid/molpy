@@ -1,3 +1,2 @@
+from .base import Wrapper
 from .monomer import Monomer
-
-__all__ = ["Monomer"]

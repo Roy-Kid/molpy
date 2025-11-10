@@ -4,7 +4,7 @@ from typing import Protocol
 
 import numpy as np
 
-from molpy.core._atomistic import Atomistic
+from molpy.core.atomistic import Atomistic
 
 
 class BaseSiteProvider(Protocol):

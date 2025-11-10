@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Any, TypeVar, Generic, Iterator
+from typing import Any, TypeVar, Generic, Iterator, Self
+from .entity import Entity
 
 # --- 泛型变量和 TypeBucket 实现 ---
 
@@ -41,11 +42,21 @@ class Parameters:
 
     def __repr__(self) -> str:
         return f"Parameters(args={self.args}, kwargs={self.kwargs})"
+    
+    def __getitem__(self, key: int | slice | str):
+        if isinstance(key, str):
+            return self.kwargs[key]
+        else:
+            return self.args[key]
 
 class Type:
     def __init__(self, name: str, *args: Any, **kwargs: Any):
         self._name = name
         self.params = Parameters(*args, **kwargs)
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def __hash__(self) -> int:
         return hash((self.__class__, self.name))
@@ -53,8 +64,20 @@ class Type:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.name}>"
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Self | Entity) -> bool:
         return isinstance(other, self.__class__) and self.name == other.name
+
+    def __gt__(self, other: Self | Entity) -> bool:
+        return isinstance(other, self.__class__) and self.name > other.name
+    
+    def __getitem__(self, key: str) -> Any:
+        return self.params.kwargs.get(key, None)
+    
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.params.kwargs[key] = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.params.kwargs.get(key, default)
 
 class Style:
     def __init__(self, name: str, *args: Any, **kwargs: Any):
@@ -83,6 +106,9 @@ class Style:
 # ===================================================================
 
 class ForceField:
+    # Kernel registry for potential functions
+    _kernel_registry: dict[str, dict[str, type]] = {}
+    
     def __init__(self, name: str = "", units: str = "real"):
         self.name = name
         self.units = units
@@ -127,36 +153,244 @@ class ForceField:
 #               扩展的 AtomisticForcefield 类
 # ===================================================================
 
-class AtomType(Type): pass
-class BondType(Type): pass
-class AngleType(Type): pass
-class DihedralType(Type): pass
-class ImproperType(Type): pass
-class PairType(Type): pass
+class AtomType(Type):
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.name}>"
+
+class BondType(Type):
+    """键类型，由两个原子类型定义"""
+    
+    def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", **kwargs: Any):
+        super().__init__(name, **kwargs)
+        self.itom = itom
+        self.jtom = jtom
+    
+    def matches(self, at1: "AtomType", at2: "AtomType") -> bool:
+        """检查是否匹配给定的原子类型对（支持通配符和顺序无关）"""
+        return (self.itom == at1 and self.jtom == at2) or \
+               (self.itom == at2 and self.jtom == at1)
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.itom.name}-{self.jtom.name}>"
+
+
+class AngleType(Type):
+    """角类型，由三个原子类型定义"""
+    
+    def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", ktom: "AtomType", **kwargs: Any):
+        super().__init__(name, **kwargs)
+        self.itom = itom
+        self.jtom = jtom
+        self.ktom = ktom
+    
+    def matches(self, at1: "AtomType", at2: "AtomType", at3: "AtomType") -> bool:
+        """检查是否匹配给定的原子类型三元组（支持通配符和顺序反转）"""
+        # 正向匹配
+        if self.itom == at1 and self.jtom == at2 and self.ktom == at3:
+            return True
+        # 反向匹配
+        if self.itom == at3 and self.jtom == at2 and self.ktom == at1:
+            return True
+        return False
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.itom.name}-{self.jtom.name}-{self.ktom.name}>"
+
+
+class DihedralType(Type):
+    """二面角类型，由四个原子类型定义"""
+    
+    def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", 
+                 ktom: "AtomType", ltom: "AtomType", **kwargs: Any):
+        super().__init__(name, **kwargs)
+        self.itom = itom
+        self.jtom = jtom
+        self.ktom = ktom
+        self.ltom = ltom
+    
+    def matches(self, at1: "AtomType", at2: "AtomType", 
+                at3: "AtomType", at4: "AtomType") -> bool:
+        """检查是否匹配给定的原子类型四元组（支持通配符和顺序反转）"""
+        # 正向匹配
+        if (self.itom == at1 and self.jtom == at2 and 
+            self.ktom == at3 and self.ltom == at4):
+            return True
+        # 反向匹配
+        if (self.itom == at4 and self.jtom == at3 and 
+            self.ktom == at2 and self.ltom == at1):
+            return True
+        return False
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.itom.name}-{self.jtom.name}-{self.ktom.name}-{self.ltom.name}>"
+
+
+class ImproperType(Type):
+    """不正常二面角类型，由四个原子类型定义"""
+    
+    def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", 
+                 ktom: "AtomType", ltom: "AtomType", **kwargs: Any):
+        super().__init__(name, **kwargs)
+        self.itom = itom
+        self.jtom = jtom
+        self.ktom = ktom
+        self.ltom = ltom
+    
+    def matches(self, at1: "AtomType", at2: "AtomType", 
+                at3: "AtomType", at4: "AtomType") -> bool:
+        """检查是否匹配给定的原子类型四元组（支持通配符）"""
+        # Improper通常有特定的中心原子，所以匹配规则可能不同
+        # 这里先实现简单的精确匹配
+        return (self.itom == at1 and self.jtom == at2 and 
+                self.ktom == at3 and self.ltom == at4)
+    
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {self.itom.name}-{self.jtom.name}-{self.ktom.name}-{self.ltom.name}>"
+
+
+class PairType(Type):
+    """非键相互作用类型，由一个或两个原子类型定义"""
+    
+    def __init__(self, name: str, *atom_types: "AtomType", **kwargs: Any):
+        super().__init__(name, **kwargs)
+        if len(atom_types) == 1:
+            self.itom = atom_types[0]
+            self.jtom = atom_types[0]  # 自相互作用
+        elif len(atom_types) == 2:
+            self.itom = atom_types[0]
+            self.jtom = atom_types[1]
+        else:
+            raise ValueError("PairType requires 1 or 2 atom types")
+    
+    def matches(self, at1: "AtomType", at2: "AtomType | None" = None) -> bool:
+        """检查是否匹配给定的原子类型对（支持通配符和顺序无关）"""
+        if at2 is None:
+            at2 = at1  # 自相互作用
+        
+        return (self.itom == at1 and self.jtom == at2) or \
+               (self.itom == at2 and self.jtom == at1)
+    
+    def __repr__(self) -> str:
+        if self.itom == self.jtom:
+            return f"<{self.__class__.__name__}: {self.itom.name}>"
+        return f"<{self.__class__.__name__}: {self.itom.name}-{self.jtom.name}>"
 
 class AtomStyle(Style):
-    def def_type(self, name: str, *args: Any, **kwargs: Any) -> AtomType:
-        at = AtomType(name, *args, **kwargs)
+    def def_type(self, name: str, **kwargs: Any) -> AtomType:
+        """定义原子类型
+        
+        Args:
+            type_: 具体类型标识符（如 opls_135）
+            class_: 类别标识符（如 CT）
+            **kwargs: 其他参数（element, mass 等）
+            
+        Returns:
+            创建的 AtomType 实例
+        """
+        at = AtomType(name=name, **kwargs)
         self.types.add(at)
         return at
 
 class BondStyle(Style):
-    def def_type(self, *atom_types: AtomType, name: str = "", **kwargs: Any) -> BondType:
-        type_names = '-'.join(at.name for at in atom_types)
-        bt = BondType(name or type_names, *atom_types, **kwargs)
+    def def_type(self, itom: AtomType, jtom: AtomType, name: str = "", **kwargs: Any) -> BondType:
+        """定义键类型
+        
+        Args:
+            itom: 第一个原子类型
+            jtom: 第二个原子类型
+            name: 可选的名称（默认为 itom-jtom）
+            **kwargs: 键参数（如 k, r0 等）
+        """
+        if not name:
+            name = f"{itom.name}-{jtom.name}"
+        bt = BondType(name, itom, jtom, **kwargs)
         self.types.add(bt)
         return bt
 
+
 class AngleStyle(Style):
-    def def_type(self, *atom_types: AtomType, name: str = "", **kwargs: Any) -> AngleType:
-        type_names = '-'.join(at.name for at in atom_types)
-        at = AngleType(name or type_names, *atom_types, **kwargs)
+    def def_type(self, itom: AtomType, jtom: AtomType, ktom: AtomType, 
+                 name: str = "", **kwargs: Any) -> AngleType:
+        """定义角类型
+        
+        Args:
+            itom: 第一个原子类型
+            jtom: 中心原子类型
+            ktom: 第三个原子类型
+            name: 可选的名称（默认为 itom-jtom-ktom）
+            **kwargs: 角参数（如 k, theta0 等）
+        """
+        if not name:
+            name = f"{itom.name}-{jtom.name}-{ktom.name}"
+        at = AngleType(name, itom, jtom, ktom, **kwargs)
         self.types.add(at)
         return at
 
-class DihedralStyle(Style): pass
-class ImproperStyle(Style): pass
-class PairStyle(Style): pass
+
+class DihedralStyle(Style):
+    def def_type(self, itom: AtomType, jtom: AtomType, ktom: AtomType, 
+                 ltom: AtomType, name: str = "", **kwargs: Any) -> DihedralType:
+        """定义二面角类型
+        
+        Args:
+            itom: 第一个原子类型
+            jtom: 第二个原子类型
+            ktom: 第三个原子类型
+            ltom: 第四个原子类型
+            name: 可选的名称（默认为 itom-jtom-ktom-ltom）
+            **kwargs: 二面角参数
+        """
+        if not name:
+            name = f"{itom.name}-{jtom.name}-{ktom.name}-{ltom.name}"
+        dt = DihedralType(name, itom, jtom, ktom, ltom, **kwargs)
+        self.types.add(dt)
+        return dt
+
+
+class ImproperStyle(Style):
+    def def_type(self, itom: AtomType, jtom: AtomType, ktom: AtomType, 
+                 ltom: AtomType, name: str = "", **kwargs: Any) -> ImproperType:
+        """定义不正常二面角类型
+        
+        Args:
+            itom: 第一个原子类型
+            jtom: 第二个原子类型（通常是中心原子）
+            ktom: 第三个原子类型
+            ltom: 第四个原子类型
+            name: 可选的名称（默认为 itom-jtom-ktom-ltom）
+            **kwargs: 不正常二面角参数
+        """
+        if not name:
+            name = f"{itom.name}-{jtom.name}-{ktom.name}-{ltom.name}"
+        it = ImproperType(name, itom, jtom, ktom, ltom, **kwargs)
+        self.types.add(it)
+        return it
+
+
+class PairStyle(Style):
+    def def_type(self, itom: AtomType, jtom: AtomType | None = None, 
+                 name: str = "", **kwargs: Any) -> PairType:
+        """定义非键相互作用类型
+        
+        Args:
+            itom: 第一个原子类型
+            jtom: 第二个原子类型（可选，默认为与 itom 相同，即自相互作用）
+            name: 可选的名称
+            **kwargs: 非键参数（如 sigma, epsilon, charge 等）
+        """
+        if jtom is None:
+            jtom = itom
+        
+        if not name:
+            if itom == jtom:
+                name = itom.name
+            else:
+                name = f"{itom.name}-{jtom.name}"
+        
+        pt = PairType(name, itom, jtom, **kwargs)
+        self.types.add(pt)
+        return pt
 
 class AtomisticForcefield(ForceField):
     def def_atomstyle(self, name: str, *args: Any, **kwargs: Any) -> AtomStyle:

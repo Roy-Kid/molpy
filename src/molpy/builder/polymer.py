@@ -1,6 +1,9 @@
 import numpy as np
 
-from molpy.core import Atom, Atomistic, Bond, Entities, Struct, Wrapper
+from molpy.core.atomistic import Atom, Atomistic, Bond
+from molpy.core.entity import Entities
+from molpy.core.wrappers.base import Wrapper
+from molpy.core import Struct
 
 
 class Monomer(Wrapper):

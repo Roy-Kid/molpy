@@ -1,1 +1,1 @@
-from .typifier import *
+from .atomistic import OplsAtomisticTypifier

@@ -4,7 +4,7 @@ from typing import Iterable, Optional, Sequence
 import numpy as np
 
 from molpy.builder.base import BaseSiteProvider, StructBuilder
-from molpy.core._atomistic import Atomistic
+from molpy.core.atomistic import Atomistic
 from molpy.core.region import Region
 
 
@@ -407,7 +407,7 @@ class SAWPolymerBuilder(RandomWalkBuilder):
             atom2_idx = (i + 1) * n_atoms_per_monomer  # First atom of monomer i+1
 
             if atom1_idx < len(polymer.atoms) and atom2_idx < len(polymer.atoms):
-                from molpy.core._atomistic import Bond
+                from molpy.core.atomistic import Bond
 
                 bond = Bond(polymer.atoms[atom1_idx], polymer.atoms[atom2_idx])
                 bond["length"] = bond_length
