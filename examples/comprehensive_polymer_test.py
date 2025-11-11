@@ -14,7 +14,7 @@ import os
 import numpy as np
 from rdkit.Chem import Draw
 
-from molpy.adapter.rdkit import draw_molecule, generate_3d_coords, to_rdkit
+from molpy.adapter.rdkit_adapter import draw_molecule, generate_3d_coords, to_rdkit
 from molpy.builder.polymer import (
     AutoConnector,
     DockPlacer,

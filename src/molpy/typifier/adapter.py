@@ -61,6 +61,8 @@ def build_mol_graph(structure: "Atomistic") -> tuple[Graph, dict[int, int], dict
     # Set vertex attributes
     for i, atom in enumerate(atoms):
         attrs = _extract_atom_attributes(atom, structure)
+        # Add atom_id for type assignment lookup
+        attrs["atom_id"] = id(atom)
         for key, value in attrs.items():
             g.vs[i][key] = value
     
@@ -136,8 +138,8 @@ def _extract_atom_attributes(atom: "Atom", structure: "Atomistic") -> dict[str, 
                                          atom.get("aromatic", False)))
     
     # Charge
-    attrs["charge"] = int(atom.get("charge", 
-                                   atom.get("formal_charge", 0)))
+    charge_val = atom.get("charge", atom.get("formal_charge", 0))
+    attrs["charge"] = int(charge_val) if charge_val is not None else 0
     
     # Hybridization
     hyb = atom.get("hyb", atom.get("hybridization", None))

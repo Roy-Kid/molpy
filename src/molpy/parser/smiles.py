@@ -9,7 +9,7 @@ from molpy.core.wrappers.monomer import Monomer
 
 from .base import GrammarConfig, GrammarParserBase
 
-from molpy.adapter.registry import register
+from molpy.adapter.converter import register
 
 
 class MolPyAPIError(Exception):
@@ -1010,7 +1010,7 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
         >>> monomer = bigsmilesir_to_monomer(ir)
         >>> monomer.port_names()
         ['port_1']
-        >>> monomer.ports['port_1']  # Points to the O atom connected to [*:1]
+        >>> monomer.ports['port_1']  # Points to the [*:1] atom
         <Atom object>
 
     Note:
@@ -1020,7 +1020,7 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
         3. Extract coords: coords = extract_coords_from_mol(mol_3d)
         4. Bind to atoms: monomer.unwrap().atoms[i]['pos'] = coords[i]
     """
-    # Extract monomers (handles both BigSMILES and atom class port formats)
+    # Try BigSMILES format first (with stochastic objects)
     monomers = extract_monomers_from_ir(ir)
     
     if len(monomers) == 1:
@@ -1030,11 +1030,16 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
             f"BigSmilesIR contains {len(monomers)} repeat units. "
             "Use bigsmilesir_to_polymerspec() for multiple repeat units."
         )
-    else:
-        raise ValueError(
-            "BigSmilesIR contains no repeat units or atom class ports. "
-            "Use {[<]...[>]} format or add [*:n] port markers."
-        )
+    
+    # If no stochastic objects, try plain SMILES with atom class ports
+    monomer = create_monomer_from_atom_class_ports(ir)
+    if monomer is not None:
+        return monomer
+    
+    raise ValueError(
+        "BigSmilesIR contains no repeat units or atom class ports. "
+        "Use {[<]...[>]} format or add [*:n] port markers."
+    )
 
 
 @register(BigSmilesIR, PolymerSpec)

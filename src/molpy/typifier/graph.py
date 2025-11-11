@@ -1,6 +1,7 @@
 """Module for SMARTSGraph and SMARTS matching logic."""
 
 import itertools
+import re
 from collections import OrderedDict, defaultdict
 from typing import Any, Callable
 
@@ -71,6 +72,10 @@ class SMARTSGraph(Graph):
         self.target_vertices = target_vertices or []
         self.source = source
         self.overrides = overrides
+        
+        # Dependency tracking
+        self.dependencies: set[str] = set()  # Set of atom type names this pattern depends on
+        self.level: int | None = None  # Topological level (0 = no deps, 1+ = has deps)
 
         # Legacy support
         self.smarts_string = smarts_string
@@ -86,6 +91,9 @@ class SMARTSGraph(Graph):
             self._atom_indices = OrderedDict()
             self._add_nodes()
             self._add_edges()
+            
+            # Extract dependencies from SMARTS string
+            self.dependencies = self.extract_dependencies()
         
         self._graph_matcher = None
         self._specificity_score: int | None = None
@@ -201,6 +209,39 @@ class SMARTSGraph(Graph):
         if self.overrides is None:
             return 0
         return max([override.priority for override in self.overrides]) + 1
+    
+    def extract_dependencies(self) -> set[str]:
+        """Extract type references from SMARTS IR.
+        
+        Finds all has_label primitives that reference atom types (e.g., %opls_154).
+        These are parsed by Lark as AtomPrimitiveIR(type="has_label", value="%opls_154").
+        
+        Returns:
+            Set of referenced atom type names (e.g., {'opls_154', 'opls_135'})
+        """
+        if not self.ir or not self.ir.atoms:
+            return set()
+        
+        dependencies = set()
+        
+        def extract_from_expr(expr):
+            """Recursively extract dependencies from expression."""
+            if isinstance(expr, AtomPrimitiveIR):
+                if expr.type == "has_label" and isinstance(expr.value, str):
+                    # has_label value is like "%opls_154"
+                    label = expr.value
+                    if label.startswith('%opls_'):
+                        # Strip the % to get "opls_154"
+                        dependencies.add(label[1:])
+            elif isinstance(expr, AtomExpressionIR):
+                for child in expr.children:
+                    extract_from_expr(child)
+        
+        # Extract from all atoms
+        for atom in self.ir.atoms:
+            extract_from_expr(atom.expression)
+        
+        return dependencies
 
     def _add_nodes(self):
         """Add all atoms in the SMARTS IR as nodes in the graph."""
@@ -326,8 +367,17 @@ class SMARTSGraph(Graph):
         elif atom_primitive.type == "wildcard":
             return True
         elif atom_primitive.type == "has_label":
-            label = str(atom_primitive.value)[1:]  # Strip the % sign
-            return label in graph.vs[atom_idx].get("type", [])
+            # Type reference (e.g., %opls_154)
+            label = str(atom_primitive.value)
+            if label.startswith('%opls_'):
+                # This is a type reference - check if atom has this type assigned
+                required_type = label[1:]  # Strip % to get "opls_154"
+                assigned_type = atom.attributes().get("atomtype")
+                return assigned_type == required_type
+            else:
+                # Legacy behavior: check if label is in type attribute
+                label = label[1:]  # Strip the % sign
+                return label in graph.vs[atom_idx].get("type", [])
         elif atom_primitive.type == "neighbor_count":
             assert isinstance(atom_primitive.value, int)
             return len(bond_partners) == atom_primitive.value

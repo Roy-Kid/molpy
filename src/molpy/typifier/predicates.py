@@ -383,3 +383,42 @@ def custom_vertex(func: Callable[[dict[str, Any]], bool],
 def wildcard() -> ElementPredicate:
     """Create wildcard predicate that matches any atom."""
     return ElementPredicate("*")
+
+
+# ===================================================================
+#             Type Reference Predicate (for OPLS)
+# ===================================================================
+
+class HasTypePredicate:
+    """Predicate for checking if atom has specific type assignment.
+    
+    Used for SMARTS patterns with type references like %opls_154.
+    """
+    
+    def __init__(self, atomtype: str):
+        """
+        Args:
+            atomtype: Required atom type (e.g., "opls_154")
+        """
+        self.atomtype = atomtype
+        self.meta = PredicateMeta(name=f"has_type={atomtype}", weight=5)
+    
+    def __call__(self, attrs: dict[str, Any]) -> bool:
+        """Check if atom has the required type."""
+        assigned_type = attrs.get("atomtype")
+        return assigned_type == self.atomtype
+    
+    def __repr__(self) -> str:
+        return f"has_type({self.atomtype!r})"
+
+
+def has_type(atomtype: str) -> HasTypePredicate:
+    """Create type reference predicate for dependency-aware matching.
+    
+    Args:
+        atomtype: Required atom type name
+    
+    Returns:
+        HasTypePredicate instance
+    """
+    return HasTypePredicate(atomtype)

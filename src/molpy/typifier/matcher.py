@@ -155,12 +155,14 @@ class SmartsMatcher:
     
     def find_candidates(self, 
                         mol_graph: Graph,
-                        vs_to_atomid: dict[int, int]) -> list[Candidate]:
+                        vs_to_atomid: dict[int, int],
+                        type_assignments: dict[int, str] | None = None) -> list[Candidate]:
         """Find all candidate atom type assignments.
         
         Args:
             mol_graph: Molecule graph with vertex/edge attributes
             vs_to_atomid: Mapping from vertex index to atom ID
+            type_assignments: Current type assignments (for reference checking)
         
         Returns:
             List of Candidate objects
@@ -168,8 +170,8 @@ class SmartsMatcher:
         candidates = []
         
         for pattern_idx, pattern in enumerate(self.patterns):
-            # Run VF2 subgraph isomorphism
-            matches = self._find_pattern_matches(pattern, mol_graph)
+            # Run VF2 subgraph isomorphism with type-aware matching
+            matches = self._find_pattern_matches(pattern, mol_graph, type_assignments)
             
             # Get pattern metadata
             atomtype = pattern.atomtype_name
@@ -207,12 +209,14 @@ class SmartsMatcher:
     
     def _find_pattern_matches(self, 
                               pattern: SMARTSGraph,
-                              mol_graph: Graph) -> list[list[int]]:
+                              mol_graph: Graph,
+                              type_assignments: dict[int, str] | None = None) -> list[list[int]]:
         """Find all matches of pattern in molecule graph.
         
         Args:
             pattern: SmartsGraph pattern
             mol_graph: Molecule graph
+            type_assignments: Current type assignments (for reference checking)
         
         Returns:
             List of matches, where each match is a list of vertex indices
@@ -233,6 +237,13 @@ class SmartsMatcher:
             if "preds" in pattern_v.attributes():
                 preds = pattern_v["preds"]
                 host_attrs = host.attributes()
+                
+                # Add type information if available
+                if type_assignments is not None and "atom_id" in host_attrs:
+                    atom_id = host_attrs["atom_id"]
+                    if atom_id in type_assignments:
+                        host_attrs["atomtype"] = type_assignments[atom_id]
+                
                 return all(pred(host_attrs) for pred in preds)
             
             return True
@@ -247,6 +258,7 @@ class SmartsMatcher:
                 preds = pattern_e["preds"]
                 host_attrs = host_e.attributes()
                 return all(pred(host_attrs) for pred in preds)
+            
             
             return True
         

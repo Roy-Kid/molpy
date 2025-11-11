@@ -8,7 +8,7 @@ This example shows how to:
 """
 
 from molpy.parser.smiles import SmilesParser, smilesir_to_mol
-from molpy.adapter.rdkit import draw_molecule
+from molpy.adapter.rdkit_adapter import draw_molecule
 
 # Create parser
 parser = SmilesParser()

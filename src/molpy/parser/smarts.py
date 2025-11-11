@@ -672,7 +672,7 @@ def _ir_to_smarts_string(ir: SmartsIR) -> str:
 # Register converter if RDKit is available
 try:
     from rdkit import Chem
-    from molpy.adapter.registry import REG
+    from molpy.adapter.converter import REG
     REG.register(SmartsIR, Chem.Mol, smartsir_to_mol)
 except ImportError:
     pass  # RDKit or adapter not available

@@ -1330,7 +1330,7 @@ class TestRDKitConverter:
         """Test that converter is registered in REG."""
         from rdkit import Chem
 
-        from molpy.adapter.registry import REG
+        from molpy.adapter.converter import REG
         from molpy.parser.smiles import SmilesIR
 
         # Verify converter can be resolved
@@ -1339,7 +1339,7 @@ class TestRDKitConverter:
     
     def test_draw_molecule_with_ir(self):
         """Test draw_molecule with SmilesIR input."""
-        from molpy.adapter.rdkit import draw_molecule
+        from molpy.adapter.rdkit_adapter import draw_molecule
         
         ir = parser.parse_smiles("c1ccccc1")
         img = draw_molecule(ir)
@@ -1350,7 +1350,7 @@ class TestRDKitConverter:
     
     def test_draw_molecule_with_smiles_string(self):
         """Test draw_molecule with SMILES string input."""
-        from molpy.adapter.rdkit import draw_molecule
+        from molpy.adapter.rdkit_adapter import draw_molecule
         
         img = draw_molecule("CCO", size=(200, 200))
         
@@ -1359,7 +1359,7 @@ class TestRDKitConverter:
     
     def test_draw_molecule_with_atom_idx(self):
         """Test draw_molecule with atom indices shown."""
-        from molpy.adapter.rdkit import draw_molecule
+        from molpy.adapter.rdkit_adapter import draw_molecule
         
         img = draw_molecule("CC", show_atom_idx=True)
         
@@ -1367,7 +1367,7 @@ class TestRDKitConverter:
     
     def test_draw_molecule_with_highlights(self):
         """Test draw_molecule with highlights."""
-        from molpy.adapter.rdkit import draw_molecule
+        from molpy.adapter.rdkit_adapter import draw_molecule
         
         img = draw_molecule("c1ccccc1", highlight_atoms=[0, 1], highlight_bonds=[0])
         

@@ -4,7 +4,7 @@ Tests for Placer strategies (NoOpPlacer, DockPlacer).
 
 import pytest
 import math
-from molpy.builder.polymer import NoOpPlacer, DockPlacer, GeometryContext
+from molpy.builder.polymer import NoOpPlacer, DockPlacer
 from molpy.core.ops.geometry import _dot, _norm, _vec_sub, _unit
 from molpy.core.atomistic import Atomistic, Atom
 from molpy.core.wrappers.monomer import Monomer

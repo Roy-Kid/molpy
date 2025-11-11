@@ -294,11 +294,136 @@ class OplsDihedralTypifier(TypifierBase[Dihedral]):
         )
 
 
-class OplsAtomisticTypifier(TypifierBase[Atomistic]):
-    """为整个 Atomistic 结构分配所有类型（bond, angle, dihedral）"""
+class OplsAtomTypifier(TypifierBase["Atomistic"]):
+    """使用 SMARTS matcher 为原子分配类型（支持类型引用和依赖解析）"""
 
     def __init__(self, forcefield: ForceField) -> None:
         super().__init__(forcefield)
+        from .adapter import build_mol_graph
+        
+        # 从 forcefield 中提取 patterns
+        self.pattern_dict = self._extract_patterns()
+        self._build_mol_graph = build_mol_graph
+        
+        # 使用 LayeredTypingEngine
+        from .layered_engine import LayeredTypingEngine
+        self.engine = LayeredTypingEngine(self.pattern_dict)
+
+    def _extract_patterns(self):
+        """从 forcefield 提取或构造 SMARTS patterns
+        
+        从 OPLS 力场的 AtomType 中提取 SMARTS 定义（def 属性）并转换为 SMARTSGraph 对象。
+        支持 overrides 属性来控制优先级和类型引用（%opls_XXX）。
+        
+        Returns:
+            Dictionary mapping atom type name to SMARTSGraph
+        """
+        from .graph import SMARTSGraph
+        from molpy.parser.smarts import SmartsParser
+        
+        pattern_dict = {}
+        atom_types = list(self.ff.get_types(AtomType))
+        parser = SmartsParser()
+        
+        # 构建 overrides 映射
+        overrides_map = {}
+        for at in atom_types:
+            overrides_str = at.params.kwargs.get("overrides")
+            if overrides_str:
+                overrides_map[at.name] = {s.strip() for s in overrides_str.split(",")}
+        
+        # 计算优先级：基于 overrides 和 priority 属性
+        type_priority = {}
+        for at in atom_types:
+            # 首先使用显式 priority（如果有）
+            explicit_priority = at.params.kwargs.get("priority")
+            if explicit_priority is not None:
+                try:
+                    type_priority[at.name] = int(explicit_priority)
+                    continue
+                except (ValueError, TypeError):
+                    pass
+            
+            # 否则基于 overrides 计算
+            priority = 0
+            # 如果这个类型被其他类型 override，降低优先级
+            for overrider, overridden_set in overrides_map.items():
+                if at.name in overridden_set:
+                    priority -= 1
+            # 如果这个类型 override 其他类型，提高优先级
+            if at.name in overrides_map:
+                priority += len(overrides_map[at.name])
+            type_priority[at.name] = priority
+        
+        # 提取 SMARTS patterns
+        for at in atom_types:
+            smarts_str = at.params.kwargs.get("def_")
+            
+            if smarts_str:
+                # 使用 SMARTSGraph 解析 SMARTS 字符串
+                try:
+                    priority = type_priority.get(at.name, 0)
+                    overrides = overrides_map.get(at.name, set())
+                    
+                    pattern = SMARTSGraph(
+                        smarts_string=smarts_str,
+                        parser=parser,
+                        atomtype_name=at.name,
+                        priority=priority,
+                        source=f"oplsaa:{at.name}",
+                        overrides=overrides
+                    )
+                    pattern_dict[at.name] = pattern
+                except Exception as e:
+                    # 如果解析失败，记录警告但继续
+                    import warnings
+                    warnings.warn(f"Failed to parse SMARTS for {at.name}: {smarts_str}, error: {e}")
+        
+        return pattern_dict
+
+    @override
+    def typify(self, struct: "Atomistic") -> "Atomistic":
+        """为 Atomistic 结构中的所有原子分配类型（使用依赖感知的分层匹配）"""
+        # 将分子转换为图
+        graph, vs_to_atomid, atomid_to_vs = self._build_mol_graph(struct)
+        
+        # 使用 LayeredTypingEngine 进行分层匹配
+        result = self.engine.typify(graph, vs_to_atomid)
+        
+        # 将结果应用到原子上
+        for atom in struct.atoms:
+            atom_id = id(atom)
+            if atom_id in result:
+                atomtype = result[atom_id]
+                atom.data["type"] = atomtype
+                
+                # 同时从 forcefield 中获取其他参数
+                atom_type_obj = self._find_atomtype_by_name(atomtype)
+                if atom_type_obj:
+                    atom.data.update(**atom_type_obj.params.kwargs)
+        
+        return struct
+
+    def _find_atomtype_by_name(self, name: str) -> AtomType | None:
+        """根据名称查找 AtomType 对象"""
+        for at in self.ff.get_types(AtomType):
+            if at.name == name:
+                return at
+        return None
+
+
+class OplsAtomisticTypifier(TypifierBase[Atomistic]):
+    """为整个 Atomistic 结构分配所有类型（bond, angle, dihedral）
+    
+    注意：此类假设原子已经被分配了类型。如果需要同时分配原子类型，
+    请先使用 OplsAtomTypifier，或使用 skip_atom_typing=False 参数。
+    """
+
+    def __init__(self, forcefield: ForceField, skip_atom_typing: bool = True) -> None:
+        super().__init__(forcefield)
+        self.skip_atom_typing = skip_atom_typing
+        if not skip_atom_typing:
+            self.atom_typifier = OplsAtomTypifier(forcefield)
         self.bond_typifier = OplsBondTypifier(forcefield)
         self.angle_typifier = OplsAngleTypifier(forcefield)
         self.dihedral_typifier = OplsDihedralTypifier(forcefield)
@@ -308,8 +433,18 @@ class OplsAtomisticTypifier(TypifierBase[Atomistic]):
         """
         为 Atomistic 结构中的所有 bonds, angles, dihedrals 分配类型
         
-        前提：所有 atoms 已经有 'type' 属性
+        参数：
+            struct: Atomistic 结构
+        
+        前提：
+            - 如果 skip_atom_typing=True（默认），所有 atoms 必须已经有 'type' 属性
+            - 如果 skip_atom_typing=False，将先为原子分配类型
         """
+        # 可选：首先为原子分配类型
+        if not self.skip_atom_typing:
+            self.atom_typifier.typify(struct)
+
+
         # 为所有键分配类型
         for bond in struct.bonds:
             self.bond_typifier.typify(bond)

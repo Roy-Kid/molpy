@@ -5,8 +5,8 @@ Unit tests for generate_3d_coords function in rdkit adapter.
 import pytest
 from molpy.parser.smiles import SmilesParser
 from molpy.core.wrappers.monomer import Monomer
-from molpy.adapter.rdkit import generate_3d_coords
-from molpy.adapter.registry import convert
+from molpy.adapter.rdkit_adapter import generate_3d_coords
+from molpy.adapter.converter import convert
 from rdkit import Chem
 from molpy.core.atomistic import Atomistic
 
