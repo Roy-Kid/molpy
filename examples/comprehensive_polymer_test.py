@@ -14,11 +14,10 @@ import os
 import numpy as np
 from rdkit.Chem import Draw
 
-from molpy.adapter.rdkit_adapter import draw_molecule, generate_3d_coords, to_rdkit
+from molpy.adapter.rdkit_adapter import draw_molecule, generate_3d_coords, atomistic_to_mol as to_rdkit
 from molpy.builder.polymer import (
     AutoConnector,
     DockPlacer,
-    GeometryContext,
     PolymerBuilder,
 )
 from molpy.io import read_xml_forcefield

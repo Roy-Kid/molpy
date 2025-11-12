@@ -114,6 +114,14 @@ class LayeredTypingEngine:
         Returns:
             Updated type assignments
         """
+        # Add current type assignments to graph vertices
+        # This allows IR mode patterns to access type information
+        atomid_to_vs = {aid: vs for vs, aid in vs_to_atomid.items()}
+        for atom_id, atomtype in current_assignments.items():
+            if atom_id in atomid_to_vs:
+                vs_idx = atomid_to_vs[atom_id]
+                mol_graph.vs[vs_idx]["atomtype"] = atomtype
+        
         # Create temporary matcher for this level
         level_matcher = SmartsMatcher(level_patterns)
         

@@ -56,10 +56,10 @@ class Wrapper(Generic[T]):
         if not self._wrappers_initialized:
             remaining_props = self._run_post_init_hooks(**props)
 
-            # If no wrapped entity, create a Struct with remaining props
+            # If no wrapped entity, create an Assembly with remaining props
             if self._wrapped is None:
-                self._wrapped = Struct(**remaining_props)
-            # Otherwise, assign remaining props to the innermost Struct
+                self._wrapped = Assembly(**remaining_props)
+            # Otherwise, assign remaining props to the innermost Assembly
             elif remaining_props:
                 innermost = self._get_innermost()
                 for k, v in remaining_props.items():

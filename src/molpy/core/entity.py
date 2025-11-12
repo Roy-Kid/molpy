@@ -179,8 +179,9 @@ class TypeBucket(Generic[E]):
         return sum(len(b) for b in self._items.values())
     
     def __getitem__(self, cls: type[U]) -> Entities[U]:
-        """Shortcut for bucket(cls)."""
-        return self._items[cls]
+        """Get exact bucket for class (does not include subclasses)."""
+        b = self._items.get(cls)
+        return Entities(cast(Entities[U], b)) if b else Entities()
     
     def __setitem__(self, cls: type[U], items: Iterable[U]) -> None:
         """Set the bucket for a given class."""
@@ -202,6 +203,23 @@ class Assembly:
         self.entities: TypeBucket[Entity] = TypeBucket()
         self.links: TypeBucket[Link] = TypeBucket()
         self._props = dict(props)
+
+    # ---------- dict-like access to props ----------
+    def __getitem__(self, key: str):
+        """Get property by key."""
+        return self._props[key]
+    
+    def __setitem__(self, key: str, value) -> None:
+        """Set property by key."""
+        self._props[key] = value
+    
+    def __contains__(self, key: str) -> bool:
+        """Check if key exists in props."""
+        return key in self._props
+    
+    def get(self, key: str, default=None):
+        """Get property with default."""
+        return self._props.get(key, default)
 
     # ---------- helpers ----------
     def _iter_all_entities(self) -> Iterable[Entity]:

@@ -369,14 +369,17 @@ class SMARTSGraph(Graph):
         elif atom_primitive.type == "has_label":
             # Type reference (e.g., %opls_154)
             label = str(atom_primitive.value)
-            if label.startswith('%opls_'):
-                # This is a type reference - check if atom has this type assigned
-                required_type = label[1:]  # Strip % to get "opls_154"
+            if label.startswith('%'):
+                # Strip % to get type name (e.g., "opls_154")
+                required_type = label[1:]
+                # Check atomtype attribute (set by LayeredTypingEngine)
                 assigned_type = atom.attributes().get("atomtype")
+                if assigned_type is None:
+                    # Type not yet assigned - no match
+                    return False
                 return assigned_type == required_type
             else:
-                # Legacy behavior: check if label is in type attribute
-                label = label[1:]  # Strip the % sign
+                # Legacy behavior: check if label is in type attribute (list)
                 return label in graph.vs[atom_idx].get("type", [])
         elif atom_primitive.type == "neighbor_count":
             assert isinstance(atom_primitive.value, int)

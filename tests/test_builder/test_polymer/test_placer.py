@@ -65,7 +65,7 @@ class TestNoOpPlacer:
         assert left_port is not None
         assert right_port is not None
         
-        ctx = GeometryContext()
+        ctx = {}
         result = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
         
         # Should be identity
@@ -92,7 +92,7 @@ class TestDockPlacer:
         right_port = right.get_port("port_R1")
         assert right_port is not None
         
-        ctx = GeometryContext({"vdw_scale": 0.80})
+        ctx = {"vdw_scale": 0.80}
         result = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
         
         R = result["R_right"]
@@ -134,7 +134,7 @@ class TestDockPlacer:
         left_port.target.data['vdw'] = 1.70
         right_port.target.data['vdw'] = 1.70
         
-        ctx = GeometryContext({"vdw_scale": 0.80})
+        ctx = {"vdw_scale": 0.80}
         result = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
         
         # Distance should be 0.80 * (1.70 + 1.70) = 2.72
@@ -142,7 +142,14 @@ class TestDockPlacer:
     
     def test_bond_kind_scale_override(self):
         """Test per-bond-kind scale factor override."""
-        placer = DockPlacer()
+        placer = DockPlacer(
+            vdw_scale=0.80,
+            vdw_scales_by_bond={
+                "-": 0.80,
+                "=": 0.72,
+                "#": 0.66,
+            }
+        )
         
         left = create_simple_monomer("L1", [1.0, 0.0, 0.0])
         right = create_simple_monomer("R1", [-1.0, 0.0, 0.0])
@@ -152,26 +159,16 @@ class TestDockPlacer:
         right_port = right.get_port("port_R1")
         assert right_port is not None
         
-        # Set per-bond scales
-        ctx = GeometryContext({
-            "vdw_scale": 0.80,  # Default
-            "vdw_scales_by_bond": {
-                "-": 0.80,
-                "=": 0.72,
-                "#": 0.66,
-            }
-        })
-        
         # Single bond
-        result_single = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
+        result_single = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=None)
         assert result_single["distance"] == pytest.approx(0.80 * 2 * 1.70, abs=0.01)
         
         # Double bond
-        result_double = placer.place_pair(left, right, left_port, right_port, bond_kind="=", ctx=ctx)
+        result_double = placer.place_pair(left, right, left_port, right_port, bond_kind="=", ctx=None)
         assert result_double["distance"] == pytest.approx(0.72 * 2 * 1.70, abs=0.01)
         
         # Triple bond
-        result_triple = placer.place_pair(left, right, left_port, right_port, bond_kind="#", ctx=ctx)
+        result_triple = placer.place_pair(left, right, left_port, right_port, bond_kind="#", ctx=None)
         assert result_triple["distance"] == pytest.approx(0.66 * 2 * 1.70, abs=0.01)
     
     def test_placement_log(self):
@@ -186,7 +183,7 @@ class TestDockPlacer:
         right_port = right.get_port("port_R1")
         assert right_port is not None
         
-        ctx = GeometryContext({"placement_log": []})
+        ctx = {"placement_log": []}
         placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
         
         # Check that log was populated
@@ -214,7 +211,7 @@ class TestDockPlacer:
         right_port = right.get_port("port_R1")
         assert right_port is not None
         
-        ctx = GeometryContext({"vdw_scale": 0.80})
+        ctx = {"vdw_scale": 0.80}
         result = placer.place_pair(left, right, left_port, right_port, bond_kind="-", ctx=ctx)
         
         R = result["R_right"]

@@ -14,7 +14,11 @@ class CustomOplsAtomTypifier(OplsAtomTypifier):
     def _extract_patterns(self):
         """Override to use custom patterns if available."""
         if hasattr(self.ff, '_atom_patterns'):
-            return self.ff._atom_patterns
+            patterns = self.ff._atom_patterns
+            # Convert list to dict if needed
+            if isinstance(patterns, list):
+                return {p.atomtype_name: p for p in patterns}
+            return patterns
         return super()._extract_patterns()
 
 
@@ -87,8 +91,8 @@ def test_typifier_initialization(ethanol_forcefield):
     typifier = CustomOplsAtomTypifier(ethanol_forcefield)
     
     assert typifier.ff == ethanol_forcefield
-    assert len(typifier.patterns) == 3
-    assert typifier.matcher is not None
+    assert len(typifier.pattern_dict) == 3
+    assert typifier.engine is not None
 
 
 def test_ethanol_typing(ethanol_forcefield, ethanol_molecule):

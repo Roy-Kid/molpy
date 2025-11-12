@@ -95,19 +95,19 @@ class Atomistic(Assembly, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     @property
     def atoms(self) -> Entities[Atom]:
-        return self.entities[Atom]
+        return self.entities.bucket(Atom)
 
     @property
     def bonds(self) -> Entities[Bond]:
-        return self.links[Bond]
+        return self.links.bucket(Bond)
     
     @property
     def angles(self) -> Entities[Angle]:
-        return self.links[Angle]
+        return self.links.bucket(Angle)
     
     @property
     def dihedrals(self) -> Entities[Dihedral]:
-        return self.links[Dihedral]
+        return self.links.bucket(Dihedral)
 
     @property
     def symbols(self) -> list[str]:

@@ -99,9 +99,9 @@ def test_wildcard_in_bond_type():
     bond_type = bond_style.def_type(wildcard, carbon, k=300.0, r0=1.5)
     
     assert bond_type is not None
-    # Atom types are now stored in atom1 and atom2 attributes
-    assert bond_type.atom1 == wildcard
-    assert bond_type.atom2 == carbon
+    # Atom types are now stored in itom and jtom attributes
+    assert bond_type.itom == wildcard
+    assert bond_type.jtom == carbon
     # Parameters are in kwargs
     assert bond_type.params.kwargs['k'] == 300.0
     assert bond_type.params.kwargs['r0'] == 1.5

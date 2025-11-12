@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 from typing_extensions import Concatenate, ParamSpec, TypeVar
 
 from rdkit import Chem
@@ -8,9 +8,11 @@ from rdkit.Chem import AllChem, Draw, rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 from IPython.display import display, SVG
 
-from .converter import register, convert
 from molpy.core.atomistic import Atomistic
 from molpy.core.wrappers.monomer import Monomer
+
+# Avoid circular import: delay SmilesIR import
+from molpy.parser.smiles import SmilesIR
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -66,8 +68,6 @@ def _order_from_rdkit(bt: Chem.BondType) -> float:
     return _RDKIT_TO_BOND_ORDER.get(bt, 1.0)
 
 # ------------------------- converters -------------------------
-
-@register(Chem.Mol, Atomistic)
 def mol_to_atomistic(mol: Chem.Mol) -> Atomistic:
     """
     RDKit Mol -> Atomistic
@@ -103,7 +103,7 @@ def mol_to_atomistic(mol: Chem.Mol) -> Atomistic:
 
     return atomistic
 
-@register(Atomistic, Chem.Mol)
+
 def atomistic_to_mol(atomistic: Atomistic) -> Chem.Mol:
     """
     Atomistic -> RDKit Mol
@@ -146,25 +146,263 @@ def atomistic_to_mol(atomistic: Atomistic) -> Chem.Mol:
 
     return mol
 
-@register(Monomer, Chem.Mol)
+
 def monomer_to_mol(monomer: Monomer) -> Chem.Mol:
     """Monomer -> RDKit Mol（unwrap 后复用 atomistic_to_mol）"""
     return atomistic_to_mol(monomer.unwrap())
 
-# ------------------------- drawing -------------------------
 
-def _accepts_rdkit_src(func: Callable[Concatenate[Chem.Mol, P], R]) -> Callable[Concatenate[object, P], R]:
-    def wrapper(src: object, /, *args: P.args, **kwargs: P.kwargs) -> R:
-        if isinstance(src, Chem.Mol):
-            mol = src
-        elif isinstance(src, str):
-            mol = Chem.MolFromSmiles(src)
-            if mol is None:
-                raise ValueError(f"Invalid SMILES: {src}")
+def smilesir_to_mol(ir: "SmilesIR") -> Chem.Mol:
+    """
+    Convert SmilesIR to RDKit Mol by directly constructing the molecule graph.
+
+    This approach preserves IR-specific information and supports extended syntax
+    (BigSMILES, G-BigSMILES) where explicit topology is essential.
+
+    Args:
+        ir: SmilesIR instance with atoms and bonds
+
+    Returns:
+        RDKit Mol object
+
+    Raises:
+        ValueError: if IR contains invalid molecular data
+
+    Example:
+        >>> from molpy.parser.smiles import SmilesParser
+        >>> parser = SmilesParser()
+        >>> ir = parser.parse_smiles("CCO")
+        >>> mol = smilesir_to_mol(ir)
+        >>> mol.GetNumAtoms()
+        3
+    """
+    # Import here to avoid circular dependency
+    from molpy.parser.smiles import SmilesIR, AtomIR
+    
+    assert isinstance(ir, SmilesIR), "Input must be a SmilesIR instance"
+
+    if not ir.atoms:
+        # Empty molecule
+        return Chem.Mol()
+
+    # Bond type mapping
+    bond_type_map = {
+        "-": Chem.BondType.SINGLE,
+        "=": Chem.BondType.DOUBLE,
+        "#": Chem.BondType.TRIPLE,
+        ":": Chem.BondType.AROMATIC,
+        "/": Chem.BondType.SINGLE,  # Stereochemistry, treat as single for now
+        "\\": Chem.BondType.SINGLE,  # Stereochemistry, treat as single for now
+    }
+
+    # Create editable molecule
+    mol = Chem.RWMol()
+
+    # Map AtomIR -> RDKit atom index (using object identity)
+    atom_to_idx: dict[int, int] = {}
+
+    # Add atoms
+    for atom_ir in ir.atoms:
+        # Skip non-AtomIR entities (e.g., BondDescriptorIR in BigSMILES)
+        if not isinstance(atom_ir, AtomIR):
+            continue
+            
+        # Handle aromatic symbols (lowercase in SMILES → uppercase + aromatic flag)
+        symbol = atom_ir.symbol.upper() if atom_ir.symbol.islower() else atom_ir.symbol
+        is_aromatic = atom_ir.symbol.islower()
+
+        # Create RDKit atom
+        rdkit_atom = Chem.Atom(symbol)
+
+        # Set properties
+        if atom_ir.charge is not None:
+            rdkit_atom.SetFormalCharge(atom_ir.charge)
+
+        if atom_ir.isotope is not None:
+            rdkit_atom.SetIsotope(atom_ir.isotope)
+
+        if atom_ir.h_count is not None:
+            rdkit_atom.SetNumExplicitHs(atom_ir.h_count)
+
+        # Handle chirality
+        if atom_ir.chiral is not None:
+            if atom_ir.chiral == "@":
+                rdkit_atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CCW)
+            elif atom_ir.chiral == "@@":
+                rdkit_atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CW)
+            # Other chiral tags can be added as needed
+
+        # Set aromaticity
+        if is_aromatic:
+            rdkit_atom.SetIsAromatic(True)
+
+        # Add atom and store mapping (use id() for object identity)
+        atom_idx = mol.AddAtom(rdkit_atom)
+        atom_to_idx[id(atom_ir)] = atom_idx
+
+    # Add bonds
+    for bond_ir in ir.bonds:
+        # Skip bonds involving non-AtomIR entities
+        from molpy.parser.smiles import AtomIR
+        if not (isinstance(bond_ir.start, AtomIR) and isinstance(bond_ir.end, AtomIR)):
+            continue
+            
+        start_idx = atom_to_idx.get(id(bond_ir.start))
+        end_idx = atom_to_idx.get(id(bond_ir.end))
+
+        if start_idx is None or end_idx is None:
+            continue  # Skip bonds to filtered atoms
+
+        # Determine bond type (upgrade single bonds between aromatic atoms to aromatic)
+        bond_type_str = bond_ir.bond_type
+        if (
+            bond_type_str == "-"
+            and bond_ir.start.symbol.islower()
+            and bond_ir.end.symbol.islower()
+        ):
+            # Single bond between aromatic atoms → aromatic bond
+            bond_type = Chem.BondType.AROMATIC
         else:
-            mol = convert(src, Chem.Mol)
-        return func(mol, *args, **kwargs)
-    return wrapper
+            bond_type = bond_type_map.get(bond_type_str)
+            if bond_type is None:
+                raise ValueError(f"Unknown bond type: {bond_type_str}")
+
+        mol.AddBond(start_idx, end_idx, bond_type)
+
+    # Convert to immutable Mol
+    final_mol = mol.GetMol()
+
+    # Sanitize molecule (compute aromaticity, implicit Hs, etc.)
+    try:
+        Chem.SanitizeMol(final_mol)
+    except Exception as e:
+        # If sanitization fails, return unsanitized molecule with warning
+        import warnings
+
+        warnings.warn(
+            f"Molecule sanitization failed: {e}. Returning unsanitized molecule."
+        )
+
+    return final_mol
+
+
+def bigsmilesir_to_mol(ir: "BigSmilesIR") -> Chem.Mol:
+    """
+    Convert BigSmilesIR to RDKit Mol (chemical structure only, no BigSMILES markers).
+
+    Uses the degenerate() method to strip bond descriptors and get clean chemistry.
+
+    Args:
+        ir: BigSmilesIR instance
+
+    Returns:
+        RDKit Mol object with only the chemical structure
+
+    Example:
+        >>> from molpy.parser.smiles import SmilesParser
+        >>> parser = SmilesParser()
+        >>> ir = parser.parse_bigsmiles("{[<]CC[>]}")
+        >>> mol = bigsmilesir_to_mol(ir)
+        >>> mol.GetNumAtoms()  # Only 2 carbons, no descriptors
+        2
+    """
+    from molpy.parser.smiles import BigSmilesIR
+    
+    # Get clean chemical structure (no bond descriptors)
+    clean_ir = ir.degenerate()
+    return smilesir_to_mol(clean_ir)
+
+
+def bigsmilesir_to_monomer(ir: "BigSmilesIR") -> Monomer[Atomistic]:
+    """
+    Convert BigSmilesIR to Monomer with 3D coordinates and hydrogens.
+
+    This is a convenience function that:
+    1. Extracts monomer topology from BigSmilesIR
+    2. Converts to RDKit Mol
+    3. Generates 3D coordinates with ETKDG
+    4. Adds explicit hydrogens
+    5. Transfers coordinates back to Monomer
+
+    Args:
+        ir: BigSmilesIR from parser (must contain exactly ONE repeat unit)
+
+    Returns:
+        Monomer[Atomistic] with:
+        - Ports set from bond descriptors
+        - 3D coordinates on all atoms
+        - Explicit hydrogens added
+
+    Raises:
+        ValueError: If IR contains multiple repeat units
+
+    Example:
+        >>> from molpy.parser.smiles import SmilesParser
+        >>> parser = SmilesParser()
+        >>> ir = parser.parse_bigsmiles("{[<]CC[>]}")
+        >>> monomer = bigsmilesir_to_monomer(ir)
+        >>> len(list(monomer.unwrap().atoms))  # Has C + H atoms
+        8
+        >>> monomer.port_names()
+        ['in', 'out']
+    """
+    from molpy.parser.smiles import bigsmilesir_to_monomer as extract_monomer
+    
+    # Extract topology-only monomer
+    monomer = extract_monomer(ir)
+    
+    # Generate 3D coordinates and add hydrogens
+    return generate_3d_coords(monomer)
+
+
+def bigsmilesir_to_polymerspec(ir: "BigSmilesIR") -> "PolymerSpec":
+    """
+    Convert BigSmilesIR to PolymerSpec with 3D monomers.
+
+    This is a convenience function that:
+    1. Extracts polymer specification from BigSmilesIR
+    2. For each monomer, generates 3D coordinates and adds hydrogens
+
+    Args:
+        ir: BigSmilesIR from parser
+
+    Returns:
+        PolymerSpec with all monomers having 3D coordinates and explicit H
+
+    Example:
+        >>> from molpy.parser.smiles import SmilesParser
+        >>> parser = SmilesParser()
+        >>> ir = parser.parse_bigsmiles("{[<]CC[>]}{[<]OCC[>]}")
+        >>> spec = bigsmilesir_to_polymerspec(ir)
+        >>> spec.topology
+        'block_copolymer'
+        >>> len(spec.all_monomers)
+        2
+    """
+    from molpy.parser.smiles import bigsmilesir_to_polymerspec as extract_spec
+    
+    # Extract topology-only spec
+    spec = extract_spec(ir)
+    
+    # Generate 3D coords for all monomers
+    for segment in spec.segments:
+        for i, monomer in enumerate(segment.monomers):
+            segment.monomers[i] = generate_3d_coords(monomer)
+        for i, eg_monomer in enumerate(segment.end_groups):
+            segment.end_groups[i] = generate_3d_coords(eg_monomer)
+    
+    # Regenerate all_monomers from updated segments
+    spec.all_monomers = [
+        monomer for segment in spec.segments for monomer in segment.monomers
+    ]
+    
+    return spec
+
+
+# Note: SmilesIR/BigSmilesIR converter functions are defined here
+# to avoid circular import issues
+
+# ------------------------- drawing -------------------------
 
 @_accepts_rdkit_src
 def draw_molecule(
@@ -325,3 +563,46 @@ def generate_3d_coords(
 
     # 3) 回填坐标 + H
     return transfer_coords_and_h_to_monomer(monomer, molH)
+
+
+
+# ===================================================================
+#   4. Converter: SmartsIR -> RDKit Mol
+# ===================================================================
+
+def smartsir_to_mol(ir: SmartsIR) -> "Chem.Mol":
+    """
+    Convert SmartsIR to RDKit Mol query object.
+    
+    This creates a molecule object that can be used for substructure searching.
+    The resulting Mol has query atoms that match the SMARTS pattern.
+    
+    Args:
+        ir: SmartsIR instance with atoms and bonds
+        
+    Returns:
+        RDKit Mol object configured as a query
+        
+    Raises:
+        ImportError: if RDKit is not available
+        ValueError: if IR contains invalid pattern data
+        
+    Example:
+        >>> parser = SmartsParser()
+        >>> ir = parser.parse_smarts("[#6]")
+        >>> mol = smartsir_to_mol(ir)
+        >>> # Use mol for substructure search
+    """
+    
+    if not ir.atoms:
+        return Chem.Mol()
+    
+    # For now, convert to SMARTS string and use RDKit's parser
+    # TODO: Direct construction from IR for better control
+    smarts_str = _ir_to_smarts_string(ir)
+    mol = Chem.MolFromSmarts(smarts_str)
+    
+    if mol is None:
+        raise ValueError(f"Failed to create RDKit Mol from SMARTS: {smarts_str}")
+    
+    return mol

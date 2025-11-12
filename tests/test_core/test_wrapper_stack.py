@@ -27,7 +27,7 @@ def simple_assembly():
     a1 = Atom(symbol="C", pos=[0, 0, 0])
     a2 = Atom(symbol="C", pos=[1, 0, 0])
     b = Bond(a1, a2, order=1)
-    asm.add_entity(a1, a2)
+    # add_link with include_endpoints=True (default) will add the atoms
     asm.add_link(b)
     return asm
 

@@ -511,51 +511,6 @@ class SmartsParser(GrammarParserBase):
         return ir
 
 
-# ===================================================================
-#   4. Converter: SmartsIR -> RDKit Mol
-# ===================================================================
-
-def smartsir_to_mol(ir: SmartsIR) -> "Chem.Mol":
-    """
-    Convert SmartsIR to RDKit Mol query object.
-    
-    This creates a molecule object that can be used for substructure searching.
-    The resulting Mol has query atoms that match the SMARTS pattern.
-    
-    Args:
-        ir: SmartsIR instance with atoms and bonds
-        
-    Returns:
-        RDKit Mol object configured as a query
-        
-    Raises:
-        ImportError: if RDKit is not available
-        ValueError: if IR contains invalid pattern data
-        
-    Example:
-        >>> parser = SmartsParser()
-        >>> ir = parser.parse_smarts("[#6]")
-        >>> mol = smartsir_to_mol(ir)
-        >>> # Use mol for substructure search
-    """
-    try:
-        from rdkit import Chem
-    except ImportError as e:
-        raise ImportError("RDKit is required for smartsir_to_mol conversion") from e
-    
-    if not ir.atoms:
-        return Chem.Mol()
-    
-    # For now, convert to SMARTS string and use RDKit's parser
-    # TODO: Direct construction from IR for better control
-    smarts_str = _ir_to_smarts_string(ir)
-    mol = Chem.MolFromSmarts(smarts_str)
-    
-    if mol is None:
-        raise ValueError(f"Failed to create RDKit Mol from SMARTS: {smarts_str}")
-    
-    return mol
-
 
 def _ir_to_smarts_string(ir: SmartsIR) -> str:
     """
@@ -667,12 +622,3 @@ def _ir_to_smarts_string(ir: SmartsIR) -> str:
         return result
     
     return dfs(ir.atoms[0])
-
-
-# Register converter if RDKit is available
-try:
-    from rdkit import Chem
-    from molpy.adapter.converter import REG
-    REG.register(SmartsIR, Chem.Mol, smartsir_to_mol)
-except ImportError:
-    pass  # RDKit or adapter not available

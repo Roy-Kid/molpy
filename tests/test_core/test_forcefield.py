@@ -141,7 +141,7 @@ class TestTypeBucket:
         tb = TypeBucket[Type]()
         at1 = AtomType("CA")
         at2 = AtomType("CB")
-        bt1 = BondType("CA-CB")
+        bt1 = BondType("CA-CB", at1, at2)
 
         tb.add(at1)
         tb.add(at2)
@@ -173,8 +173,10 @@ class TestTypeBucket:
     def test_typebucket_classes(self):
         """Test getting all type classes in bucket."""
         tb = TypeBucket[Type]()
-        tb.add(AtomType("CA"))
-        tb.add(BondType("CA-CB"))
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        tb.add(at1)
+        tb.add(BondType("CA-CB", at1, at2))
         classes = list(tb.classes())
         assert AtomType in classes
         assert BondType in classes
