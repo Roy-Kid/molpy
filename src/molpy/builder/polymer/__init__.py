@@ -1,11 +1,11 @@
 """
 Polymer assembly module.
 
-Provides linear polymer assembly with topology-only connectors
-and optional geometric placement via Placer strategies.
+Provides linear polymer assembly with both topology-only and chemical reaction connectors,
+plus optional geometric placement via Placer strategies.
 """
 
-from .linear import PolymerBuilder
+from .linear import linear
 from .connectors import (
     Connector,
     ConnectorContext,
@@ -14,6 +14,8 @@ from .connectors import (
     TableConnector,
     ChainConnector,
     CallbackConnector,
+    ReacterConnector,
+    TopologyConnector,
 )
 from .geom_utils import (
     Placer,
@@ -25,7 +27,7 @@ from .geom_utils import (
 
 __all__ = [
     # Builder
-    "PolymerBuilder",
+    "linear",
     # Connectors
     "Connector",
     "ConnectorContext",
@@ -34,6 +36,8 @@ __all__ = [
     "TableConnector",
     "ChainConnector",
     "CallbackConnector",
+    "ReacterConnector",
+    "TopologyConnector",
     # Geometry
     "Placer",
     "NoOpPlacer",

@@ -1,5 +1,5 @@
 from .entity import ConnectivityMixin, Entity, Assembly, Link, MembershipMixin, SpatialMixin, Entities
-from typing import Any, cast
+from typing import Any, cast, Self
 
 
 class Atom(Entity):
@@ -92,6 +92,22 @@ class Atomistic(Assembly, MembershipMixin, SpatialMixin, ConnectivityMixin):
         self.links.register_type(Bond)
         self.links.register_type(Angle)
         self.links.register_type(Dihedral)
+
+    def merge(self, other: Assembly) -> Self:
+        """
+        Transfer all entities and links from another assembly into this one.
+        
+        Args:
+            other: Assembly to merge into self
+        
+        Returns:
+            Self for method chaining
+        
+        Example:
+            >>> asm1.merge(asm2)  # Transfers asm2 into asm1
+            >>> # asm2 should not be used after this!
+        """
+        return super().merge(other)
 
     @property
     def atoms(self) -> Entities[Atom]:
@@ -282,10 +298,10 @@ class Atomistic(Assembly, MembershipMixin, SpatialMixin, ConnectivityMixin):
         if gen_angle:
             for angle in topo.angles:
                 angle = angle.tolist()
-                self.links[Angle].append(Angle(atoms[angle[0]], atoms[angle[1]], atoms[angle[2]]))
+                self.links.add(Angle(atoms[angle[0]], atoms[angle[1]], atoms[angle[2]]))
         if gen_dihe:
             for dihe in topo.dihedrals:
                 dihe = dihe.tolist()
-                self.links[Dihedral].append(Dihedral(atoms[dihe[0]], atoms[dihe[1]], atoms[dihe[2]], atoms[dihe[3]]))
+                self.links.add(Dihedral(atoms[dihe[0]], atoms[dihe[1]], atoms[dihe[2]], atoms[dihe[3]]))
 
         return topo

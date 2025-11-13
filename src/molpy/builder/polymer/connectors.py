@@ -1,11 +1,11 @@
 """
-Connector abstraction for topology-only polymer assembly.
+Connector abstraction for polymer assembly.
 
 Connectors decide which ports to connect between adjacent monomers
-in a linear sequence. This is purely topological - no geometry involved.
+and optionally execute chemical reactions during connection.
 """
 
-from typing import Literal, Any, Mapping, Tuple, Callable, Iterable
+from typing import Literal, Any, Mapping, Tuple, Callable, Iterable, TYPE_CHECKING
 from ...core.wrappers.monomer import Monomer, Port
 from ..errors import (
     AmbiguousPortsError,
@@ -13,6 +13,10 @@ from ..errors import (
     NoCompatiblePortsError,
     BondKindConflictError,
 )
+
+if TYPE_CHECKING:
+    from molpy.reacter.base import Reacter
+    from molpy.core.atomistic import Atomistic
 
 
 BondKind = Literal["-", "=", "#", ":"]
@@ -278,3 +282,224 @@ class ChainConnector(Connector):
             f"All connectors failed for ({ctx.get('left_label')}, {ctx.get('right_label')}): "
             f"{'; '.join(errors)}"
         )
+
+
+class ReacterConnector(Connector):
+    """
+    Connector that uses chemical reactions (Reacter) for polymer assembly.
+    
+    This connector integrates port selection and chemical reaction execution.
+    It manages multiple Reacter instances and port mapping strategies for
+    different monomer pairs.
+    
+    **Port Selection Strategy:**
+    Port selection is handled via a `port_strategy` which must be one of:
+    1. **Callable**: Custom function (left, right, left_ports, right_ports, ctx) -> (port_L, port_R)
+    2. **Dict**: Explicit mapping {('A','B'): ('1','2'), ...}
+    
+    There is NO 'auto' mode - port selection must be explicit via port_map.
+    
+    Attributes:
+        default: Default Reacter for most connections
+        overrides: Dict mapping (left_type, right_type) -> specialized Reacter
+        port_map: Dict mapping (left_type, right_type) -> (port_L, port_R)
+    
+    Example:
+        >>> from molpy.reacter import Reacter
+        >>> from molpy.reacter.selectors import port_anchor_selector, remove_one_H
+        >>> from molpy.reacter.transformers import make_single_bond
+        >>> 
+        >>> default_reacter = Reacter(
+        ...     name="C-C_coupling",
+        ...     anchor_left=port_anchor_selector,
+        ...     anchor_right=port_anchor_selector,
+        ...     leaving_left=remove_one_H,
+        ...     leaving_right=remove_one_H,
+        ...     bond_maker=make_single_bond,
+        ... )
+        >>> 
+        >>> # Explicit port mapping for all monomer pairs
+        >>> connector = ReacterConnector(
+        ...     default=default_reacter,
+        ...     port_map={
+        ...         ('A', 'B'): ('port_1', 'port_2'),
+        ...         ('B', 'C'): ('port_3', 'port_4'),
+        ...     },
+        ...     overrides={('B', 'C'): special_reacter},
+        ... )
+    """
+    
+    def __init__(
+        self,
+        default: "Reacter",
+        port_map: dict[tuple[str, str], tuple[str, str]],
+        overrides: dict[tuple[str, str], "Reacter"] | None = None,
+    ):
+        """
+        Initialize ReacterConnector.
+        
+        Args:
+            default: Default Reacter for most connections
+            port_strategy: Port selection strategy:
+                - Callable: (left, right, left_ports, right_ports, ctx) -> (port_L, port_R)
+                - Dict: {(left_type, right_type): (port_L, port_R)}
+            overrides: Dict mapping (left_type, right_type) -> specialized Reacter
+        
+        Raises:
+            TypeError: If port_map is not dict
+        """
+        if not isinstance(port_map, dict):
+            raise TypeError(
+                f"port_map must be dict, got {type(port_map).__name__}"
+            )
+        
+        self.default = default
+        self.overrides = overrides or {}
+        self.port_map = port_map
+        self._history: list = []  # List of ProductSet objects
+    
+    def get_reacter(self, left_type: str, right_type: str) -> "Reacter":
+        """
+        Get appropriate reacter for a monomer pair.
+        
+        Args:
+            left_type: Type label of left monomer (e.g., 'A', 'B')
+            right_type: Type label of right monomer
+            
+        Returns:
+            The appropriate Reacter (override if exists, else default)
+        """
+        key = (left_type, right_type)
+        return self.overrides.get(key, self.default)
+    
+    def select_ports(
+        self,
+        left: Monomer,
+        right: Monomer,
+        left_ports: Mapping[str, Port],
+        right_ports: Mapping[str, Port],
+        ctx: ConnectorContext,
+    ) -> Tuple[str, str, BondKind | None]:
+        """
+        Select ports using the configured port_map.
+        
+        Args:
+            left: Left monomer
+            right: Right monomer
+            left_ports: Available ports on left
+            right_ports: Available ports on right
+            ctx: Connector context with monomer type information
+            
+        Returns:
+            Tuple of (port_L, port_R, None)
+            
+        Raises:
+            ValueError: If port mapping not found or ports invalid
+        """
+        # Get monomer types from context
+        left_type = ctx.get('left_label', '')
+        right_type = ctx.get('right_label', '')
+        
+        # Look up explicit mapping
+        key = (left_type, right_type)
+        if key not in self.port_map:
+            raise ValueError(
+                f"No port mapping defined for ({left_type}, {right_type}). "
+                f"Available mappings: {list(self.port_map.keys())}"
+            )
+        port_L, port_R = self.port_map[key]
+        
+        # Validate ports exist
+        if port_L not in left_ports:
+            raise ValueError(f"Selected port '{port_L}' not found in left monomer ({left_type})")
+        if port_R not in right_ports:
+            raise ValueError(f"Selected port '{port_R}' not found in right monomer ({right_type})")
+        
+        return port_L, port_R, None  # bond_kind determined by reacter
+    
+    def connect(
+        self,
+        left: Monomer,
+        right: Monomer,
+        left_type: str,
+        right_type: str,
+        port_L: str,
+        port_R: str,
+    ) -> tuple["Atomistic", dict[str, Any]]:
+        """
+        Execute chemical reaction between two monomers.
+        
+        This method performs the full chemical reaction including:
+        1. Selecting appropriate reacter based on monomer types
+        2. Executing reaction (merging, bond making, removing leaving groups)
+        3. Computing new topology (angles, dihedrals)
+        4. Collecting metadata for retypification
+        
+        Args:
+            left: Left monomer
+            right: Right monomer
+            left_type: Type label of left monomer
+            right_type: Type label of right monomer
+            port_L: Port name on left monomer
+            port_R: Port name on right monomer
+            
+        Returns:
+            Tuple of (assembly, metadata) where:
+            - assembly: Atomistic product of reaction
+            - metadata: Dict containing:
+                - port_L, port_R: used ports
+                - reaction_name: name of the reacter
+                - new_bonds, new_angles, new_dihedrals: newly created topology
+                - modified_atoms: atoms whose types may have changed
+                - needs_retypification: whether retypification is needed
+        """
+        from molpy.reacter.base import ProductSet
+        
+        # Select reacter
+        reacter = self.get_reacter(left_type, right_type)
+        
+        # Execute reaction
+        product_set: ProductSet = reacter.run(
+            left, right,
+            port_L=port_L,
+            port_R=port_R,
+            compute_topology=True,
+        )
+        
+        # Store in history
+        self._history.append(product_set)
+        
+        # Extract metadata
+        metadata = {
+            'port_L': port_L,
+            'port_R': port_R,
+            'reaction_name': reacter.name,
+            'new_bonds': product_set.notes.get('new_bonds', []),
+            'new_angles': product_set.notes.get('new_angles', []),
+            'new_dihedrals': product_set.notes.get('new_dihedrals', []),
+            'modified_atoms': product_set.notes.get('modified_atoms', set()),
+            'needs_retypification': product_set.notes.get('needs_retypification', False),
+            'entity_maps': product_set.notes.get('entity_maps', []),  # For port remapping
+        }
+        
+        return product_set.product, metadata
+    
+    def get_history(self) -> list:
+        """Get all reaction history (list of ProductSet)."""
+        return self._history
+    
+    def get_all_modified_atoms(self) -> set:
+        """Get all atoms modified across all reactions."""
+        all_atoms = set()
+        for product in self._history:
+            all_atoms.update(product.notes.get('modified_atoms', set()))
+        return all_atoms
+    
+    def needs_retypification(self) -> bool:
+        """Check if any reactions require retypification."""
+        return any(p.notes.get('needs_retypification', False) for p in self._history)
+
+
+# Alias for backward compatibility
+TopologyConnector = AutoConnector
+

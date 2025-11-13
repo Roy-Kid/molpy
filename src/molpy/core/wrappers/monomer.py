@@ -1,6 +1,12 @@
+"""
+Monomer wrapper for Assembly objects.
+
+Provides port definition management for monomer units.
+"""
+
 from ..entity import Entity, Assembly
 from .base import Wrapper
-from typing import TypeVar, Self, Generic
+from typing import TypeVar, Self
 
 T = TypeVar("T", bound=Assembly)
 
@@ -12,14 +18,28 @@ class Port(Entity):
     A Port is an Entity that wraps a target entity (e.g., an atom)
     and provides a named interface for connecting monomers.
     
+    **Minimal Usage (for manual Reacter):**
+        Only `name` and `target` are required.
+        
+    **Extended Usage (for automatic builders):**
+        Optional metadata (role, bond_kind, etc.) can be provided for
+        automatic port selection in PolymerBuilder.
+    
     Attributes:
         name: Port identifier (e.g., 'in', 'out', 'port_1')
-        target: The underlying entity this port connects to
-        role: Optional role ('left'/'right' from BigSMILES </>)
-        bond_kind: Optional bond type ('-', '=', '#', ':')
-        compat: Compatibility spec (set of port names, or '*' for any)
-        multiplicity: How many times this port can be used (default 1)
-        priority: Selection priority when multiple ports available (default 0)
+        target: The underlying entity this port points to
+        role: (Optional) Port role for auto-selection ('left'/'right')
+        bond_kind: (Optional) Bond type ('-', '=', '#', ':')
+        compat: (Optional) Compatibility spec
+        multiplicity: (Optional) Connection count limit
+        priority: (Optional) Selection priority
+    
+    Example:
+        >>> # Minimal usage for Reacter
+        >>> port = Port('head', carbon_atom)
+        >>> 
+        >>> # Extended usage for PolymerBuilder
+        >>> port = Port('head', carbon_atom, role='left', bond_kind='-')
     """
     
     def __init__(
@@ -30,116 +50,99 @@ class Port(Entity):
         role: str | None = None,
         bond_kind: str | None = None,
         compat: set[str] | str | None = None,
-        multiplicity: int = 1,
-        priority: int = 0,
+        multiplicity: int | None = None,
+        priority: int | None = None,
     ):
+        """
+        Create a port.
+        
+        Args:
+            name: Port identifier
+            target: The entity this port points to
+            role: (Optional) Port role for auto-selection
+            bond_kind: (Optional) Bond type
+            compat: (Optional) Compatibility specification
+            multiplicity: (Optional) Connection count limit
+            priority: (Optional) Selection priority
+        """
         super().__init__()
         self.data['name'] = name
         self.data['target'] = target
-        self.data['role'] = role
-        self.data['bond_kind'] = bond_kind
-        self.data['compat'] = compat if compat is not None else '*'
-        self.data['multiplicity'] = multiplicity
-        self.data['priority'] = priority
+        
+        # Optional metadata for automatic builders
+        if role is not None:
+            self.data['role'] = role
+        if bond_kind is not None:
+            self.data['bond_kind'] = bond_kind
+        if compat is not None:
+            self.data['compat'] = compat
+        if multiplicity is not None:
+            self.data['multiplicity'] = multiplicity
+        if priority is not None:
+            self.data['priority'] = priority
     
     @property
     def name(self) -> str:
+        """Port identifier."""
         return self.data['name']
     
     @property
     def target(self) -> Entity:
+        """The entity this port points to."""
         return self.data['target']
     
     @property
     def role(self) -> str | None:
+        """Port role (for automatic builders)."""
         return self.data.get('role')
     
     @property
     def bond_kind(self) -> str | None:
+        """Bond type (for automatic builders)."""
         return self.data.get('bond_kind')
     
     @property
-    def compat(self) -> set[str] | str:
-        return self.data.get('compat', '*')
+    def compat(self) -> set[str] | str | None:
+        """Compatibility specification (for automatic builders)."""
+        return self.data.get('compat')
     
     @property
-    def multiplicity(self) -> int:
-        return self.data.get('multiplicity', 1)
+    def multiplicity(self) -> int | None:
+        """Connection count limit (for automatic builders)."""
+        return self.data.get('multiplicity')
     
     @multiplicity.setter
     def multiplicity(self, value: int) -> None:
+        """Update multiplicity."""
         self.data['multiplicity'] = value
     
     @property
-    def priority(self) -> int:
-        return self.data.get('priority', 0)
-    
-    def orientation(self) -> list[float] | None:
-        """
-        Get explicit orientation vector for this port.
-        
-        Returns orientation if stored in port or target entity data,
-        otherwise None (caller should infer from connectivity).
-        
-        Returns:
-            Unit orientation vector [x, y, z] or None
-        """
-        # Check port data first
-        if 'orientation' in self.data:
-            return self.data['orientation']
-        
-        # Check target entity
-        if hasattr(self.target, 'data') and 'orientation' in self.target.data:
-            return self.target.data['orientation']
-        
-        return None
-    
-    def separation(self) -> float | None:
-        """
-        Get explicit separation distance for this port.
-        
-        Returns separation if stored in port or target entity data,
-        otherwise None (caller should use VDW-based distance).
-        
-        Returns:
-            Separation distance in Angstroms or None
-        """
-        # Check port data first
-        if 'separation' in self.data:
-            return self.data['separation']
-        
-        # Check target entity
-        if hasattr(self.target, 'data') and 'separation' in self.target.data:
-            return self.target.data['separation']
-        
-        return None
+    def priority(self) -> int | None:
+        """Selection priority (for automatic builders)."""
+        return self.data.get('priority')
     
     def __repr__(self) -> str:
-        parts = [f"name={self.name!r}"]
-        if self.role:
-            parts.append(f"role={self.role!r}")
-        if self.bond_kind:
-            parts.append(f"bond={self.bond_kind!r}")
-        if self.multiplicity != 1:
-            parts.append(f"mult={self.multiplicity}")
-        return f"Port({', '.join(parts)})"
+        return f"<Port {self.name!r} -> {self.target}>"
 
 
-class Monomer(Wrapper[T], Generic[T]):
-    """
-    Monomer wraps an Assembly and adds port management.
+class Monomer(Wrapper[T]):
+    """Wrapper representing a monomer unit with port definitions.
     
-    Ports define connection points for polymer assembly.
-    The wrapped Assembly contains the molecular structure,
-    and ports reference specific entities within that structure.
+    Monomer wraps an Assembly and adds port definition management
+    for tracking reactive sites and connection points.
     """
     
-    def __init__(self, wrapped: T):
-        super().__init__(wrapped)
-        # Store ports as a private dict on the wrapper layer
-        self._ports: dict[str, Port] = {}
+    def __init__(self, wrapped: T | Wrapper[T], **props):
+        """Initialize monomer wrapper.
+        
+        Args:
+            wrapped: Assembly instance or Wrapper to wrap
+            **props: Additional properties
+        """
+        super().__init__(wrapped, **props)
+        self._port_defs: dict[str, Port] = {}
     
-    def set_port(
+    def define_port(
         self, 
         name: str, 
         target: Entity,
@@ -147,121 +150,130 @@ class Monomer(Wrapper[T], Generic[T]):
         role: str | None = None,
         bond_kind: str | None = None,
         compat: set[str] | str | None = None,
-        multiplicity: int = 1,
-        priority: int = 0,
-    ) -> None:
-        """
-        Create or update a port pointing to a target entity.
+        multiplicity: int | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Define a connection port on this monomer.
+        
+        **Minimal usage (for manual Reacter):**
+            monomer.define_port('head', carbon_atom)
+        
+        **Extended usage (for automatic builders):**
+            monomer.define_port('head', carbon_atom, role='left', bond_kind='-')
         
         Args:
             name: Port identifier
-            target: Entity to connect (typically from wrapped Assembly)
-            role: Optional BigSMILES role ('left'/'right')
-            bond_kind: Optional bond type specification
-            compat: Compatibility spec (set of names or '*')
-            multiplicity: How many times port can be used
-            priority: Selection priority
+            target: Entity at this port (typically an Atom)
+            role: (Optional) Port role for auto-selection
+            bond_kind: (Optional) Bond type
+            compat: (Optional) Compatibility specification
+            multiplicity: (Optional) Connection count limit
+            priority: (Optional) Selection priority
+            
+        Returns:
+            Self for method chaining
         """
         port = Port(
             name, 
             target, 
-            role=role,
-            bond_kind=bond_kind,
-            compat=compat,
-            multiplicity=multiplicity,
-            priority=priority,
+            role=role, 
+            bond_kind=bond_kind, 
+            compat=compat, 
+            multiplicity=multiplicity, 
+            priority=priority
         )
-        self._ports[name] = port
+        self._port_defs[name] = port
+        return self
+    
+    def remove_port_def(self, name: str) -> Self:
+        """Remove a port definition.
+        
+        Args:
+            name: Port identifier to remove
+            
+        Returns:
+            Self for method chaining
+        """
+        self._port_defs.pop(name, None)
+        return self
+    
+    def get_port_def(self, name: str) -> Port | None:
+        """Get port definition by name.
+        
+        Args:
+            name: Port identifier
+            
+        Returns:
+            Port object or None if not found
+        """
+        return self._port_defs.get(name)
     
     def get_port(self, name: str) -> Port | None:
-        """Get port by name, or None if not found."""
-        return self._ports.get(name)
+        """Get port by name (alias for get_port_def for compatibility).
+        
+        Args:
+            name: Port identifier
+            
+        Returns:
+            Port object or None if not found
+        """
+        return self.get_port_def(name)
     
-    def port_names(self) -> list[str]:
-        """Return list of all port names."""
-        return list(self._ports.keys())
+    @property
+    def port_defs(self) -> dict[str, Port]:
+        """Access port definitions dictionary (directly modifiable)."""
+        return self._port_defs
     
     @property
     def ports(self) -> dict[str, Port]:
-        """Access ports dictionary (read-only view recommended)."""
-        return self._ports
+        """Access port definitions dictionary (alias for port_defs)."""
+        return self._port_defs
     
     def copy(self) -> Self:
-        """
-        Deep copy the monomer, including wrapped Assembly and ports.
+        """Create a deep copy with properly remapped port targets.
+        
+        Overrides Wrapper.copy() to ensure port targets point to
+        copied atoms rather than original atoms.
         
         Returns:
-            New Monomer with copied structure and remapped ports
+            New Monomer with copied assembly and remapped ports
         """
-        # Copy the wrapped assembly
-        wrapped = self.unwrap()
-        new_wrapped = wrapped.copy()
+        import copy as copy_module
         
-        # Create new monomer
-        new_monomer = type(self)(new_wrapped)
+        # Deep copy the inner assembly
+        old_inner = self.inner
+        new_inner = copy_module.deepcopy(old_inner)
         
-        # Get entity mapping from copy operation
-        # We need to find the mapping between old and new entities
-        emap = self._build_entity_map(wrapped, new_wrapped)
+        # Build entity map: old entity -> new entity
+        entity_map = {}
         
-        # Resolve and set ports on new monomer
-        for name, port in self._ports.items():
-            if port.target in emap:
-                new_monomer.set_port(
-                    name, 
-                    emap[port.target],
-                    role=port.role,
-                    bond_kind=port.bond_kind,
-                    compat=port.compat,
-                    multiplicity=port.multiplicity,
-                    priority=port.priority,
-                )
+        # Map atoms
+        old_atoms = list(old_inner.atoms)
+        new_atoms = list(new_inner.atoms)
+        for old_atom, new_atom in zip(old_atoms, new_atoms):
+            entity_map[old_atom] = new_atom
+        
+        # Create new wrapper
+        new_monomer = type(self)(new_inner)
+        
+        # Remap ports: create new Port objects with mapped targets
+        for port_name, old_port in self._port_defs.items():
+            old_target = old_port.target
+            new_target = entity_map.get(old_target, old_target)
+            
+            new_monomer.define_port(
+                port_name,
+                new_target,
+                role=old_port.role,
+                bond_kind=old_port.bond_kind,
+                compat=old_port.compat,
+                multiplicity=old_port.multiplicity,
+                priority=old_port.priority,
+            )
         
         return new_monomer
     
-    def _build_entity_map(self, old_assembly: Assembly, new_assembly: Assembly) -> dict[Entity, Entity]:
-        """
-        Build mapping between entities in old and new assemblies.
-        
-        This is a heuristic based on iteration order consistency.
-        For more robust mapping, consider adding entity IDs.
-        """
-        emap: dict[Entity, Entity] = {}
-        
-        # Iterate through all entity types
-        for entity_type in old_assembly.entities.classes():
-            old_entities = old_assembly.entities.bucket(entity_type)
-            new_entities = new_assembly.entities.bucket(entity_type)
-            
-            # Assume same iteration order after copy
-            if len(old_entities) == len(new_entities):
-                for old_ent, new_ent in zip(old_entities, new_entities):
-                    emap[old_ent] = new_ent
-        
-        return emap
-    
-    def resolve_ports(self, emap: dict[Entity, Entity]) -> dict[str, Entity]:
-        """
-        Map ports through an entity mapping.
-        
-        Useful when merging monomers into polymers.
-        
-        Args:
-            emap: Mapping from old entities to new entities
-            
-        Returns:
-            Dictionary mapping port names to resolved entities
-        """
-        resolved: dict[str, Entity] = {}
-        for name, port in self._ports.items():
-            if port.target in emap:
-                resolved[name] = emap[port.target]
-        return resolved
-    
-    def _repr_info(self) -> str:
-        """Provide monomer-specific info for tree representation."""
-        port_names = list(self._ports.keys())
-        if port_names:
-            ports_str = ", ".join(port_names)
-            return f"{len(self._ports)} port(s) [{ports_str}]"
-        return "no ports"
+    def __repr__(self) -> str:
+        """Repr showing monomer port definitions."""
+        port_names = list(self._port_defs.keys())
+        return f"<Monomer port_defs={port_names} wrapping {self.inner!r}>"

@@ -2,6 +2,7 @@ from collections import UserDict
 from copy import deepcopy
 from typing import Any, Iterable, Protocol, Self, Iterator, TypeVar, Generic, cast, overload
 from collections import defaultdict
+from molpy.core.utils import TypeBucket as BaseTypeBucket, get_nearest_type
 from molpy.core.ops.geometry import (
     _dot,
     _norm,
@@ -68,7 +69,7 @@ class Link[T: Entity](UserDict):
 
     def __hash__(self) -> int:  # pragma: no cover - trivial identity
         return id(self)
-    
+
 
 # ---------- Entity protocol (customize to your real API) ----------
 class EntityLike(Protocol):
@@ -96,13 +97,14 @@ class Entities(list[E], Generic[E]):
         return super().__getitem__(arg)
 
 # ---------- Helper: choose bucket key (override if needed) ----------
-def get_nearest_type(obj: E) -> type:
-    """Default: bucket by the object's concrete type."""
-    return type(obj)
+# 注意：get_nearest_type 现在从 utils 导入
 
-# ---------- Bucket that stores Entities instead of lists ----------
+# ---------- Entity 专用的 TypeBucket（返回 Entities 类型）----------
 class TypeBucket(Generic[E]):
     """
+    Entity 专用的 TypeBucket，按对象的具体类型分组存储。
+    使用 Entities 作为容器以支持列式访问。
+    
     Bucket objects by (concrete) type using dict[type, Entities].
     - Key:  type[U], where U <: E
     - Item: Entities[U], paired with the same U as in the key
@@ -115,30 +117,32 @@ class TypeBucket(Generic[E]):
         self._items: dict[type[Any], Entities[Any]] = {}
 
     # ----- mutate -----
-    def add(self, item: U) -> None:
+    def add(self, item: E) -> None:
         """Add one object to the bucket for its nearest type."""
         cls = get_nearest_type(item)                 # type: ignore[arg-type]
         bucket = self._items.setdefault(cls, Entities())
         bucket.append(item)
 
-    def add_many(self, items: Iterable[U]) -> None:
+    def add_many(self, items: Iterable[E]) -> None:
         """Add multiple objects."""
         for it in items:
             self.add(it)
 
-    def remove(self, item: U) -> bool:
+    def remove(self, item: E) -> bool:
         """Remove an object from its bucket; returns True if removed."""
         cls = get_nearest_type(item)                 # type: ignore[arg-type]
         bucket = self._items.get(cls)
         if not bucket:
             return False
-        try:
-            bucket.remove(item)
-        except ValueError:
-            return False
-        if not bucket:
-            self._items.pop(cls, None)
-        return True
+        # Use identity comparison (is) not equality (==)
+        # Find and remove the exact object instance
+        for i, obj in enumerate(bucket):
+            if obj is item:
+                bucket.pop(i)
+                if not bucket:
+                    self._items.pop(cls, None)
+                return True
+        return False
     
     def register_type(self, cls: type[U]) -> None:
         """Ensure a bucket exists for the given class."""
@@ -196,8 +200,15 @@ class AssemblyLike(Protocol):
     links: TypeBucket[LinkLike]
 
 
+T = TypeVar("T", bound="Assembly")
+
+
 class Assembly:
-    """Container holding entities and links via typed buckets."""
+    """Container holding entities and links via typed buckets.
+    
+    This is the root class for all molecular assembly types in MolPy.
+    Supports entity/link management and serves as the base for wrappers.
+    """
 
     def __init__(self, **props) -> None:
         self.entities: TypeBucket[Entity] = TypeBucket()
@@ -242,6 +253,15 @@ class Assembly:
 
         # deep-copy links (remap endpoints)
         for link in self._iter_all_links():
+            # Ensure all endpoints are in emap (defensive check)
+            for ep in link.endpoints:
+                if ep not in emap:
+                    # Edge case: endpoint not in entities bucket
+                    # This shouldn't happen in well-formed assemblies
+                    cloned_ep = ep.__class__(deepcopy(getattr(ep, "data", None)))
+                    emap[ep] = cloned_ep
+                    new.entities.add(cloned_ep)
+            
             mapped_eps = [emap[ep] for ep in link.endpoints]
             attrs = deepcopy(getattr(link, "data", {}))
             lcls: type[Link] = type(link)
@@ -253,28 +273,51 @@ class Assembly:
 
         return new
 
-    def merge(self, sub: "Assembly") -> dict[Entity, Entity]:
-        """Deep-copy `sub` into self, return entity mapping old->new."""
-        emap: dict[Entity, Entity] = {}
-
-        # copy entities
-        for ent in sub._iter_all_entities():
-            cloned = ent.__class__(deepcopy(getattr(ent, "data", None)))
-            emap[ent] = cloned
-            self.entities.add(cloned)
-
-        # copy links with remapped endpoints
-        for link in sub._iter_all_links():
-            mapped_eps = [emap[ep] for ep in link.endpoints]
-            attrs = deepcopy(getattr(link, "data", {}))
-            lcls: type[Link] = type(link)
-            try:
-                new_link = lcls(*mapped_eps, **attrs)
-            except TypeError:
-                new_link = lcls(mapped_eps, **attrs)
-            self.links.add(new_link)
-
-        return emap
+    def merge(self, other: "Assembly") -> Self:
+        """
+        Transfer all entities and links from another assembly into self.
+        
+        **NO deep copy** - entities and links are directly transferred.
+        After merge, `other` should not be used (its entities now belong to self).
+        
+        Args:
+            other: Assembly to merge into self
+        
+        Returns:
+            Self for method chaining
+        
+        Raises:
+            ValueError: If assembly contains orphan links (endpoints not in entities)
+        
+        Example:
+            >>> assembly1.merge(assembly2)  # Transfers assembly2 into assembly1
+            >>> # assembly2 should not be used after this!
+        """
+        # Collect all entities from other
+        other_entities = set(other._iter_all_entities())
+        
+        # Transfer all entities directly (NO copy)
+        for ent in other_entities:
+            self.entities.add(ent)
+        
+        # Transfer all links directly (NO copy)
+        for link in other._iter_all_links():
+            # Verify all endpoints are in entities
+            missing_endpoints = []
+            for ep in link.endpoints:
+                if ep not in other_entities:
+                    missing_endpoints.append(ep)
+            
+            if missing_endpoints:
+                # This indicates a malformed assembly with orphan links
+                raise ValueError(
+                    f"Found link with endpoints not in entities bucket. "
+                    f"This indicates orphan links in the assembly."
+                )
+            
+            self.links.add(link)
+        
+        return self
 
 class SpatialMixin:
     """Geometry operations on entities with a "xyz" key only."""
@@ -387,7 +430,8 @@ class MembershipMixin:
         to_remove = set(ents)
         # optionally drop incident links
         if drop_incident_links:
-            for lcls in self.links.classes():
+            # Convert to list to avoid RuntimeError: dictionary changed size during iteration
+            for lcls in list(self.links.classes()):
                 bucket = self.links.bucket(lcls)
                 doomed: list[Link] = []
                 for l in bucket:
@@ -443,7 +487,8 @@ class ConnectivityMixin:
         except KeyError:
             return neighbors
         for link in bucket:
-            if entity in link.endpoints:
+            # Use identity check (is) not equality check (==)
+            if any(ep is entity for ep in link.endpoints):
                 for ep in link.endpoints:
                     if ep is not entity:
                         neighbors.append(ep)

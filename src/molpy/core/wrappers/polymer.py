@@ -1,87 +1,130 @@
-from typing import TypeVar, Generic, Self
+"""
+Polymer wrapper for Assembly objects.
+
+Provides port management for polymer structures.
+"""
+
+from typing import TypeVar, Self
 from ..entity import Assembly, Entity
 from .base import Wrapper
 
 T = TypeVar("T", bound=Assembly)
 
 
-class Polymer(Wrapper[T], Generic[T]):
-    """Wrapper representing a polymer (an assembly with named ports).
-
-    Polymer stores ports (remaining connection points) similarly to Monomer
-    and wraps an Assembly containing the merged graph. This is intentionally
-    minimal for topology-only operations.
+class Polymer(Wrapper[T]):
+    """Wrapper representing a polymer with named connection ports.
+    
+    Polymer wraps an Assembly and adds port management functionality
+    for tracking connection points (head, tail, reactive sites, etc.).
     """
 
-    def __init__(self, wrapped: T):
-        super().__init__(wrapped)
+    def __init__(self, wrapped: T | Wrapper[T], **props):
+        """Initialize polymer wrapper.
+        
+        Args:
+            wrapped: Assembly instance or Wrapper to wrap
+            **props: Additional properties
+        """
+        super().__init__(wrapped, **props)
         self._ports: dict[str, Entity] = {}
-        # store port metadata dicts keyed by port name
-        self._port_meta: dict[str, dict] = {}
 
     def set_port(
-        self,
-        name: str,
+        self, 
+        name: str, 
         target: Entity,
         *,
         role: str | None = None,
         bond_kind: str | None = None,
         compat: set | str | None = None,
-        multiplicity: int = 1,
-        priority: int = 0,
-    ) -> None:
-        """Create or update a port pointing to an entity in the wrapped assembly."""
+        multiplicity: int | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Create or update a port pointing to an entity in the wrapped assembly.
+        
+        **Minimal usage:**
+            polymer.set_port('head', atom)
+        
+        **Extended usage (for builders):**
+            polymer.set_port('head', atom, role='left', bond_kind='-')
+        
+        Args:
+            name: Port identifier
+            target: Entity at this port (typically an Atom)
+            role: (Optional) Port role for auto-selection
+            bond_kind: (Optional) Bond type
+            compat: (Optional) Compatibility specification
+            multiplicity: (Optional) Connection count limit
+            priority: (Optional) Selection priority
+            
+        Returns:
+            Self for method chaining
+        """
         from .monomer import Port
 
-        port = Port(name, target, role=role, bond_kind=bond_kind, compat=compat, multiplicity=multiplicity, priority=priority)
+        port = Port(
+            name, 
+            target, 
+            role=role, 
+            bond_kind=bond_kind, 
+            compat=compat, 
+            multiplicity=multiplicity, 
+            priority=priority
+        )
         self._ports[name] = port
-        self._port_meta[name] = {
-            "role": role,
-            "bond_kind": bond_kind,
-            "compat": compat if compat is not None else '*',
-            "multiplicity": multiplicity,
-            "priority": priority,
-        }
+        return self
+    
+    def add_port(self, name: str, target: Entity) -> Self:
+        """Add a port (alias for set_port).
+        
+        Args:
+            name: Port identifier
+            target: Entity at this port
+            
+        Returns:
+            Self for method chaining
+        """
+        return self.set_port(name, target)
+    
+    def remove_port(self, name: str) -> Self:
+        """Remove a port.
+        
+        Args:
+            name: Port identifier to remove
+            
+        Returns:
+            Self for method chaining
+        """
+        self._ports.pop(name, None)
+        return self
 
     def get_port(self, name: str):
+        """Get port by name.
+        
+        Args:
+            name: Port identifier
+            
+        Returns:
+            Port object or None if not found
+        """
         return self._ports.get(name)
+    
+    def get_port_def(self, name: str):
+        """Get port definition by name (alias for get_port).
+        
+        Args:
+            name: Port identifier
+            
+        Returns:
+            Port object or None if not found
+        """
+        return self.get_port(name)
 
     @property
-    def ports(self) -> dict[str, "Port"]:
-        return dict(self._ports)
-
-    def copy(self) -> Self:
-        """Deep copy polymer: copy wrapped assembly and remap ports."""
-        wrapped = self.unwrap()
-        new_wrapped = wrapped.copy()
-        new_poly = type(self)(new_wrapped)
-
-        # Build entity map by assuming copy preserves iteration order
-        emap: dict[Entity, Entity] = {}
-        for et in wrapped.entities.classes():
-            old_ents = wrapped.entities.bucket(et)
-            new_ents = new_wrapped.entities.bucket(et)
-            if len(old_ents) == len(new_ents):
-                for a, b in zip(old_ents, new_ents):
-                    emap[a] = b
-
-        # Remap ports
-        for name, port in self._ports.items():
-            if port.target in emap:
-                meta = self._port_meta.get(name, {})
-                new_poly.set_port(
-                    name,
-                    emap[port.target],
-                    role=meta.get('role'),
-                    bond_kind=meta.get('bond_kind'),
-                    compat=meta.get('compat'),
-                    multiplicity=meta.get('multiplicity', 1),
-                    priority=meta.get('priority', 0),
-                )
-
-        return new_poly
-
-    def _repr_info(self) -> str:
-        if self._ports:
-            return f"{len(self._ports)} port(s)"
-        return "no ports"
+    def ports(self) -> dict[str, Entity]:
+        """Access ports dictionary (directly modifiable)."""
+        return self._ports
+    
+    def __repr__(self) -> str:
+        """Repr showing polymer ports."""
+        port_names = list(self._ports.keys())
+        return f"<Polymer ports={port_names} wrapping {self.inner!r}>"

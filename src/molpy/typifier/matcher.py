@@ -74,13 +74,16 @@ class ScoringPolicy:
     def default(pattern: SMARTSGraph) -> int:
         """Compute default specificity score for a pattern.
         
+        Uses pattern size (vertices + edges) as specificity metric.
+        Larger patterns are considered more specific.
+        
         Args:
             pattern: SmartsGraph pattern
         
         Returns:
             Specificity score (higher = more specific)
         """
-        return pattern.get_specificity_score()
+        return pattern.vcount() + pattern.ecount()
     
     @staticmethod
     def custom(pattern: SMARTSGraph, 
@@ -175,7 +178,7 @@ class SmartsMatcher:
             
             # Get pattern metadata
             atomtype = pattern.atomtype_name
-            priority = pattern.get_priority() if hasattr(pattern, 'get_priority') else getattr(pattern, '_priority', 0)
+            priority = pattern.priority
             score = self.scoring.default(pattern)
             pattern_size = (pattern.vcount(), pattern.ecount())
             source = pattern.source or f"pattern_{pattern_idx}"
@@ -221,46 +224,14 @@ class SmartsMatcher:
         Returns:
             List of matches, where each match is a list of vertex indices
         """
-        # Use pattern's built-in matching if available
-        if hasattr(pattern, "find_matches"):
-            # Legacy method returns set of first vertex matches
-            # We need full isomorphisms instead
-            pass
-        
         # Build node and edge compatibility functions
         def node_compat(g1, g2, v1, v2):
             """Check if mol vertex v1 matches pattern vertex v2."""
-            host = g1.vs[v1]
-            pattern_v = g2.vs[v2]
-            
-            # Predicate mode
-            if "preds" in pattern_v.attributes():
-                preds = pattern_v["preds"]
-                host_attrs = host.attributes()
-                
-                # Add type information if available
-                if type_assignments is not None and "atom_id" in host_attrs:
-                    atom_id = host_attrs["atom_id"]
-                    if atom_id in type_assignments:
-                        host_attrs["atomtype"] = type_assignments[atom_id]
-                
-                return all(pred(host_attrs) for pred in preds)
-            
-            return True
+            return pattern._node_match_fn(g1, g2, v1, v2)
         
         def edge_compat(g1, g2, e1, e2):
             """Check if mol edge e1 matches pattern edge e2."""
-            host_e = g1.es[e1]
-            pattern_e = g2.es[e2]
-            
-            # Predicate mode
-            if "preds" in pattern_e.attributes():
-                preds = pattern_e["preds"]
-                host_attrs = host_e.attributes()
-                return all(pred(host_attrs) for pred in preds)
-            
-            
-            return True
+            return pattern._edge_match_fn(g1, g2, e1, e2)
         
         # Find all subgraph isomorphisms
         matches = mol_graph.get_subisomorphisms_vf2(

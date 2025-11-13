@@ -1313,7 +1313,7 @@ def create_monomer_from_atom_class_ports(ir: BigSmilesIR) -> Monomer[Atomistic] 
     for class_num, connected_atomir in port_atomirs.items():
         port_name = f"port_{class_num}"
         port_atom = atomir_to_atom[id(connected_atomir)]
-        monomer.set_port(port_name, port_atom)
+        monomer.define_port(port_name, port_atom)
     
     return monomer
 

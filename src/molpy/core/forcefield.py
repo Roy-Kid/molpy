@@ -1,37 +1,11 @@
-from collections import defaultdict
-from typing import Any, TypeVar, Generic, Iterator, Self
+from typing import Any, TypeVar, Self
 from .entity import Entity
+from .utils import TypeBucket
 
-# --- 泛型变量和 TypeBucket 实现 ---
+# --- 泛型变量 ---
 
-T = TypeVar("T")
 S = TypeVar("S", bound="Style")
 Ty = TypeVar("Ty", bound="Type")
-
-def get_nearest_type(item: T) -> type[T]:
-    return type(item)
-
-class TypeBucket(Generic[T]):
-    def __init__(self) -> None:
-        self._items: dict[type[T], set[T]] = defaultdict(set)
-
-    def add(self, item: T) -> None:
-        cls = get_nearest_type(item)
-        self._items[cls].add(item)
-
-    def remove(self, item: T) -> None:
-        cls = get_nearest_type(item)
-        self._items[cls].discard(item)
-
-    def bucket(self, cls: type[T]) -> list[T]:
-        result: list[T] = []
-        for k, items in self._items.items():
-            if issubclass(k, cls):
-                result.extend(items)
-        return result
-
-    def classes(self) -> Iterator[type[T]]:
-        return iter(self._items.keys())
 
 # --- 基础组件 ---
 
@@ -83,7 +57,7 @@ class Style:
     def __init__(self, name: str, *args: Any, **kwargs: Any):
         self.name = name
         self.params = Parameters(*args, **kwargs)
-        self.types = TypeBucket[Type]()
+        self.types: TypeBucket[Type] = TypeBucket(container_type=set)
 
     def __hash__(self) -> int:
         return hash((self.__class__, self.name))
@@ -112,7 +86,7 @@ class ForceField:
     def __init__(self, name: str = "", units: str = "real"):
         self.name = name
         self.units = units
-        self.styles = TypeBucket[Style]()
+        self.styles: TypeBucket[Style] = TypeBucket(container_type=set)
 
     def def_style(self, style_class: type[S], name: str, *args: Any, **kwargs: Any) -> S:
         existing_styles = self.styles.bucket(style_class)
@@ -452,3 +426,6 @@ class AtomisticForcefield(ForceField):
 
     def get_angletypes(self) -> list[AngleType]:
         return self.get_types(AngleType)
+    
+    def get_dihedraltypes(self) -> list[DihedralType]:
+        return self.get_types(DihedralType)

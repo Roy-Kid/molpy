@@ -48,7 +48,7 @@ class LayeredTypingEngine:
         for level in range(max_level + 1):
             level_patterns = self.analyzer.get_patterns_by_level(level)
             # Sort by priority within level (higher first)
-            level_patterns.sort(key=lambda p: -p.get_priority())
+            level_patterns.sort(key=lambda p: -p.priority)
             sorted_patterns.extend(level_patterns)
         
         return sorted_patterns
