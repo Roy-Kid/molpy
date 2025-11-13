@@ -9,7 +9,7 @@ from molpy.core.forcefield import (
     AngleType,
     DihedralType,
 )
-from molpy.core.entity import AssemblyLike
+from molpy.core.entity import StructLike
 from molpy.core.atomistic import Bond, Angle, Dihedral, Atomistic
 from collections import defaultdict
 

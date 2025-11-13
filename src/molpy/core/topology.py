@@ -36,25 +36,28 @@ class Topology(Graph):
 
     @property
     def angles(self):
-        duplicated_angles = np.array(
-            self.get_subisomorphisms_vf2(Graph(3, [[0, 1], [1, 2]]))
-        )
+        angle_matches = self.get_subisomorphisms_vf2(Graph(3, [[0, 1], [1, 2]]))
+        if not angle_matches:
+            return np.array([]).reshape(0, 3)
+        duplicated_angles = np.array(angle_matches)
         mask = duplicated_angles[:, 0] < duplicated_angles[:, 2]
         return duplicated_angles[mask]
 
     @property
     def dihedrals(self):
-        duplicated_dihedrals = np.array(
-            self.get_subisomorphisms_vf2(Graph(4, [[0, 1], [1, 2], [2, 3]]))
-        )
+        dihedral_matches = self.get_subisomorphisms_vf2(Graph(4, [[0, 1], [1, 2], [2, 3]]))
+        if not dihedral_matches:
+            return np.array([]).reshape(0, 4)
+        duplicated_dihedrals = np.array(dihedral_matches)
         mask = duplicated_dihedrals[:, 1] < duplicated_dihedrals[:, 2]
         return duplicated_dihedrals[mask]
 
     @property
     def improper(self):
-        duplicated_impropers = np.array(
-            self.get_subisomorphisms_vf2(Graph(4, [[0, 1], [0, 2], [0, 3]]))
-        )
+        improper_matches = self.get_subisomorphisms_vf2(Graph(4, [[0, 1], [0, 2], [0, 3]]))
+        if not improper_matches:
+            return np.array([]).reshape(0, 4)
+        duplicated_impropers = np.array(improper_matches)
         impropers = np.sort(duplicated_impropers[:, 1:])
         return duplicated_impropers[np.unique(impropers, return_index=True, axis=0)[0]]
 

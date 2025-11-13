@@ -1,28 +1,28 @@
 """
-Polymer wrapper for Assembly objects.
+Polymer wrapper for Struct objects.
 
 Provides port management for polymer structures.
 """
 
-from typing import TypeVar, Self
-from ..entity import Assembly, Entity
+from typing import TypeVar, Self, Any
+from ..entity import Struct, Entity
 from .base import Wrapper
 
-T = TypeVar("T", bound=Assembly)
+T = TypeVar("T", bound=Struct)
 
 
 class Polymer(Wrapper[T]):
     """Wrapper representing a polymer with named connection ports.
     
-    Polymer wraps an Assembly and adds port management functionality
+    Polymer wraps a Struct and adds port management functionality
     for tracking connection points (head, tail, reactive sites, etc.).
     """
 
-    def __init__(self, wrapped: T | Wrapper[T], **props):
+    def __init__(self, wrapped: T | Wrapper[T], **props: Any):
         """Initialize polymer wrapper.
         
         Args:
-            wrapped: Assembly instance or Wrapper to wrap
+            wrapped: Struct instance or Wrapper to wrap
             **props: Additional properties
         """
         super().__init__(wrapped, **props)

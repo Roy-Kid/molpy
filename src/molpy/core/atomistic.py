@@ -1,5 +1,5 @@
-from .entity import ConnectivityMixin, Entity, Assembly, Link, MembershipMixin, SpatialMixin, Entities
-from typing import Any, cast, Self
+from .entity import ConnectivityMixin, Entity, Struct, Link, MembershipMixin, SpatialMixin, Entities
+from typing import Any, cast
 
 
 class Atom(Entity):
@@ -75,7 +75,7 @@ class Dihedral(Link):
         return self.endpoints[3]
 
 
-class Atomistic(Assembly, MembershipMixin, SpatialMixin, ConnectivityMixin):
+class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def __init__(self, **props) -> None:
         super().__init__(**props)
@@ -93,37 +93,21 @@ class Atomistic(Assembly, MembershipMixin, SpatialMixin, ConnectivityMixin):
         self.links.register_type(Angle)
         self.links.register_type(Dihedral)
 
-    def merge(self, other: Assembly) -> Self:
-        """
-        Transfer all entities and links from another assembly into this one.
-        
-        Args:
-            other: Assembly to merge into self
-        
-        Returns:
-            Self for method chaining
-        
-        Example:
-            >>> asm1.merge(asm2)  # Transfers asm2 into asm1
-            >>> # asm2 should not be used after this!
-        """
-        return super().merge(other)
-
     @property
     def atoms(self) -> Entities[Atom]:
-        return self.entities.bucket(Atom)
+        return self.entities[Atom]
 
     @property
     def bonds(self) -> Entities[Bond]:
-        return self.links.bucket(Bond)
+        return self.links[Bond]
     
     @property
     def angles(self) -> Entities[Angle]:
-        return self.links.bucket(Angle)
+        return self.links[Angle]
     
     @property
     def dihedrals(self) -> Entities[Dihedral]:
-        return self.links.bucket(Dihedral)
+        return self.links[Dihedral]
 
     @property
     def symbols(self) -> list[str]:

@@ -253,8 +253,11 @@ class Reacter:
             })
         
         # Step 5: Remove leaving groups from MERGED assembly
-        leaving_L = self.leaving_left(left, anchor_L)
-        leaving_R = self.leaving_right(right, anchor_R)
+        # IMPORTANT: After merge, right_asm's entities are moved to left_asm,
+        # so we need to wrap left_asm in a temporary monomer for the selector
+        merged_monomer = Monomer(left_asm)
+        leaving_L = self.leaving_left(merged_monomer, anchor_L)
+        leaving_R = self.leaving_right(merged_monomer, anchor_R)
         
         if intermediates is not None:
             intermediates.append({

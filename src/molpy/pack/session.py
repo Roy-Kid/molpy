@@ -25,4 +25,5 @@ class Session:
     def optimize(self, max_steps: int = 1000, seed: int | None = None):
         if seed is None:
             seed = random.randint(1, 10000)
-        return self.packer.pack(self.targets, max_steps=max_steps, seed=seed)
+        # Use __call__ method instead of legacy pack() method
+        return self.packer(self.targets, max_steps=max_steps, seed=seed)

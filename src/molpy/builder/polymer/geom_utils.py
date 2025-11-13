@@ -139,7 +139,7 @@ def infer_orientation(port: "Port") -> list[float]:
         if orient is not None and len(orient) == 3:
             return _unit(orient)
     
-    # Fallback: arbitrary direction (proper connectivity inference needs Assembly API)
+    # Fallback: arbitrary direction (proper connectivity inference needs Struct API)
     return [1.0, 0.0, 0.0]
 
 

@@ -1,52 +1,122 @@
 """
-Base wrapper class for Assembly objects.
+Base wrapper class for Struct objects.
 
-Provides recursive unwrapping and transparent delegation to wrapped assemblies.
+Provides a semi-transparent wrapper design:
+- Internally: composition (holds `inner` object)
+- Externally: explicit forwarding of selected APIs (no generic __getattr__)
+
+Subclasses should explicitly forward the methods/properties they want to expose
+from the inner object, rather than relying on automatic delegation.
 """
 
-from typing import Any, Generic, TypeVar, Self
-from ..entity import Assembly
+from __future__ import annotations
 
-T = TypeVar("T", bound=Assembly)
+from typing import Any, Generic, Protocol, Self, TypeVar, runtime_checkable
+from copy import deepcopy
+
+from ..entity import Struct
+
+# Type variable for the inner type (bound to Struct)
+TInner = TypeVar("TInner", bound=Struct)
 
 
-class Wrapper(Generic[T]):
-    """
-    Base wrapper class for Assembly objects.
+@runtime_checkable
+class DictLike(Protocol):
+    """Protocol for objects with dict-like property access.
     
-    Provides:
-    - Recursive unwrapping: automatically unwraps nested wrappers to innermost Assembly
-    - Transparent delegation: forwards attribute/method access to wrapped object
-    - Type preservation: wrappers maintain identity semantics
+    This protocol defines common dict-like methods that wrappers may choose
+    to explicitly forward from their inner objects.
+    
+    Note: This protocol focuses on dict-like access methods that are
+    commonly forwarded. Properties like `entities` and `links` are not
+    included as they are specific to Struct types.
+    
+    The return types use object instead of Any for better type safety
+    while maintaining flexibility for property values.
+    """
+    
+    def copy(self) -> object: ...
+    
+    def __getitem__(self, key: str) -> object: ...
+    
+    def __setitem__(self, key: str, value: object) -> None: ...
+    
+    def __contains__(self, key: str) -> bool: ...
+    
+    def get(self, key: str, default: object | None = None) -> object: ...
+
+
+# Make Wrapper satisfy DictLike protocol by ensuring it has the required methods
+# The base Wrapper class already implements __getitem__, __setitem__, __contains__, get, and copy
+
+
+class Wrapper(Generic[TInner]):
+    """
+    Base wrapper class for Struct objects.
+    
+    This is a **semi-transparent wrapper** that uses composition internally
+    and requires explicit forwarding of inner APIs. It does NOT automatically
+    forward all attributes via `__getattr__`.
+    
+    Design principles:
+    - **Composition over inheritance**: The wrapper holds an `inner` object
+    - **Explicit forwarding**: Subclasses should explicitly forward selected
+      methods/properties from `inner` by writing wrapper methods that delegate
+    - **Type safety**: Uses generics to preserve type information about the inner object
     
     Type parameter:
-        T: The type of Assembly being wrapped (bound to Assembly)
+        TInner: The type of Struct being wrapped (bound to Struct)
+    
+    Example:
+        >>> class Monomer(Wrapper[Atomistic]):
+        ...     def __init__(self, inner: Atomistic, name: str):
+        ...         super().__init__(inner)
+        ...         self.name = name
+        ...     
+        ...     # Explicitly forward selected properties
+        ...     @property
+        ...     def n_atoms(self) -> int:
+        ...         return len(self.inner.atoms)
+        ...     
+        ...     @property
+        ...     def positions(self):
+        ...         return self.inner.positions
+        ...     
+        ...     def copy(self) -> "Monomer":
+        ...         return Monomer(self.inner.copy(), self.name)
     """
     
-    inner: Assembly  # The innermost wrapped Assembly (runtime type)
+    __slots__ = ("_inner",)
     
-    def __init__(self, wrapped: T | "Wrapper[T]", **props):
-        """Initialize wrapper by recursively unwrapping to innermost Assembly.
+    def __init__(self, inner: TInner | Wrapper[TInner], **props: Any) -> None:
+        """Initialize wrapper by recursively unwrapping to innermost Struct.
         
         Args:
-            wrapped: Either a concrete Assembly instance or another Wrapper
+            inner: Either a concrete Struct instance or another Wrapper.
+                  Nested wrappers are automatically unwrapped to find the
+                  innermost Struct.
             **props: Additional properties (passed to __post_init__)
         
         The wrapper automatically unwraps nested wrappers to find the innermost
-        Assembly, storing it in `self.inner`.
+        Struct, storing it in `self._inner`.
         """
-        # Recursively unwrap to innermost Assembly
-        current = wrapped
+        # Recursively unwrap to innermost Struct
+        current: TInner | Wrapper[TInner] = inner
         while isinstance(current, Wrapper):
-            current = current.inner
+            current = current._inner
         
-        # Store innermost instance
-        self.inner = current
+        # Store innermost Struct instance
+        object.__setattr__(self, "_inner", current)
         
         # Call post-init hook for subclass initialization
-        self.__post_init__(**props)
+        remaining_props = self.__post_init__(**props)
+        
+        # Pass remaining props to inner if any
+        if remaining_props:
+            for key, value in remaining_props.items():
+                self._inner[key] = value
     
-    def __post_init__(self, **props):
+    def __post_init__(self, **props) -> dict[str, Any] | None:
         """Post-initialization hook for subclass setup.
         
         Override this in subclasses to:
@@ -62,92 +132,85 @@ class Wrapper(Generic[T]):
         """
         return props
     
-    def unwrap(self) -> T:
-        """Return the innermost wrapped Assembly.
+    @property
+    def inner(self) -> TInner:
+        """Access the wrapped inner object.
         
         Returns:
-            The innermost Assembly instance (after all unwrapping)
+            The innermost wrapped Struct instance (after all unwrapping)
         """
-        return self.inner  # type: ignore[return-value]
+        return self._inner
     
-    def __getattr__(self, name: str):
-        """Delegate attribute/method access to inner object.
+    def unwrap(self) -> TInner:
+        """Return the innermost wrapped Struct.
         
-        This enables transparent delegation of all undefined methods/attributes
-        to the wrapped Assembly. Only methods explicitly defined in wrapper
-        subclasses will not be delegated.
+        This is an alias for the `inner` property for API clarity.
+        
+        Returns:
+            The innermost Struct instance (after all unwrapping)
+        """
+        return self._inner
+    
+    def with_inner(self, inner: TInner) -> Self:
+        """Create a new wrapper instance with a different inner object.
+        
+        This is useful for creating modified wrappers while preserving
+        wrapper-specific state.
         
         Args:
-            name: Attribute or method name to access
+            inner: New inner object to wrap
             
         Returns:
-            The attribute/method from inner object
-            
-        Raises:
-            AttributeError: If inner object doesn't have the attribute
+            A new wrapper instance of the same type with the new inner object
         """
-        # First try dict-like access (for Assembly props)
-        if hasattr(self.inner, '__getitem__') and hasattr(self.inner, '__contains__'):
-            if name in self.inner:
-                return self.inner[name]
+        # Create new instance without calling __init__ to avoid double unwrapping
+        new_wrapper = object.__new__(type(self))
+        object.__setattr__(new_wrapper, "_inner", inner)
         
-        # Then try regular attribute access
-        try:
-            return getattr(self.inner, name)
-        except AttributeError:
-            raise AttributeError(
-                f"{type(self).__name__} has no attribute {name!r}"
-            )
+        # Copy wrapper-specific attributes (excluding _inner)
+        # Handle both __slots__ and __dict__ cases
+        if hasattr(self, "__dict__"):
+            for key, value in self.__dict__.items():
+                if key != "_inner":
+                    object.__setattr__(new_wrapper, key, deepcopy(value))
+        
+        # Also copy __slots__ attributes (excluding _inner)
+        if hasattr(type(self), "__slots__"):
+            for slot in type(self).__slots__:
+                if slot != "_inner" and hasattr(self, slot):
+                    try:
+                        value = getattr(self, slot)
+                        object.__setattr__(new_wrapper, slot, deepcopy(value))
+                    except AttributeError:
+                        pass
+        
+        return new_wrapper
     
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Set attribute on wrapper or delegate to inner.
-        
-        Private attributes (starting with _) and wrapper-specific attributes
-        are set on the wrapper itself. Other attributes are delegated to inner.
-        
-        Args:
-            name: Attribute name
-            value: Value to set
-        """
-        # Private attributes and 'inner' always go to wrapper
-        if name.startswith("_") or name == "inner":
-            super().__setattr__(name, value)
-            return
-        
-        # If attribute exists in wrapper's __dict__, update it
-        try:
-            wrapper_dict = object.__getattribute__(self, "__dict__")
-            if name in wrapper_dict:
-                super().__setattr__(name, value)
-                return
-        except AttributeError:
-            pass
-        
-        # Try to set in inner (dict-like first, then attribute)
-        if hasattr(self.inner, '__setitem__'):
-            self.inner[name] = value
-        else:
-            setattr(self.inner, name, value)
+    # Dict-like access: These are explicitly forwarded for convenience
+    # since Struct supports dict-like access to props
     
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> object:
         """Delegate dict-style access to inner object.
         
         Args:
             key: Key to access
             
         Returns:
-            Value from inner object
+            Value from inner object's props
+            
+        Raises:
+            KeyError: If key doesn't exist in inner
         """
-        return self.inner[key]
+        return self._inner[key]
     
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         """Delegate dict-style write to inner object.
         
         Args:
             key: Key to set
             value: Value to assign
         """
-        self.inner[key] = value
+        self._inner[key] = value
     
     def __contains__(self, key: str) -> bool:
         """Check if key exists in inner object.
@@ -158,9 +221,9 @@ class Wrapper(Generic[T]):
         Returns:
             True if key exists in inner
         """
-        return key in self.inner
+        return key in self._inner
     
-    def get(self, key: str, default=None):
+    def get(self, key: str, default: object | None = None) -> object:
         """Get value from inner with default.
         
         Args:
@@ -170,37 +233,69 @@ class Wrapper(Generic[T]):
         Returns:
             Value from inner or default
         """
-        return self.inner.get(key, default)
+        return self._inner.get(key, default)
     
-    def copy(self: Self) -> Self:
+    def copy(self) -> Self:
         """Create a deep copy of the wrapper and its wrapped entity.
         
         Returns:
-            A new wrapper instance with deep-copied inner Assembly
+            A new wrapper instance with deep-copied inner Struct.
+            Wrapper-specific attributes are also deep-copied.
         """
-        import copy as copy_module
-        
         # Deep copy the inner
-        new_inner = copy_module.deepcopy(self.inner)
+        new_inner = deepcopy(self._inner)
         
         # Create new wrapper with copied inner
         new_wrapper = type(self)(new_inner)  # type: ignore[arg-type]
         
-        # Copy wrapper-specific attributes
-        for key, value in self.__dict__.items():
-            if key != 'inner':
-                new_wrapper.__dict__[key] = copy_module.deepcopy(value)
+        # Copy wrapper-specific attributes (excluding _inner which is already set)
+        # Handle both __slots__ and __dict__ cases
+        if hasattr(self, "__dict__"):
+            for key, value in self.__dict__.items():
+                if key != "_inner":
+                    if hasattr(new_wrapper, "__dict__"):
+                        new_wrapper.__dict__[key] = deepcopy(value)
+                    else:
+                        object.__setattr__(new_wrapper, key, deepcopy(value))
+        
+        # Also copy __slots__ attributes (excluding _inner)
+        if hasattr(type(self), "__slots__"):
+            for slot in type(self).__slots__:
+                if slot != "_inner" and hasattr(self, slot):
+                    try:
+                        value = getattr(self, slot)
+                        object.__setattr__(new_wrapper, slot, deepcopy(value))
+                    except AttributeError:
+                        pass
         
         return new_wrapper
     
-    def __call__(self) -> Self:
-        """Calling a wrapper creates a deep copy.
-        
-        Returns:
-            New wrapper with copied structure
-        """
-        return self.copy()
-    
     def __repr__(self) -> str:
         """Simple representation showing wrapper type and wrapped object."""
-        return f"<{type(self).__name__} wrapping {self.inner!r}>"
+        return f"<{type(self).__name__} wrapping {self._inner!r}>"
+    
+    def __eq__(self, other: object) -> bool:
+        """Equality comparison.
+        
+        Two wrappers are equal if they are of the same type and their
+        inner objects are equal.
+        
+        Args:
+            other: Object to compare with
+            
+        Returns:
+            True if wrappers are equal, False otherwise
+        """
+        if not isinstance(other, type(self)):
+            return False
+        return self._inner == other._inner
+    
+    def __hash__(self) -> int:
+        """Hash based on wrapper type and inner object.
+        
+        Returns:
+            Hash value
+        """
+        return hash((type(self), self._inner))
+
+

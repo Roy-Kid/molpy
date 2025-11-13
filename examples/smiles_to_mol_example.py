@@ -7,8 +7,11 @@ This example shows how to:
 3. Visualize molecules using draw_molecule
 """
 
+from rdkit.Chem import Draw
+
+from molpy.adapter.converter import convert
+from molpy.adapter.rdkit_adapter import RDKitWrapper
 from molpy.parser.smiles import SmilesParser, smilesir_to_mol
-from molpy.adapter.rdkit_adapter import draw_molecule
 
 # Create parser
 parser = SmilesParser()
@@ -44,18 +47,26 @@ print(f"Carbon-13: isotope={c_atom.GetIsotope()}")
 print("\n=== Example 5: Visualization ===")
 print("Drawing molecules...")
 
-# Draw from IR
+# Draw from IR using RDKitWrapper
 aspirin_smiles = "CC(=O)Oc1ccccc1C(=O)O"
 aspirin_ir = parser.parse_smiles(aspirin_smiles)
-img1 = draw_molecule(aspirin_ir, size=(400, 300))
-print(f"Aspirin from IR: {img1.size}")
+aspirin_view = convert(aspirin_ir, RDKitWrapper)
+aspirin_img = Draw.MolToImage(aspirin_view.mol, size=(400, 300))
+print(f"Aspirin from IR: {aspirin_img.size}")
 
 # Draw from SMILES string directly
-img2 = draw_molecule("c1ccccc1", size=(300, 300), show_atom_idx=True)
-print(f"Benzene with atom indices: {img2.size}")
+benzene_ir = parser.parse_smiles("c1ccccc1")
+benzene_view = convert(benzene_ir, RDKitWrapper)
+benzene_img = Draw.MolToImage(benzene_view.mol, size=(300, 300))
+print(f"Benzene (2D depiction): {benzene_img.size}")
 
 # Draw with highlights
-img3 = draw_molecule("CCO", highlight_atoms=[1, 2])
-print(f"Ethanol with highlights: {img3.size}")
+ethanol_ir = parser.parse_smiles("CCO")
+ethanol_view = convert(ethanol_ir, RDKitWrapper)
+drawer = Draw.MolDraw2DCairo(300, 300)
+Draw.rdMolDraw2D.PrepareMolForDrawing(ethanol_view.mol)
+drawer.DrawMolecule(ethanol_view.mol, highlightAtoms=[1, 2])
+drawer.FinishDrawing()
+print(f"Ethanol highlighted image bytes: {len(drawer.GetDrawingText())}")
 
 print("\n✓ All examples completed successfully!")

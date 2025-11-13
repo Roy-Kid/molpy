@@ -1,5 +1,5 @@
 """
-Connector interface for integrating Reacter with PolymerBuilder.
+Connector interface for integrating Reacter with the linear polymer builder.
 
 This module provides connectors that use Reacter for polymer assembly,
 allowing flexible reaction specification with default and specialized reactors.

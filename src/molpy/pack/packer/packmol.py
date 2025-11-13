@@ -360,34 +360,15 @@ class Packmol(Packer, PackmolComponent):
         self._generate_input(targets, max_steps, seed, workdir)
         return workdir / ".packmol.inp"
 
-    # Legacy method for backward compatibility
     def pack(
         self,
         targets: list[mpk.Target] | None = None,
         max_steps: int = 1000,
         seed: int | None = None,
     ) -> Frame:
-        """Legacy pack method for backward compatibility."""
-        if targets is None:
-            targets = self.targets
-        if seed is None:
-            seed = 4628
-
-        # Generate input
-        self._generate_input(targets, max_steps, seed, self.workdir)
-
-        # Run packmol directly (not as generator)
-        submitor = molq.LocalSubmitor("local", {})
-        submitor.local_submit(
-            job_name="packmol",
-            cmd="packmol < .packmol.inp > .packmol.out",
-            cwd=self.workdir,
-            block=True,
-        )
-
-        # Read results and clean up
-        optimized_frame = self._read_packmol_output(self.workdir)
-        self._cleanup_intermediate_files(self.workdir)
-
-        # Build and return final frame
-        return self._build_final_frame(targets, optimized_frame, self.workdir)
+        """Pack molecules using Packmol.
+        
+        This method implements the abstract pack() method from Packer base class.
+        It delegates to __call__() for the actual implementation.
+        """
+        return self(targets, max_steps=max_steps, seed=seed)

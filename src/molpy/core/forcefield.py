@@ -1,11 +1,37 @@
-from typing import Any, TypeVar, Self
+from collections import defaultdict
+from typing import Any, TypeVar, Generic, Iterator, Self
 from .entity import Entity
-from .utils import TypeBucket
 
-# --- 泛型变量 ---
+# --- 泛型变量和 TypeBucket 实现 ---
 
+T = TypeVar("T")
 S = TypeVar("S", bound="Style")
 Ty = TypeVar("Ty", bound="Type")
+
+def get_nearest_type(item: T) -> type[T]:
+    return type(item)
+
+class TypeBucket(Generic[T]):
+    def __init__(self) -> None:
+        self._items: dict[type[T], set[T]] = defaultdict(set)
+
+    def add(self, item: T) -> None:
+        cls = get_nearest_type(item)
+        self._items[cls].add(item)
+
+    def remove(self, item: T) -> None:
+        cls = get_nearest_type(item)
+        self._items[cls].discard(item)
+
+    def bucket(self, cls: type[T]) -> list[T]:
+        result: list[T] = []
+        for k, items in self._items.items():
+            if issubclass(k, cls):
+                result.extend(items)
+        return result
+
+    def classes(self) -> Iterator[type[T]]:
+        return iter(self._items.keys())
 
 # --- 基础组件 ---
 
@@ -57,7 +83,7 @@ class Style:
     def __init__(self, name: str, *args: Any, **kwargs: Any):
         self.name = name
         self.params = Parameters(*args, **kwargs)
-        self.types: TypeBucket[Type] = TypeBucket(container_type=set)
+        self.types = TypeBucket[Type]()
 
     def __hash__(self) -> int:
         return hash((self.__class__, self.name))
@@ -86,7 +112,7 @@ class ForceField:
     def __init__(self, name: str = "", units: str = "real"):
         self.name = name
         self.units = units
-        self.styles: TypeBucket[Style] = TypeBucket(container_type=set)
+        self.styles = TypeBucket[Style]()
 
     def def_style(self, style_class: type[S], name: str, *args: Any, **kwargs: Any) -> S:
         existing_styles = self.styles.bucket(style_class)
@@ -128,46 +154,15 @@ class ForceField:
 # ===================================================================
 
 class AtomType(Type):
-    
-    @property
-    def is_wildcard(self) -> bool:
-        """Check if this is a wildcard atom type (* or empty string)."""
-        return self.name in ("*", "")
-    
-    @property
-    def class_name(self) -> str:
-        """Get the class name for this atom type."""
-        # Check both 'class_name' and 'class_' for compatibility
-        return self.params.kwargs.get("class_name", 
-                                      self.params.kwargs.get("class_", self.name))
-    
-    def __eq__(self, other: object) -> bool:
-        """Wildcard matching: wildcards match any atom type."""
-        if not isinstance(other, AtomType):
-            return False
-        # If either is wildcard, they match
-        if self.is_wildcard or other.is_wildcard:
-            return True
-        # Otherwise check name equality
-        return self.name == other.name
-    
-    def __hash__(self) -> int:
-        """Wildcards all hash to the same value."""
-        if self.is_wildcard:
-            return hash("__WILDCARD__")
-        return hash(self.name)
 
     def __repr__(self) -> str:
-        if self.is_wildcard:
-            return f"<{self.__class__.__name__}: WILDCARD({self.name!r})>"
         return f"<{self.__class__.__name__}: {self.name}>"
 
 class BondType(Type):
     """键类型，由两个原子类型定义"""
     
     def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", **kwargs: Any):
-        # Store atom types in args for backward compatibility
-        super().__init__(name, itom, jtom, **kwargs)
+        super().__init__(name, **kwargs)
         self.itom = itom
         self.jtom = jtom
     
@@ -184,8 +179,7 @@ class AngleType(Type):
     """角类型，由三个原子类型定义"""
     
     def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", ktom: "AtomType", **kwargs: Any):
-        # Store atom types in args for backward compatibility
-        super().__init__(name, itom, jtom, ktom, **kwargs)
+        super().__init__(name, **kwargs)
         self.itom = itom
         self.jtom = jtom
         self.ktom = ktom
@@ -209,8 +203,7 @@ class DihedralType(Type):
     
     def __init__(self, name: str, itom: "AtomType", jtom: "AtomType", 
                  ktom: "AtomType", ltom: "AtomType", **kwargs: Any):
-        # Store atom types in args for backward compatibility
-        super().__init__(name, itom, jtom, ktom, ltom, **kwargs)
+        super().__init__(name, **kwargs)
         self.itom = itom
         self.jtom = jtom
         self.ktom = ktom
@@ -426,6 +419,3 @@ class AtomisticForcefield(ForceField):
 
     def get_angletypes(self) -> list[AngleType]:
         return self.get_types(AngleType)
-    
-    def get_dihedraltypes(self) -> list[DihedralType]:
-        return self.get_types(DihedralType)

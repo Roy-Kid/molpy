@@ -4,6 +4,7 @@ Simplified linear polymer builder.
 Key: Retypify ONCE after all connections (not per step).
 """
 
+import warnings
 from typing import Mapping, cast
 from ...core.wrappers.monomer import Monomer
 from ...core.wrappers.polymer import Polymer
@@ -168,7 +169,19 @@ def linear(
         
         # Generate angles and dihedrals
         final_product.get_topo(gen_angle=True, gen_dihe=True)
-        # Typify everything
-        typifier.typify(final_product)
+
+        # Ensure atom types are up to date before running higher-order typers
+        atom_typifier = getattr(typifier, "atom_typifier", None)
+        if atom_typifier is not None:
+            atom_typifier.typify(final_product)
+
+        # Typify everything (best-effort)
+        try:
+            typifier.typify(final_product)
+        except Exception as exc:  # pragma: no cover - warn but continue
+            warnings.warn(
+                f"linear(): typifier {typifier.__class__.__name__} failed: {exc}",
+                RuntimeWarning,
+            )
     
     return current_polymer

@@ -1,14 +1,14 @@
 """
-Monomer wrapper for Assembly objects.
+Monomer wrapper for Struct objects.
 
 Provides port definition management for monomer units.
 """
 
-from ..entity import Entity, Assembly
+from ..entity import Entity, Struct
 from .base import Wrapper
-from typing import TypeVar, Self
+from typing import TypeVar, Self, Any
 
-T = TypeVar("T", bound=Assembly)
+T = TypeVar("T", bound=Struct)
 
 
 class Port(Entity):
@@ -23,7 +23,7 @@ class Port(Entity):
         
     **Extended Usage (for automatic builders):**
         Optional metadata (role, bond_kind, etc.) can be provided for
-        automatic port selection in PolymerBuilder.
+        automatic port selection in ``molpy.builder.polymer.linear()``.
     
     Attributes:
         name: Port identifier (e.g., 'in', 'out', 'port_1')
@@ -38,7 +38,7 @@ class Port(Entity):
         >>> # Minimal usage for Reacter
         >>> port = Port('head', carbon_atom)
         >>> 
-        >>> # Extended usage for PolymerBuilder
+        >>> # Extended usage for automatic builders
         >>> port = Port('head', carbon_atom, role='left', bond_kind='-')
     """
     
@@ -128,15 +128,15 @@ class Port(Entity):
 class Monomer(Wrapper[T]):
     """Wrapper representing a monomer unit with port definitions.
     
-    Monomer wraps an Assembly and adds port definition management
+    Monomer wraps a Struct and adds port definition management
     for tracking reactive sites and connection points.
     """
     
-    def __init__(self, wrapped: T | Wrapper[T], **props):
+    def __init__(self, wrapped: T | Wrapper[T], **props: Any):
         """Initialize monomer wrapper.
         
         Args:
-            wrapped: Assembly instance or Wrapper to wrap
+            wrapped: Struct instance or Wrapper to wrap
             **props: Additional properties
         """
         super().__init__(wrapped, **props)
@@ -219,6 +219,40 @@ class Monomer(Wrapper[T]):
         """
         return self.get_port_def(name)
     
+    def set_port(
+        self,
+        name: str,
+        target: Entity,
+        *,
+        role: str | None = None,
+        bond_kind: str | None = None,
+        compat: set[str] | str | None = None,
+        multiplicity: int | None = None,
+        priority: int | None = None,
+    ) -> Self:
+        """Set a port (alias for define_port for API consistency with Polymer).
+        
+        Args:
+            name: Port identifier
+            target: Entity at this port
+            role: (Optional) Port role
+            bond_kind: (Optional) Bond type
+            compat: (Optional) Compatibility specification
+            multiplicity: (Optional) Connection count limit
+            priority: (Optional) Selection priority
+            
+        Returns:
+            Self for method chaining
+        """
+        return self.define_port(
+            name, target,
+            role=role,
+            bond_kind=bond_kind,
+            compat=compat,
+            multiplicity=multiplicity,
+            priority=priority,
+        )
+    
     @property
     def port_defs(self) -> dict[str, Port]:
         """Access port definitions dictionary (directly modifiable)."""
@@ -240,7 +274,7 @@ class Monomer(Wrapper[T]):
         """
         import copy as copy_module
         
-        # Deep copy the inner assembly
+        # Deep copy the inner struct
         old_inner = self.inner
         new_inner = copy_module.deepcopy(old_inner)
         
@@ -277,3 +311,13 @@ class Monomer(Wrapper[T]):
         """Repr showing monomer port definitions."""
         port_names = list(self._port_defs.keys())
         return f"<Monomer port_defs={port_names} wrapping {self.inner!r}>"
+
+    def as_rdkit(self) -> "RDKitWrapper":
+        """返回新的 RDKitWrapper 视图。"""
+        from molpy.adapter.rdkit_adapter import RDKitWrapper
+
+        return RDKitWrapper.from_atomistic(self.unwrap())
+
+    def port_names(self) -> list[str]:
+        """Return defined port names."""
+        return list(self._port_defs.keys())

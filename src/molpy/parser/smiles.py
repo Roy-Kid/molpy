@@ -767,6 +767,149 @@ class SmilesParser(GrammarParserBase):
             return BigSmilesIR(atoms=[], bonds=[], chain=chain)
 
 
+# ===================================================================
+#   Converter: SmilesIR -> RDKit Mol
+# ===================================================================
+
+
+def smilesir_to_mol(ir: SmilesIR) -> "Chem.Mol":
+    """
+    Convert SmilesIR to RDKit Mol by directly constructing the molecule graph.
+
+    This approach preserves IR-specific information and supports extended syntax
+    (BigSMILES, G-BigSMILES) where explicit topology is essential.
+
+    Args:
+        ir: SmilesIR instance with atoms and bonds
+
+    Returns:
+        RDKit Mol object
+
+    Raises:
+        ImportError: if RDKit is not available
+        ValueError: if IR contains invalid molecular data
+
+    Example:
+        >>> parser = SmilesParser()
+        >>> ir = parser.parser_smiles("CCO")
+        >>> mol = smilesir_to_mol(ir)
+        >>> mol.GetNumAtoms()
+        3
+    """
+    assert isinstance(ir, SmilesIR), "Input must be a SmilesIR instance"
+
+    try:
+        from rdkit import Chem
+    except ImportError as e:
+        raise ImportError("RDKit is required for smilesir_to_mol conversion") from e
+
+    if not ir.atoms:
+        # Empty molecule
+        return Chem.Mol()
+
+    # Bond type mapping
+    bond_type_map = {
+        "-": Chem.BondType.SINGLE,
+        "=": Chem.BondType.DOUBLE,
+        "#": Chem.BondType.TRIPLE,
+        ":": Chem.BondType.AROMATIC,
+        "/": Chem.BondType.SINGLE,  # Stereochemistry, treat as single for now
+        "\\": Chem.BondType.SINGLE,  # Stereochemistry, treat as single for now
+    }
+
+    # Create editable molecule
+    mol = Chem.RWMol()
+
+    # Map AtomIR -> RDKit atom index (using object identity)
+    atom_to_idx: dict[int, int] = {}
+
+    # Add atoms
+    for atom_ir in ir.atoms:
+        # Handle aromatic symbols (lowercase in SMILES → uppercase + aromatic flag)
+        symbol = atom_ir.symbol.upper() if atom_ir.symbol.islower() else atom_ir.symbol
+        is_aromatic = atom_ir.symbol.islower()
+
+        # Create RDKit atom
+        rdkit_atom = Chem.Atom(symbol)
+
+        # Set properties
+        if atom_ir.charge is not None:
+            rdkit_atom.SetFormalCharge(atom_ir.charge)
+
+        if atom_ir.isotope is not None:
+            rdkit_atom.SetIsotope(atom_ir.isotope)
+
+        if atom_ir.h_count is not None:
+            rdkit_atom.SetNumExplicitHs(atom_ir.h_count)
+
+        # Handle chirality
+        if atom_ir.chiral is not None:
+            if atom_ir.chiral == "@":
+                rdkit_atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CCW)
+            elif atom_ir.chiral == "@@":
+                rdkit_atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CW)
+            # Other chiral tags can be added as needed
+
+        # Set aromaticity
+        if is_aromatic:
+            rdkit_atom.SetIsAromatic(True)
+
+        # Add atom and store mapping (use id() for object identity)
+        atom_idx = mol.AddAtom(rdkit_atom)
+        atom_to_idx[id(atom_ir)] = atom_idx
+
+    # Add bonds
+    for bond_ir in ir.bonds:
+        start_idx = atom_to_idx.get(id(bond_ir.start))
+        end_idx = atom_to_idx.get(id(bond_ir.end))
+
+        if start_idx is None or end_idx is None:
+            raise ValueError(f"Bond references unknown atom: {bond_ir}")
+
+        # Determine bond type (upgrade single bonds between aromatic atoms to aromatic)
+        bond_type_str = bond_ir.bond_type
+        if (
+            bond_type_str == "-"
+            and bond_ir.start.symbol.islower()
+            and bond_ir.end.symbol.islower()
+        ):
+            # Single bond between aromatic atoms → aromatic bond
+            bond_type = Chem.BondType.AROMATIC
+        else:
+            bond_type = bond_type_map.get(bond_type_str)
+            if bond_type is None:
+                raise ValueError(f"Unknown bond type: {bond_type_str}")
+
+        mol.AddBond(start_idx, end_idx, bond_type)
+
+    # Convert to immutable Mol
+    final_mol = mol.GetMol()
+
+    # Sanitize molecule (compute aromaticity, implicit Hs, etc.)
+    try:
+        Chem.SanitizeMol(final_mol)
+    except Exception as e:
+        # If sanitization fails, return unsanitized molecule with warning
+        import warnings
+
+        warnings.warn(
+            f"Molecule sanitization failed: {e}. Returning unsanitized molecule."
+        )
+
+    return final_mol
+
+
+# Register converter if RDKit and adapter are available
+try:
+    from rdkit import Chem
+
+    from molpy.adapter.registry import REG
+
+    REG.register(SmilesIR, Chem.Mol, smilesir_to_mol)
+except ImportError:
+    pass  # RDKit or adapter not available, skip registration
+
+
 @dataclass
 class PolymerSegment:
     """
@@ -829,7 +972,6 @@ class PolymerSpec:
             self.all_monomers = [
                 monomer for segment in self.segments for monomer in segment.monomers
             ]
-
 
 def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
     """
@@ -1313,7 +1455,6 @@ def create_monomer_from_atom_class_ports(ir: BigSmilesIR) -> Monomer[Atomistic] 
     for class_num, connected_atomir in port_atomirs.items():
         port_name = f"port_{class_num}"
         port_atom = atomir_to_atom[id(connected_atomir)]
-        monomer.define_port(port_name, port_atom)
+        monomer.set_port(port_name, port_atom)
     
     return monomer
-

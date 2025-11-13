@@ -8,12 +8,10 @@ This example shows how to:
 4. Access the generated coordinates
 """
 
-from molpy.parser.smiles import SmilesParser
-from molpy.core.wrappers.monomer import Monomer
-from molpy.adapter.rdkit_adapter import generate_3d_coords, draw_molecule
 from molpy.adapter.converter import convert
-from rdkit import Chem
 from molpy.core.atomistic import Atomistic
+from molpy.core.wrappers.monomer import Monomer
+from molpy.parser.smiles import SmilesParser
 
 
 def create_monomer_with_3d(smiles: str, optimize: bool = True) -> Monomer:
@@ -31,15 +29,16 @@ def create_monomer_with_3d(smiles: str, optimize: bool = True) -> Monomer:
     parser = SmilesParser()
     smiles_ir = parser.parse_smiles(smiles)
     
-    # Convert to Atomistic via RDKit
-    mol = convert(smiles_ir, Chem.Mol)
-    atomistic = convert(mol, Atomistic)
+    # Convert to Atomistic via registered converters
+    atomistic = convert(smiles_ir, Atomistic)
     
     # Wrap in Monomer
     monomer = Monomer(atomistic)
     
     # Generate 3D coordinates
-    generate_3d_coords(monomer, optimize=optimize)
+    view = monomer.as_rdkit()
+    view.embed_3d(optimize=optimize)
+    view.flush_coords_back()
     
     return monomer
 

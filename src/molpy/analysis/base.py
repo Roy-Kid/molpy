@@ -285,7 +285,3 @@ class BinaryCompute(Compute):
             The second dependency compute.
         """
         return self._deps[1]
-
-
-# Compatibility alias for existing code
-ComputeBase = Compute

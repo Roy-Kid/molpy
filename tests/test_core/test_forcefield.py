@@ -110,8 +110,8 @@ class TestBondType:
         at2 = AtomType("CB")
         bt = BondType("CA-CB", at1, at2, k=1000.0, r0=1.5)
         assert bt.name == "CA-CB"
-        assert at1 in bt.params.args
-        assert at2 in bt.params.args
+        assert bt.itom == at1
+        assert bt.jtom == at2
         assert bt.params.kwargs["k"] == 1000.0
         assert bt.params.kwargs["r0"] == 1.5
 
@@ -126,9 +126,9 @@ class TestAngleType:
         at3 = AtomType("CC")
         angle = AngleType("CA-CB-CC", at1, at2, at3, k=500.0, theta0=120.0)
         assert angle.name == "CA-CB-CC"
-        assert at1 in angle.params.args
-        assert at2 in angle.params.args
-        assert at3 in angle.params.args
+        assert angle.itom == at1
+        assert angle.jtom == at2
+        assert angle.ktom == at3
         assert angle.params.kwargs["k"] == 500.0
         assert angle.params.kwargs["theta0"] == 120.0
 

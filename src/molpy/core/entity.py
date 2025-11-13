@@ -71,10 +71,8 @@ class Link[T: Entity](UserDict):
         return id(self)
 
 
-# ---------- Entity protocol (customize to your real API) ----------
-class EntityLike(Protocol):
-    def get(self, key: str) -> Any: ...
-    # Replace with your actual interface (e.g., __getitem__, attributes, etc.)
+# Note: EntityLike is already defined above (line 18), removing duplicate definition
+# The first definition is the canonical one with full protocol methods
 
 E = TypeVar("E", bound=EntityLike)
 U = TypeVar("U", bound=E)
@@ -88,9 +86,9 @@ class Entities(list[E], Generic[E]):
     @overload
     def __getitem__(self, s: slice) -> list[E]: ...
     @overload
-    def __getitem__(self, key: str) -> list[Any]: ...
+    def __getitem__(self, key: str) -> list[object]: ...
 
-    def __getitem__(self, arg: int | slice | str) -> E | list[E] | list[Any]:
+    def __getitem__(self, arg: int | slice | str) -> E | list[E] | list[object]:
         if isinstance(arg, str):
             # Column access (switch to getattr/ent[arg] if needed)
             return [ent.get(arg) for ent in self]
@@ -114,13 +112,18 @@ class TypeBucket(Generic[E]):
 
     def __init__(self) -> None:
         # Internal store uses wide types; method signatures enforce proper pairing.
-        self._items: dict[type[Any], Entities[Any]] = {}
+        # Using object instead of Any for better type safety while maintaining flexibility
+        self._items: dict[type[object], Entities[object]] = {}
 
     # ----- mutate -----
     def add(self, item: E) -> None:
         """Add one object to the bucket for its nearest type."""
         cls = get_nearest_type(item)                 # type: ignore[arg-type]
         bucket = self._items.setdefault(cls, Entities())
+        # Check if item already exists (use identity check, not equality)
+        for existing in bucket:
+            if existing is item:
+                return  # Already in bucket, skip
         bucket.append(item)
 
     def add_many(self, items: Iterable[E]) -> None:
@@ -183,9 +186,8 @@ class TypeBucket(Generic[E]):
         return sum(len(b) for b in self._items.values())
     
     def __getitem__(self, cls: type[U]) -> Entities[U]:
-        """Get exact bucket for class (does not include subclasses)."""
-        b = self._items.get(cls)
-        return Entities(cast(Entities[U], b)) if b else Entities()
+        """Get bucket for class (includes subclasses)."""
+        return self.bucket(cls)
     
     def __setitem__(self, cls: type[U], items: Iterable[U]) -> None:
         """Set the bucket for a given class."""
@@ -193,43 +195,85 @@ class TypeBucket(Generic[E]):
 
 
 
-class AssemblyLike(Protocol):
-    """Protocol for objects that can act as Assemblies (Assembly or subclass)."""
+class StructLike(Protocol):
+    """Protocol for objects that can act as Structs (Struct or subclass).
+    
+    Defines the interface for structural containers that hold entities and links.
+    """
 
     entities: TypeBucket[EntityLike]
     links: TypeBucket[LinkLike]
 
 
-T = TypeVar("T", bound="Assembly")
+T = TypeVar("T", bound="Struct")
 
 
-class Assembly:
+class Struct:
     """Container holding entities and links via typed buckets.
     
-    This is the root class for all molecular assembly types in MolPy.
+    This is the root class for all molecular structure types in MolPy.
     Supports entity/link management and serves as the base for wrappers.
+    
+    A Struct is a typed container that organizes entities (e.g., atoms, residues)
+    and links (e.g., bonds, angles) into type-specific buckets for efficient
+    access and manipulation.
     """
 
-    def __init__(self, **props) -> None:
+    def __init__(self, **props: Any) -> None:
+        """Initialize a new Struct.
+        
+        Args:
+            **props: Additional properties to store in the struct
+        """
         self.entities: TypeBucket[Entity] = TypeBucket()
         self.links: TypeBucket[Link] = TypeBucket()
-        self._props = dict(props)
+        self._props: dict[str, Any] = dict(props)
 
     # ---------- dict-like access to props ----------
-    def __getitem__(self, key: str):
-        """Get property by key."""
+    def __getitem__(self, key: str) -> Any:
+        """Get property by key.
+        
+        Args:
+            key: Property key
+            
+        Returns:
+            Property value
+            
+        Raises:
+            KeyError: If key doesn't exist
+        """
         return self._props[key]
     
-    def __setitem__(self, key: str, value) -> None:
-        """Set property by key."""
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Set property by key.
+        
+        Args:
+            key: Property key
+            value: Property value
+        """
         self._props[key] = value
     
     def __contains__(self, key: str) -> bool:
-        """Check if key exists in props."""
+        """Check if key exists in props.
+        
+        Args:
+            key: Property key to check
+            
+        Returns:
+            True if key exists, False otherwise
+        """
         return key in self._props
     
-    def get(self, key: str, default=None):
-        """Get property with default."""
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get property with default.
+        
+        Args:
+            key: Property key
+            default: Default value if key not found
+            
+        Returns:
+            Property value or default
+        """
         return self._props.get(key, default)
 
     # ---------- helpers ----------
@@ -273,25 +317,25 @@ class Assembly:
 
         return new
 
-    def merge(self, other: "Assembly") -> Self:
+    def merge(self, other: "Struct") -> Self:
         """
-        Transfer all entities and links from another assembly into self.
+        Transfer all entities and links from another struct into self.
         
         **NO deep copy** - entities and links are directly transferred.
         After merge, `other` should not be used (its entities now belong to self).
         
         Args:
-            other: Assembly to merge into self
+            other: Struct to merge into self
         
         Returns:
             Self for method chaining
         
         Raises:
-            ValueError: If assembly contains orphan links (endpoints not in entities)
+            ValueError: If struct contains orphan links (endpoints not in entities)
         
         Example:
-            >>> assembly1.merge(assembly2)  # Transfers assembly2 into assembly1
-            >>> # assembly2 should not be used after this!
+            >>> struct1.merge(struct2)  # Transfers struct2 into struct1
+            >>> # struct2 should not be used after this!
         """
         # Collect all entities from other
         other_entities = set(other._iter_all_entities())
@@ -309,10 +353,10 @@ class Assembly:
                     missing_endpoints.append(ep)
             
             if missing_endpoints:
-                # This indicates a malformed assembly with orphan links
+                # This indicates a malformed struct with orphan links
                 raise ValueError(
                     f"Found link with endpoints not in entities bucket. "
-                    f"This indicates orphan links in the assembly."
+                    f"This indicates orphan links in the struct."
                 )
             
             self.links.add(link)
@@ -413,7 +457,7 @@ class SpatialMixin:
 
 
 class MembershipMixin:
-    """CRUD operations for entities and links within an AssemblyLike."""
+    """CRUD operations for entities and links within a StructLike."""
 
     entities: TypeBucket[Entity]
     links: TypeBucket[Link]

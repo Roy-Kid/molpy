@@ -4,7 +4,7 @@ Tests the feature: atomistic.atoms["symbol"] = ['C', 'C']
 """
 
 import pytest
-from molpy.core.entity import Entity, Entities, TypeBucket, Assembly
+from molpy.core.entity import Entity, Entities, TypeBucket, Struct
 from molpy.core.atomistic import Atom, Atomistic
 
 

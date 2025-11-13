@@ -316,7 +316,7 @@ class SmartsTransformer(Transformer):
         
         return AtomExpressionIR(op="weak_and", children=flat_children)
     
-    # ================== Atom Assembly ==================
+    # ================== Atom Struct ==================
     def atom_label(self, children: list[int]) -> int:
         """Extract atom label (numeric)."""
         return children[0]
@@ -346,7 +346,7 @@ class SmartsTransformer(Transformer):
         
         return SmartsAtomIR(expression=expression, label=label)
     
-    # ================== Chain Assembly ==================
+    # ================== Chain Struct ==================
     def branch(self, children: list) -> SmartsIR:
         """
         Process branch: the content inside or after chain.

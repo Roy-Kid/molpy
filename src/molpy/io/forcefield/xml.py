@@ -113,8 +113,6 @@ class XMLForceFieldReader:
         self._type_to_atomtype: dict[str, AtomType] = {}  # type -> AtomType mapping
         self._class_to_atomtype: dict[str, AtomType] = {}  # class -> AtomType mapping
         self._any_atomtype: AtomType | None = None  # 全通配符 ("*", "*")
-        # Alias for backward compatibility
-        self._atomtype_cache = self._type_to_atomtype
         # 类别别名映射：派生类 -> 规范基类
         # 例如 CT_2 -> CT, CT_3 -> CT
         self._class_aliases: dict[str, str] = {}
@@ -123,11 +121,6 @@ class XMLForceFieldReader:
         self._overrides: dict[str, str] = {}
         
         self._ff: AtomisticForcefield | None = None
-    
-    @property
-    def _wildcard_atomtype(self) -> AtomType | None:
-        """Alias for _any_atomtype for backward compatibility."""
-        return self._any_atomtype
 
     def read(self, forcefield: AtomisticForcefield | None = None) -> AtomisticForcefield:
         """

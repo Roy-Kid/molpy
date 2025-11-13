@@ -26,7 +26,6 @@ from .geom_utils import (
 )
 
 __all__ = [
-    # Builder
     "linear",
     # Connectors
     "Connector",

@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 
 from molpy.core.forcefield import ForceField
-from molpy.core.entity import AssemblyLike
+from molpy.core.entity import StructLike
 from molpy.core.atomistic import Bond, Angle
 
 class TypifierError(Exception):
     ...
 
-class Typifier[T: AssemblyLike]:
+class Typifier[T: StructLike]:
 
     def __init__(self, forcefield: ForceField):
         self.ff = forcefield
@@ -32,7 +32,7 @@ class BaseTypifier:
     pass
 
 
-class AtomisticTypifier[T: AssemblyLike](
+class AtomisticTypifier[T: StructLike](
     AtomTypifierMixin[T],
     BondTypifierMixin[T],
     AngleTypifierMixin[T]

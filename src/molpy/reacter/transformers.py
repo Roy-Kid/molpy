@@ -18,7 +18,7 @@ def make_single_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     If a bond already exists, updates it to single bond (order=1).
     
     Args:
-        assembly: Assembly to add bond to
+        assembly: Struct to add bond to
         i: First atom
         j: Second atom
     
@@ -49,7 +49,7 @@ def make_double_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     If a bond already exists, updates it to double bond (order=2).
     
     Args:
-        assembly: Assembly to add bond to
+        assembly: Struct to add bond to
         i: First atom
         j: Second atom
     
@@ -77,7 +77,7 @@ def make_triple_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     If a bond already exists, updates it to triple bond (order=3).
     
     Args:
-        assembly: Assembly to add bond to
+        assembly: Struct to add bond to
         i: First atom
         j: Second atom
     
@@ -105,7 +105,7 @@ def make_aromatic_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     If a bond already exists, updates it to aromatic (order=1.5 by convention).
     
     Args:
-        assembly: Assembly to add bond to
+        assembly: Struct to add bond to
         i: First atom
         j: Second atom
     
@@ -173,7 +173,7 @@ def no_new_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     Useful for reactions that only remove atoms without forming new bonds.
     
     Args:
-        assembly: Assembly (ignored)
+        assembly: Struct (ignored)
         i: First atom (ignored)
         j: Second atom (ignored)
     
@@ -196,7 +196,7 @@ def break_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
     Opposite of bond makers - used for bond-breaking reactions.
     
     Args:
-        assembly: Assembly containing the bond
+        assembly: Struct containing the bond
         i: First atom
         j: Second atom
     

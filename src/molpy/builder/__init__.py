@@ -1,8 +1,11 @@
-"""Convenience imports for builder subpackage."""
+"""Convenience exports for the builder subpackage.
 
-from .bulk import *
-from .polymer import *  # Polymer assembly module (reorganized)
-from .presets import *
+The legacy ``PolymerBuilder`` class and bulk builders have been removed in
+favour of the new declarative API documented in
+``notebooks/reacter_polymerbuilder_integration.ipynb``.
+"""
+
+from .polymer import *  # re-export linear(), connectors, geometry utils
 from .placer import (
     Placer,
     VdWSeparator,
@@ -11,3 +14,4 @@ from .placer import (
     create_vdw_linear_placer,
     create_covalent_linear_placer,
 )
+from .presets import *

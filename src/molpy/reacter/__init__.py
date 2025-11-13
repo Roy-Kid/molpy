@@ -3,7 +3,7 @@ Programmable Reacter Module for Chemical Transformations.
 
 This module provides a framework for defining and executing chemical reactions
 within the molpy framework, following SMIRKS-style semantics but working
-entirely on native data structures (Atom, Bond, Assembly, Monomer).
+entirely on native data structures (Atom, Bond, Struct, Monomer).
 
 Core Concepts:
 --------------
