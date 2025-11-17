@@ -48,7 +48,7 @@
 
 .button-group .md-button {
   margin: 0.5rem;
-  padding: 0.7rem 1.8rem;
+  padding: 0.7rem 1.2rem;
   font-size: 1rem;
   font-weight: 500;
   border-radius: 0.3rem;
@@ -161,7 +161,7 @@
   
   .button-group .md-button {
     display: inline-block;
-    margin: 0.4rem;
+    margin: 0.2rem;
   }
   
   .home-page .grid:not(.cards),
@@ -188,7 +188,7 @@
   }
   
   .button-group {
-    margin: 2rem 0;
+    margin: 1rem 0;
   }
   
   .button-group .md-button {
