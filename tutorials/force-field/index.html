@@ -1237,34 +1237,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2815,7 +2787,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2828,12 +2800,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.forcefield</span><span class="w"> </span><span class="kn">import</span> <span class="n">ForceField</span><span class="p">,</span> <span class="n">AtomType</span><span class="p">,</span> <span class="n">BondStyle</span><span class="p">,</span> <span class="n">PairStyle</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.forcefield</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomType</span><span class="p">,</span> <span class="n">BondStyle</span><span class="p">,</span> <span class="n">ForceField</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-from molpy.core.forcefield import ForceField, AtomType, BondStyle, PairStyle
-</div>
+<div class="clipboard-copy-txt" id="cell-1">from molpy.core.forcefield import AtomType, BondStyle, ForceField</div>
 </div>
 </div>
 </div>
@@ -2850,13 +2819,13 @@ from molpy.core.forcefield import ForceField, AtomType, BondStyle, PairStyle
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2875,8 +2844,20 @@ from molpy.core.forcefield import ForceField, AtomType, BondStyle, PairStyle
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2"># Create an empty force field
 ff = ForceField(name="my_forcefield", units="real")
-print(f"Force field: {ff}")
+print(f"Force field: {ff}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Force field: &lt;ForceField: my_forcefield&gt;
+</pre>
 </div>
 </div>
 </div>
@@ -2893,13 +2874,13 @@ print(f"Force field: {ff}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2938,8 +2919,20 @@ hydrogen_type = AtomType("H", mass=1.008, charge=0.0)
 atom_style.types.add(carbon_type)
 atom_style.types.add(hydrogen_type)
 
-print(f"Atom types: {ff.get_types(AtomType)}")
+print(f"Atom types: {ff.get_types(AtomType)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Atom types: [&lt;AtomType: C&gt;, &lt;AtomType: H&gt;]
+</pre>
 </div>
 </div>
 </div>
@@ -2956,13 +2949,13 @@ print(f"Atom types: {ff.get_types(AtomType)}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -2975,7 +2968,7 @@ print(f"Atom types: {ff.get_types(AtomType)}")
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.forcefield</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondStyle</span><span class="p">,</span> <span class="n">BondType</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.forcefield</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span>
 
 <span class="c1"># Define a bond style (e.g., harmonic)</span>
 <span class="n">bond_style</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">def_style</span><span class="p">(</span><span class="n">BondStyle</span><span class="p">,</span> <span class="s2">"harmonic"</span><span class="p">)</span>
@@ -2986,7 +2979,7 @@ print(f"Atom types: {ff.get_types(AtomType)}")
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Bond styles: </span><span class="si">{</span><span class="n">ff</span><span class="o">.</span><span class="n">get_styles</span><span class="p">(</span><span class="n">BondStyle</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">from molpy.core.forcefield import BondStyle, BondType
+<div class="clipboard-copy-txt" id="cell-4">from molpy.core.forcefield import BondType
 
 # Define a bond style (e.g., harmonic)
 bond_style = ff.def_style(BondStyle, "harmonic")
@@ -2995,8 +2988,20 @@ bond_style = ff.def_style(BondStyle, "harmonic")
 ch_bond = BondType("C-H", carbon_type, hydrogen_type, k=340.0, r0=1.09)
 bond_style.types.add(ch_bond)
 
-print(f"Bond styles: {ff.get_styles(BondStyle)}")
+print(f"Bond styles: {ff.get_styles(BondStyle)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Bond styles: [&lt;BondStyle: harmonic&gt;]
+</pre>
 </div>
 </div>
 </div>
@@ -3013,13 +3018,13 @@ print(f"Bond styles: {ff.get_styles(BondStyle)}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3082,8 +3087,21 @@ print(f"Atoms: {len(methane.atoms)}, Bonds: {len(methane.bonds)}")
 # from molpy.typifier.atomistic import OplsAtomisticTypifier
 # typifier = OplsAtomisticTypifier(ff, skip_atom_typing=False)
 # typifier.typify(methane)  # modifies methane in place
-# print("Types assigned to atoms")
+# print("Types assigned to atoms")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Created molecule: &lt;Atomistic, 5 atoms (C:1 H:4), 4 bonds, with coords&gt;
+Atoms: 5, Bonds: 4
+</pre>
 </div>
 </div>
 </div>
@@ -3100,13 +3118,13 @@ print(f"Atoms: {len(methane.atoms)}, Bonds: {len(methane.bonds)}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3135,8 +3153,20 @@ ff2 = ForceField(name="ff2")
 # Merge ff2 into ff1
 ff1.merge(ff2)
 
-print(f"Merged force field: {ff1}")
+print(f"Merged force field: {ff1}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Merged force field: &lt;ForceField: ff1&gt;
+</pre>
 </div>
 </div>
 </div>

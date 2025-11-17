@@ -150,20 +150,20 @@
   .home-page h1 {
     font-size: 2rem;
   }
-  
+
   .home-page .lead {
     font-size: 1rem;
   }
-  
+
   .home-page h2 {
     font-size: 1.5rem;
   }
-  
+
   .button-group .md-button {
     display: inline-block;
     margin: 0.2rem;
   }
-  
+
   .home-page .grid:not(.cards),
   .roadmap-grid {
     grid-template-columns: 1fr;
@@ -174,29 +174,29 @@
   .home-page .md-content {
     padding: 1.5rem 1rem;
   }
-  
+
   .home-page h1 {
     font-size: 1.75rem;
   }
-  
+
   .home-page .lead {
     font-size: 0.95rem;
   }
-  
+
   .home-page h2 {
     font-size: 1.35rem;
   }
-  
+
   .button-group {
     margin: 1rem 0;
   }
-  
+
   .button-group .md-button {
     display: block;
     width: calc(100% - 1rem);
     margin: 0.5rem auto;
   }
-  
+
   .roadmap-grid h3 {
     font-size: 1.1rem;
   }

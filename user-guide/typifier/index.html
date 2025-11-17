@@ -1124,34 +1124,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2758,7 +2730,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=81e57ecb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fb27b941602401d91542211134fc71a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2794,13 +2766,13 @@ parameters.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=25b00cad">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=acae54e37e7d407bbb7b55eff062a284">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2816,20 +2788,39 @@ parameters.</p>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.typifier.atomistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">OplsAtomisticTypifier</span>
 
 <span class="n">typifier</span> <span class="o">=</span> <span class="n">OplsAtomisticTypifier</span><span class="p">()</span>
-<span class="n">typifier</span><span class="o">.</span><span class="n">typify</span><span class="p">(</span><span class="n">atomistic</span><span class="p">)</span>   <span class="c1"># modifies atomistic in place with type info</span>
+<span class="n">typifier</span><span class="o">.</span><span class="n">typify</span><span class="p">(</span><span class="n">atomistic</span><span class="p">)</span>  <span class="c1"># modifies atomistic in place with type info</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">from molpy.typifier.atomistic import OplsAtomisticTypifier
 
 typifier = OplsAtomisticTypifier()
-typifier.typify(atomistic)   # modifies atomistic in place with type info
+typifier.typify(atomistic)  # modifies atomistic in place with type info</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">TypeError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">typifier</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">atomistic</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> OplsAtomisticTypifier
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> typifier = <span class="ansi-yellow-bg">OplsAtomisticTypifier</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">      4</span> typifier.typify(atomistic)  <span style="color: rgb(95,135,135)"># modifies atomistic in place with type info</span>
+
+<span class="ansi-red-fg">TypeError</span>: OplsAtomisticTypifier.__init__() missing 1 required positional argument: 'forcefield'</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=17993251">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a63283cbaf04dbcab1f6479b197f3a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2854,13 +2845,13 @@ for LAMMPS:</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0724d5ee">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8dd0d8092fe74a7c96281538738b07e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2885,15 +2876,35 @@ for LAMMPS:</p>
 # frame: Frame with structure and Box
 # ff:    ForceField corresponding to the system
 
-write_lammps_system("lammps_system", frame, ff)
+write_lammps_system("lammps_system", frame, ff)</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> write_lammps_system
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(95,135,135)"># frame: Frame with structure and Box</span>
+<span class="ansi-green-fg">      4</span> <span style="color: rgb(95,135,135)"># ff:    ForceField corresponding to the system</span>
+<span class="ansi-green-fg">      6</span> write_lammps_system(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">lammps_system</span><span class="ansi-yellow-fg">"</span>, frame, ff)
+
+<span class="ansi-red-fg">ImportError</span>: cannot import name 'write_lammps_system' from 'molpy.io' (/home/runner/work/molpy/molpy/src/molpy/io/__init__.py)</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8b858b78">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72eea5119410473aa328ad9291626812">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

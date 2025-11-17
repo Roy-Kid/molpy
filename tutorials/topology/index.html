@@ -1281,34 +1281,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2903,7 +2875,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2918,12 +2890,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.topology</span><span class="w"> </span><span class="kn">import</span> <span class="n">Topology</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-from molpy.core.topology import Topology
-import numpy as np
-</div>
+from molpy.core.topology import Topology</div>
 </div>
 </div>
 </div>
@@ -2940,13 +2909,13 @@ import numpy as np
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2965,8 +2934,20 @@ import numpy as np
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2"># Create an empty topology
 topo = Topology()
-print(f"Empty topology: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
+print(f"Empty topology: {topo.n_atoms} atoms, {topo.n_bonds} bonds")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Empty topology: 0 atoms, 0 bonds
+</pre>
 </div>
 </div>
 </div>
@@ -2983,13 +2964,13 @@ print(f"Empty topology: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -3024,8 +3005,24 @@ topo.add_bond(1, 2)
 topo.add_bond(2, 3)
 
 print(f"After adding bonds: {topo.n_bonds} bonds")
-print(f"Bonds: {topo.bonds}")
+print(f"Bonds: {topo.bonds}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>After adding atoms: 4 atoms
+After adding bonds: 3 bonds
+Bonds: [[0 1]
+ [1 2]
+ [2 3]]
+</pre>
 </div>
 </div>
 </div>
@@ -3042,13 +3039,13 @@ print(f"Bonds: {topo.bonds}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3081,8 +3078,24 @@ bond_list = [(0, 1), (1, 2), (2, 3), (3, 4)]
 topo.add_bonds(bond_list)
 
 print(f"Topology: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
-print(f"Bond list: {topo.bonds}")
+print(f"Bond list: {topo.bonds}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Topology: 5 atoms, 4 bonds
+Bond list: [[0 1]
+ [1 2]
+ [2 3]
+ [3 4]]
+</pre>
 </div>
 </div>
 </div>
@@ -3099,13 +3112,13 @@ print(f"Bond list: {topo.bonds}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3148,8 +3161,30 @@ print(f"Dihedrals: {topo.n_dihedrals}")
 print(f"Atom indices: {topo.atoms}")
 print(f"Bond pairs: {topo.bonds}")
 print(f"Angle triplets: {topo.angles}")
-print(f"Dihedral quadruplets: {topo.dihedrals}")
+print(f"Dihedral quadruplets: {topo.dihedrals}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Atoms: 4
+Bonds: 3
+Angles: 2
+Dihedrals: 1
+Atom indices: [0 1 2 3]
+Bond pairs: [[0 1]
+ [1 2]
+ [2 3]]
+Angle triplets: [[0 1 2]
+ [1 2 3]]
+Dihedral quadruplets: [[0 1 2 3]]
+</pre>
 </div>
 </div>
 </div>
@@ -3166,13 +3201,13 @@ print(f"Dihedral quadruplets: {topo.dihedrals}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3187,15 +3222,10 @@ print(f"Dihedral quadruplets: {topo.dihedrals}")
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Create a frame with atoms and bonds</span>
 <span class="n">frame</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Frame</span><span class="p">()</span>
-<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span>
-    <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
-    <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
-<span class="p">})</span>
-<span class="n">frame</span><span class="p">[</span><span class="s2">"bonds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span>
-    <span class="s2">"i"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="s2">"j"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-<span class="p">})</span>
+<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]}</span>
+<span class="p">)</span>
+<span class="n">frame</span><span class="p">[</span><span class="s2">"bonds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span><span class="s2">"i"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s2">"j"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]})</span>
 
 <span class="c1"># Get topology from frame</span>
 <span class="n">topo</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">get_topology</span><span class="p">()</span>
@@ -3204,21 +3234,28 @@ print(f"Dihedral quadruplets: {topo.dihedrals}")
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6"># Create a frame with atoms and bonds
 frame = mp.Frame()
-frame["atoms"] = mp.Block({
-    "x": [0.0, 1.0, 2.0, 3.0],
-    "y": [0.0, 0.0, 0.0, 0.0],
-    "z": [0.0, 0.0, 0.0, 0.0]
-})
-frame["bonds"] = mp.Block({
-    "i": [0, 1, 2],
-    "j": [1, 2, 3]
-})
+frame["atoms"] = mp.Block(
+    {"x": [0.0, 1.0, 2.0, 3.0], "y": [0.0, 0.0, 0.0, 0.0], "z": [0.0, 0.0, 0.0, 0.0]}
+)
+frame["bonds"] = mp.Block({"i": [0, 1, 2], "j": [1, 2, 3]})
 
 # Get topology from frame
 topo = frame.get_topology()
 
-print(f"Topology from frame: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
+print(f"Topology from frame: {topo.n_atoms} atoms, {topo.n_bonds} bonds")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Topology from frame: 4 atoms, 3 bonds
+</pre>
 </div>
 </div>
 </div>
@@ -3235,13 +3272,13 @@ print(f"Topology from frame: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -3277,7 +3314,7 @@ print(f"Topology from frame: {topo.n_atoms} atoms, {topo.n_bonds} bonds")
 
 <span class="c1"># Generate angles and dihedrals automatically in the atomistic structure</span>
 <span class="n">atomistic</span><span class="o">.</span><span class="n">get_topo</span><span class="p">(</span><span class="n">gen_angle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">gen_dihe</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">After generating angles and dihedrals:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">After generating angles and dihedrals:"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Angles in atomistic: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atomistic</span><span class="o">.</span><span class="n">angles</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Dihedrals in atomistic: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atomistic</span><span class="o">.</span><span class="n">dihedrals</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
@@ -3304,10 +3341,28 @@ print(f"Angles: {topo.n_angles}, Dihedrals: {topo.n_dihedrals}")
 
 # Generate angles and dihedrals automatically in the atomistic structure
 atomistic.get_topo(gen_angle=True, gen_dihe=True)
-print(f"\nAfter generating angles and dihedrals:")
+print("\nAfter generating angles and dihedrals:")
 print(f"  Angles in atomistic: {len(atomistic.angles)}")
-print(f"  Dihedrals in atomistic: {len(atomistic.dihedrals)}")
+print(f"  Dihedrals in atomistic: {len(atomistic.dihedrals)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Created molecule: &lt;Atomistic, 4 atoms (C:4), 3 bonds, with coords&gt;
+Topology: 4 atoms, 3 bonds
+Angles: 2, Dihedrals: 1
+
+After generating angles and dihedrals:
+  Angles in atomistic: 2
+  Dihedrals in atomistic: 1
+</pre>
 </div>
 </div>
 </div>
@@ -3324,13 +3379,13 @@ print(f"  Dihedrals in atomistic: {len(atomistic.dihedrals)}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
@@ -3371,8 +3426,21 @@ print(f"After deleting bond: {topo.n_bonds} bonds")
 
 # Delete an atom (and its bonds)
 # topo.delete_atom(2)
-# print(f"After deleting atom: {topo.n_atoms} atoms")
+# print(f"After deleting atom: {topo.n_atoms} atoms")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Before: 5 atoms, 4 bonds
+After deleting bond: 3 bonds
+</pre>
 </div>
 </div>
 </div>
@@ -3389,13 +3457,13 @@ print(f"After deleting bond: {topo.n_bonds} bonds")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
@@ -3432,8 +3500,45 @@ topo2.add_bonds([(0, 1), (1, 2)])
 
 # Union them
 topo1.union(topo2)
-print(f"Combined topology: {topo1.n_atoms} atoms, {topo1.n_bonds} bonds")
+print(f"Combined topology: {topo1.n_atoms} atoms, {topo1.n_bonds} bonds")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">RecursionError</span>                            Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[9]</span><span class="ansi-green-fg">, line 11</span>
+<span class="ansi-green-fg">      8</span> topo2.add_bonds([(<span class="ansi-green-fg">0</span>, <span class="ansi-green-fg">1</span>), (<span class="ansi-green-fg">1</span>, <span class="ansi-green-fg">2</span>)])
+<span class="ansi-green-fg">     10</span> <span style="color: rgb(95,135,135)"># Union them</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">11</span> <span class="ansi-yellow-bg">topo1</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">union</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">topo2</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">     12</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Combined topology: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>topo1.n_atoms<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> atoms, </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>topo1.n_bonds<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> bonds</span><span class="ansi-yellow-fg">"</span>)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/core/topology.py:99</span>, in <span class="ansi-cyan-fg">Topology.union</span><span class="ansi-blue-fg">(self, other)</span>
+<span class="ansi-green-fg">     98</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-fg">union</span>(<span style="color: rgb(0,135,0)">self</span>, other: <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Topology</span><span class="ansi-yellow-fg">"</span>):
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">99</span>     <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">union</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">other</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    100</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span style="color: rgb(0,135,0)">self</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/core/topology.py:99</span>, in <span class="ansi-cyan-fg">Topology.union</span><span class="ansi-blue-fg">(self, other)</span>
+<span class="ansi-green-fg">     98</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-fg">union</span>(<span style="color: rgb(0,135,0)">self</span>, other: <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Topology</span><span class="ansi-yellow-fg">"</span>):
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">99</span>     <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">union</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">other</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    100</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span style="color: rgb(0,135,0)">self</span>
+
+    <span class="ansi-red-fg">[... skipping similar frames: Topology.union at line 99 (2974 times)]</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/core/topology.py:99</span>, in <span class="ansi-cyan-fg">Topology.union</span><span class="ansi-blue-fg">(self, other)</span>
+<span class="ansi-green-fg">     98</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-fg">union</span>(<span style="color: rgb(0,135,0)">self</span>, other: <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Topology</span><span class="ansi-yellow-fg">"</span>):
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">99</span>     <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">union</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">other</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    100</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> <span style="color: rgb(0,135,0)">self</span>
+
+<span class="ansi-red-fg">RecursionError</span>: maximum recursion depth exceeded</pre>
 </div>
 </div>
 </div>
@@ -3450,13 +3555,13 @@ print(f"Combined topology: {topo1.n_atoms} atoms, {topo1.n_bonds} bonds")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
@@ -3509,8 +3614,23 @@ print(f"Neighbors of atom 1: {neighbors}")
 
 # Get all paths between two vertices
 paths = topo.get_all_simple_paths(0, 3)
-print(f"All simple paths from 0 to 3: {paths}")
+print(f"All simple paths from 0 to 3: {paths}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Is connected: True
+Shortest path from 0 to 3: [0, 1, 2, 3]
+Neighbors of atom 1: [0, 2]
+All simple paths from 0 to 3: [[0, 1, 2, 3]]
+</pre>
 </div>
 </div>
 </div>

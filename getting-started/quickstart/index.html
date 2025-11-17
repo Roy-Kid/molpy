@@ -1237,34 +1237,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2780,7 +2752,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=adf734a1">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fb27b941602401d91542211134fc71a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2801,7 +2773,7 @@ This page gives you a <strong>fast tour of the core data structures and features
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b7cfeea4">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=acae54e37e7d407bbb7b55eff062a284">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2819,18 +2791,20 @@ This page gives you a <strong>fast tour of the core data structures and features
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-import numpy as np</div>
+<div class="clipboard-copy-txt" id="cell-1">import numpy as np
+
+import molpy as mp</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9baa3359">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a63283cbaf04dbcab1f6479b197f3a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2843,7 +2817,7 @@ It's ideal for storing per-atom/per-bond arrays in a NumPy‑friendly way.</p>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f9d8017e">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8dd0d8092fe74a7c96281538738b07e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2870,7 +2844,7 @@ It's ideal for storing per-atom/per-bond arrays in a NumPy‑friendly way.</p>
 <span class="n">atoms</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
 <span class="n">atoms</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
 <span class="n">atoms</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">]</span>
-<span class="n">atoms</span><span class="p">[</span><span class="s2">"vector"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>   <span class="c1"># vector per atom</span>
+<span class="n">atoms</span><span class="p">[</span><span class="s2">"vector"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># vector per atom</span>
 
 <span class="c1"># Add atoms block to frame</span>
 <span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">atoms</span>
@@ -2897,7 +2871,7 @@ atoms["x"] = [0.0, 1.0, 2.0]
 atoms["y"] = [0.0, 0.0, 0.0]
 atoms["z"] = [0.0, 0.0, 0.0]
 atoms["element"] = ["C", "C", "C"]
-atoms["vector"] = np.random.randn(3, 3)   # vector per atom
+atoms["vector"] = np.random.randn(3, 3)  # vector per atom
 
 # Add atoms block to frame
 frame["atoms"] = atoms
@@ -2913,8 +2887,7 @@ print("Box lengths:", box.lengths)
 # Access combined coordinates as a single array
 atoms = frame["atoms"]
 xyz = atoms[["x", "y", "z"]]
-print("XYZ shape:", xyz.shape)
-</div>
+print("XYZ shape:", xyz.shape)</div>
 </div>
 </div>
 </div>
@@ -2937,7 +2910,7 @@ XYZ shape: (3, 3)
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=607cf928">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72eea5119410473aa328ad9291626812">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2952,7 +2925,7 @@ It is the core structure used by the <strong>reacter</strong>, <strong>typifier<
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=644539e4">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8edb47106e1a46a883d545849b8ab81b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2970,7 +2943,7 @@ It is the core structure used by the <strong>reacter</strong>, <strong>typifier<
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Atomistic</span><span class="p">,</span> <span class="n">Atom</span><span class="p">,</span> <span class="n">Bond</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Atom</span><span class="p">,</span> <span class="n">Atomistic</span><span class="p">,</span> <span class="n">Bond</span>
 
 <span class="c1"># Create a small C–H2 fragment</span>
 <span class="n">atomistic</span> <span class="o">=</span> <span class="n">Atomistic</span><span class="p">()</span>
@@ -2988,7 +2961,7 @@ It is the core structure used by the <strong>reacter</strong>, <strong>typifier<
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Number of atoms:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">atomistic</span><span class="o">.</span><span class="n">atoms</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Number of bonds:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">atomistic</span><span class="o">.</span><span class="n">bonds</span><span class="p">)))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">from molpy import Atomistic, Atom, Bond
+<div class="clipboard-copy-txt" id="cell-3">from molpy import Atom, Atomistic, Bond
 
 # Create a small C–H2 fragment
 atomistic = Atomistic()
@@ -3004,8 +2977,7 @@ atomistic.add_bond(Bond(c, h2))
 
 print("Atomistic:", atomistic)  # concise summary
 print("Number of atoms:", len(list(atomistic.atoms)))
-print("Number of bonds:", len(list(atomistic.bonds)))
-</div>
+print("Number of bonds:", len(list(atomistic.bonds)))</div>
 </div>
 </div>
 </div>
@@ -3027,7 +2999,7 @@ Number of bonds: 2
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b5e8f948">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=10185d26023b46108eb7d9f57d49d2b3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3046,7 +3018,7 @@ Number of bonds: 2
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9bf1beb7">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8763a12b2bbd4a93a75aff182afb95dc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3076,8 +3048,7 @@ Number of bonds: 2
 print("Box style:", box.style)
 print("Lengths:", box.lengths)
 print("PBC:", box.pbc)
-print("Volume:", box.volume)
-</div>
+print("Volume:", box.volume)</div>
 </div>
 </div>
 </div>
@@ -3100,7 +3071,7 @@ Volume: 8000.0
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bc68cd45">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7623eae2785240b9bd12b16a66d81610">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3115,12 +3086,12 @@ You can write any <code>Frame</code> that has an <code>"atoms"</code> block with
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=90d18f01">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7cdc8c89c7104fffa095e18ddfef8986">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3133,20 +3104,19 @@ You can write any <code>Frame</code> that has an <code>"atoms"</code> block with
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_pdb</span><span class="p">,</span> <span class="n">read_pdb</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_pdb</span><span class="p">,</span> <span class="n">write_pdb</span>
 
 <span class="n">write_pdb</span><span class="p">(</span><span class="s2">"output.pdb"</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
 <span class="n">loaded_frame</span> <span class="o">=</span> <span class="n">read_pdb</span><span class="p">(</span><span class="s2">"output.pdb"</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Loaded frame atoms:"</span><span class="p">,</span> <span class="n">loaded_frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span><span class="o">.</span><span class="n">nrows</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">from molpy.io import write_pdb, read_pdb
+<div class="clipboard-copy-txt" id="cell-5">from molpy.io import read_pdb, write_pdb
 
 write_pdb("output.pdb", frame)
 loaded_frame = read_pdb("output.pdb")
 
-print("Loaded frame atoms:", loaded_frame["atoms"].nrows)
-</div>
+print("Loaded frame atoms:", loaded_frame["atoms"].nrows)</div>
 </div>
 </div>
 </div>
@@ -3157,44 +3127,16 @@ print("Loaded frame atoms:", loaded_frame["atoms"].nrows)
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">KeyError</span>                                  Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[5]</span><span class="ansi-green-fg">, line 4</span>
-<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> write_pdb, read_pdb
-<span class="ansi-green-fg">      3</span> <span style="color: rgb(95,135,135)"># Re‑use the Frame we created above</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">4</span> <span class="ansi-yellow-bg">write_pdb</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">output.pdb</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">frame</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">      5</span> loaded_frame = read_pdb(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">output.pdb</span><span class="ansi-yellow-fg">"</span>)
-<span class="ansi-green-fg">      7</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Loaded frame atoms:</span><span class="ansi-yellow-fg">"</span>, loaded_frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">/workspaces/molpy/src/molpy/io/writers.py:42</span>, in <span class="ansi-cyan-fg">write_pdb</span><span class="ansi-blue-fg">(file, frame)</span>
-<span class="ansi-green-fg">     40</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">data</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">pdb</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> PDBWriter
-<span class="ansi-green-fg">     41</span> writer = PDBWriter(Path(file))
-<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">42</span> <span class="ansi-yellow-bg">writer</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">write</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">frame</span><span class="ansi-yellow-bg">)</span>
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">/workspaces/molpy/src/molpy/io/data/pdb.py:342</span>, in <span class="ansi-cyan-fg">PDBWriter.write</span><span class="ansi-blue-fg">(self, frame)</span>
-<span class="ansi-green-fg">    340</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">else</span>:
-<span class="ansi-green-fg">    341</span>         display_serial = i + <span class="ansi-green-fg">1</span>
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">342</span>     line = <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">_format_atom_line</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">display_serial</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">atom_data</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">    343</span>     f.write(line)
-<span class="ansi-green-fg">    344</span> f.write(<span class="ansi-yellow-fg">"</span><span class="ansi-bold" style="color: rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">"</span>)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">/workspaces/molpy/src/molpy/io/data/pdb.py:218</span>, in <span class="ansi-cyan-fg">PDBWriter._format_atom_line</span><span class="ansi-blue-fg">(self, serial, atom_data)</span>
-<span class="ansi-green-fg">    215</span> i_code = atom_data.get(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">iCode</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg"> </span><span class="ansi-yellow-fg">"</span>)
-<span class="ansi-green-fg">    217</span> <span style="color: rgb(95,135,135)"># Coordinates</span>
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">218</span> x, y, z = <span class="ansi-yellow-bg">atom_data</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">xyz</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">]</span>
-<span class="ansi-green-fg">    220</span> <span style="color: rgb(95,135,135)"># Optional fields</span>
-<span class="ansi-green-fg">    221</span> occupancy = atom_data.get(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">occupancy</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-green-fg">1.0</span>)
-
-<span class="ansi-red-fg">KeyError</span>: 'xyz'</pre>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Loaded frame atoms: 3
+</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=02a8821f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b118ea5561624da68c537baed56e602f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

@@ -1293,34 +1293,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2947,7 +2919,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2961,25 +2933,22 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.selector</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AtomTypeSelector</span><span class="p">,</span>
-    <span class="n">ElementSelector</span><span class="p">,</span>
     <span class="n">AtomIndexSelector</span><span class="p">,</span>
+    <span class="n">AtomTypeSelector</span><span class="p">,</span>
     <span class="n">CoordinateRangeSelector</span><span class="p">,</span>
-    <span class="n">DistanceSelector</span>
+    <span class="n">DistanceSelector</span><span class="p">,</span>
+    <span class="n">ElementSelector</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-import numpy as np
 from molpy.core.selector import (
-    AtomTypeSelector,
-    ElementSelector,
     AtomIndexSelector,
+    AtomTypeSelector,
     CoordinateRangeSelector,
-    DistanceSelector
-)
-</div>
+    DistanceSelector,
+    ElementSelector,
+)</div>
 </div>
 </div>
 </div>
@@ -2996,13 +2965,13 @@ from molpy.core.selector import (
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -3017,30 +2986,46 @@ from molpy.core.selector import (
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Create a frame with atoms</span>
 <span class="n">frame</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Frame</span><span class="p">()</span>
-<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span>
-    <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
-    <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s2">"element"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">],</span>
-    <span class="s2">"type"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-<span class="p">})</span>
+<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+        <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="s2">"element"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">],</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="n">atoms</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total atoms: </span><span class="si">{</span><span class="n">atoms</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2"># Create a frame with atoms
 frame = mp.Frame()
-frame["atoms"] = mp.Block({
-    "x": [0.0, 1.0, 2.0, 3.0],
-    "y": [0.0, 0.0, 0.0, 0.0],
-    "z": [0.0, 0.0, 0.0, 0.0],
-    "element": ["C", "C", "H", "H"],
-    "type": [1, 1, 2, 2]
-})
+frame["atoms"] = mp.Block(
+    {
+        "x": [0.0, 1.0, 2.0, 3.0],
+        "y": [0.0, 0.0, 0.0, 0.0],
+        "z": [0.0, 0.0, 0.0, 0.0],
+        "element": ["C", "C", "H", "H"],
+        "type": [1, 1, 2, 2],
+    }
+)
 
 atoms = frame["atoms"]
-print(f"Total atoms: {atoms.nrows}")
+print(f"Total atoms: {atoms.nrows}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Total atoms: 4
+</pre>
 </div>
 </div>
 </div>
@@ -3057,13 +3042,13 @@ print(f"Total atoms: {atoms.nrows}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -3092,8 +3077,22 @@ carbon_atoms = carbon_sel(atoms)  # or atoms[carbon_mask]
 
 print(f"Carbon mask: {carbon_mask}")
 print(f"Carbon atoms: {carbon_atoms.nrows}")
-print(f"Carbon elements: {carbon_atoms['element']}")
+print(f"Carbon elements: {carbon_atoms['element']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Carbon mask: [ True  True False False]
+Carbon atoms: 2
+Carbon elements: ['C' 'C']
+</pre>
 </div>
 </div>
 </div>
@@ -3110,13 +3109,13 @@ print(f"Carbon elements: {carbon_atoms['element']}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3141,8 +3140,21 @@ type1_sel = AtomTypeSelector(1)
 type1_atoms = type1_sel(atoms)
 
 print(f"Type 1 atoms: {type1_atoms.nrows}")
-print(f"Type 1 elements: {type1_atoms['element']}")
+print(f"Type 1 elements: {type1_atoms['element']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Type 1 atoms: 2
+Type 1 elements: ['C' 'C']
+</pre>
 </div>
 </div>
 </div>
@@ -3159,13 +3171,13 @@ print(f"Type 1 elements: {type1_atoms['element']}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3190,8 +3202,21 @@ index_sel = AtomIndexSelector([0, 2])
 selected_atoms = index_sel(atoms)
 
 print(f"Selected atoms: {selected_atoms.nrows}")
-print(f"Selected elements: {selected_atoms['element']}")
+print(f"Selected elements: {selected_atoms['element']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Selected atoms: 0
+Selected elements: []
+</pre>
 </div>
 </div>
 </div>
@@ -3208,13 +3233,13 @@ print(f"Selected elements: {selected_atoms['element']}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3228,11 +3253,7 @@ print(f"Selected elements: {selected_atoms['element']}")
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Select atoms in a coordinate range (for x axis)</span>
-<span class="n">x_range_sel</span> <span class="o">=</span> <span class="n">CoordinateRangeSelector</span><span class="p">(</span>
-    <span class="n">axis</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span>
-    <span class="n">min_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-    <span class="n">max_value</span><span class="o">=</span><span class="mf">2.5</span>
-<span class="p">)</span>
+<span class="n">x_range_sel</span> <span class="o">=</span> <span class="n">CoordinateRangeSelector</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">2.5</span><span class="p">)</span>
 <span class="n">range_atoms</span> <span class="o">=</span> <span class="n">x_range_sel</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atoms in x range: </span><span class="si">{</span><span class="n">range_atoms</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -3245,11 +3266,7 @@ print(f"Selected elements: {selected_atoms['element']}")
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atoms in x and y range: </span><span class="si">{</span><span class="n">combined_atoms</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6"># Select atoms in a coordinate range (for x axis)
-x_range_sel = CoordinateRangeSelector(
-    axis="x",
-    min_value=0.5,
-    max_value=2.5
-)
+x_range_sel = CoordinateRangeSelector(axis="x", min_value=0.5, max_value=2.5)
 range_atoms = x_range_sel(atoms)
 
 print(f"Atoms in x range: {range_atoms.nrows}")
@@ -3259,8 +3276,22 @@ print(f"X coordinates: {range_atoms['x']}")
 y_range_sel = CoordinateRangeSelector(axis="y", min_value=-0.5, max_value=0.5)
 combined_sel = x_range_sel &amp; y_range_sel
 combined_atoms = combined_sel(atoms)
-print(f"Atoms in x and y range: {combined_atoms.nrows}")
+print(f"Atoms in x and y range: {combined_atoms.nrows}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Atoms in x range: 2
+X coordinates: [1. 2.]
+Atoms in x and y range: 2
+</pre>
 </div>
 </div>
 </div>
@@ -3277,13 +3308,13 @@ print(f"Atoms in x and y range: {combined_atoms.nrows}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -3297,41 +3328,40 @@ print(f"Atoms in x and y range: {combined_atoms.nrows}")
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Select atoms within 1.5 Angstrom of origin</span>
-<span class="n">distance_sel</span> <span class="o">=</span> <span class="n">DistanceSelector</span><span class="p">(</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="n">max_distance</span><span class="o">=</span><span class="mf">1.5</span>
-<span class="p">)</span>
+<span class="n">distance_sel</span> <span class="o">=</span> <span class="n">DistanceSelector</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">max_distance</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
 <span class="n">nearby_atoms</span> <span class="o">=</span> <span class="n">distance_sel</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atoms within 1.5 Å: </span><span class="si">{</span><span class="n">nearby_atoms</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># Select atoms in a shell (between min and max distance)</span>
-<span class="n">shell_sel</span> <span class="o">=</span> <span class="n">DistanceSelector</span><span class="p">(</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="n">min_distance</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-    <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.0</span>
-<span class="p">)</span>
+<span class="n">shell_sel</span> <span class="o">=</span> <span class="n">DistanceSelector</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">min_distance</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
 <span class="n">shell_atoms</span> <span class="o">=</span> <span class="n">shell_sel</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atoms in shell: </span><span class="si">{</span><span class="n">shell_atoms</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7"># Select atoms within 1.5 Angstrom of origin
-distance_sel = DistanceSelector(
-    center=[0.0, 0.0, 0.0],
-    max_distance=1.5
-)
+distance_sel = DistanceSelector(center=[0.0, 0.0, 0.0], max_distance=1.5)
 nearby_atoms = distance_sel(atoms)
 
 print(f"Atoms within 1.5 Å: {nearby_atoms.nrows}")
 
 # Select atoms in a shell (between min and max distance)
-shell_sel = DistanceSelector(
-    center=[1.0, 0.0, 0.0],
-    min_distance=0.5,
-    max_distance=2.0
-)
+shell_sel = DistanceSelector(center=[1.0, 0.0, 0.0], min_distance=0.5, max_distance=2.0)
 shell_atoms = shell_sel(atoms)
-print(f"Atoms in shell: {shell_atoms.nrows}")
+print(f"Atoms in shell: {shell_atoms.nrows}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Atoms within 1.5 Å: 2
+Atoms in shell: 3
+</pre>
 </div>
 </div>
 </div>
@@ -3348,13 +3378,13 @@ print(f"Atoms in shell: {shell_atoms.nrows}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
@@ -3397,8 +3427,23 @@ print(f"Carbon or hydrogen: {result.nrows} atoms")
 not_carbon = ~ElementSelector("C")
 result = not_carbon(atoms)
 print(f"Not carbon: {result.nrows} atoms")
-print(f"Elements: {result['element']}")
+print(f"Elements: {result['element']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Carbon with type 1: 2 atoms
+Carbon or hydrogen: 4 atoms
+Not carbon: 2 atoms
+Elements: ['H' 'H']
+</pre>
 </div>
 </div>
 </div>
@@ -3415,13 +3460,13 @@ print(f"Elements: {result['element']}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
@@ -3435,21 +3480,31 @@ print(f"Elements: {result['element']}")
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Complex selection: (Carbon OR type 1) AND within distance</span>
-<span class="n">complex_sel</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="p">(</span><span class="n">ElementSelector</span><span class="p">(</span><span class="s2">"C"</span><span class="p">)</span> <span class="o">|</span> <span class="n">AtomTypeSelector</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">&amp;</span>
-    <span class="n">DistanceSelector</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+<span class="n">complex_sel</span> <span class="o">=</span> <span class="p">(</span><span class="n">ElementSelector</span><span class="p">(</span><span class="s2">"C"</span><span class="p">)</span> <span class="o">|</span> <span class="n">AtomTypeSelector</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">&amp;</span> <span class="n">DistanceSelector</span><span class="p">(</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="n">max_distance</span><span class="o">=</span><span class="mf">2.0</span>
 <span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">complex_sel</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Complex selection: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-9"># Complex selection: (Carbon OR type 1) AND within distance
-complex_sel = (
-    (ElementSelector("C") | AtomTypeSelector(1)) &amp;
-    DistanceSelector(center=[1.0, 0.0, 0.0], max_distance=2.0)
+complex_sel = (ElementSelector("C") | AtomTypeSelector(1)) &amp; DistanceSelector(
+    center=[1.0, 0.0, 0.0], max_distance=2.0
 )
 result = complex_sel(atoms)
-print(f"Complex selection: {result.nrows} atoms")
+print(f"Complex selection: {result.nrows} atoms")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Complex selection: 2 atoms
+</pre>
 </div>
 </div>
 </div>
@@ -3466,13 +3521,13 @@ print(f"Complex selection: {result.nrows} atoms")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
@@ -3503,8 +3558,20 @@ new_frame = mp.Frame()
 new_frame["atoms"] = carbon_atoms
 new_frame.metadata["box"] = frame.metadata.get("box")
 
-print(f"New frame has {new_frame['atoms'].nrows} atoms")
+print(f"New frame has {new_frame['atoms'].nrows} atoms")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>New frame has 2 atoms
+</pre>
 </div>
 </div>
 </div>

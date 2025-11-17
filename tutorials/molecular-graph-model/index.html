@@ -1237,34 +1237,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2813,7 +2785,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2826,14 +2798,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.typifier.adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_mol_graph</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.typifier.adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_mol_graph</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.typifier.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">SMARTSGraph</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-from molpy.typifier.adapter import build_mol_graph
-from molpy.typifier.graph import SMARTSGraph
-</div>
+<div class="clipboard-copy-txt" id="cell-1">from molpy.typifier.adapter import build_mol_graph
+from molpy.typifier.graph import SMARTSGraph</div>
 </div>
 </div>
 </div>
@@ -2850,13 +2819,13 @@ from molpy.typifier.graph import SMARTSGraph
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2915,8 +2884,27 @@ print(f"Graph edges: {graph.ecount()}")
 # Access vertex attributes
 print("\nVertex attributes:")
 for i, v in enumerate(graph.vs):
-    print(f"  Vertex {i}: element={v['element']}, degree={v['degree']}")
+    print(f"  Vertex {i}: element={v['element']}, degree={v['degree']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Created molecule: &lt;Atomistic, 3 atoms (H:2 O:1), 2 bonds, with coords&gt;
+Graph vertices: 3
+Graph edges: 2
+
+Vertex attributes:
+  Vertex 0: element=O, degree=2
+  Vertex 1: element=H, degree=1
+  Vertex 2: element=H, degree=1
+</pre>
 </div>
 </div>
 </div>
@@ -2933,13 +2921,13 @@ for i, v in enumerate(graph.vs):
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2984,8 +2972,20 @@ for i, v in enumerate(graph.vs):
 # - is_aromatic: bool
 # - is_in_ring: bool
 
-print("Graph attributes documentation")
+print("Graph attributes documentation")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Graph attributes documentation
+</pre>
 </div>
 </div>
 </div>
@@ -3002,13 +3002,13 @@ print("Graph attributes documentation")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3029,10 +3029,7 @@ print("Graph attributes documentation")
 
 <span class="c1"># Parse and create SMARTSGraph</span>
 <span class="n">smarts_graph</span> <span class="o">=</span> <span class="n">SMARTSGraph</span><span class="p">(</span>
-    <span class="n">smarts_string</span><span class="o">=</span><span class="n">smarts_string</span><span class="p">,</span>
-    <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">,</span>
-    <span class="n">atomtype_name</span><span class="o">=</span><span class="s2">"water"</span><span class="p">,</span>
-    <span class="n">priority</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">smarts_string</span><span class="o">=</span><span class="n">smarts_string</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="n">parser</span><span class="p">,</span> <span class="n">atomtype_name</span><span class="o">=</span><span class="s2">"water"</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">1</span>
 <span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Created SMARTSGraph: </span><span class="si">{</span><span class="n">smarts_graph</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -3047,16 +3044,30 @@ parser = SmartsParser()
 
 # Parse and create SMARTSGraph
 smarts_graph = SMARTSGraph(
-    smarts_string=smarts_string,
-    parser=parser,
-    atomtype_name="water",
-    priority=1
+    smarts_string=smarts_string, parser=parser, atomtype_name="water", priority=1
 )
 
 print(f"Created SMARTSGraph: {smarts_graph}")
 print(f"Pattern vertices: {smarts_graph.vcount()}")
-print(f"Pattern edges: {smarts_graph.ecount()}")
+print(f"Pattern edges: {smarts_graph.ecount()}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Created SMARTSGraph: IGRAPH U--- 3 2 --
++ attr: atom (v), bond_type (e)
++ edges:
+0--1 1--2
+Pattern vertices: 3
+Pattern edges: 2
+</pre>
 </div>
 </div>
 </div>
@@ -3073,13 +3084,13 @@ print(f"Pattern edges: {smarts_graph.ecount()}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3104,7 +3115,7 @@ print(f"Pattern edges: {smarts_graph.ecount()}")
 <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Match details:"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">match</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">matches</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Match </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: vertices </span><span class="si">{</span><span class="n">match</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Match </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: vertices </span><span class="si">{</span><span class="n">match</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="c1"># Show which atoms matched</span>
         <span class="k">for</span> <span class="n">v_idx</span> <span class="ow">in</span> <span class="n">match</span><span class="p">:</span>
             <span class="n">atom_id</span> <span class="o">=</span> <span class="n">vs_to_atomid</span><span class="p">[</span><span class="n">v_idx</span><span class="p">]</span>
@@ -3126,7 +3137,7 @@ print(f"Found {len(matches)} matches")
 if matches:
     print("\nMatch details:")
     for i, match in enumerate(matches):
-        print(f"  Match {i+1}: vertices {match}")
+        print(f"  Match {i + 1}: vertices {match}")
         # Show which atoms matched
         for v_idx in match:
             atom_id = vs_to_atomid[v_idx]
@@ -3134,8 +3145,30 @@ if matches:
             for atom in atomistic.atoms:
                 if id(atom) == atom_id:
                     print(f"    Vertex {v_idx} -&gt; {atom.get('symbol')}")
-                    break
+                    break</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Found 2 matches
+
+Match details:
+  Match 1: vertices [1, 0, 2]
+    Vertex 1 -&gt; H
+    Vertex 0 -&gt; O
+    Vertex 2 -&gt; H
+  Match 2: vertices [2, 0, 1]
+    Vertex 2 -&gt; H
+    Vertex 0 -&gt; O
+    Vertex 1 -&gt; H
+</pre>
 </div>
 </div>
 </div>

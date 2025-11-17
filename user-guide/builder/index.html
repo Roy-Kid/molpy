@@ -1204,34 +1204,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2714,7 +2686,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9cd055ee">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fb27b941602401d91542211134fc71a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2742,13 +2714,13 @@ and <strong>reaction rules</strong>. At the core you will usually see:</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=86271516">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=acae54e37e7d407bbb7b55eff062a284">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2761,9 +2733,9 @@ and <strong>reaction rules</strong>. At the core you will usually see:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.monomer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Monomer</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.connectors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReacterConnector</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.connectors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReacterConnector</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.monomer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Monomer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.typifier.atomistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">OplsAtomisticTypifier</span>
 
 <span class="c1"># Assume you already built / loaded two monomer Atomistic structures: A, B</span>
@@ -2771,24 +2743,24 @@ and <strong>reaction rules</strong>. At the core you will usually see:</p>
 <span class="n">mono_B</span> <span class="o">=</span> <span class="n">Monomer</span><span class="p">(</span><span class="n">inner</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
 <span class="n">library</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="n">mono_A</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="n">mono_B</span><span class="p">}</span>
 
-<span class="n">connector</span> <span class="o">=</span> <span class="n">ReacterConnector</span><span class="p">()</span>              <span class="c1"># chooses how ports react</span>
-<span class="n">typifier</span> <span class="o">=</span> <span class="n">OplsAtomisticTypifier</span><span class="p">()</span>          <span class="c1"># optional force‑field typing</span>
+<span class="n">connector</span> <span class="o">=</span> <span class="n">ReacterConnector</span><span class="p">()</span>  <span class="c1"># chooses how ports react</span>
+<span class="n">typifier</span> <span class="o">=</span> <span class="n">OplsAtomisticTypifier</span><span class="p">()</span>  <span class="c1"># optional force‑field typing</span>
 
 <span class="n">poly</span> <span class="o">=</span> <span class="n">linear</span><span class="p">(</span>
-    <span class="n">sequence</span><span class="o">=</span><span class="s2">"ABABAB"</span><span class="p">,</span>                      <span class="c1"># monomer sequence</span>
+    <span class="n">sequence</span><span class="o">=</span><span class="s2">"ABABAB"</span><span class="p">,</span>  <span class="c1"># monomer sequence</span>
     <span class="n">library</span><span class="o">=</span><span class="n">library</span><span class="p">,</span>
     <span class="n">connector</span><span class="o">=</span><span class="n">connector</span><span class="p">,</span>
     <span class="n">typifier</span><span class="o">=</span><span class="n">typifier</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>                                 <span class="c1"># Polymer wrapper around an Atomistic</span>
-<span class="n">inner</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">inner</span>                          <span class="c1"># underlying Atomistic structure</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>  <span class="c1"># Polymer wrapper around an Atomistic</span>
+<span class="n">inner</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">inner</span>  <span class="c1"># underlying Atomistic structure</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"atoms:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">atoms</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"bonds:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">bonds</span><span class="p">)))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from molpy.core.wrappers.monomer import Monomer
+<div class="clipboard-copy-txt" id="cell-1">from molpy.builder.polymer.connectors import ReacterConnector
 from molpy.builder.polymer.linear import linear
-from molpy.builder.polymer.connectors import ReacterConnector
+from molpy.core.wrappers.monomer import Monomer
 from molpy.typifier.atomistic import OplsAtomisticTypifier
 
 # Assume you already built / loaded two monomer Atomistic structures: A, B
@@ -2796,28 +2768,49 @@ mono_A = Monomer(inner=A, name="A")
 mono_B = Monomer(inner=B, name="B")
 library = {"A": mono_A, "B": mono_B}
 
-connector = ReacterConnector()              # chooses how ports react
-typifier = OplsAtomisticTypifier()          # optional force‑field typing
+connector = ReacterConnector()  # chooses how ports react
+typifier = OplsAtomisticTypifier()  # optional force‑field typing
 
 poly = linear(
-    sequence="ABABAB",                      # monomer sequence
+    sequence="ABABAB",  # monomer sequence
     library=library,
     connector=connector,
     typifier=typifier,
 )
 
-print(poly)                                 # Polymer wrapper around an Atomistic
-inner = poly.inner                          # underlying Atomistic structure
+print(poly)  # Polymer wrapper around an Atomistic
+inner = poly.inner  # underlying Atomistic structure
 print("atoms:", len(list(inner.atoms)))
-print("bonds:", len(list(inner.bonds)))
+print("bonds:", len(list(inner.bonds)))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 7</span>
+<span class="ansi-green-fg">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">typifier</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">atomistic</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> OplsAtomisticTypifier
+<span class="ansi-green-fg">      6</span> <span style="color: rgb(95,135,135)"># Assume you already built / loaded two monomer Atomistic structures: A, B</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">7</span> mono_A = Monomer(inner=<span class="ansi-yellow-bg">A</span>, name=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">A</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      8</span> mono_B = Monomer(inner=B, name=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">B</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      9</span> library = {<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">A</span><span class="ansi-yellow-fg">"</span>: mono_A, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">B</span><span class="ansi-yellow-fg">"</span>: mono_B}
+
+<span class="ansi-red-fg">NameError</span>: name 'A' is not defined</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f0b269b4">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a63283cbaf04dbcab1f6479b197f3a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2838,13 +2831,13 @@ into a simulation box, using external packers such as <strong>Packmol</strong>.<
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4cccd32f">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8dd0d8092fe74a7c96281538738b07e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2858,9 +2851,10 @@ into a simulation box, using external packers such as <strong>Packmol</strong>.<
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.pack.molpack</span><span class="w"> </span><span class="kn">import</span> <span class="n">Molpack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.pack.constraints</span><span class="w"> </span><span class="kn">import</span> <span class="n">BoxConstraint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.pack.molpack</span><span class="w"> </span><span class="kn">import</span> <span class="n">Molpack</span>
 
 <span class="c1"># 1. Single‑molecule template as a Frame</span>
 <span class="n">frame</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Frame</span><span class="p">()</span>
@@ -2884,9 +2878,10 @@ into a simulation box, using external packers such as <strong>Packmol</strong>.<
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Box:"</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"box"</span><span class="p">))</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">from pathlib import Path
+
 import molpy as mp
-from molpy.pack.molpack import Molpack
 from molpy.pack.constraints import BoxConstraint
+from molpy.pack.molpack import Molpack
 
 # 1. Single‑molecule template as a Frame
 frame = mp.Frame()
@@ -2907,15 +2902,36 @@ packer.add_target(frame, number=100, constraint=constraint)
 result = packer.optimize(max_steps=1000, seed=42)
 
 print("Packed atoms:", result["atoms"].nrows)
-print("Box:", result.metadata.get("box"))
+print("Box:", result.metadata.get("box"))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ModuleNotFoundError</span>                       Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 4</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">pathlib</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Path
+<span class="ansi-green-fg">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">mp</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">pack</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">constraints</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> BoxConstraint
+<span class="ansi-green-fg">      5</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">pack</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">molpack</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Molpack
+<span class="ansi-green-fg">      7</span> <span style="color: rgb(95,135,135)"># 1. Single‑molecule template as a Frame</span>
+
+<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named 'molpy.pack.constraints'</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=112f462d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72eea5119410473aa328ad9291626812">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

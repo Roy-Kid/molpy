@@ -1199,34 +1199,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2721,13 +2693,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2740,9 +2712,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">RDKitWrapper</span><span class="p">,</span> <span class="n">atomistic_to_mol</span><span class="p">,</span> <span class="n">mol_to_atomistic</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.atomistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Atomistic</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">RDKitWrapper</span><span class="p">,</span> <span class="n">atomistic_to_mol</span><span class="p">,</span> <span class="n">mol_to_atomistic</span>
 
 <span class="c1"># Create a molecule from SMILES</span>
 <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="s2">"CCO"</span><span class="p">)</span>
@@ -2759,11 +2731,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 
 <span class="c1"># Access the MolPy structure</span>
 <span class="n">atomistic_3d</span> <span class="o">=</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">inner</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Generated 3D structure with coordinates"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Generated 3D structure with coordinates"</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from molpy.adapter import RDKitWrapper, atomistic_to_mol, mol_to_atomistic
-from molpy.core.atomistic import Atomistic
-from rdkit import Chem
+<div class="clipboard-copy-txt" id="cell-1">from rdkit import Chem
+
+from molpy.adapter import RDKitWrapper, atomistic_to_mol, mol_to_atomistic
 
 # Create a molecule from SMILES
 mol = Chem.MolFromSmiles("CCO")
@@ -2780,8 +2752,27 @@ wrapper.generate_3d(optimize=True)
 
 # Access the MolPy structure
 atomistic_3d = wrapper.inner
-print(f"Generated 3D structure with coordinates")
+print("Generated 3D structure with coordinates")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ModuleNotFoundError</span>                       Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">rdkit</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Chem
+<span class="ansi-green-fg">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">adapter</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> RDKitWrapper, atomistic_to_mol, mol_to_atomistic
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(95,135,135)"># Create a molecule from SMILES</span>
+
+<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named 'rdkit'</pre>
 </div>
 </div>
 </div>
@@ -2798,13 +2789,13 @@ print(f"Generated 3D structure with coordinates")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2831,8 +2822,28 @@ print(f"RDKit molecule has {mol_from_atomistic.GetNumAtoms()} atoms")
 
 # Generate 2D drawing
 svg = wrapper.draw(show=False)
-print("Generated 2D molecular drawing")
+print("Generated 2D molecular drawing")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Convert Atomistic back to RDKit</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> mol_from_atomistic = <span class="ansi-yellow-bg">atomistic_to_mol</span>(atomistic_3d)
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">RDKit molecule has </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>mol_from_atomistic.GetNumAtoms()<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> atoms</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(95,135,135)"># Generate 2D drawing</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'atomistic_to_mol' is not defined</pre>
 </div>
 </div>
 </div>

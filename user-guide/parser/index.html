@@ -1124,34 +1124,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2724,13 +2696,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2743,7 +2715,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">SmilesParser</span><span class="p">,</span> <span class="n">SmartsParser</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">SmartsParser</span><span class="p">,</span> <span class="n">SmilesParser</span>
 
 <span class="c1"># Parse SMILES string</span>
 <span class="n">smiles_parser</span> <span class="o">=</span> <span class="n">SmilesParser</span><span class="p">()</span>
@@ -2755,7 +2727,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="n">smarts_ir</span> <span class="o">=</span> <span class="n">smarts_parser</span><span class="o">.</span><span class="n">parse_smarts</span><span class="p">(</span><span class="s2">"[C;H2,H3]"</span><span class="p">)</span>  <span class="c1"># Carbon with 2 or 3 hydrogens</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Parsed SMARTS: </span><span class="si">{</span><span class="n">smarts_ir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from molpy.parser import SmilesParser, SmartsParser
+<div class="clipboard-copy-txt" id="cell-1">from molpy.parser import SmartsParser, SmilesParser
 
 # Parse SMILES string
 smiles_parser = SmilesParser()
@@ -2765,8 +2737,21 @@ print(f"Parsed SMILES: {smiles_ir}")
 # Parse SMARTS pattern
 smarts_parser = SmartsParser()
 smarts_ir = smarts_parser.parse_smarts("[C;H2,H3]")  # Carbon with 2 or 3 hydrogens
-print(f"Parsed SMARTS: {smarts_ir}")
+print(f"Parsed SMARTS: {smarts_ir}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Parsed SMILES: SmilesIR(atoms=[AtomIR(symbol='C'), AtomIR(symbol='C'), AtomIR(symbol='O')], bonds=[BondIR('C', 'C', '-'), BondIR('C', 'O', '-')])
+Parsed SMARTS: SmartsIR(atoms=[SmartsAtomIR(expression=AtomExpressionIR(op='weak_and', children=[AtomPrimitiveIR(type='symbol', value='C'), AtomExpressionIR(op='or', children=[AtomPrimitiveIR(type='hydrogen_count', value=2), AtomPrimitiveIR(type='hydrogen_count', value=3)])]))], bonds=[])
+</pre>
 </div>
 </div>
 </div>

@@ -1124,34 +1124,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2736,7 +2708,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6a57e3e3">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fb27b941602401d91542211134fc71a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2763,12 +2735,12 @@ represents <strong>one reaction type</strong>:</p>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=90daf34c">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=acae54e37e7d407bbb7b55eff062a284">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2805,15 +2777,14 @@ cc_coupling = Reacter(
     leaving_left=remove_one_H,
     leaving_right=remove_one_H,
     bond_maker=make_single_bond,
-)
+)</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e68b9d76">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a63283cbaf04dbcab1f6479b197f3a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2827,13 +2798,13 @@ returns a <code>ProductSet</code>:</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=bcc34d8c">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8dd0d8092fe74a7c96281538738b07e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2852,12 +2823,12 @@ returns a <code>ProductSet</code>:</p>
 <span class="n">product_set</span> <span class="o">=</span> <span class="n">cc_coupling</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
     <span class="n">mono_A</span><span class="p">,</span>
     <span class="n">mono_B</span><span class="p">,</span>
-    <span class="n">port_L</span><span class="o">=</span><span class="s2">"1"</span><span class="p">,</span>   <span class="c1"># explicit ports</span>
+    <span class="n">port_L</span><span class="o">=</span><span class="s2">"1"</span><span class="p">,</span>  <span class="c1"># explicit ports</span>
     <span class="n">port_R</span><span class="o">=</span><span class="s2">"2"</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">product</span> <span class="o">=</span> <span class="n">product_set</span><span class="o">.</span><span class="n">product</span>       <span class="c1"># Atomistic product</span>
-<span class="n">notes</span> <span class="o">=</span> <span class="n">product_set</span><span class="o">.</span><span class="n">notes</span>           <span class="c1"># metadata about what happened</span>
+<span class="n">product</span> <span class="o">=</span> <span class="n">product_set</span><span class="o">.</span><span class="n">product</span>  <span class="c1"># Atomistic product</span>
+<span class="n">notes</span> <span class="o">=</span> <span class="n">product_set</span><span class="o">.</span><span class="n">notes</span>  <span class="c1"># metadata about what happened</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"New atoms:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">atoms</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"New bonds:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">bonds</span><span class="p">)))</span>
@@ -2869,24 +2840,50 @@ returns a <code>ProductSet</code>:</p>
 product_set = cc_coupling.run(
     mono_A,
     mono_B,
-    port_L="1",   # explicit ports
+    port_L="1",  # explicit ports
     port_R="2",
 )
 
-product = product_set.product       # Atomistic product
-notes = product_set.notes           # metadata about what happened
+product = product_set.product  # Atomistic product
+notes = product_set.notes  # metadata about what happened
 
 print("New atoms:", len(list(product.atoms)))
 print("New bonds:", len(list(product.bonds)))
-print("Reaction name:", notes.get("reaction_name", cc_coupling.name))
+print("Reaction name:", notes.get("reaction_name", cc_coupling.name))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 5</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">core</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">wrappers</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">monomer</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Monomer
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(95,135,135)"># Assume mono_A and mono_B are Monomer wrappers around Atomistic structures</span>
+<span class="ansi-green-fg">      4</span> product_set = cc_coupling.run(
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">5</span>     <span class="ansi-yellow-bg">mono_A</span>,
+<span class="ansi-green-fg">      6</span>     mono_B,
+<span class="ansi-green-fg">      7</span>     port_L=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">1</span><span class="ansi-yellow-fg">"</span>,  <span style="color: rgb(95,135,135)"># explicit ports</span>
+<span class="ansi-green-fg">      8</span>     port_R=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">2</span><span class="ansi-yellow-fg">"</span>,
+<span class="ansi-green-fg">      9</span> )
+<span class="ansi-green-fg">     11</span> product = product_set.product  <span style="color: rgb(95,135,135)"># Atomistic product</span>
+<span class="ansi-green-fg">     12</span> notes = product_set.notes  <span style="color: rgb(95,135,135)"># metadata about what happened</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'mono_A' is not defined</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6bbd90b3">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72eea5119410473aa328ad9291626812">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2905,13 +2902,13 @@ instances into higher‑level builders, such as the linear polymer builder in
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d63a873a">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8edb47106e1a46a883d545849b8ab81b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2924,10 +2921,8 @@ instances into higher‑level builders, such as the linear polymer builder in
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.monomer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Monomer</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.polymer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Polymer</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.connectors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReacterConnector</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.polymer.connectors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReacterConnector</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.reacter</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reacter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.reacter.selectors</span><span class="w"> </span><span class="kn">import</span> <span class="n">port_anchor_selector</span><span class="p">,</span> <span class="n">remove_one_H</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.reacter.transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_single_bond</span>
@@ -2962,14 +2957,12 @@ instances into higher‑level builders, such as the linear polymer builder in
     <span class="n">connector</span><span class="o">=</span><span class="n">connector</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">polymer</span><span class="p">)</span>               <span class="c1"># Polymer wrapper around an Atomistic</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">polymer</span><span class="p">)</span>  <span class="c1"># Polymer wrapper around an Atomistic</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"atoms:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">polymer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">atoms</span><span class="p">)))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"bonds:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">polymer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">bonds</span><span class="p">)))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-3">from molpy.core.wrappers.monomer import Monomer
-from molpy.core.wrappers.polymer import Polymer
+<div class="clipboard-copy-txt" id="cell-3">from molpy.builder.polymer.connectors import ReacterConnector
 from molpy.builder.polymer.linear import linear
-from molpy.builder.polymer.connectors import ReacterConnector
 from molpy.reacter import Reacter
 from molpy.reacter.selectors import port_anchor_selector, remove_one_H
 from molpy.reacter.transformers import make_single_bond
@@ -3004,17 +2997,42 @@ polymer = linear(
     connector=connector,
 )
 
-print(polymer)               # Polymer wrapper around an Atomistic
+print(polymer)  # Polymer wrapper around an Atomistic
 print("atoms:", len(list(polymer.inner.atoms)))
-print("bonds:", len(list(polymer.inner.bonds)))
+print("bonds:", len(list(polymer.inner.bonds)))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 27</span>
+<span class="ansi-green-fg">     18</span> connector = ReacterConnector(
+<span class="ansi-green-fg">     19</span>     default=cc_coupling,
+<span class="ansi-green-fg">     20</span>     port_map={
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">     23</span>     },
+<span class="ansi-green-fg">     24</span> )
+<span class="ansi-green-fg">     26</span> <span style="color: rgb(95,135,135)"># 3. Monomer library &amp; sequence</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">27</span> mono_A = Monomer(inner=<span class="ansi-yellow-bg">A_atomistic</span>, name=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">A</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">     28</span> mono_B = Monomer(inner=B_atomistic, name=<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">B</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">     29</span> library = {<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">A</span><span class="ansi-yellow-fg">"</span>: mono_A, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">B</span><span class="ansi-yellow-fg">"</span>: mono_B}
+
+<span class="ansi-red-fg">NameError</span>: name 'A_atomistic' is not defined</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f409d1b7">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=10185d26023b46108eb7d9f57d49d2b3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

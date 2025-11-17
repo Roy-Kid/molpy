@@ -1116,34 +1116,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2596,13 +2568,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=249ff616">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a2613aa4">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2676,91 +2648,89 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Compute</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.result</span><span class="w"> </span><span class="kn">import</span> <span class="n">Result</span>
 
-
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Example 1: Simple Compute</span>
 <span class="c1"># =============================================================================</span>
 
+
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CountAtomsResult</span><span class="p">(</span><span class="n">Result</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Result from counting atoms in a frame.</span>
-<span class="sd">    </span>
+
 <span class="sd">    This is the simplest possible result: just a single integer value.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Attributes:</span>
 <span class="sd">        value: Number of atoms in the frame.</span>
 <span class="sd">    """</span>
-    
+
     <span class="n">value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">CountAtomsCompute</span><span class="p">(</span><span class="n">Compute</span><span class="p">[</span><span class="n">Frame</span><span class="p">,</span> <span class="n">CountAtomsResult</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""Compute the number of atoms in a frame.</span>
-<span class="sd">    </span>
+
 <span class="sd">    This is a minimal example showing the basic structure of a compute</span>
 <span class="sd">    operation. It demonstrates:</span>
-<span class="sd">    </span>
+
 <span class="sd">    - Checking if required data exists</span>
 <span class="sd">    - Accessing data from a Frame</span>
 <span class="sd">    - Returning a typed result</span>
-<span class="sd">    </span>
+
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; compute = CountAtomsCompute()</span>
 <span class="sd">        &gt;&gt;&gt; result = compute(frame)</span>
 <span class="sd">        &gt;&gt;&gt; print(f"Frame contains {result.value} atoms")</span>
-<span class="sd">    </span>
+
 <span class="sd">    Developer Notes:</span>
 <span class="sd">        - No constructor parameters needed for simple operations</span>
 <span class="sd">        - Always check if the required block exists before accessing</span>
 <span class="sd">        - Use descriptive result names like "count_atoms"</span>
 <span class="sd">    """</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Frame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CountAtomsResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Count the atoms in the frame.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input frame containing atomic data.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Result containing the atom count.</span>
 <span class="sd">        """</span>
         <span class="c1"># Check if the atoms block exists</span>
         <span class="k">if</span> <span class="s2">"atoms"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">CountAtomsResult</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"count_atoms"</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        
+
         <span class="c1"># Get the atoms table from the frame</span>
         <span class="n">atoms_table</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span>
-        
+
         <span class="c1"># Count the number of rows in the atoms table</span>
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">atoms_table</span><span class="o">.</span><span class="n">nrows</span>
-        
-        <span class="k">return</span> <span class="n">CountAtomsResult</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">"count_atoms"</span><span class="p">,</span>
-            <span class="n">value</span><span class="o">=</span><span class="n">n_atoms</span>
-        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CountAtomsResult</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"count_atoms"</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">n_atoms</span><span class="p">)</span>
 
 
 <span class="c1"># =============================================================================</span>
 <span class="c1"># Example 2: Moderate Complexity with Fallbacks</span>
 <span class="c1"># =============================================================================</span>
 
+
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CenterOfMassResult</span><span class="p">(</span><span class="n">Result</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Result from computing center of mass.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Demonstrates a result with a numpy array field and metadata.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Attributes:</span>
 <span class="sd">        com: Center of mass coordinates as a 3D vector [x, y, z].</span>
-<span class="sd">    </span>
+
 <span class="sd">    Developer Notes:</span>
 <span class="sd">        - Use None as default for array fields</span>
 <span class="sd">        - Initialize in __post_init__ if needed</span>
 <span class="sd">        - Store additional information in metadata</span>
 <span class="sd">    """</span>
-    
+
     <span class="n">com</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with default zero vector if needed."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">com</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -2769,75 +2739,71 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">CenterOfMassCompute</span><span class="p">(</span><span class="n">Compute</span><span class="p">[</span><span class="n">Frame</span><span class="p">,</span> <span class="n">CenterOfMassResult</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""Compute the center of mass of a frame.</span>
-<span class="sd">    </span>
+
 <span class="sd">    This compute demonstrates:</span>
-<span class="sd">    </span>
+
 <span class="sd">    - Handling missing data columns gracefully</span>
 <span class="sd">    - Working with numpy arrays</span>
 <span class="sd">    - Using metadata for additional information</span>
 <span class="sd">    - Providing sensible defaults</span>
-<span class="sd">    </span>
+
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; compute = CenterOfMassCompute()</span>
 <span class="sd">        &gt;&gt;&gt; result = compute(frame)</span>
 <span class="sd">        &gt;&gt;&gt; print(f"Center of mass: {result.com}")</span>
 <span class="sd">        &gt;&gt;&gt; print(f"Total mass: {result.meta['total_mass']} amu")</span>
-<span class="sd">    </span>
+
 <span class="sd">    Developer Notes:</span>
 <span class="sd">        - Use fallback values when optional data is missing</span>
 <span class="sd">        - Store derived quantities in metadata</span>
 <span class="sd">        - Avoid division by zero errors</span>
 <span class="sd">    """</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Frame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CenterOfMassResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Calculate the center of mass.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input frame containing atomic data with coordinates and masses.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Result containing the center of mass coordinates.</span>
 <span class="sd">        """</span>
         <span class="c1"># Check if the atoms block exists</span>
         <span class="k">if</span> <span class="s2">"atoms"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">CenterOfMassResult</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span>
-                <span class="n">com</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span> <span class="n">com</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
             <span class="p">)</span>
-        
+
         <span class="n">atoms_table</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span>
-        
+
         <span class="k">if</span> <span class="n">atoms_table</span><span class="o">.</span><span class="n">nrows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">CenterOfMassResult</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span>
-                <span class="n">com</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span> <span class="n">com</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
             <span class="p">)</span>
-        
+
         <span class="c1"># Extract coordinates (x, y, z columns)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">atoms_table</span><span class="p">[</span><span class="s2">"x"</span><span class="p">][:]</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">atoms_table</span><span class="p">[</span><span class="s2">"y"</span><span class="p">][:]</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">atoms_table</span><span class="p">[</span><span class="s2">"z"</span><span class="p">][:]</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
-        
+
         <span class="c1"># Extract masses (with fallback to uniform mass if not available)</span>
         <span class="k">if</span> <span class="s2">"mass"</span> <span class="ow">in</span> <span class="n">atoms_table</span><span class="p">:</span>
             <span class="n">masses</span> <span class="o">=</span> <span class="n">atoms_table</span><span class="p">[</span><span class="s2">"mass"</span><span class="p">][:]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># If mass column doesn't exist, assume uniform mass</span>
             <span class="n">masses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-        
+
         <span class="c1"># Calculate mass-weighted center of mass</span>
         <span class="n">total_mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">masses</span><span class="p">)</span>
-        
+
         <span class="k">if</span> <span class="n">total_mass</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">com</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">com</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">coords</span> <span class="o">*</span> <span class="n">masses</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_mass</span>
-        
+
         <span class="k">return</span> <span class="n">CenterOfMassResult</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span>
-            <span class="n">com</span><span class="o">=</span><span class="n">com</span><span class="p">,</span>
-            <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">"total_mass"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">total_mass</span><span class="p">)}</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"center_of_mass"</span><span class="p">,</span> <span class="n">com</span><span class="o">=</span><span class="n">com</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">"total_mass"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">total_mass</span><span class="p">)}</span>
         <span class="p">)</span>
 
 
@@ -2845,30 +2811,31 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="c1"># Example 3: Complex Trajectory-Based Compute</span>
 <span class="c1"># =============================================================================</span>
 
+
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MeanSquaredDisplacementResult</span><span class="p">(</span><span class="n">Result</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Result from mean squared displacement calculation.</span>
-<span class="sd">    </span>
+
 <span class="sd">    The MSD measures how much particles move over time, which is crucial for</span>
 <span class="sd">    characterizing diffusion and Brownian motion.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Attributes:</span>
 <span class="sd">        msd: Mean squared displacement values for each time lag.</span>
 <span class="sd">            Shape: (n_frames,)</span>
 <span class="sd">        particle_msd: Per-particle MSD values for each time lag.</span>
 <span class="sd">            Shape: (n_frames, n_particles)</span>
 <span class="sd">        mode: Calculation mode used ('window' or 'direct').</span>
-<span class="sd">    </span>
+
 <span class="sd">    Developer Notes:</span>
 <span class="sd">        - For trajectory-based computes, results are typically arrays</span>
 <span class="sd">        - Store computation parameters in metadata</span>
 <span class="sd">        - Provide both aggregate and per-particle results when useful</span>
 <span class="sd">    """</span>
-    
+
     <span class="n">msd</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">particle_msd</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"window"</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with empty arrays if needed."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">msd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -2877,81 +2844,85 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
             <span class="bp">self</span><span class="o">.</span><span class="n">particle_msd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">MeanSquaredDisplacementCompute</span><span class="p">(</span><span class="n">Compute</span><span class="p">[</span><span class="n">Trajectory</span><span class="p">,</span> <span class="n">MeanSquaredDisplacementResult</span><span class="p">]):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MeanSquaredDisplacementCompute</span><span class="p">(</span>
+    <span class="n">Compute</span><span class="p">[</span><span class="n">Trajectory</span><span class="p">,</span> <span class="n">MeanSquaredDisplacementResult</span><span class="p">]</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Compute mean squared displacement from a trajectory.</span>
-<span class="sd">    </span>
+
 <span class="sd">    The mean squared displacement (MSD) measures particle mobility over time.</span>
 <span class="sd">    Two calculation modes are supported:</span>
-<span class="sd">    </span>
+
 <span class="sd">    - **'window'** (default): Average over all windows of length m</span>
 <span class="sd">      MSD(m) = ⟨(r(t+m) - r(t))²⟩ averaged over all t and particles</span>
-<span class="sd">      </span>
+
 <span class="sd">    - **'direct'**: Direct displacement from initial position</span>
 <span class="sd">      MSD(t) = ⟨(r(t) - r(0))²⟩ averaged over all particles</span>
-<span class="sd">    </span>
+
 <span class="sd">    The window mode uses FFT-based autocorrelation for efficient computation,</span>
 <span class="sd">    following the algorithm described in Calandrini et al. (2011).</span>
-<span class="sd">    </span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        mode: Calculation mode, either 'window' or 'direct'.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; compute = MeanSquaredDisplacementCompute(mode='window')</span>
 <span class="sd">        &gt;&gt;&gt; result = compute(trajectory)</span>
 <span class="sd">        &gt;&gt;&gt; print(f"MSD at lag 10: {result.msd[10]:.3f}")</span>
 <span class="sd">        &gt;&gt;&gt; print(f"Diffusion coefficient: {result.meta['diffusion_coeff']:.3e}")</span>
-<span class="sd">    </span>
+
 <span class="sd">    Developer Notes:</span>
 <span class="sd">        - For trajectory computes, input is typically a Trajectory object</span>
 <span class="sd">        - Use efficient algorithms (like FFT) for large datasets</span>
 <span class="sd">        - Validate that trajectory properties are constant (box, n_particles)</span>
 <span class="sd">        - Provide both aggregate and per-particle results</span>
 <span class="sd">        - Use context to share expensive computations (e.g., unwrapped positions)</span>
-<span class="sd">    </span>
+
 <span class="sd">    References:</span>
 <span class="sd">        Calandrini et al., "nMoldyn 3: Using task farming for a parallel</span>
 <span class="sd">        spectroscopy-oriented analysis of molecular dynamics simulations",</span>
 <span class="sd">        J. Comput. Chem. 32(8), 1477-1487 (2011).</span>
 <span class="sd">    """</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"window"</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize the MSD compute.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            mode: Calculation mode ('window' or 'direct').</span>
 <span class="sd">            context: Optional shared context for expensive intermediates.</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
-        
+
         <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"window"</span><span class="p">,</span> <span class="s2">"direct"</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid mode: </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">. Must be 'window' or 'direct'."</span><span class="p">)</span>
-        
+
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">before</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Trajectory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate input before computation.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input trajectory.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If trajectory is invalid for MSD calculation.</span>
 <span class="sd">        """</span>
         <span class="c1"># Check that we have at least 2 frames</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Trajectory must have at least 2 frames for MSD calculation"</span><span class="p">)</span>
-        
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Trajectory must have at least 2 frames for MSD calculation"</span>
+            <span class="p">)</span>
+
         <span class="c1"># Note: In a real implementation, you would also check that:</span>
         <span class="c1"># - Box is constant over trajectory</span>
         <span class="c1"># - Number of particles is constant</span>
         <span class="c1"># - Positions are unwrapped (or provide images)</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Trajectory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MeanSquaredDisplacementResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Calculate the mean squared displacement.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input trajectory with particle positions over time.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Result containing MSD values.</span>
 <span class="sd">        """</span>
@@ -2960,17 +2931,17 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
         <span class="c1"># 1. Unwrap positions if needed</span>
         <span class="c1"># 2. Handle images</span>
         <span class="c1"># 3. Check for constant box and particle count</span>
-        
+
         <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_positions</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
-        
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"window"</span><span class="p">:</span>
             <span class="n">particle_msd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_window_msd</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># mode == "direct"</span>
             <span class="n">particle_msd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_direct_msd</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
-        
+
         <span class="c1"># Average over particles</span>
         <span class="n">msd</span> <span class="o">=</span> <span class="n">particle_msd</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        
+
         <span class="c1"># Calculate diffusion coefficient (slope of MSD vs time)</span>
         <span class="c1"># D = lim_{t→∞} MSD(t) / (2 * d * t) where d is dimensionality</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
@@ -2980,7 +2951,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
             <span class="n">diffusion_coeff</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">/</span> <span class="mf">6.0</span>  <span class="c1"># 2 * 3 dimensions</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">diffusion_coeff</span> <span class="o">=</span> <span class="mf">0.0</span>
-        
+
         <span class="k">return</span> <span class="n">MeanSquaredDisplacementResult</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"mean_squared_displacement"</span><span class="p">,</span>
             <span class="n">msd</span><span class="o">=</span><span class="n">msd</span><span class="p">,</span>
@@ -2990,22 +2961,22 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
                 <span class="s2">"n_frames"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">msd</span><span class="p">),</span>
                 <span class="s2">"n_particles"</span><span class="p">:</span> <span class="n">particle_msd</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">particle_msd</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
                 <span class="s2">"diffusion_coeff"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">diffusion_coeff</span><span class="p">),</span>
-            <span class="p">}</span>
+            <span class="p">},</span>
         <span class="p">)</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_extract_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trajectory</span><span class="p">:</span> <span class="n">Trajectory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Extract positions from trajectory.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            trajectory: Input trajectory.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Position array with shape (n_frames, n_particles, 3).</span>
 <span class="sd">        """</span>
         <span class="c1"># This is a placeholder implementation</span>
         <span class="c1"># In a real implementation, you would iterate over frames and extract</span>
         <span class="c1"># the positions from each frame's atoms block</span>
-        
+
         <span class="n">positions_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">trajectory</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"atoms"</span> <span class="ow">in</span> <span class="n">frame</span><span class="p">:</span>
@@ -3015,70 +2986,74 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
                 <span class="n">z</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s2">"z"</span><span class="p">][:]</span>
                 <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
                 <span class="n">positions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
-        
+
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions_list</span><span class="p">)</span>
-    
-    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_window_msd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_window_msd</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Compute MSD using windowed averaging with FFT optimization.</span>
-<span class="sd">        </span>
+
 <span class="sd">        This implements the efficient FFT-based algorithm for computing the</span>
 <span class="sd">        windowed MSD, as described in Calandrini et al. (2011).</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            positions: Position array with shape (n_frames, n_particles, 3).</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Per-particle MSD with shape (n_frames, n_particles).</span>
 <span class="sd">        """</span>
         <span class="n">N</span> <span class="o">=</span> <span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        
+
         <span class="c1"># First term: &lt;r²(k+m)&gt; - &lt;r²(k)&gt;</span>
         <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">Q</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">D</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        
+
         <span class="n">S1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
             <span class="n">Q</span> <span class="o">-=</span> <span class="n">D</span><span class="p">[</span><span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">D</span><span class="p">[</span><span class="n">N</span> <span class="o">-</span> <span class="n">m</span><span class="p">,</span> <span class="p">:]</span>
             <span class="n">S1</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">Q</span> <span class="o">/</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span>
-        
+
         <span class="c1"># Second term: compute via autocorrelation using FFT</span>
         <span class="n">S2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>  <span class="c1"># x, y, z</span>
             <span class="n">S2</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_autocorrelation</span><span class="p">(</span><span class="n">positions</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">])</span>
-        
+
         <span class="k">return</span> <span class="n">S1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">S2</span>
-    
-    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_direct_msd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_direct_msd</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Compute MSD using direct displacement from initial position.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            positions: Position array with shape (n_frames, n_particles, 3).</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Per-particle MSD with shape (n_frames, n_particles).</span>
 <span class="sd">        """</span>
         <span class="c1"># Direct calculation: (r(t) - r(0))²</span>
         <span class="n">displacements</span> <span class="o">=</span> <span class="n">positions</span> <span class="o">-</span> <span class="n">positions</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:]</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">displacements</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">displacements</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_autocorrelation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Compute autocorrelation using FFT.</span>
-<span class="sd">        </span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input array with shape (n_frames, n_particles).</span>
-<span class="sd">        </span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            Autocorrelation with shape (n_frames, n_particles).</span>
 <span class="sd">        """</span>
         <span class="n">N</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        
+
         <span class="c1"># Use numpy FFT (in production, could use scipy.fftpack or pyfftw)</span>
         <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">PSD</span> <span class="o">=</span> <span class="n">F</span> <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft</span><span class="p">(</span><span class="n">PSD</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">res</span><span class="p">[:</span><span class="n">N</span><span class="p">])</span><span class="o">.</span><span class="n">real</span>
-        
+
         <span class="c1"># Normalize by number of points</span>
         <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># N to 1</span>
         <span class="k">return</span> <span class="n">res</span> <span class="o">/</span> <span class="n">n</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
@@ -3204,91 +3179,89 @@ from molpy.core.trajectory import Trajectory
 from .base import Compute
 from .result import Result
 
-
 # =============================================================================
 # Example 1: Simple Compute
 # =============================================================================
 
+
 @dataclass
 class CountAtomsResult(Result):
     """Result from counting atoms in a frame.
-    
+
     This is the simplest possible result: just a single integer value.
-    
+
     Attributes:
         value: Number of atoms in the frame.
     """
-    
+
     value: int = 0
 
 
 class CountAtomsCompute(Compute[Frame, CountAtomsResult]):
     """Compute the number of atoms in a frame.
-    
+
     This is a minimal example showing the basic structure of a compute
     operation. It demonstrates:
-    
+
     - Checking if required data exists
     - Accessing data from a Frame
     - Returning a typed result
-    
+
     Examples:
         &gt;&gt;&gt; compute = CountAtomsCompute()
         &gt;&gt;&gt; result = compute(frame)
         &gt;&gt;&gt; print(f"Frame contains {result.value} atoms")
-    
+
     Developer Notes:
         - No constructor parameters needed for simple operations
         - Always check if the required block exists before accessing
         - Use descriptive result names like "count_atoms"
     """
-    
+
     def compute(self, input: Frame) -&gt; CountAtomsResult:
         """Count the atoms in the frame.
-        
+
         Args:
             input: Input frame containing atomic data.
-        
+
         Returns:
             Result containing the atom count.
         """
         # Check if the atoms block exists
         if "atoms" not in input:
             return CountAtomsResult(name="count_atoms", value=0)
-        
+
         # Get the atoms table from the frame
         atoms_table = input["atoms"]
-        
+
         # Count the number of rows in the atoms table
         n_atoms = atoms_table.nrows
-        
-        return CountAtomsResult(
-            name="count_atoms",
-            value=n_atoms
-        )
+
+        return CountAtomsResult(name="count_atoms", value=n_atoms)
 
 
 # =============================================================================
 # Example 2: Moderate Complexity with Fallbacks
 # =============================================================================
 
+
 @dataclass
 class CenterOfMassResult(Result):
     """Result from computing center of mass.
-    
+
     Demonstrates a result with a numpy array field and metadata.
-    
+
     Attributes:
         com: Center of mass coordinates as a 3D vector [x, y, z].
-    
+
     Developer Notes:
         - Use None as default for array fields
         - Initialize in __post_init__ if needed
         - Store additional information in metadata
     """
-    
+
     com: NDArray[np.floating] = None
-    
+
     def __post_init__(self) -&gt; None:
         """Initialize with default zero vector if needed."""
         if self.com is None:
@@ -3297,75 +3270,71 @@ class CenterOfMassResult(Result):
 
 class CenterOfMassCompute(Compute[Frame, CenterOfMassResult]):
     """Compute the center of mass of a frame.
-    
+
     This compute demonstrates:
-    
+
     - Handling missing data columns gracefully
     - Working with numpy arrays
     - Using metadata for additional information
     - Providing sensible defaults
-    
+
     Examples:
         &gt;&gt;&gt; compute = CenterOfMassCompute()
         &gt;&gt;&gt; result = compute(frame)
         &gt;&gt;&gt; print(f"Center of mass: {result.com}")
         &gt;&gt;&gt; print(f"Total mass: {result.meta['total_mass']} amu")
-    
+
     Developer Notes:
         - Use fallback values when optional data is missing
         - Store derived quantities in metadata
         - Avoid division by zero errors
     """
-    
+
     def compute(self, input: Frame) -&gt; CenterOfMassResult:
         """Calculate the center of mass.
-        
+
         Args:
             input: Input frame containing atomic data with coordinates and masses.
-        
+
         Returns:
             Result containing the center of mass coordinates.
         """
         # Check if the atoms block exists
         if "atoms" not in input:
             return CenterOfMassResult(
-                name="center_of_mass",
-                com=np.array([0.0, 0.0, 0.0])
+                name="center_of_mass", com=np.array([0.0, 0.0, 0.0])
             )
-        
+
         atoms_table = input["atoms"]
-        
+
         if atoms_table.nrows == 0:
             return CenterOfMassResult(
-                name="center_of_mass",
-                com=np.array([0.0, 0.0, 0.0])
+                name="center_of_mass", com=np.array([0.0, 0.0, 0.0])
             )
-        
+
         # Extract coordinates (x, y, z columns)
         x = atoms_table["x"][:]
         y = atoms_table["y"][:]
         z = atoms_table["z"][:]
         coords = np.column_stack([x, y, z])
-        
+
         # Extract masses (with fallback to uniform mass if not available)
         if "mass" in atoms_table:
             masses = atoms_table["mass"][:]
         else:
             # If mass column doesn't exist, assume uniform mass
             masses = np.ones(len(x))
-        
+
         # Calculate mass-weighted center of mass
         total_mass = np.sum(masses)
-        
+
         if total_mass == 0:
             com = np.array([0.0, 0.0, 0.0])
         else:
             com = np.sum(coords * masses[:, np.newaxis], axis=0) / total_mass
-        
+
         return CenterOfMassResult(
-            name="center_of_mass",
-            com=com,
-            meta={"total_mass": float(total_mass)}
+            name="center_of_mass", com=com, meta={"total_mass": float(total_mass)}
         )
 
 
@@ -3373,30 +3342,31 @@ class CenterOfMassCompute(Compute[Frame, CenterOfMassResult]):
 # Example 3: Complex Trajectory-Based Compute
 # =============================================================================
 
+
 @dataclass
 class MeanSquaredDisplacementResult(Result):
     """Result from mean squared displacement calculation.
-    
+
     The MSD measures how much particles move over time, which is crucial for
     characterizing diffusion and Brownian motion.
-    
+
     Attributes:
         msd: Mean squared displacement values for each time lag.
             Shape: (n_frames,)
         particle_msd: Per-particle MSD values for each time lag.
             Shape: (n_frames, n_particles)
         mode: Calculation mode used ('window' or 'direct').
-    
+
     Developer Notes:
         - For trajectory-based computes, results are typically arrays
         - Store computation parameters in metadata
         - Provide both aggregate and per-particle results when useful
     """
-    
+
     msd: NDArray[np.floating] = None
     particle_msd: NDArray[np.floating] = None
     mode: str = "window"
-    
+
     def __post_init__(self) -&gt; None:
         """Initialize with empty arrays if needed."""
         if self.msd is None:
@@ -3405,81 +3375,85 @@ class MeanSquaredDisplacementResult(Result):
             self.particle_msd = np.array([])
 
 
-class MeanSquaredDisplacementCompute(Compute[Trajectory, MeanSquaredDisplacementResult]):
+class MeanSquaredDisplacementCompute(
+    Compute[Trajectory, MeanSquaredDisplacementResult]
+):
     """Compute mean squared displacement from a trajectory.
-    
+
     The mean squared displacement (MSD) measures particle mobility over time.
     Two calculation modes are supported:
-    
+
     - **'window'** (default): Average over all windows of length m
       MSD(m) = ⟨(r(t+m) - r(t))²⟩ averaged over all t and particles
-      
+
     - **'direct'**: Direct displacement from initial position
       MSD(t) = ⟨(r(t) - r(0))²⟩ averaged over all particles
-    
+
     The window mode uses FFT-based autocorrelation for efficient computation,
     following the algorithm described in Calandrini et al. (2011).
-    
+
     Args:
         mode: Calculation mode, either 'window' or 'direct'.
-    
+
     Examples:
         &gt;&gt;&gt; compute = MeanSquaredDisplacementCompute(mode='window')
         &gt;&gt;&gt; result = compute(trajectory)
         &gt;&gt;&gt; print(f"MSD at lag 10: {result.msd[10]:.3f}")
         &gt;&gt;&gt; print(f"Diffusion coefficient: {result.meta['diffusion_coeff']:.3e}")
-    
+
     Developer Notes:
         - For trajectory computes, input is typically a Trajectory object
         - Use efficient algorithms (like FFT) for large datasets
         - Validate that trajectory properties are constant (box, n_particles)
         - Provide both aggregate and per-particle results
         - Use context to share expensive computations (e.g., unwrapped positions)
-    
+
     References:
         Calandrini et al., "nMoldyn 3: Using task farming for a parallel
         spectroscopy-oriented analysis of molecular dynamics simulations",
         J. Comput. Chem. 32(8), 1477-1487 (2011).
     """
-    
+
     def __init__(self, mode: str = "window", context=None) -&gt; None:
         """Initialize the MSD compute.
-        
+
         Args:
             mode: Calculation mode ('window' or 'direct').
             context: Optional shared context for expensive intermediates.
         """
         super().__init__(context)
-        
+
         if mode not in ["window", "direct"]:
             raise ValueError(f"Invalid mode: {mode}. Must be 'window' or 'direct'.")
-        
+
         self.mode = mode
-    
+
     def before(self, input: Trajectory) -&gt; None:
         """Validate input before computation.
-        
+
         Args:
             input: Input trajectory.
-        
+
         Raises:
             ValueError: If trajectory is invalid for MSD calculation.
         """
         # Check that we have at least 2 frames
         if len(input) &lt; 2:
-            raise ValueError("Trajectory must have at least 2 frames for MSD calculation")
-        
+            raise ValueError(
+                "Trajectory must have at least 2 frames for MSD calculation"
+            )
+
         # Note: In a real implementation, you would also check that:
         # - Box is constant over trajectory
         # - Number of particles is constant
         # - Positions are unwrapped (or provide images)
-    
+
     def compute(self, input: Trajectory) -&gt; MeanSquaredDisplacementResult:
         """Calculate the mean squared displacement.
-        
+
         Args:
             input: Input trajectory with particle positions over time.
-        
+
         Returns:
             Result containing MSD values.
         """
@@ -3488,17 +3462,17 @@ class MeanSquaredDisplacementCompute(Compute[Trajectory, MeanSquaredDisplacement
         # 1. Unwrap positions if needed
         # 2. Handle images
         # 3. Check for constant box and particle count
-        
+
         positions = self._extract_positions(input)
-        
+
         if self.mode == "window":
             particle_msd = self._compute_window_msd(positions)
         else:  # mode == "direct"
             particle_msd = self._compute_direct_msd(positions)
-        
+
         # Average over particles
         msd = particle_msd.mean(axis=-1)
-        
+
         # Calculate diffusion coefficient (slope of MSD vs time)
         # D = lim_{t→∞} MSD(t) / (2 * d * t) where d is dimensionality
         if len(msd) &gt; 10:
@@ -3508,7 +3482,7 @@ class MeanSquaredDisplacementCompute(Compute[Trajectory, MeanSquaredDisplacement
             diffusion_coeff = slope / 6.0  # 2 * 3 dimensions
         else:
             diffusion_coeff = 0.0
-        
+
         return MeanSquaredDisplacementResult(
             name="mean_squared_displacement",
             msd=msd,
@@ -3518,22 +3492,22 @@ class MeanSquaredDisplacementCompute(Compute[Trajectory, MeanSquaredDisplacement
                 "n_frames": len(msd),
                 "n_particles": particle_msd.shape[1] if particle_msd.ndim &gt; 1 else 0,
                 "diffusion_coeff": float(diffusion_coeff),
-            }
+            },
         )
-    
+
     def _extract_positions(self, trajectory: Trajectory) -&gt; NDArray[np.floating]:
         """Extract positions from trajectory.
-        
+
         Args:
             trajectory: Input trajectory.
-        
+
         Returns:
             Position array with shape (n_frames, n_particles, 3).
         """
         # This is a placeholder implementation
         # In a real implementation, you would iterate over frames and extract
         # the positions from each frame's atoms block
-        
+
         positions_list = []
         for frame in trajectory:
             if "atoms" in frame:
@@ -3543,70 +3517,74 @@ class MeanSquaredDisplacementCompute(Compute[Trajectory, MeanSquaredDisplacement
                 z = atoms["z"][:]
                 coords = np.column_stack([x, y, z])
                 positions_list.append(coords)
-        
+
         return np.array(positions_list)
-    
-    def _compute_window_msd(self, positions: NDArray[np.floating]) -&gt; NDArray[np.floating]:
+
+    def _compute_window_msd(
+        self, positions: NDArray[np.floating]
+    ) -&gt; NDArray[np.floating]:
         """Compute MSD using windowed averaging with FFT optimization.
-        
+
         This implements the efficient FFT-based algorithm for computing the
         windowed MSD, as described in Calandrini et al. (2011).
-        
+
         Args:
             positions: Position array with shape (n_frames, n_particles, 3).
-        
+
         Returns:
             Per-particle MSD with shape (n_frames, n_particles).
         """
         N = positions.shape[0]
-        
+
         # First term: <r²(k+m)> - <r²(k)>
         D = np.square(positions).sum(axis=2)
         D = np.append(D, np.zeros(positions.shape[:2]), axis=0)
         Q = 2 * D.sum(axis=0)
-        
+
         S1 = np.zeros(positions.shape[:2])
         for m in range(N):
             Q -= D[m - 1, :] + D[N - m, :]
             S1[m, :] = Q / (N - m)
-        
+
         # Second term: compute via autocorrelation using FFT
         S2 = np.zeros(positions.shape[:2])
         for i in range(3):  # x, y, z
             S2 += self._autocorrelation(positions[:, :, i])
-        
+
         return S1 - 2 * S2
-    
-    def _compute_direct_msd(self, positions: NDArray[np.floating]) -&gt; NDArray[np.floating]:
+
+    def _compute_direct_msd(
+        self, positions: NDArray[np.floating]
+    ) -&gt; NDArray[np.floating]:
         """Compute MSD using direct displacement from initial position.
-        
+
         Args:
             positions: Position array with shape (n_frames, n_particles, 3).
-        
+
         Returns:
             Per-particle MSD with shape (n_frames, n_particles).
         """
         # Direct calculation: (r(t) - r(0))²
         displacements = positions - positions[[0], :, :]
-        return np.sum(displacements ** 2, axis=-1)
-    
+        return np.sum(displacements**2, axis=-1)
+
     def _autocorrelation(self, x: NDArray[np.floating]) -&gt; NDArray[np.floating]:
         """Compute autocorrelation using FFT.
-        
+
         Args:
             x: Input array with shape (n_frames, n_particles).
-        
+
         Returns:
             Autocorrelation with shape (n_frames, n_particles).
         """
         N = x.shape[0]
-        
+
         # Use numpy FFT (in production, could use scipy.fftpack or pyfftw)
         F = np.fft.fft(x, n=2 * N, axis=0)
         PSD = F * F.conjugate()
         res = np.fft.ifft(PSD, axis=0)
         res = (res[:N]).real
-        
+
         # Normalize by number of points
         n = np.arange(1, N + 1)[::-1]  # N to 1
         return res / n[:, np.newaxis]
@@ -3670,6 +3648,30 @@ To create your own compute:
 
 Happy computing! 🚀
 """</r²(k)></r²(k+m)></operation></operation></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 59</span>
+<span class="ansi-green-fg">     56</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">core</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">frame</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Frame
+<span class="ansi-green-fg">     57</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">core</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">trajectory</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Trajectory
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">59</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">base</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Compute
+<span class="ansi-green-fg">     60</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">result</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Result
+<span class="ansi-green-fg">     62</span> <span style="color: rgb(95,135,135)"># =============================================================================</span>
+<span class="ansi-green-fg">     63</span> <span style="color: rgb(95,135,135)"># Example 1: Simple Compute</span>
+<span class="ansi-green-fg">     64</span> <span style="color: rgb(95,135,135)"># =============================================================================</span>
+
+<span class="ansi-red-fg">ImportError</span>: attempted relative import with no known parent package</pre>
 </div>
 </div>
 </div>

@@ -1124,34 +1124,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../io/" class="md-nav__link">
         
   
@@ -2685,13 +2657,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2705,11 +2677,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.op.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">rotate_by_rodrigues</span><span class="p">,</span>
-    <span class="n">rotate_by_quaternion</span><span class="p">,</span>
     <span class="n">translate</span><span class="p">,</span>
-    <span class="n">rotation_matrix_from_vectors</span>
 <span class="p">)</span>
 
 <span class="c1"># Rotate coordinates using Rodrigues formula</span>
@@ -2726,11 +2697,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Translated coordinates:</span><span class="se">\n</span><span class="si">{</span><span class="n">translated</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import numpy as np
+
 from molpy.op.geometry import (
     rotate_by_rodrigues,
-    rotate_by_quaternion,
     translate,
-    rotation_matrix_from_vectors
 )
 
 # Rotate coordinates using Rodrigues formula
@@ -2744,8 +2714,25 @@ print(f"Rotated coordinates:\n{rotated}")
 # Translate coordinates
 vector = np.array([1.0, 1.0, 1.0])
 translated = translate(coords, vector)
-print(f"Translated coordinates:\n{translated}")
+print(f"Translated coordinates:\n{translated}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Rotated coordinates:
+[[ 6.123234e-17  1.000000e+00  0.000000e+00]
+ [-1.000000e+00  6.123234e-17  0.000000e+00]]
+Translated coordinates:
+[[2. 1. 1.]
+ [1. 2. 1.]]
+</pre>
 </div>
 </div>
 </div>

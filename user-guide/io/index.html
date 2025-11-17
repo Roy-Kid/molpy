@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://molcrafts.github.io/molpy/user-guide/io/">
       
       
-        <link rel="prev" href="../engine/">
+        <link rel="prev" href="../compute/">
       
       
         <link rel="next" href="../op/">
@@ -1104,34 +1104,6 @@
     
   
     Compute Module
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
   
 
     
@@ -2870,7 +2842,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d1cfa45b">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7fb27b941602401d91542211134fc71a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2885,13 +2857,13 @@ and writers take a <code>Frame</code> and produce on‑disk files compatible wit
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5b288282">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=acae54e37e7d407bbb7b55eff062a284">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2905,7 +2877,7 @@ and writers take a <code>Frame</code> and produce on‑disk files compatible wit
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_pdb</span><span class="p">,</span> <span class="n">read_pdb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_pdb</span><span class="p">,</span> <span class="n">write_pdb</span>
 
 <span class="c1"># Build a tiny system in a frame</span>
 <span class="n">box</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Box</span><span class="o">.</span><span class="n">cubic</span><span class="p">(</span><span class="mf">20.0</span><span class="p">)</span>
@@ -2923,7 +2895,7 @@ and writers take a <code>Frame</code> and produce on‑disk files compatible wit
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Loaded atoms:"</span><span class="p">,</span> <span class="n">loaded</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span><span class="o">.</span><span class="n">nrows</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-from molpy.io import write_pdb, read_pdb
+from molpy.io import read_pdb, write_pdb
 
 # Build a tiny system in a frame
 box = mp.Box.cubic(20.0)
@@ -2938,15 +2910,53 @@ frame.metadata["box"] = box
 write_pdb("example.pdb", frame)
 loaded = read_pdb("example.pdb")
 
-print("Loaded atoms:", loaded["atoms"].nrows)
+print("Loaded atoms:", loaded["atoms"].nrows)</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 8</span>
+<span class="ansi-green-fg">      5</span> box = mp.Box.cubic(<span class="ansi-green-fg">20.0</span>)
+<span class="ansi-green-fg">      7</span> frame = mp.Frame()
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">8</span> <span class="ansi-yellow-bg">frame</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">atoms</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">x</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">]</span> = [<span class="ansi-green-fg">0.0</span>, <span class="ansi-green-fg">1.0</span>, <span class="ansi-green-fg">2.0</span>]
+<span class="ansi-green-fg">      9</span> frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">y</span><span class="ansi-yellow-fg">"</span>] = [<span class="ansi-green-fg">0.0</span>, <span class="ansi-green-fg">0.0</span>, <span class="ansi-green-fg">0.0</span>]
+<span class="ansi-green-fg">     10</span> frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">z</span><span class="ansi-yellow-fg">"</span>] = [<span class="ansi-green-fg">0.0</span>, <span class="ansi-green-fg">0.0</span>, <span class="ansi-green-fg">0.0</span>]
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/core/frame.py:730</span>, in <span class="ansi-cyan-fg">Frame.__setitem__</span><span class="ansi-blue-fg">(self, key, value)</span>
+<span class="ansi-green-fg">    711</span> <span class="ansi-yellow-fg">"""</span>
+<span class="ansi-green-fg">    712</span> <span class="ansi-yellow-fg">Set a Block by name.</span>
+<span class="ansi-green-fg">    713</span> 
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">    727</span> <span class="ansi-yellow-fg">True</span>
+<span class="ansi-green-fg">    728</span> <span class="ansi-yellow-fg">"""</span>
+<span class="ansi-green-fg">    729</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(value, Block):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">730</span>     value = <span class="ansi-yellow-bg">Block</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">value</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    731</span> <span style="color: rgb(0,135,0)">self</span>._blocks[key] = value
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/core/frame.py:83</span>, in <span class="ansi-cyan-fg">Block.__init__</span><span class="ansi-blue-fg">(self, vars_)</span>
+<span class="ansi-green-fg">     81</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> vars_ <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">     82</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span style="color: rgb(0,135,0)">isinstance</span>(vars_, <span style="color: rgb(0,135,0)">dict</span>):
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">83</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">ValueError</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">vars_ must be a dict, got </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">type</span>(vars_)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">     84</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> k, v <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> vars_.items():
+<span class="ansi-green-fg">     85</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">try</span>:
+
+<span class="ansi-red-fg">ValueError</span>: vars_ must be a dict, got &lt;class 'list'&gt;</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5ff829a5">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9a63283cbaf04dbcab1f6479b197f3a8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2974,12 +2984,12 @@ print("Loaded atoms:", loaded["atoms"].nrows)
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=aa75196b">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8dd0d8092fe74a7c96281538738b07e2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -3000,15 +3010,14 @@ print("Loaded atoms:", loaded["atoms"].nrows)
 <div class="clipboard-copy-txt" id="cell-2">from molpy.io import write_lammps_data
 
 # Assume `frame` has been constructed or loaded before
-write_lammps_data("system.data", frame, atom_style="full")
+write_lammps_data("system.data", frame, atom_style="full")</div>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=650a12bb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=72eea5119410473aa328ad9291626812">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3024,13 +3033,13 @@ write_lammps_data("system.data", frame, atom_style="full")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d59a6604">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8edb47106e1a46a883d545849b8ab81b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -3053,15 +3062,35 @@ write_lammps_data("system.data", frame, atom_style="full")
 
 frame = read_lammps_data("system.data", atomstyle="full")
 print("Atoms:", frame["atoms"].nrows)
-print("Has bonds:", "bonds" in list(frame.blocks()))
+print("Has bonds:", "bonds" in list(frame.blocks()))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">TypeError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> read_lammps_data
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> frame = <span class="ansi-yellow-bg">read_lammps_data</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">system.data</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">atomstyle</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">full</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">      4</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Atoms:</span><span class="ansi-yellow-fg">"</span>, frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows)
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Has bonds:</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">bonds</span><span class="ansi-yellow-fg">"</span> <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">list</span>(frame.blocks()))
+
+<span class="ansi-red-fg">TypeError</span>: read_lammps_data() got an unexpected keyword argument 'atomstyle'</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1f8cbff1">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=10185d26023b46108eb7d9f57d49d2b3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3075,13 +3104,13 @@ MolPy’s LAMMPS trajectory reader is designed to be lazy and memory‑friendly.
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=cede073d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8763a12b2bbd4a93a75aff182afb95dc">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3110,15 +3139,52 @@ reader = LammpsTrajectoryReader("traj.lammpstrj")
 for i, frame in enumerate(reader):
     print("Step", i, "atoms:", frame["atoms"].nrows)
     if i &gt;= 9:
-        break  # just peek at the first 10 frames
+        break  # just peek at the first 10 frames</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">FileNotFoundError</span>                         Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[4]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">trajectory</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">lammps</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> LammpsTrajectoryReader
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> reader = <span class="ansi-yellow-bg">LammpsTrajectoryReader</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">traj.lammpstrj</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">      5</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> i, frame <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">enumerate</span>(reader):
+<span class="ansi-green-fg">      6</span>     <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Step</span><span class="ansi-yellow-fg">"</span>, i, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms:</span><span class="ansi-yellow-fg">"</span>, frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/io/trajectory/lammps.py:60</span>, in <span class="ansi-cyan-fg">LammpsTrajectoryReader.__init__</span><span class="ansi-blue-fg">(self, fpath, frame, extra_type_mappings)</span>
+<span class="ansi-green-fg">     53</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-fg">__init__</span>(
+<span class="ansi-green-fg">     54</span>     <span style="color: rgb(0,135,0)">self</span>,
+<span class="ansi-green-fg">     55</span>     fpath: PathLike | <span style="color: rgb(0,135,0)">list</span>[PathLike],
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">     58</span> ):
+<span class="ansi-green-fg">     59</span>     <span style="color: rgb(95,135,135)"># Pass the fpath (single or multiple) to the base class</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">60</span>     <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">super</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">.</span><span class="ansi-blue-fg ansi-yellow-bg">__init__</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">fpath</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">     61</span>     <span style="color: rgb(0,135,0)">self</span>.frame = frame
+<span class="ansi-green-fg">     62</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> extra_type_mappings:
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/io/trajectory/base.py:51</span>, in <span class="ansi-cyan-fg">BaseTrajectoryReader.__init__</span><span class="ansi-blue-fg">(self, fpath)</span>
+<span class="ansi-green-fg">     49</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> path <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">self</span>.fpaths:
+<span class="ansi-green-fg">     50</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> path.exists():
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">51</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">raise</span> <span class="ansi-bold" style="color: rgb(215,95,95)">FileNotFoundError</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">File not found: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>path<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">     53</span> <span style="color: rgb(0,135,0)">self</span>._frame_locations: <span style="color: rgb(0,135,0)">list</span>[FrameLocation] = []  <span style="color: rgb(95,135,135)"># location info for each frame</span>
+<span class="ansi-green-fg">     54</span> <span style="color: rgb(0,135,0)">self</span>._mms: <span style="color: rgb(0,135,0)">list</span>[mmap.mmap] = []  <span style="color: rgb(95,135,135)"># memory-mapped file objects for each file</span>
+
+<span class="ansi-red-fg">FileNotFoundError</span>: File not found: traj.lammpstrj</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=ff17cbda">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7623eae2785240b9bd12b16a66d81610">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3132,13 +3198,13 @@ loading everything into memory at once.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=b32c9fab">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7cdc8c89c7104fffa095e18ddfef8986">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3161,15 +3227,50 @@ loading everything into memory at once.</p>
 
 frame, ff = read_amber("system.prmtop", "system.inpcrd")
 print("Atoms:", frame["atoms"].nrows)
-print("Box:", frame.metadata.get("box"))
+print("Box:", frame.metadata.get("box"))</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">FileNotFoundError</span>                         Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[5]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> read_amber
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> frame, ff = <span class="ansi-yellow-bg">read_amber</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">system.prmtop</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">system.inpcrd</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">      4</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Atoms:</span><span class="ansi-yellow-fg">"</span>, frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows)
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Box:</span><span class="ansi-yellow-fg">"</span>, frame.metadata.get(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">box</span><span class="ansi-yellow-fg">"</span>))
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/io/readers.py:247</span>, in <span class="ansi-cyan-fg">read_amber_prmtop</span><span class="ansi-blue-fg">(prmtop, inpcrd, frame)</span>
+<span class="ansi-green-fg">    245</span> prmtop_path = Path(prmtop)
+<span class="ansi-green-fg">    246</span> reader = AmberPrmtopReader(prmtop_path)
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">247</span> frame, ff = <span class="ansi-yellow-bg">reader</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">read</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">frame</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    249</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> inpcrd <span class="ansi-bold" style="color: rgb(175,0,255)">is</span> <span class="ansi-bold" style="color: rgb(175,0,255)">not</span> <span class="ansi-bold" style="color: rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">    250</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">data</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">amber</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> AmberInpcrdReader
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/work/molpy/molpy/src/molpy/io/forcefield/amber.py:26</span>, in <span class="ansi-cyan-fg">AmberPrmtopReader.read</span><span class="ansi-blue-fg">(self, frame)</span>
+<span class="ansi-green-fg">     25</span> <span class="ansi-bold" style="color: rgb(0,135,0)">def</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-fg">read</span>(<span style="color: rgb(0,135,0)">self</span>, frame: mp.Frame):
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">26</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">with</span> <span class="ansi-yellow-bg" style="color: rgb(0,135,0)">open</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(0,135,0)">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">file</span><span class="ansi-yellow-bg">)</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> f:
+<span class="ansi-green-fg">     27</span>         lines = <span style="color: rgb(0,135,0)">filter</span>(
+<span class="ansi-green-fg">     28</span>             <span class="ansi-bold" style="color: rgb(0,135,0)">lambda</span> line: line, <span style="color: rgb(0,135,0)">map</span>(AmberPrmtopReader.sanitizer, f.readlines())
+<span class="ansi-green-fg">     29</span>         )
+<span class="ansi-green-fg">     31</span>     <span style="color: rgb(95,135,135)"># read file and split into sections</span>
+
+<span class="ansi-red-fg">FileNotFoundError</span>: [Errno 2] No such file or directory: 'system.prmtop'</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6e5495e6">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b118ea5561624da68c537baed56e602f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3179,13 +3280,13 @@ print("Box:", frame.metadata.get("box"))
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=273428c7">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=938c804e27f84196a10c8828c723f798">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3206,15 +3307,34 @@ print("Box:", frame.metadata.get("box"))
 <div class="clipboard-copy-txt" id="cell-6">from molpy.io import read_gromacs
 
 frame, ff = read_gromacs("conf.gro", "topol.top")
-print("Atoms:", frame["atoms"].nrows)
+print("Atoms:", frame["atoms"].nrows)</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[6]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">io</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> read_gromacs
+<span class="ansi-green-fg">      3</span> frame, ff = read_gromacs(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">conf.gro</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">topol.top</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      4</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Atoms:</span><span class="ansi-yellow-fg">"</span>, frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows)
+
+<span class="ansi-red-fg">ImportError</span>: cannot import name 'read_gromacs' from 'molpy.io' (/home/runner/work/molpy/molpy/src/molpy/io/__init__.py)</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c1cd9539">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=504fb2a444614c0babb325280ed9130a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -3288,7 +3408,7 @@ unit tests under <code>tests/io</code> for the exact expectations.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../engine/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Simulation Setup">
+          <a href="../compute/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Compute Module">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -3298,7 +3418,7 @@ unit tests under <code>tests/io</code> for the exact expectations.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Simulation Setup
+                Compute Module
               </div>
             </div>
           </a>

@@ -1204,34 +1204,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2761,16 +2733,17 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wrapper</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.atomistic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Atomistic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Wrapper</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-import numpy as np
-from molpy.core.wrappers.base import Wrapper
+<div class="clipboard-copy-txt" id="cell-1">import numpy as np
+
+import molpy as mp
 from molpy.core.atomistic import Atomistic
-</div>
+from molpy.core.wrappers.base import Wrapper</div>
 </div>
 </div>
 </div>
@@ -2793,7 +2766,7 @@ from molpy.core.atomistic import Atomistic
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2809,31 +2782,34 @@ from molpy.core.atomistic import Atomistic
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.wrappers.monomer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Monomer</span>
 
 <span class="n">struct</span> <span class="o">=</span> <span class="n">Atomistic</span><span class="p">()</span>
-<span class="n">struct</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">([</span>
-    <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
-    <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
-    <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
-<span class="p">])</span>
+<span class="n">struct</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
+        <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
+        <span class="n">mp</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">element</span><span class="o">=</span><span class="s2">"C"</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
 
 <span class="c1"># Wrap it as a monomer</span>
 <span class="n">monomer</span> <span class="o">=</span> <span class="n">Monomer</span><span class="p">(</span><span class="n">struct</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"ethylene"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Monomer name: </span><span class="si">{</span><span class="n">monomer</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Monomer name: </span><span class="si">{</span><span class="n">monomer</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Number of atoms: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">monomer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">from molpy.core.wrappers.monomer import Monomer
 
 struct = Atomistic()
-struct.add_atoms([
-    mp.Atom(x=0.0, y=0.0, z=3.0, element="C"),
-    mp.Atom(x=3.0, y=0.0, z=0.0, element="C"),
-    mp.Atom(x=0.0, y=3.0, z=0.0, element="C"),
-])
+struct.add_atoms(
+    [
+        mp.Atom(x=0.0, y=0.0, z=3.0, element="C"),
+        mp.Atom(x=3.0, y=0.0, z=0.0, element="C"),
+        mp.Atom(x=0.0, y=3.0, z=0.0, element="C"),
+    ]
+)
 
 # Wrap it as a monomer
 monomer = Monomer(struct, name="ethylene")
-print(f"Monomer name: {monomer["name"]}")
-print(f"Number of atoms: {len(monomer.inner.atoms)}")
-</div>
+print(f"Monomer name: {monomer['name']}")
+print(f"Number of atoms: {len(monomer.inner.atoms)}")</div>
 </div>
 </div>
 </div>
@@ -2870,7 +2846,7 @@ Number of atoms: 3
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2885,27 +2861,28 @@ Number of atoms: 3
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LabeledMolecule</span><span class="p">(</span><span class="n">Wrapper</span><span class="p">[</span><span class="n">Atomistic</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""A custom wrapper that adds a label to a molecule."""</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inner</span><span class="p">:</span> <span class="n">Atomistic</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inner</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
-    
+
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Explicitly forward the number of atoms."""</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
-    
+
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">center_of_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Calculate center of mass."""</span>
         <span class="c1"># This is a simplified example</span>
         <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">atoms</span>
-        <span class="n">xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">atom</span><span class="p">[</span><span class="s1">'x'</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="s1">'y'</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="s1">'z'</span><span class="p">]]</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">])</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">atom</span><span class="p">[</span><span class="s2">"x"</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="s2">"y"</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]]</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">xyz</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LabeledMolecule"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a copy of the wrapper."""</span>
         <span class="k">return</span> <span class="n">LabeledMolecule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+
 
 <span class="c1"># Use the custom wrapper</span>
 <span class="n">molecule</span> <span class="o">=</span> <span class="n">LabeledMolecule</span><span class="p">(</span><span class="n">struct</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"test_molecule"</span><span class="p">)</span>
@@ -2915,34 +2892,34 @@ Number of atoms: 3
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3">class LabeledMolecule(Wrapper[Atomistic]):
     """A custom wrapper that adds a label to a molecule."""
-    
+
     def __init__(self, inner: Atomistic, label: str):
         super().__init__(inner)
         self.label = label
-    
+
     @property
     def n_atoms(self) -&gt; int:
         """Explicitly forward the number of atoms."""
         return len(self.inner.atoms)
-    
+
     @property
     def center_of_mass(self):
         """Calculate center of mass."""
         # This is a simplified example
         atoms = self.inner.atoms
-        xyz = np.array([[atom['x'], atom['y'], atom['z']] for atom in atoms])
+        xyz = np.array([[atom["x"], atom["y"], atom["z"]] for atom in atoms])
         return xyz.mean(axis=0)
-    
+
     def copy(self) -&gt; "LabeledMolecule":
         """Create a copy of the wrapper."""
         return LabeledMolecule(self.inner.copy(), self.label)
+
 
 # Use the custom wrapper
 molecule = LabeledMolecule(struct, label="test_molecule")
 print(f"Label: {molecule.label}")
 print(f"Number of atoms: {molecule.n_atoms}")
-print(f"Center of mass: {molecule.center_of_mass}")
-</div>
+print(f"Center of mass: {molecule.center_of_mass}")</div>
 </div>
 </div>
 </div>
@@ -2956,7 +2933,7 @@ print(f"Center of mass: {molecule.center_of_mass}")
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
 <pre>Label: test_molecule
 Number of atoms: 3
-Center of mass: [0.33333333 0.33333333 0.        ]
+Center of mass: [1. 1. 1.]
 </pre>
 </div>
 </div>

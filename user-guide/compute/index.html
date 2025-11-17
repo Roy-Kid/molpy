@@ -16,7 +16,7 @@
         <link rel="prev" href="../builder/">
       
       
-        <link rel="next" href="../engine/">
+        <link rel="next" href="../io/">
       
       
         
@@ -1187,34 +1187,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -2725,7 +2697,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2738,92 +2710,95 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">molpy.compute</span><span class="w"> </span><span class="kn">import</span> <span class="n">Compute</span><span class="p">,</span> <span class="n">Result</span><span class="p">,</span> <span class="n">ComputeContext</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.compute</span><span class="w"> </span><span class="kn">import</span> <span class="n">Compute</span><span class="p">,</span> <span class="n">ComputeContext</span><span class="p">,</span> <span class="n">Result</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.frame</span><span class="w"> </span><span class="kn">import</span> <span class="n">Frame</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
 
 <span class="c1"># Define a custom result</span>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RadiusOfGyrationResult</span><span class="p">(</span><span class="n">Result</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Result from radius of gyration calculation."""</span>
+
     <span class="n">rg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
 
 <span class="c1"># Define a custom compute</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RadiusOfGyrationCompute</span><span class="p">(</span><span class="n">Compute</span><span class="p">[</span><span class="n">Frame</span><span class="p">,</span> <span class="n">RadiusOfGyrationResult</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""Compute radius of gyration for a frame."""</span>
-    
+
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Frame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RadiusOfGyrationResult</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">"atoms"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">input</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">RadiusOfGyrationResult</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"radius_of_gyration"</span><span class="p">,</span> <span class="n">rg</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-        
+
         <span class="n">atoms</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-        
+
         <span class="c1"># Extract coordinates</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s2">"x"</span><span class="p">][:]</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s2">"y"</span><span class="p">][:]</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s2">"z"</span><span class="p">][:]</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
-        
+
         <span class="c1"># Calculate center of mass</span>
         <span class="n">com</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        
+
         <span class="c1"># Calculate radius of gyration</span>
         <span class="n">r_squared</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">coords</span> <span class="o">-</span> <span class="n">com</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">rg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">r_squared</span><span class="p">))</span>
-        
-        <span class="k">return</span> <span class="n">RadiusOfGyrationResult</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">"radius_of_gyration"</span><span class="p">,</span>
-            <span class="n">rg</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">rg</span><span class="p">)</span>
-        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">RadiusOfGyrationResult</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"radius_of_gyration"</span><span class="p">,</span> <span class="n">rg</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">rg</span><span class="p">))</span>
+
 
 <span class="c1"># Use the compute</span>
 <span class="n">compute</span> <span class="o">=</span> <span class="n">RadiusOfGyrationCompute</span><span class="p">()</span>
 <span class="c1"># result = compute(frame)  # Uncomment when you have a frame</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from molpy.compute import Compute, Result, ComputeContext
+<div class="clipboard-copy-txt" id="cell-1">from dataclasses import dataclass
+
+from molpy.compute import Compute, ComputeContext, Result
 from molpy.core.frame import Frame
-from dataclasses import dataclass
+
 
 # Define a custom result
 @dataclass
 class RadiusOfGyrationResult(Result):
     """Result from radius of gyration calculation."""
+
     rg: float = 0.0
+
 
 # Define a custom compute
 class RadiusOfGyrationCompute(Compute[Frame, RadiusOfGyrationResult]):
     """Compute radius of gyration for a frame."""
-    
+
     def compute(self, input: Frame) -&gt; RadiusOfGyrationResult:
         if "atoms" not in input:
             return RadiusOfGyrationResult(name="radius_of_gyration", rg=0.0)
-        
+
         atoms = input["atoms"]
         import numpy as np
-        
+
         # Extract coordinates
         x = atoms["x"][:]
         y = atoms["y"][:]
         z = atoms["z"][:]
         coords = np.column_stack([x, y, z])
-        
+
         # Calculate center of mass
         com = np.mean(coords, axis=0)
-        
+
         # Calculate radius of gyration
         r_squared = np.sum((coords - com) ** 2, axis=1)
         rg = np.sqrt(np.mean(r_squared))
-        
-        return RadiusOfGyrationResult(
-            name="radius_of_gyration",
-            rg=float(rg)
-        )
+
+        return RadiusOfGyrationResult(name="radius_of_gyration", rg=float(rg))
+
 
 # Use the compute
 compute = RadiusOfGyrationCompute()
-# result = compute(frame)  # Uncomment when you have a frame
-</div>
+# result = compute(frame)  # Uncomment when you have a frame</div>
 </div>
 </div>
 </div>
@@ -2846,7 +2821,7 @@ compute = RadiusOfGyrationCompute()
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2875,8 +2850,7 @@ context = ComputeContext()
 # Use in multiple computes
 # compute1 = SomeCompute(context=context)
 # compute2 = AnotherCompute(context=context)
-# Both can access the neighbor list from context
-</div>
+# Both can access the neighbor list from context</div>
 </div>
 </div>
 </div>
@@ -2944,13 +2918,13 @@ context = ComputeContext()
         
         
           
-          <a href="../engine/" class="md-footer__link md-footer__link--next" aria-label="Next: Simulation Setup">
+          <a href="../io/" class="md-footer__link md-footer__link--next" aria-label="Next: File I/O">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Simulation Setup
+                File I/O
               </div>
             </div>
             <div class="md-footer__button md-icon">

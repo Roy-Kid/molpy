@@ -1260,34 +1260,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2857,7 +2829,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2871,11 +2843,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-import numpy as np
-</div>
+<div class="clipboard-copy-txt" id="cell-1">import molpy as mp</div>
 </div>
 </div>
 </div>
@@ -2892,13 +2861,13 @@ import numpy as np
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2913,12 +2882,13 @@ import numpy as np
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Create an empty block</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.frame</span><span class="w"> </span><span class="kn">import</span> <span class="n">Block</span>
+
 <span class="n">block</span> <span class="o">=</span> <span class="n">Block</span><span class="p">()</span>
 
 <span class="c1"># Add data (automatically converted to numpy arrays)</span>
-<span class="n">block</span><span class="p">[</span><span class="s1">'x'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span>
-<span class="n">block</span><span class="p">[</span><span class="s1">'y'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
-<span class="n">block</span><span class="p">[</span><span class="s1">'z'</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">block</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span>
+<span class="n">block</span><span class="p">[</span><span class="s2">"y"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">block</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Block keys: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x values: </span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="s1">'x'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -2926,17 +2896,32 @@ import numpy as np
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2"># Create an empty block
 from molpy.core.frame import Block
+
 block = Block()
 
 # Add data (automatically converted to numpy arrays)
-block['x'] = [0.0, 1.0, 2.0]
-block['y'] = [0.0, 0.0, 0.0]
-block['z'] = [0.0, 0.0, 0.0]
+block["x"] = [0.0, 1.0, 2.0]
+block["y"] = [0.0, 0.0, 0.0]
+block["z"] = [0.0, 0.0, 0.0]
 
 print(f"Block keys: {list(block.keys())}")
 print(f"x values: {block['x']}")
-print(f"x type: {type(block['x'])}")
+print(f"x type: {type(block['x'])}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Block keys: ['x', 'y', 'z']
+x values: [0. 1. 2.]
+x type: &lt;class 'numpy.ndarray'&gt;
+</pre>
 </div>
 </div>
 </div>
@@ -2953,13 +2938,13 @@ print(f"x type: {type(block['x'])}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2973,13 +2958,15 @@ print(f"x type: {type(block['x'])}")
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Create a block with more data</span>
-<span class="n">block</span> <span class="o">=</span> <span class="n">Block</span><span class="p">({</span>
-    <span class="s1">'x'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
-    <span class="s1">'y'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
-    <span class="s1">'z'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s1">'element'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">,</span> <span class="s1">'H'</span><span class="p">],</span>
-    <span class="s1">'type'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-<span class="p">})</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">Block</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+        <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="s2">"element"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"H"</span><span class="p">],</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="c1"># Access by key</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x values: </span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="s1">'x'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -2991,18 +2978,20 @@ print(f"x type: {type(block['x'])}")
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"First two atoms: </span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># Concatenate multiple columns</span>
-<span class="n">xyz</span> <span class="o">=</span> <span class="n">block</span><span class="p">[[</span><span class="s1">'x'</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">,</span> <span class="s1">'z'</span><span class="p">]]</span>
+<span class="n">xyz</span> <span class="o">=</span> <span class="n">block</span><span class="p">[[</span><span class="s2">"x"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">]]</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"XYZ coordinates shape: </span><span class="si">{</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"XYZ:</span><span class="se">\n</span><span class="si">{</span><span class="n">xyz</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3"># Create a block with more data
-block = Block({
-    'x': [0.0, 1.0, 2.0, 3.0],
-    'y': [0.0, 1.0, 2.0, 3.0],
-    'z': [0.0, 0.0, 0.0, 0.0],
-    'element': ['C', 'C', 'C', 'H'],
-    'type': [1, 1, 1, 2]
-})
+block = Block(
+    {
+        "x": [0.0, 1.0, 2.0, 3.0],
+        "y": [0.0, 1.0, 2.0, 3.0],
+        "z": [0.0, 0.0, 0.0, 0.0],
+        "element": ["C", "C", "C", "H"],
+        "type": [1, 1, 1, 2],
+    }
+)
 
 # Access by key
 print(f"x values: {block['x']}")
@@ -3014,10 +3003,30 @@ print(f"First atom: {block[0]}")
 print(f"First two atoms: {block[0:2]}")
 
 # Concatenate multiple columns
-xyz = block[['x', 'y', 'z']]
+xyz = block[["x", "y", "z"]]
 print(f"XYZ coordinates shape: {xyz.shape}")
-print(f"XYZ:\n{xyz}")
+print(f"XYZ:\n{xyz}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>x values: [0. 1. 2. 3.]
+First atom: {'x': 0.0, 'y': 0.0, 'z': 0.0, 'element': 'C', 'type': 1}
+First two atoms: {'x': array([0., 1.]), 'y': array([0., 1.]), 'z': array([0., 0.]), 'element': array(['C', 'C'], dtype='&lt;U1'), 'type': array([1, 1])}
+XYZ coordinates shape: (4, 3)
+XYZ:
+[[0. 0. 0.]
+ [1. 1. 0.]
+ [2. 2. 0.]
+ [3. 3. 0.]]
+</pre>
 </div>
 </div>
 </div>
@@ -3034,13 +3043,13 @@ print(f"XYZ:\n{xyz}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3057,16 +3066,18 @@ print(f"XYZ:\n{xyz}")
 <span class="n">frame</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Frame</span><span class="p">()</span>
 
 <span class="c1"># Add atoms block with data - super clean!</span>
-<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span>
-    <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
-    <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
-    <span class="s2">"element"</span><span class="p">:</span> <span class="p">[</span><span class="s1">'C'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">],</span>
-    <span class="s2">"type"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="p">})</span>
+<span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+        <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+        <span class="s2">"element"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">],</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="c1"># Add a box to metadata</span>
-<span class="n">frame</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">'box'</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Box</span><span class="o">.</span><span class="n">cubic</span><span class="p">(</span><span class="mf">10.0</span><span class="p">)</span>
+<span class="n">frame</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"box"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Box</span><span class="o">.</span><span class="n">cubic</span><span class="p">(</span><span class="mf">10.0</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Frame has </span><span class="si">{</span><span class="n">frame</span><span class="p">[</span><span class="s1">'atoms'</span><span class="p">]</span><span class="o">.</span><span class="n">nrows</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Box: </span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s1">'box'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -3075,20 +3086,35 @@ print(f"XYZ:\n{xyz}")
 frame = mp.Frame()
 
 # Add atoms block with data - super clean!
-frame["atoms"] = mp.Block({
-    "x": [0.0, 1.0, 2.0],
-    "y": [0.0, 0.0, 0.0],
-    "z": [0.0, 0.0, 0.0],
-    "element": ['C', 'C', 'C'],
-    "type": [1, 1, 1]
-})
+frame["atoms"] = mp.Block(
+    {
+        "x": [0.0, 1.0, 2.0],
+        "y": [0.0, 0.0, 0.0],
+        "z": [0.0, 0.0, 0.0],
+        "element": ["C", "C", "C"],
+        "type": [1, 1, 1],
+    }
+)
 
 # Add a box to metadata
-frame.metadata['box'] = mp.Box.cubic(10.0)
+frame.metadata["box"] = mp.Box.cubic(10.0)
 
 print(f"Frame has {frame['atoms'].nrows} atoms")
-print(f"Box: {frame.metadata['box']}")
+print(f"Box: {frame.metadata['box']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Frame has 3 atoms
+Box: &lt;Orthogonal Box: [10. 10. 10.]&gt;
+</pre>
 </div>
 </div>
 </div>
@@ -3105,13 +3131,13 @@ print(f"Box: {frame.metadata['box']}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3136,7 +3162,7 @@ print(f"Box: {frame.metadata['box']}")
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Y coordinates: </span><span class="si">{</span><span class="n">y_coords</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># Get coordinates as a combined array</span>
-<span class="n">xyz</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[[</span><span class="s1">'x'</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">,</span> <span class="s1">'z'</span><span class="p">]]</span>
+<span class="n">xyz</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[[</span><span class="s2">"x"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">]]</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"XYZ shape: </span><span class="si">{</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"XYZ:</span><span class="se">\n</span><span class="si">{</span><span class="n">xyz</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
@@ -3152,10 +3178,29 @@ y_coords = atoms["y"]
 print(f"Y coordinates: {y_coords}")
 
 # Get coordinates as a combined array
-xyz = atoms[['x', 'y', 'z']]
+xyz = atoms[["x", "y", "z"]]
 print(f"XYZ shape: {xyz.shape}")
-print(f"XYZ:\n{xyz}")
+print(f"XYZ:\n{xyz}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Atoms block keys: ['x', 'y', 'z', 'element', 'type']
+X coordinates: [0. 1. 2.]
+Y coordinates: [0. 0. 0.]
+XYZ shape: (3, 3)
+XYZ:
+[[0. 0. 0.]
+ [1. 0. 0.]
+ [2. 0. 0.]]
+</pre>
 </div>
 </div>
 </div>
@@ -3178,7 +3223,7 @@ print(f"XYZ:\n{xyz}")
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3198,7 +3243,7 @@ print(f"XYZ:\n{xyz}")
 <span class="nb">print</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
 
 <span class="c1"># index by list of keys</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">block</span><span class="p">[[</span><span class="s1">'x'</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">,</span> <span class="s1">'z'</span><span class="p">]])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">block</span><span class="p">[[</span><span class="s2">"x"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">]])</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6"># index one row and return a dict
 print(block[0])
@@ -3207,7 +3252,7 @@ print(block[0])
 print(block[0:2])
 
 # index by list of keys
-print(block[['x', 'y', 'z']])</div>
+print(block[["x", "y", "z"]])</div>
 </div>
 </div>
 </div>
@@ -3218,17 +3263,14 @@ print(block[['x', 'y', 'z']])</div>
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 2</span>
-<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># index one row and return a dict</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-bg">block</span>[<span class="ansi-green-fg">0</span>])
-<span class="ansi-green-fg">      4</span> <span style="color: rgb(95,135,135)"># slice a range of rows return as a Block</span>
-<span class="ansi-green-fg">      5</span> <span style="color: rgb(0,135,0)">print</span>(block[<span class="ansi-green-fg">0</span>:<span class="ansi-green-fg">2</span>])
-
-<span class="ansi-red-fg">NameError</span>: name 'block' is not defined</pre>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>{'x': 0.0, 'y': 0.0, 'z': 0.0, 'element': 'C', 'type': 1}
+{'x': array([0., 1.]), 'y': array([0., 1.]), 'z': array([0., 0.]), 'element': array(['C', 'C'], dtype='&lt;U1'), 'type': array([1, 1])}
+[[0. 0. 0.]
+ [1. 1. 0.]
+ [2. 2. 0.]
+ [3. 3. 0.]]
+</pre>
 </div>
 </div>
 </div>
@@ -3245,13 +3287,13 @@ print(block[['x', 'y', 'z']])</div>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -3278,8 +3320,21 @@ print(f"New keys: {list(frame['atoms'].keys())}")
 
 # Modify existing data
 frame["atoms"]["x"] = [0.0, 2.0, 4.0]
-print(f"Updated x: {frame['atoms']['x']}")
+print(f"Updated x: {frame['atoms']['x']}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>New keys: ['x', 'y', 'z', 'element', 'type', 'mass']
+Updated x: [0. 2. 4.]
+</pre>
 </div>
 </div>
 </div>

@@ -1265,34 +1265,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2868,7 +2840,7 @@ The workflow is similar to LAMMPS:
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2881,14 +2853,17 @@ The workflow is similar to LAMMPS:
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.crystal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lattice</span><span class="p">,</span> <span class="n">BlockRegion</span><span class="p">,</span> <span class="n">CrystalBuilder</span><span class="p">,</span> <span class="n">Site</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.builder.crystal</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlockRegion</span><span class="p">,</span> <span class="n">CrystalBuilder</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">,</span> <span class="n">Site</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import numpy as np
-from molpy.builder.crystal import Lattice, BlockRegion, CrystalBuilder, Site
-from collections import Counter
-</div>
+<div class="clipboard-copy-txt" id="cell-1">from collections import Counter
+
+import numpy as np
+
+from molpy.builder.crystal import BlockRegion, CrystalBuilder, Lattice, Site</div>
 </div>
 </div>
 </div>
@@ -2907,13 +2882,13 @@ Simple cubic (SC) is the most basic crystal structure where atoms are located on
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -2929,7 +2904,7 @@ Simple cubic (SC) is the most basic crystal structure where atoms are located on
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Create a simple cubic lattice with lattice constant a = 2.0 Å</span>
 <span class="n">lat_sc</span> <span class="o">=</span> <span class="n">Lattice</span><span class="o">.</span><span class="n">cubic_sc</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">species</span><span class="o">=</span><span class="s2">"Cu"</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Lattice vectors (3x3 matrix):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Lattice vectors (3x3 matrix):"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">lat_sc</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Number of basis sites: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lat_sc</span><span class="o">.</span><span class="n">basis</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Basis site fractional coordinates: </span><span class="si">{</span><span class="n">lat_sc</span><span class="o">.</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">frac</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -2937,23 +2912,41 @@ Simple cubic (SC) is the most basic crystal structure where atoms are located on
 <div class="clipboard-copy-txt" id="cell-2"># Create a simple cubic lattice with lattice constant a = 2.0 Å
 lat_sc = Lattice.cubic_sc(a=2.0, species="Cu")
 
-print(f"Lattice vectors (3x3 matrix):")
+print("Lattice vectors (3x3 matrix):")
 print(lat_sc.cell)
 print(f"\nNumber of basis sites: {len(lat_sc.basis)}")
-print(f"Basis site fractional coordinates: {lat_sc.basis[0].frac}")
+print(f"Basis site fractional coordinates: {lat_sc.basis[0].frac}")</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Lattice vectors (3x3 matrix):
+[[2. 0. 0.]
+ [0. 2. 0.]
+ [0. 0. 2.]]
+
+Number of basis sites: 1
+Basis site fractional coordinates: (0.0, 0.0, 0.0)
+</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -2975,8 +2968,8 @@ print(f"Basis site fractional coordinates: {lat_sc.basis[0].frac}")
 <span class="n">structure_sc</span> <span class="o">=</span> <span class="n">builder_sc</span><span class="o">.</span><span class="n">build_block</span><span class="p">(</span><span class="n">region_sc</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">structure_sc</span><span class="o">.</span><span class="n">atoms</span><span class="p">))</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected: 5x5x5 = </span><span class="si">{</span><span class="mi">5</span><span class="o">*</span><span class="mi">5</span><span class="o">*</span><span class="mi">5</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">First 3 atom positions (in Å):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected: 5x5x5 = </span><span class="si">{</span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">First 3 atom positions (in Å):"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">structure_sc</span><span class="o">.</span><span class="n">xyz</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3"># Define a region in lattice coordinates
@@ -2988,10 +2981,28 @@ builder_sc = CrystalBuilder(lat_sc)
 structure_sc = builder_sc.build_block(region_sc)
 
 print(f"Generated {len(list(structure_sc.atoms))} atoms")
-print(f"Expected: 5x5x5 = {5*5*5} atoms")
-print(f"\nFirst 3 atom positions (in Å):")
-print(structure_sc.xyz[:3])
+print(f"Expected: 5x5x5 = {5 * 5 * 5} atoms")
+print("\nFirst 3 atom positions (in Å):")
+print(structure_sc.xyz[:3])</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Generated 125 atoms
+Expected: 5x5x5 = 125 atoms
+
+First 3 atom positions (in Å):
+[[0. 0. 0.]
+ [0. 0. 2.]
+ [0. 0. 4.]]
+</pre>
 </div>
 </div>
 </div>
@@ -3008,13 +3019,13 @@ print(structure_sc.xyz[:3])
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3041,7 +3052,7 @@ print(structure_sc.xyz[:3])
 <span class="n">structure_fcc</span> <span class="o">=</span> <span class="n">builder_fcc</span><span class="o">.</span><span class="n">build_block</span><span class="p">(</span><span class="n">region_fcc</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">structure_fcc</span><span class="o">.</span><span class="n">atoms</span><span class="p">))</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected: 4x4x4 (cells) x 4 (basis sites) = </span><span class="si">{</span><span class="mi">4</span><span class="o">*</span><span class="mi">4</span><span class="o">*</span><span class="mi">4</span><span class="o">*</span><span class="mi">4</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected: 4x4x4 (cells) x 4 (basis sites) = </span><span class="si">{</span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="si">}</span><span class="s2"> atoms"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-4"># Create FCC Ni lattice (lattice constant for Ni is 3.52 Å)
 lat_fcc = Lattice.cubic_fcc(a=3.52, species="Ni")
@@ -3057,8 +3068,28 @@ builder_fcc = CrystalBuilder(lat_fcc)
 structure_fcc = builder_fcc.build_block(region_fcc)
 
 print(f"\nGenerated {len(list(structure_fcc.atoms))} atoms")
-print(f"Expected: 4x4x4 (cells) x 4 (basis sites) = {4*4*4*4} atoms")
+print(f"Expected: 4x4x4 (cells) x 4 (basis sites) = {4 * 4 * 4 * 4} atoms")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Number of basis sites: 4
+Basis site positions (fractional coordinates):
+  Site 0 (A): (0.0, 0.0, 0.0)
+  Site 1 (B): (0.5, 0.5, 0.0)
+  Site 2 (C): (0.5, 0.0, 0.5)
+  Site 3 (D): (0.0, 0.5, 0.5)
+
+Generated 256 atoms
+Expected: 4x4x4 (cells) x 4 (basis sites) = 256 atoms
+</pre>
 </div>
 </div>
 </div>
@@ -3079,13 +3110,13 @@ print(f"Expected: 4x4x4 (cells) x 4 (basis sites) = {4*4*4*4} atoms")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3132,8 +3163,25 @@ print(f"\nGenerated {len(list(structure_nacl.atoms))} atoms")
 symbols = structure_nacl.symbols
 atom_counts = Counter(symbols)
 print(f"Atomic composition: {dict(atom_counts)}")
-print(f"Na:Cl ratio: {atom_counts['Na']}:{atom_counts['Cl']} = 1:1 ✓")
+print(f"Na:Cl ratio: {atom_counts['Na']}:{atom_counts['Cl']} = 1:1 ✓")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Total basis sites: 8
+Basis composition: {'Na': 4, 'Cl': 4}
+
+Generated 216 atoms
+Atomic composition: {'Na': 108, 'Cl': 108}
+Na:Cl ratio: 108:108 = 1:1 ✓
+</pre>
 </div>
 </div>
 </div>
@@ -3156,13 +3204,13 @@ Custom lattices are useful for:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3215,8 +3263,21 @@ builder_custom = CrystalBuilder(lat_custom)
 structure_custom = builder_custom.build_block(region_custom)
 
 print(f"Generated {len(list(structure_custom.atoms))} atoms")
-print(f"Composition: {dict(Counter(structure_custom.symbols))}")
+print(f"Composition: {dict(Counter(structure_custom.symbols))}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Generated 48 atoms
+Composition: {'C': 24, 'N': 24}
+</pre>
 </div>
 </div>
 </div>
@@ -3239,13 +3300,13 @@ Generated <code>Atomistic</code> structures support all standard MolPy operation
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -3264,8 +3325,8 @@ Generated <code>Atomistic</code> structures support all standard MolPy operation
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Number of atoms: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">atoms</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="n">positions</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">xyz</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Positions shape: </span><span class="si">{</span><span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Box matrix (lattice vectors as rows):"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">structure</span><span class="p">[</span><span class="s1">'box'</span><span class="p">]</span><span class="o">.</span><span class="n">matrix</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Box matrix (lattice vectors as rows):"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">structure</span><span class="p">[</span><span class="s2">"box"</span><span class="p">]</span><span class="o">.</span><span class="n">matrix</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Box volume: </span><span class="si">{</span><span class="n">structure</span><span class="p">[</span><span class="s1">'box'</span><span class="p">]</span><span class="o">.</span><span class="n">volume</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> Å³"</span><span class="p">)</span>
 
 <span class="c1"># Geometric transformations</span>
@@ -3282,8 +3343,8 @@ structure = structure_fcc
 print(f"Number of atoms: {len(list(structure.atoms))}")
 positions = structure.xyz
 print(f"Positions shape: {positions.shape}")
-print(f"\nBox matrix (lattice vectors as rows):")
-print(structure['box'].matrix)
+print("\nBox matrix (lattice vectors as rows):")
+print(structure["box"].matrix)
 print(f"\nBox volume: {structure['box'].volume:.2f} Å³")
 
 # Geometric transformations
@@ -3292,8 +3353,31 @@ xyz = structure_copy.xyz
 print(f"\nOriginal center: {xyz.mean(axis=0)}")
 structure_copy.move([10.0, 5.0, 0.0])
 xyz_moved = structure_copy.xyz
-print(f"After translation: {xyz_moved.mean(axis=0)}")
+print(f"After translation: {xyz_moved.mean(axis=0)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>Number of atoms: 256
+Positions shape: (256, 3)
+
+Box matrix (lattice vectors as rows):
+[[3.52 0.   0.  ]
+ [0.   3.52 0.  ]
+ [0.   0.   3.52]]
+
+Box volume: 43.61 Å³
+
+Original center: [6.16 6.16 6.16]
+After translation: [16.16 11.16  6.16]
+</pre>
 </div>
 </div>
 </div>

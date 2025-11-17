@@ -1303,34 +1303,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../user-guide/engine/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Simulation Setup
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../user-guide/io/" class="md-nav__link">
         
   
@@ -2941,13 +2913,13 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-1">
@@ -2960,14 +2932,35 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trajectory</span><span class="p">,</span> <span class="n">FrameGenerator</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">molpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrameGenerator</span><span class="p">,</span> <span class="n">Trajectory</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">import molpy as mp
-from molpy.core.trajectory import Trajectory, FrameGenerator
-import numpy as np
+<div class="clipboard-copy-txt" id="cell-1">import numpy as np
+
+import molpy as mp
+from molpy.core.trajectory import FrameGenerator, Trajectory</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 4</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">numpy</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">np</span>
+<span class="ansi-green-fg">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">mp</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">core</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">trajectory</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> FrameGenerator, Trajectory
+
+<span class="ansi-red-fg">ImportError</span>: cannot import name 'FrameGenerator' from 'molpy.core.trajectory' (/home/runner/work/molpy/molpy/src/molpy/core/trajectory.py)</pre>
 </div>
 </div>
 </div>
@@ -2984,13 +2977,13 @@ import numpy as np
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-2">
@@ -3007,11 +3000,7 @@ import numpy as np
 <span class="n">frames</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
     <span class="n">frame</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Frame</span><span class="p">()</span>
-    <span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span>
-        <span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">],</span>
-        <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>
-        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
-    <span class="p">})</span>
+    <span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span><span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]})</span>
     <span class="n">frame</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mf">0.1</span>
     <span class="n">frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
 
@@ -3023,18 +3012,34 @@ import numpy as np
 frames = []
 for i in range(5):
     frame = mp.Frame()
-    frame["atoms"] = mp.Block({
-        "x": [0.0 + i * 0.1],
-        "y": [0.0],
-        "z": [0.0]
-    })
+    frame["atoms"] = mp.Block({"x": [0.0 + i * 0.1], "y": [0.0], "z": [0.0]})
     frame.metadata["time"] = i * 0.1
     frames.append(frame)
 
 # Create trajectory from list
 traj = Trajectory(frames)
-print(f"Trajectory length: {len(traj)}")
+print(f"Trajectory length: {len(traj)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 10</span>
+<span class="ansi-green-fg">      7</span>     frames.append(frame)
+<span class="ansi-green-fg">      9</span> <span style="color: rgb(95,135,135)"># Create trajectory from list</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">10</span> traj = <span class="ansi-yellow-bg">Trajectory</span>(frames)
+<span class="ansi-green-fg">     11</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Trajectory length: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">len</span>(traj)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+
+<span class="ansi-red-fg">NameError</span>: name 'Trajectory' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3051,13 +3056,13 @@ print(f"Trajectory length: {len(traj)}")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-3">
@@ -3080,8 +3085,28 @@ print(f"Trajectory length: {len(traj)}")
 for i, frame in enumerate(traj):
     time = frame.metadata.get("time", 0.0)
     n_atoms = frame["atoms"].nrows
-    print(f"Frame {i}: time={time:.2f}, atoms={n_atoms}")
+    print(f"Frame {i}: time={time:.2f}, atoms={n_atoms}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Iterate through all frames</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> i, frame <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">enumerate</span>(<span class="ansi-yellow-bg">traj</span>):
+<span class="ansi-green-fg">      3</span>     time = frame.metadata.get(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">time</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-green-fg">0.0</span>)
+<span class="ansi-green-fg">      4</span>     n_atoms = frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>].nrows
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3098,13 +3123,13 @@ for i, frame in enumerate(traj):
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-4">
@@ -3143,8 +3168,28 @@ try:
     frame3 = next(traj)
     print(f"Third frame time: {frame3.metadata.get('time', 0.0)}")
 except StopIteration:
-    print("No more frames")
+    print("No more frames")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[4]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Manually get next frames</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> frame1 = <span style="color: rgb(0,135,0)">next</span>(<span class="ansi-yellow-bg">traj</span>)
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">First frame time: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>frame1.metadata.get(<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">time</span><span class="ansi-yellow-fg">'</span>,<span style="color: rgb(188,188,188)"> </span><span class="ansi-green-fg">0.0</span>)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      5</span> frame2 = <span style="color: rgb(0,135,0)">next</span>(traj)
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3161,13 +3206,13 @@ except StopIteration:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-5">
@@ -3196,8 +3241,28 @@ print(f"First frame time: {frame0.metadata.get('time', 0.0)}")
 # Get last frame (if trajectory has known length)
 if traj.has_length():
     frame_last = traj[-1]
-    print(f"Last frame time: {frame_last.metadata.get('time', 0.0)}")
+    print(f"Last frame time: {frame_last.metadata.get('time', 0.0)}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[5]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Get a single frame by index</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> frame0 = <span class="ansi-yellow-bg">traj</span>[<span class="ansi-green-fg">0</span>]
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">First frame time: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>frame0.metadata.get(<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">time</span><span class="ansi-yellow-fg">'</span>,<span style="color: rgb(188,188,188)"> </span><span class="ansi-green-fg">0.0</span>)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(95,135,135)"># Get last frame (if trajectory has known length)</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3214,13 +3279,13 @@ if traj.has_length():
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-6">
@@ -3255,8 +3320,28 @@ print(f"Every other frame: {len(every_other)} frames")
 
 # Get last 2 frames
 last_two = traj[-2:]
-print(f"Last 2 frames: {len(last_two)} frames")
+print(f"Last 2 frames: {len(last_two)} frames")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[6]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Get first 3 frames</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> first_three = <span class="ansi-yellow-bg">traj</span>[<span class="ansi-green-fg">0</span>:<span class="ansi-green-fg">3</span>]
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">First 3 frames: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">len</span>(first_three)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> frames</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(95,135,135)"># Get every other frame</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3273,13 +3358,13 @@ print(f"Last 2 frames: {len(last_two)} frames")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-7">
@@ -3303,6 +3388,7 @@ print(f"Last 2 frames: {len(last_two)} frames")
     <span class="n">atoms</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">frame</span>
 
+
 <span class="c1"># Apply to all frames (lazy evaluation)</span>
 <span class="n">centered_traj</span> <span class="o">=</span> <span class="n">traj</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">center_frame</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Centered trajectory: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">centered_traj</span><span class="p">)</span><span class="si">}</span><span class="s2"> frames"</span><span class="p">)</span>
@@ -3311,7 +3397,7 @@ print(f"Last 2 frames: {len(last_two)} frames")
 <span class="c1"># You can use next() on the mapped trajectory too</span>
 <span class="k">if</span> <span class="n">centered_traj</span><span class="o">.</span><span class="n">has_length</span><span class="p">():</span>
     <span class="n">first_centered</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">centered_traj</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"First centered frame processed"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"First centered frame processed"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7"># Define a function to process frames
 def center_frame(frame):
@@ -3324,6 +3410,7 @@ def center_frame(frame):
     atoms["z"] = atoms["z"] - center[2]
     return frame
 
+
 # Apply to all frames (lazy evaluation)
 centered_traj = traj.map(center_frame)
 print(f"Centered trajectory: {len(centered_traj)} frames")
@@ -3332,8 +3419,30 @@ print(f"Centered trajectory: {len(centered_traj)} frames")
 # You can use next() on the mapped trajectory too
 if centered_traj.has_length():
     first_centered = next(centered_traj)
-    print(f"First centered frame processed")
+    print("First centered frame processed")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[7]</span><span class="ansi-green-fg">, line 14</span>
+<span class="ansi-green-fg">     10</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">return</span> frame
+<span class="ansi-green-fg">     13</span> <span style="color: rgb(95,135,135)"># Apply to all frames (lazy evaluation)</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">14</span> centered_traj = <span class="ansi-yellow-bg">traj</span>.map(center_frame)
+<span class="ansi-green-fg">     15</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Centered trajectory: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">len</span>(centered_traj)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> frames</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">     17</span> <span style="color: rgb(95,135,135)"># The mapping is lazy - frames are processed on-demand</span>
+<span class="ansi-green-fg">     18</span> <span style="color: rgb(95,135,135)"># You can use next() on the mapped trajectory too</span>
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3350,13 +3459,13 @@ if centered_traj.has_length():
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-8">
@@ -3373,8 +3482,9 @@ if centered_traj.has_length():
 <span class="c1"># Note: These examples require actual trajectory files</span>
 
 <span class="c1"># Load trajectory from XYZ file</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">XYZTrajectoryReader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">molpy.io.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">XYZTrajectoryReader</span>
 
 <span class="n">xyz_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"trajectory.xyz"</span><span class="p">)</span>
 <span class="k">if</span> <span class="n">xyz_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
@@ -3399,8 +3509,9 @@ if centered_traj.has_length():
 # Note: These examples require actual trajectory files
 
 # Load trajectory from XYZ file
-from molpy.io.trajectory import XYZTrajectoryReader
 from pathlib import Path
+
+from molpy.io.trajectory import XYZTrajectoryReader
 
 xyz_file = Path("trajectory.xyz")
 if xyz_file.exists():
@@ -3419,8 +3530,21 @@ if lammps_file.exists():
     traj = Trajectory(reader)
     print(f"Loaded LAMMPS trajectory: {len(traj)} frames")
 else:
-    print("LAMMPS trajectory file not found.")
+    print("LAMMPS trajectory file not found.")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>XYZ file not found. Using in-memory trajectory instead.
+LAMMPS trajectory file not found.
+</pre>
 </div>
 </div>
 </div>
@@ -3437,13 +3561,13 @@ else:
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-9">
@@ -3463,6 +3587,7 @@ else:
         <span class="n">frame</span><span class="p">[</span><span class="s2">"atoms"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Block</span><span class="p">({</span><span class="s2">"x"</span><span class="p">:</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]})</span>
         <span class="n">frame</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mf">0.1</span>
         <span class="k">yield</span> <span class="n">frame</span>
+
 
 <span class="c1"># Create trajectory from generator</span>
 <span class="n">gen_traj</span> <span class="o">=</span> <span class="n">Trajectory</span><span class="p">(</span><span class="n">FrameGenerator</span><span class="p">(</span><span class="n">frame_generator</span><span class="p">()))</span>
@@ -3489,6 +3614,7 @@ def frame_generator():
         frame.metadata["time"] = i * 0.1
         yield frame
 
+
 # Create trajectory from generator
 gen_traj = Trajectory(FrameGenerator(frame_generator()))
 
@@ -3504,8 +3630,29 @@ for frame in gen_traj:
     count += 1
     if count &gt;= 3:
         break
-print(f"Iterated through {count} frames")
+print(f"Iterated through {count} frames")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[9]</span><span class="ansi-green-fg">, line 11</span>
+<span class="ansi-green-fg">      7</span>         <span class="ansi-bold" style="color: rgb(0,135,0)">yield</span> frame
+<span class="ansi-green-fg">     10</span> <span style="color: rgb(95,135,135)"># Create trajectory from generator</span>
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">11</span> gen_traj = <span class="ansi-yellow-bg">Trajectory</span>(FrameGenerator(frame_generator()))
+<span class="ansi-green-fg">     13</span> <span style="color: rgb(95,135,135)"># Check if length is available</span>
+<span class="ansi-green-fg">     14</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> gen_traj.has_length():
+
+<span class="ansi-red-fg">NameError</span>: name 'Trajectory' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3522,13 +3669,13 @@ print(f"Iterated through {count} frames")
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-10">
@@ -3557,8 +3704,29 @@ splitter = TrajectorySplitter(traj)
 segments = splitter.split_frames(interval=2)  # Every 2 frames
 print(f"Split into {len(segments)} segments")
 for i, seg in enumerate(segments):
-    print(f"  Segment {i}: {len(seg)} frames")
+    print(f"  Segment {i}: {len(seg)} frames")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[10]</span><span class="ansi-green-fg">, line 4</span>
+<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">molpy</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">core</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">trajectory</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> TrajectorySplitter
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(95,135,135)"># Split by frame interval</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">4</span> splitter = TrajectorySplitter(<span class="ansi-yellow-bg">traj</span>)
+<span class="ansi-green-fg">      5</span> segments = splitter.split_frames(interval=<span class="ansi-green-fg">2</span>)  <span style="color: rgb(95,135,135)"># Every 2 frames</span>
+<span class="ansi-green-fg">      6</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Split into </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">len</span>(segments)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> segments</span><span class="ansi-yellow-fg">"</span>)
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3575,13 +3743,13 @@ for i, seg in enumerate(segments):
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-11">
@@ -3614,8 +3782,29 @@ for i, seg in enumerate(segments):
     if seg.has_length():
         print(f"  Segment {i}: {len(seg)} frames")
     else:
-        print(f"  Segment {i}: variable length")
+        print(f"  Segment {i}: variable length")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[11]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Split by time interval (requires time metadata)</span>
+<span class="ansi-green-fg">      2</span> <span style="color: rgb(95,135,135)"># Note: This requires frames to have "time" in metadata</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> segments = <span class="ansi-yellow-bg">splitter</span>.split_time(interval=<span class="ansi-green-fg">0.5</span>)  <span style="color: rgb(95,135,135)"># Every 0.5 time units</span>
+<span class="ansi-green-fg">      4</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Time-based split: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span style="color: rgb(0,135,0)">len</span>(segments)<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> segments</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">      6</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> i, seg <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span style="color: rgb(0,135,0)">enumerate</span>(segments):
+
+<span class="ansi-red-fg">NameError</span>: name 'splitter' is not defined</pre>
 </div>
 </div>
 </div>
@@ -3632,13 +3821,13 @@ for i, seg in enumerate(segments):
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-12">
@@ -3669,8 +3858,29 @@ for frame in traj:
     positions.append(xyz.mean(axis=0))
 
 mean_pos = np.array(positions).mean(axis=0)
-print(f"Mean position over trajectory: {mean_pos}")
+print(f"Mean position over trajectory: {mean_pos}")</div>
 </div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[12]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Calculate mean position over trajectory</span>
+<span class="ansi-green-fg">      2</span> positions = []
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> frame <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> <span class="ansi-yellow-bg">traj</span>:
+<span class="ansi-green-fg">      4</span>     atoms = frame[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">atoms</span><span class="ansi-yellow-fg">"</span>]
+<span class="ansi-green-fg">      5</span>     xyz = atoms[[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">x</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">y</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">z</span><span class="ansi-yellow-fg">"</span>]]
+
+<span class="ansi-red-fg">NameError</span>: name 'traj' is not defined</pre>
 </div>
 </div>
 </div>
