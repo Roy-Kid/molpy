@@ -4,8 +4,9 @@ Tests the feature: atomistic.atoms["symbol"] = ['C', 'C']
 """
 
 import pytest
+import numpy as np
 from molpy.core.entity import Entity, Entities, TypeBucket, Struct
-from molpy.core.atomistic import Atom, Atomistic
+from molpy import Atom, Atomistic
 
 
 class TestEntitiesColumnAccess:
@@ -19,12 +20,12 @@ class TestEntitiesColumnAccess:
 
         ents = Entities[Entity]([a1, a2, a3])
 
-        # Column access
+        # Column access - now returns numpy arrays
         symbols = ents["symbol"]
         masses = ents["mass"]
 
-        assert symbols == ["C", "N", "O"]
-        assert masses == [12.0, 14.0, 16.0]
+        assert np.array_equal(symbols, ["C", "N", "O"])
+        assert np.array_equal(masses, [12.0, 14.0, 16.0])
 
     def test_column_read_missing_keys(self):
         """Test column access when some entities lack the key."""
@@ -38,8 +39,8 @@ class TestEntitiesColumnAccess:
         symbols = ents["symbol"]
         charges = ents["charge"]
 
-        assert symbols == ["C", "N", None]
-        assert charges == [None, -1, None]
+        assert np.array_equal(symbols, ["C", "N", None])
+        assert np.array_equal(charges, [None, -1, None])
 
     def test_integer_indexing(self):
         """Test that integer indexing still works."""
@@ -68,7 +69,7 @@ class TestEntitiesColumnAccess:
         """Test column access on empty Entities."""
         ents = Entities[Entity]()
         symbols = ents["symbol"]
-        assert symbols == []
+        assert len(symbols) == 0
 
 
 class TestTypeBucketWithEntities:
@@ -84,7 +85,7 @@ class TestTypeBucketWithEntities:
         tb.add(e2)
 
         result = tb.bucket(Entity)
-        
+
         # Should be Entities instance
         assert isinstance(result, Entities)
         assert len(result) == 2
@@ -102,14 +103,14 @@ class TestTypeBucketWithEntities:
         symbols = entities["symbol"]
         masses = entities["mass"]
 
-        assert symbols == ["C", "N"]
-        assert masses == [12.0, 14.0]
+        assert np.array_equal(symbols, ["C", "N"])
+        assert np.array_equal(masses, [12.0, 14.0])
 
     def test_exact_bucket_returns_entities(self):
         """Test that exact_bucket() returns Entities."""
         tb = TypeBucket[Entity]()
         e1 = Entity({"x": 1})
-        
+
         tb.add(e1)
         result = tb.exact_bucket(Entity)
 
@@ -136,49 +137,49 @@ class TestAtomisticColumnAccess:
     def test_atoms_column_read(self):
         """Test reading atom symbols via column access."""
         atomistic = Atomistic()
-        
+
         a1 = Atom({"symbol": "C", "xyz": [0, 0, 0]})
         a2 = Atom({"symbol": "C", "xyz": [1, 0, 0]})
         a3 = Atom({"symbol": "H", "xyz": [0, 1, 0]})
 
         atomistic.add_entity(a1, a2, a3)
 
-        # Target syntax
+        # Target syntax - returns numpy array
         symbols = atomistic.atoms["symbol"]
-        
-        assert symbols == ["C", "C", "H"]
+
+        assert np.array_equal(symbols, ["C", "C", "H"])
 
     def test_atoms_column_read_positions(self):
         """Test reading positions via column access."""
         atomistic = Atomistic()
-        
+
         a1 = Atom({"symbol": "C", "xyz": [0.0, 0.0, 0.0]})
         a2 = Atom({"symbol": "N", "xyz": [1.5, 0.0, 0.0]})
 
         atomistic.add_entity(a1, a2)
 
         positions = atomistic.atoms["xyz"]
-        
+
         assert len(positions) == 2
-        assert positions[0] == [0.0, 0.0, 0.0]
-        assert positions[1] == [1.5, 0.0, 0.0]
+        assert np.array_equal(positions[0], [0.0, 0.0, 0.0])
+        assert np.array_equal(positions[1], [1.5, 0.0, 0.0])
 
     def test_atoms_property_returns_entities(self):
         """Ensure atomistic.atoms returns Entities, not plain list."""
         atomistic = Atomistic()
-        
+
         a1 = Atom({"symbol": "C"})
         atomistic.add_entity(a1)
 
         atoms = atomistic.atoms
-        
+
         # Should be Entities to support column access
         assert isinstance(atoms, Entities)
 
     def test_mixed_attribute_access(self):
         """Test accessing different attributes from same entity set."""
         atomistic = Atomistic()
-        
+
         a1 = Atom({"symbol": "C", "mass": 12.0, "charge": 0.0})
         a2 = Atom({"symbol": "N", "mass": 14.0, "charge": -0.5})
 
@@ -188,18 +189,18 @@ class TestAtomisticColumnAccess:
         masses = atomistic.atoms["mass"]
         charges = atomistic.atoms["charge"]
 
-        assert symbols == ["C", "N"]
-        assert masses == [12.0, 14.0]
-        assert charges == [0.0, -0.5]
+        assert np.array_equal(symbols, ["C", "N"])
+        assert np.array_equal(masses, [12.0, 14.0])
+        assert np.array_equal(charges, [0.0, -0.5])
 
     def test_column_access_with_subclasses(self):
         """Test column access works with Entity subclasses."""
-        
+
         class SpecialAtom(Atom):
             pass
 
         atomistic = Atomistic()
-        
+
         a1 = SpecialAtom({"symbol": "C", "special": True})
         a2 = Atom({"symbol": "N", "special": False})
 
@@ -219,7 +220,7 @@ class TestTypeBucketWithSubclasses:
 
     def test_subclass_bucketing(self):
         """Test that subclasses are returned in parent bucket."""
-        
+
         class SpecialEntity(Entity):
             pass
 
@@ -236,11 +237,11 @@ class TestTypeBucketWithSubclasses:
 
         # Column access should work on mixed types
         types = all_ents["type"]
-        assert types == ["base", "special"]
+        assert np.array_equal(types, ["base", "special"])
 
     def test_exact_bucket_excludes_subclasses(self):
         """Test exact_bucket only returns exact type."""
-        
+
         class SpecialEntity(Entity):
             pass
 
@@ -273,7 +274,7 @@ class TestTypeBucketModification:
 
         result = tb.bucket(Entity)
         ids = result["id"]
-        assert ids == [1, 2, 3]
+        assert np.array_equal(ids, [1, 2, 3])
 
     def test_remove_maintains_entities(self):
         """Test that remove keeps Entities structure."""

@@ -1,8 +1,6 @@
-from typing import Any, Dict, Literal, Optional
+from typing import Literal
 
-from pint import DimensionalityError, Quantity
-from pint import Unit as PintUnit
-from pint import UnitRegistry
+from pint import DimensionalityError, Quantity, Unit as PintUnit, UnitRegistry
 
 UnitSystemName = Literal["real", "metal", "si", "cgs", "electron", "micro", "nano"]
 
@@ -64,7 +62,7 @@ class Unit:
 
     # LAMMPS presets from https://docs.lammps.org/units.html
     # Note: 'lj' is handled separately via lj() classmethod
-    _lammps_presets: Dict[UnitSystemName, Dict[str, Quantity]] = {
+    _lammps_presets: dict[UnitSystemName, dict[str, Quantity]] = {
         "real": {
             "mass": 1.0 * _registry.gram,
             "length": 1.0 * _registry.angstrom,
@@ -195,7 +193,7 @@ class Unit:
 
         self.ureg = Unit._registry
         self._preset_name: UnitSystemName | None = system  # Track original preset name
-        units: Dict[str, Quantity] = {}
+        units: dict[str, Quantity] = {}
         if system:
             units |= Unit._lammps_presets[system]
         units |= overrides
@@ -204,10 +202,10 @@ class Unit:
             raise ValueError("Must specify at least mass, length, energy units")
         self._define_units(units)
 
-    def _define_units(self, units: Dict[str, Quantity]) -> None:
+    def _define_units(self, units: dict[str, Quantity]) -> None:
         """Define base and derived units in the registry."""
-        self.base: Dict[str, PintUnit] = {}
-        self._original_preset: Dict[str, Quantity] | None = None
+        self.base: dict[str, PintUnit] = {}
+        self._original_preset: dict[str, Quantity] | None = None
 
         # Store original units for system matching (before registry pollution)
         if hasattr(self, "_preset_name"):
@@ -269,7 +267,7 @@ class Unit:
         q_base = qty.to_base_units()
 
         # Find the appropriate base unit by matching dimensionality
-        for key, base_unit in self.base.items():
+        for _key, base_unit in self.base.items():
             base_qty = 1.0 * base_unit
             base_qty_base = base_qty.to_base_units()
 
@@ -332,7 +330,7 @@ class Unit:
         target_base = target_qty.to_base_units()
 
         # Find the appropriate base unit with matching dimensionality
-        for key, base_unit in self.base.items():
+        for _key, base_unit in self.base.items():
             base_qty = 1.0 * base_unit
             base_qty_base = base_qty.to_base_units()
 
@@ -360,7 +358,7 @@ class Unit:
                 return name
         return None
 
-    def _matches_preset(self, preset: Dict[str, Quantity]) -> bool:
+    def _matches_preset(self, preset: dict[str, Quantity]) -> bool:
         """Check if current unit system matches a preset."""
         # Quick check: if we stored original preset, compare with that
         if self._original_preset:
@@ -387,7 +385,7 @@ class Unit:
         return True
 
     def _compare_unit_dicts(
-        self, dict1: Dict[str, Quantity], dict2: Dict[str, Quantity]
+        self, dict1: dict[str, Quantity], dict2: dict[str, Quantity]
     ) -> bool:
         """Compare two unit dictionaries for equality."""
         if set(dict1.keys()) != set(dict2.keys()):
@@ -409,7 +407,7 @@ class Unit:
         """Return list of available LAMMPS preset system names."""
         return list(cls._lammps_presets.keys())
 
-    def get_base_units(self) -> Dict[str, str]:
+    def get_base_units(self) -> dict[str, str]:
         """Return dictionary mapping unit types to their string representations."""
         return {key: str(unit) for key, unit in self.base.items()}
 

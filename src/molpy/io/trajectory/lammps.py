@@ -1,3 +1,4 @@
+import contextlib
 import re
 from io import StringIO
 from pathlib import Path
@@ -111,7 +112,7 @@ class LammpsTrajectoryReader(BaseTrajectoryReader):
                 # The timestep value is on the next line
                 timestep = int(frame_lines[i + 1].strip())
             elif line.startswith("ITEM: BOX BOUNDS"):
-                periodic = line.split()[-3:]
+                line.split()[-3:]
                 for j in range(3):
                     box_bounds.append(
                         list(map(float, frame_lines[i + j + 1].strip().split()))
@@ -164,10 +165,8 @@ class LammpsTrajectoryReader(BaseTrajectoryReader):
             dtype = column_type_mappings.get(col_name)
             if dtype is None:
                 continue
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 frame["atoms"][col_name] = frame["atoms"][col_name].astype(dtype)
-            except (ValueError, TypeError):
-                pass
 
         frame.metadata["box"] = box
         return frame
@@ -207,12 +206,12 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
             # Check if box is orthogonal
             if np.allclose(matrix, np.diag(np.diag(matrix))):
                 # Orthogonal box
-                self._fp.write("ITEM: BOX BOUNDS pp pp pp\n".encode())
+                self._fp.write(b"ITEM: BOX BOUNDS pp pp pp\n")
                 for i in range(3):
                     self._fp.write(f"{origin[i]} {origin[i] + matrix[i, i]}\n".encode())
             else:
                 # Triclinic box
-                self._fp.write("ITEM: BOX BOUNDS pp pp pp xy xz yz\n".encode())
+                self._fp.write(b"ITEM: BOX BOUNDS pp pp pp xy xz yz\n")
                 for i in range(3):
                     if i == 0:
                         self._fp.write(
@@ -258,7 +257,7 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
             # Write atom data
             n_atoms = len(atoms)
 
-            # 获取第一个可用列来确定实际原子数量
+            # Get first available column to determine actual atom count
             first_col = next(iter(atoms.keys()))
             actual_n_atoms = len(atoms[first_col])
 

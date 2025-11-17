@@ -583,7 +583,6 @@ parser = SmilesParser()
 
 
 class TestSmilesParser:
-
     @pytest.mark.parametrize("smiles, expected", plain_smiles)
     def test_plain_smiles(self, smiles, expected):
         result = parser.parse_smiles(smiles)
@@ -685,24 +684,24 @@ def mk_bigsmiles_ir(start_specs, segments_specs):
                 else BondDescriptorIR()
             )
             units = [mk_smiles_ir(*u) for u in obj_spec["units"]]
-            
+
             # Collect atoms and bonds from units
             for unit in units:
                 all_atoms.extend(unit.atoms)
                 all_bonds.extend(unit.bonds)
-            
+
             end_groups = (
                 [mk_smiles_ir(*eg) for eg in obj_spec["end_groups"]]
                 if obj_spec.get("end_groups")
                 else None
             )
-            
+
             # Collect atoms and bonds from end groups
             if end_groups:
                 for eg in end_groups:
                     all_atoms.extend(eg.atoms)
                     all_bonds.extend(eg.bonds)
-            
+
             dist = (
                 StochasticDistributionIR(**obj_spec["distribution"])
                 if obj_spec.get("distribution")
@@ -720,12 +719,12 @@ def mk_bigsmiles_ir(start_specs, segments_specs):
         implicit = (
             mk_smiles_ir(*seg_spec["implicit"]) if seg_spec.get("implicit") else None
         )
-        
+
         # Collect atoms and bonds from implicit smiles
         if implicit:
             all_atoms.extend(implicit.atoms)
             all_bonds.extend(implicit.bonds)
-        
+
         segments.append(
             RepeatSegmentIR(stochastic_objects=objs, implicit_smiles=implicit)
         )
@@ -914,7 +913,6 @@ chain_segment_cases = [
 
 
 class TestBigSmilesIR:
-
     @pytest.mark.parametrize("name,kwargs,expected", bond_descriptor_cases)
     def test_bond_descriptor_fields(self, name, kwargs, expected):
         desc = BondDescriptorIR(**kwargs)
@@ -1005,8 +1003,29 @@ class TestBigSmilesIR:
 # 1️⃣ Basic SMILES compatibility (baseline)
 basic_bigsmiles_compat = [
     ("CCO", mk_bigsmiles_ir((["C", "C", "O"], [(0, 1, "-"), (1, 2, "-")]), [])),
-    ("C1CCCCC1", mk_bigsmiles_ir((["C", "C", "C", "C", "C", "C"], [(0, 1, "-"), (1, 2, "-"), (2, 3, "-"), (3, 4, "-"), (4, 5, "-"), (5, 0, "-")]), [])),
-    ("CC(=O)O", mk_bigsmiles_ir((["C", "C", "O", "O"], [(0, 1, "-"), (1, 2, "="), (1, 3, "-")]), [])),
+    (
+        "C1CCCCC1",
+        mk_bigsmiles_ir(
+            (
+                ["C", "C", "C", "C", "C", "C"],
+                [
+                    (0, 1, "-"),
+                    (1, 2, "-"),
+                    (2, 3, "-"),
+                    (3, 4, "-"),
+                    (4, 5, "-"),
+                    (5, 0, "-"),
+                ],
+            ),
+            [],
+        ),
+    ),
+    (
+        "CC(=O)O",
+        mk_bigsmiles_ir(
+            (["C", "C", "O", "O"], [(0, 1, "-"), (1, 2, "="), (1, 3, "-")]), []
+        ),
+    ),
 ]
 
 
@@ -1016,43 +1035,55 @@ simple_repeat_bigsmiles = [
         "{[<]CC[>]}",
         mk_bigsmiles_ir(
             ([], []),  # empty start_smiles
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [(["C", "C"], [(0, 1, "-")])],
-                }],
-                "implicit": None,
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "C"], [(0, 1, "-")])],
+                        }
+                    ],
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
     (
         "{[<]CCO[>]}",
         mk_bigsmiles_ir(
             ([], []),
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [(["C", "C", "O"], [(0, 1, "-"), (1, 2, "-")])],
-                }],
-                "implicit": None,
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "C", "O"], [(0, 1, "-"), (1, 2, "-")])],
+                        }
+                    ],
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
     (
         "{[<]C(=O)O[>]}",
         mk_bigsmiles_ir(
             ([], []),
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [(["C", "O", "O"], [(0, 1, "="), (0, 2, "-")])],
-                }],
-                "implicit": None,
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "O", "O"], [(0, 1, "="), (0, 2, "-")])],
+                        }
+                    ],
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
 ]
 
@@ -1063,18 +1094,22 @@ stochastic_copolymer_bigsmiles = [
         "{[<]CC[>],[<]OCC[>]}",
         mk_bigsmiles_ir(
             ([], []),
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [
-                        (["C", "C"], [(0, 1, "-")]),
-                        (["O", "C", "C"], [(0, 1, "-"), (1, 2, "-")]),
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [
+                                (["C", "C"], [(0, 1, "-")]),
+                                (["O", "C", "C"], [(0, 1, "-"), (1, 2, "-")]),
+                            ],
+                        }
                     ],
-                }],
-                "implicit": None,
-            }]
-        )
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
 ]
 
@@ -1087,23 +1122,27 @@ block_copolymer_bigsmiles = [
             ([], []),
             [
                 {
-                    "objects": [{
-                        "left": {"symbol": "<"},
-                        "right": {"symbol": ">"},
-                        "units": [(["C", "C"], [(0, 1, "-")])],
-                    }],
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "C"], [(0, 1, "-")])],
+                        }
+                    ],
                     "implicit": None,
                 },
                 {
-                    "objects": [{
-                        "left": {"symbol": "<"},
-                        "right": {"symbol": ">"},
-                        "units": [(["O"], [])],
-                    }],
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["O"], [])],
+                        }
+                    ],
                     "implicit": None,
-                }
-            ]
-        )
+                },
+            ],
+        ),
     ),
     (
         "{[<]CC[>]}{[<]OCCO[>]}",
@@ -1111,23 +1150,32 @@ block_copolymer_bigsmiles = [
             ([], []),
             [
                 {
-                    "objects": [{
-                        "left": {"symbol": "<"},
-                        "right": {"symbol": ">"},
-                        "units": [(["C", "C"], [(0, 1, "-")])],
-                    }],
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "C"], [(0, 1, "-")])],
+                        }
+                    ],
                     "implicit": None,
                 },
                 {
-                    "objects": [{
-                        "left": {"symbol": "<"},
-                        "right": {"symbol": ">"},
-                        "units": [(["O", "C", "C", "O"], [(0, 1, "-"), (1, 2, "-"), (2, 3, "-")])],
-                    }],
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [
+                                (
+                                    ["O", "C", "C", "O"],
+                                    [(0, 1, "-"), (1, 2, "-"), (2, 3, "-")],
+                                )
+                            ],
+                        }
+                    ],
                     "implicit": None,
-                }
-            ]
-        )
+                },
+            ],
+        ),
     ),
 ]
 
@@ -1138,29 +1186,37 @@ mixed_bigsmiles = [
         "CC{[<]O[>]}",
         mk_bigsmiles_ir(
             (["C", "C"], [(0, 1, "-")]),  # start_smiles
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [(["O"], [])],
-                }],
-                "implicit": None,
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["O"], [])],
+                        }
+                    ],
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
     (
         "{[<]CC[>]}O",
         mk_bigsmiles_ir(
             ([], []),
-            [{
-                "objects": [{
-                    "left": {"symbol": "<"},
-                    "right": {"symbol": ">"},
-                    "units": [(["C", "C"], [(0, 1, "-")])],
-                }],
-                "implicit": (["O"], []),  # implicit smiles after stochastic object
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<"},
+                            "right": {"symbol": ">"},
+                            "units": [(["C", "C"], [(0, 1, "-")])],
+                        }
+                    ],
+                    "implicit": (["O"], []),  # implicit smiles after stochastic object
+                }
+            ],
+        ),
     ),
 ]
 
@@ -1171,15 +1227,19 @@ indexed_descriptor_bigsmiles = [
         "{[<1]CC[>1]}",
         mk_bigsmiles_ir(
             ([], []),
-            [{
-                "objects": [{
-                    "left": {"symbol": "<", "index": 1},
-                    "right": {"symbol": ">", "index": 1},
-                    "units": [(["C", "C"], [(0, 1, "-")])],
-                }],
-                "implicit": None,
-            }]
-        )
+            [
+                {
+                    "objects": [
+                        {
+                            "left": {"symbol": "<", "index": 1},
+                            "right": {"symbol": ">", "index": 1},
+                            "units": [(["C", "C"], [(0, 1, "-")])],
+                        }
+                    ],
+                    "implicit": None,
+                }
+            ],
+        ),
     ),
 ]
 
@@ -1232,7 +1292,7 @@ class TestBigSmilesParser:
 
 class TestRDKitConverter:
     """Test SmilesIR → RDKit Mol conversion."""
-    
+
     @pytest.fixture(autouse=True)
     def skip_if_no_rdkit(self):
         """Skip all tests if RDKit not installed."""
@@ -1240,7 +1300,7 @@ class TestRDKitConverter:
             import rdkit
         except ImportError:
             pytest.skip("RDKit not installed")
-    
+
     # Test cases: (smiles_string, expected_num_atoms, expected_num_bonds)
     converter_test_cases = [
         ("C", 1, 0),  # Methane
@@ -1251,21 +1311,21 @@ class TestRDKitConverter:
         ("CCO", 3, 2),  # Ethanol
         ("CC(C)C", 4, 3),  # Isobutane
     ]
-    
+
     @pytest.mark.parametrize("smiles,n_atoms,n_bonds", converter_test_cases)
     def test_smilesir_to_mol_basic(self, smiles, n_atoms, n_bonds):
         """Test basic IR → Mol conversion."""
         from rdkit import Chem
 
         from molpy.parser.smiles import smilesir_to_mol
-        
+
         ir = parser.parse_smiles(smiles)
         mol = smilesir_to_mol(ir)
-        
+
         assert mol is not None
         assert mol.GetNumAtoms() == n_atoms
         assert mol.GetNumBonds() == n_bonds
-    
+
     def test_smilesir_to_mol_charged_atoms(self):
         """Test conversion with charged atoms."""
         from rdkit import Chem
@@ -1275,13 +1335,13 @@ class TestRDKitConverter:
         # [NH4+]
         ir = parser.parse_smiles("[NH4+]")
         mol = smilesir_to_mol(ir)
-        
+
         assert mol.GetNumAtoms() == 1
         n_atom = mol.GetAtomWithIdx(0)
         assert n_atom.GetSymbol() == "N"
         assert n_atom.GetFormalCharge() == 1
         assert n_atom.GetTotalNumHs() == 4
-    
+
     def test_smilesir_to_mol_isotopes(self):
         """Test conversion with isotopes."""
         from rdkit import Chem
@@ -1291,12 +1351,12 @@ class TestRDKitConverter:
         # [13C]
         ir = parser.parse_smiles("[13C]")
         mol = smilesir_to_mol(ir)
-        
+
         assert mol.GetNumAtoms() == 1
         c_atom = mol.GetAtomWithIdx(0)
         assert c_atom.GetSymbol() == "C"
         assert c_atom.GetIsotope() == 13
-    
+
     def test_smilesir_to_mol_aromatic(self):
         """Test conversion with aromatic atoms."""
         from rdkit import Chem
@@ -1306,12 +1366,12 @@ class TestRDKitConverter:
         # Benzene
         ir = parser.parse_smiles("c1ccccc1")
         mol = smilesir_to_mol(ir)
-        
+
         assert mol.GetNumAtoms() == 6
         # All atoms should be aromatic after sanitization
         for atom in mol.GetAtoms():
             assert atom.GetIsAromatic()
-    
+
     def test_smilesir_to_mol_chirality(self):
         """Test conversion with chiral centers."""
         from rdkit import Chem
@@ -1321,8 +1381,11 @@ class TestRDKitConverter:
         # L-alanine: N[C@@H](C)C(=O)O
         ir = parser.parse_smiles("N[C@@H](C)C(=O)O")
         mol = smilesir_to_mol(ir)
-        
+
         # Check chiral center exists
-        chiral_atoms = [a for a in mol.GetAtoms() if a.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED]
+        chiral_atoms = [
+            a
+            for a in mol.GetAtoms()
+            if a.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED
+        ]
         assert len(chiral_atoms) > 0
-    

@@ -2,8 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from molpy.core.box import Box
-from molpy.core.frame import Block, Frame
+from molpy import Block, Box, Frame
 
 from .base import DataReader
 
@@ -83,7 +82,7 @@ class AmberInpcrdReader(DataReader):
             atoms_blk = Block(
                 {
                     "id": np.arange(1, n_atoms + 1, dtype=int),
-                    "name": np.array([f"ATM{i+1}" for i in range(n_atoms)], "U6"),
+                    "name": np.array([f"ATM{i + 1}" for i in range(n_atoms)], "U6"),
                     "xyz": coords,
                 }
             )

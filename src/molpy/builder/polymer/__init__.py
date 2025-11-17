@@ -5,42 +5,29 @@ Provides linear polymer assembly with both topology-only and chemical reaction c
 plus optional geometric placement via Placer strategies.
 """
 
-from .linear import linear
 from .connectors import (
+    AutoConnector,
+    BondKind,
+    CallbackConnector,
+    ChainConnector,
     Connector,
     ConnectorContext,
-    BondKind,
-    AutoConnector,
-    TableConnector,
-    ChainConnector,
-    CallbackConnector,
     ReacterConnector,
+    TableConnector,
     TopologyConnector,
 )
-from .geom_utils import (
-    Placer,
-    NoOpPlacer,
-    DockPlacer,
-    rodrigues,
-    get_vdw_radius,
-)
+from .linear import linear
 
 __all__ = [
-    "linear",
+    "AutoConnector",
+    "BondKind",
+    "CallbackConnector",
+    "ChainConnector",
     # Connectors
     "Connector",
     "ConnectorContext",
-    "BondKind",
-    "AutoConnector",
-    "TableConnector",
-    "ChainConnector",
-    "CallbackConnector",
     "ReacterConnector",
+    "TableConnector",
     "TopologyConnector",
-    # Geometry
-    "Placer",
-    "NoOpPlacer",
-    "DockPlacer",
-    "rodrigues",
-    "get_vdw_radius",
+    "linear",
 ]

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
+from molpy import Frame
 from molpy.core.element import Element
-from molpy.core.frame import Frame
 
 from .base import DataReader
 
@@ -34,9 +34,9 @@ class Mol2Reader(DataReader):
         """Read MOL2 file and populate frame."""
 
         try:
-            with open(self._file, "r") as f:
+            with open(self._file) as f:
                 lines = f.readlines()
-        except (IOError, OSError) as e:
+        except OSError as e:
             raise ValueError(f"Cannot read MOL2 file {self._file}: {e}")
 
         self.atoms = []
@@ -79,7 +79,7 @@ class Mol2Reader(DataReader):
         if self.atoms:
             # Convert atom list to Frame Block structure
             atoms_dict = {}
-            for key in self.atoms[0].keys():
+            for key in self.atoms[0]:
                 values = [atom[key] for atom in self.atoms]
                 if key == "xyz":
                     # Convert tuples to separate x, y, z arrays
@@ -95,7 +95,7 @@ class Mol2Reader(DataReader):
         if self.bonds:
             # Convert bond list to Frame Block structure
             bonds_dict = {}
-            for key in self.bonds[0].keys():
+            for key in self.bonds[0]:
                 bonds_dict[key] = np.array([bond[key] for bond in self.bonds])
             frame["bonds"] = bonds_dict
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from molpy.core.frame import Block
+from molpy import Block
 from molpy.core.region import (
     AndRegion,
     BoxRegion,
@@ -80,11 +80,11 @@ class TestBoxRegion:
         lengths = np.array([2.0, 3.0, 4.0])
         origin = np.array([1.0, 1.0, 1.0])
 
-        box = BoxRegion(lengths, origin, coord_field="pos")
+        box = BoxRegion(lengths, origin, coord_field="xyz")
 
         assert np.array_equal(box.lengths, lengths)
         assert np.array_equal(box.origin, origin)
-        assert box.coord_field == "pos"
+        assert box.coord_field == "xyz"
 
     def test_box_region_default_origin(self):
         """Test BoxRegion with default origin."""

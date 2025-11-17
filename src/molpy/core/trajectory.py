@@ -1,117 +1,52 @@
 from abc import ABC, abstractmethod
-from typing import (
-    Callable,
-    Generator,
-    Iterator,
-    Protocol,
-    Sequence,
-    Union,
-    overload,
-    runtime_checkable,
-)
-
-import numpy as np
+from collections.abc import Callable, Generator, Iterable, Iterator, Sequence
+from typing import overload
 
 from .frame import Frame
 
 
-@runtime_checkable
-class FrameProvider(Protocol):
-    """Protocol for frame providers that can be indexed."""
-
-    def __getitem__(self, key: int | slice) -> Frame | list[Frame]: ...
-    def __iter__(self) -> Iterator[Frame]: ...
-
-
-@runtime_checkable
-class SizedFrameProvider(FrameProvider, Protocol):
-    """Protocol for frame providers that have a known length."""
-
-    def __len__(self) -> int: ...
-
-
-class CachedFrames(dict[int, Frame]): ...
-
-
-class FrameGenerator(FrameProvider):
-    """Generator-based frame provider with caching. No predefined length."""
-
-    def __init__(self, frames: Generator[Frame, None, None]):
-        """Initialize with a generator of frames."""
-        self._frames = frames
-        self._cache = CachedFrames()
-        self._exhausted = False
-
-    def __iter__(self) -> Iterator[Frame]:
-        idx = 0
-        # If we're exhausted, just iterate through cached frames
-        if self._exhausted:
-            for i in sorted(self._cache.keys()):
-                yield self._cache[i]
-            return
-
-        # Otherwise, continue from where we left off
-        while not self._exhausted:
-            if idx in self._cache:
-                yield self._cache[idx]
-            else:
-                try:
-                    frame = next(self._frames)
-                    self._cache[idx] = frame
-                    yield frame
-                except StopIteration:
-                    self._exhausted = True
-                    break
-            idx += 1
-
-    def __getitem__(self, key: int | slice) -> Frame | list[Frame]:
-        if isinstance(key, int):
-            if key < 0:
-                raise IndexError(
-                    "Negative indexing not supported for generator-based frames. "
-                    "Consider using Framelist for full indexing support."
-                )
-
-            if key in self._cache:
-                return self._cache[key]
-
-            # Generate frames up to the requested index
-            for idx, frame in enumerate(self):
-                if idx == key:
-                    return frame
-            raise IndexError(f"Index {key} out of range (generator exhausted)")
-        elif isinstance(key, slice):
-            if key.start < 0 or key.stop < 0:
-                raise IndexError("Reverse slicing not supported for generators")
-            start = key.start or 0
-            stop = key.stop
-            step = key.step or 1
-
-            result = []
-            for i in range(start, stop, step):
-                try:
-                    result.append(self[i])
-                except IndexError:
-                    break
-            return result
-        else:
-            raise TypeError(f"Invalid key type: {type(key)}")
-
-
 class Trajectory:
-    """A sequence of molecular frames with optional topology."""
+    """A sequence of molecular frames with optional topology.
 
-    def __init__(self, frames: FrameProvider, topology=None):
-        """Initialize trajectory with a frame provider."""
+    Supports iteration, indexing, slicing, and mapping operations.
+    Can be used as an iterator with manual next() calls.
+
+    Args:
+        frames: An iterable or sequence of Frame objects. If a Sequence is provided,
+            the trajectory supports length and indexing. If an Iterable (e.g., generator)
+            is provided, only iteration is supported.
+        topology: Optional topology information for the trajectory.
+    """
+
+    def __init__(self, frames: Iterable[Frame], topology=None):
+        """Initialize trajectory with frames."""
         self._frames = frames
         self._topology = topology
+        self._iterator: Iterator[Frame] | None = None
 
     def __iter__(self) -> Iterator[Frame]:
+        """Return an iterator over frames.
+
+        Each call creates a new iterator, allowing multiple independent iterations.
+        """
         return iter(self._frames)
+
+    def __next__(self) -> Frame:
+        """Get the next frame in the trajectory.
+
+        Supports manual iteration using next(trajectory).
+        Creates a new iterator on first call or reuses existing one.
+
+        Raises:
+            StopIteration: When all frames have been consumed.
+        """
+        if self._iterator is None:
+            self._iterator = iter(self._frames)
+        return next(self._iterator)
 
     def __len__(self) -> int:
         """Return the number of frames in the trajectory."""
-        if isinstance(self._frames, SizedFrameProvider):
+        if isinstance(self._frames, Sequence):
             return len(self._frames)
         else:
             raise TypeError(
@@ -121,27 +56,64 @@ class Trajectory:
 
     def has_length(self) -> bool:
         """Check if this trajectory has a known length without computing it."""
-        return isinstance(self._frames, SizedFrameProvider)
+        return isinstance(self._frames, Sequence)
+
+    @overload
+    def __getitem__(self, key: int) -> Frame: ...
+
+    @overload
+    def __getitem__(self, key: slice) -> "Trajectory": ...
 
     def __getitem__(self, key: int | slice) -> "Frame | Trajectory":
+        """Get a frame or slice of frames."""
         if isinstance(key, int):
-            frame = self._frames[key]
-            # Protocol guarantees Frame for int index
-            return frame  # type: ignore[return-value]
+            if isinstance(self._frames, Sequence):
+                return self._frames[key]
+            else:
+                raise TypeError(
+                    "Indexing not supported for generator-based trajectories. "
+                    "Convert to list first or use iteration."
+                )
         elif isinstance(key, slice):
-            sliced_frames = self._frames[key]
-            return Trajectory(sliced_frames, self._topology)  # type: ignore[arg-type]
+            if isinstance(self._frames, Sequence):
+                sliced_frames = self._frames[key]
+                return Trajectory(sliced_frames, self._topology)
+            else:
+                # For generators, we need to materialize the slice
+                frames_list = list(self._frames)
+                sliced_frames = frames_list[key]
+                return Trajectory(sliced_frames, self._topology)
         else:
             raise TypeError(f"Invalid key type: {type(key)}")
 
     def map(self, func: Callable[[Frame], Frame]) -> "Trajectory":
-        """Apply a function to each frame, returning a new trajectory."""
+        """Apply a function to each frame, returning a new trajectory.
+
+        Args:
+            func: A function that takes a Frame and returns a Frame.
+                The function will be applied lazily as frames are accessed.
+
+        Returns:
+            A new Trajectory with mapped frames.
+
+        Example:
+            >>> def center_frame(frame):
+            ...     # Center coordinates at origin
+            ...     atoms = frame["atoms"]
+            ...     xyz = atoms[["x", "y", "z"]]
+            ...     center = xyz.mean(axis=0)
+            ...     atoms["x"] = atoms["x"] - center[0]
+            ...     atoms["y"] = atoms["y"] - center[1]
+            ...     atoms["z"] = atoms["z"] - center[2]
+            ...     return frame
+            >>> centered_traj = traj.map(center_frame)
+        """
 
         def mapped_generator() -> Generator[Frame, None, None]:
             for frame in self._frames:
                 yield func(frame)
 
-        return Trajectory(FrameGenerator(mapped_generator()), self._topology)
+        return Trajectory(mapped_generator(), self._topology)
 
 
 # ====================== Trajectory Splitters ====================

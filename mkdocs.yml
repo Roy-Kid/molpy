@@ -2,32 +2,53 @@ site_name: molpy
 site_url: https://molcrafts.github.io/molpy
 repo_url: https://github.com/MolCrafts/molpy
 repo_name: MolCrafts/molpy
-site_description: Modern Python framework for molecular simulation and analysis.
+site_description: A fast, clean, and composable toolkit for molecular modeling.
 
 copyright: Copyright © 2024 - 2025 MolCrafts Team
 
 theme:
   name: material
+  language: en
   palette:
     - scheme: default
-      primary: teal
-      accent: indigo
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
     - scheme: slate
-      primary: teal
-      accent: indigo
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.tabs
     - navigation.instant
     - navigation.instant.progress
     - navigation.tracking
     - navigation.top
+    - navigation.sections
+    - navigation.expand
+    - navigation.footer
+    - toc.follow
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+  font:
+    text: Inter
+    code: JetBrains Mono
   favicon: assets/favicon.ico
-  logo: assets/logo.png
+  logo: assets/molpy.png
+  icon:
+    repo: fontawesome/brands/github
+  custom_dir: docs/assets/overrides
 
 markdown_extensions:
   - admonition
+  - attr_list
   - def_list
   - footnotes
   - md_in_html
@@ -38,6 +59,11 @@ markdown_extensions:
   - pymdownx.emoji
   - pymdownx.highlight
   - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.snippets
   - pymdownx.arithmatex:
       generic: true
   - codehilite
@@ -55,130 +81,74 @@ plugins:
             heading_level: 2
             merge_init_into_class: true
             filters: ["!^_"]
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: true
 
 nav:
   - Home: index.md
   - Getting Started:
-      - Installation: getting-started/installation.md
-      - Quickstart: getting-started/quickstart.md
+      - Installation: getting-started/installation.ipynb
+      - Quickstart: getting-started/quickstart.ipynb
       - FAQ: getting-started/faq.md
+      - Core Concepts: getting-started/core-concepts.ipynb
   - Tutorials:
-      - Block & Frame Basics: tutorials/block-frame.md
-      - Force Field Basics: tutorials/forcefield.md
-      - Topology Management: tutorials/topology.md
-      - System Organization: tutorials/system-organization.md
-      - Selection & Filtering: tutorials/selection.md
-      - Box & Simulation Boundaries: tutorials/box.md
-      - Element & Chemistry: tutorials/element.md
-      - Trajectory Analysis: tutorials/trajectory.md
-      - Region & Geometric Operations: tutorials/region.md
-      - Atomistic Structures: tutorials/atomistic.md
-  - How-to Guides:
-      - Molecular Modeling: how-to/programming-modeling.ipynb
-      - Molecular Packing: how-to/packmol.md
-      - Call Externals: how-to/ambertools.md
-  - Developer Guides:
-      - Custom Selection Predicates: developer/custom-selections.md
-      - Custom I/O: developer/custom-io.md
-      - Plugin Development: developer/plugin-development.md
+      - Overview: tutorials/index.md
+      - Box: tutorials/box.ipynb
+      - Frame & Block: tutorials/frame-block.ipynb
+      - Wrappers: tutorials/wrappers.ipynb
+      - Crystal Builder: tutorials/crystal-builder.ipynb
+      - Force Field: tutorials/force-field.ipynb
+      - Molecular Graph Model: tutorials/molecular-graph-model.ipynb
+      - Selector: tutorials/selector.ipynb
+      - Topology: tutorials/topology.ipynb
+      - Trajectory: tutorials/trajectory.ipynb
+  - User Guide:
+      - Overview: user-guide/index.md
+      - Adapter: user-guide/adapter.ipynb
+      - Builder: user-guide/builder.ipynb
+      - Compute: user-guide/compute.ipynb
+      - Engine: user-guide/engine.ipynb
+      - IO: user-guide/io.ipynb
+      - Op: user-guide/op.ipynb
+      - Pack: user-guide/pack.ipynb
+      - Parser: user-guide/parser.ipynb
+      - Potential: user-guide/potential.ipynb
+      - Reacter: user-guide/reacter.ipynb
+      - Typifier: user-guide/typifier.ipynb
   - API Reference:
-      - Index: reference/index.md
-      - Core:
-          - Overview: reference/core/index.md
-          - Atomistic: reference/core/atomistic.md
-          - Frame: reference/core/frame.md
-          - Trajectory: reference/core/trajectory.md
-          - Box: reference/core/box.md
-          - System: reference/core/system.md
-          - Topology: reference/core/topology.md
-          - Selection: reference/core/selection.md
-          - ForceField: reference/core/forcefield.md
-          - Element: reference/core/element.md
-          - Wrapper: reference/core/wrapper.md
-          - Region: reference/core/region.md
-          - Protocol: reference/core/protocol.md
-          - Logger: reference/core/logger.md
-          - Units: reference/core/units.md
-          - Config: reference/core/config.md
-          - Utils: reference/core/utils.md
-      - I/O:
-          - Overview: reference/io/index.md
-          - Data Formats:
-              - PDB: reference/io/data/pdb.md
-              - XYZ: reference/io/data/xyz.md
-              - LAMMPS: reference/io/data/lammps.md
-              - AMBER: reference/io/data/amber.md
-              - GROMACS: reference/io/data/gro.md
-              - MOL2: reference/io/data/mol2.md
-              - XSF: reference/io/data/xsf.md
-          - Force Field Files:
-              - LAMMPS: reference/io/forcefield/lammps.md
-              - AMBER: reference/io/forcefield/amber.md
-              - GROMACS: reference/io/forcefield/top.md
-              - XML: reference/io/forcefield/xml.md
-          - Trajectory Files:
-              - LAMMPS: reference/io/trajectory/lammps.md
-              - XYZ: reference/io/trajectory/xyz.md
-          - Utils: reference/io/utils.md
-      - Analysis:
-          - Overview: reference/analysis/index.md
-          - Base: reference/analysis/base.md
-          - Density:
-              - RDF: reference/analysis/density/rdf.md
-          - Diffusion:
-              - MSD: reference/analysis/diffusion/msd.md
-          - Clustering:
-              - Chain: reference/analysis/cluster/chain.md
-          - Locality:
-              - Neighbor List: reference/analysis/locality/neighborlist.md
-      - Builder:
-          - Overview: reference/builder/index.md
-          - Polymer: reference/builder/polymer.md
-          - AmberTools: reference/builder/ambertools.md
-      - Operations:
-          - Overview: reference/op/index.md
-          - Geometry: reference/op/geometry.md
-      - Potential:
-          - Overview: reference/potential/index.md
-          - Base: reference/potential/base.md
-          - Bond:
-              - Base: reference/potential/bond/base.md
-              - Harmonic: reference/potential/bond/harmonic.md
-          - Angle:
-              - Base: reference/potential/angle/base.md
-              - Harmonic: reference/potential/angle/harmonic.md
-          - Pair:
-              - Base: reference/potential/pair/base.md
-              - Lennard-Jones: reference/potential/pair/lj.md
-              - Coulomb: reference/potential/pair/coul.md
-      - Packing:
-          - Overview: reference/pack/index.md
-          - Session: reference/pack/session.md
-          - Target: reference/pack/target.md
-          - Constraint: reference/pack/constraint.md
-          - Packer: reference/pack/packer.md
-          - Optimizer: reference/pack/optimizer.md
-      - Typifier:
-          - Overview: reference/typifier/index.md
-          - Typifier: reference/typifier/typifier.md
-          - Graph: reference/typifier/graph.md
-          - Parser: reference/typifier/parser.md
-      - Engine:
-          - Overview: reference/engine/index.md
-          - Base: reference/engine/base.md
-          - LAMMPS: reference/engine/lammps.md
-          - CP2K: reference/engine/cp2k.md
+      - Overview: api/index.md
+      - Core: api/core.md
+      - IO: api/io.md
+      - Parser: api/parser.md
+      - Reacter: api/reacter.md
+      - Builder: api/builder.md
+      - Engine: api/engine.md
+      - Pack: api/pack.md
+      - Potential: api/potential.md
+      - Adapter: api/adapter.md
+      - Typifier: api/typifier.md
+      - Op: api/op.md
+  - Developer:
+      - Overview: developer/index.md
+      - Contributing: developer/contributing.md
+      - Development Setup: developer/development-setup.md
+      - Coding Style: developer/coding-style.md
+      - Testing: developer/testing.md
+      - Release Process: developer/release-process.md
+      - How to write a `Compute`: developer/compute.py
+  - Changelog:
+      - Overview: changelog/index.md
+      - Releases: changelog/releases.md
 
 extra_javascript:
-  - javascripts/mathjax.js
+  - assets/javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - assets/stylesheets/extra.css
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/MolCrafts/molpy
   generator: false
-
-watch:
-  - src/molpy

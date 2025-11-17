@@ -12,18 +12,12 @@ Supports both regular file paths and @-prefixed builtin paths:
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, cast
 
-from molpy.core.atomistic import Atomistic
-from molpy.core.forcefield import (
-    AngleStyle,
-    AtomStyle,
+from molpy import (
+    Atomistic,
     AtomType,
-    BondStyle,
-    DihedralStyle,
     ForceField,
-    ImproperStyle,
-    PairStyle,
 )
 from molpy.io.builtin_resolver import resolve_builtin_path
 
@@ -39,7 +33,7 @@ class MolTemplateReader:
     def __init__(self):
         self.current_section = None
         self.current_style = None
-        self.molecules: List[Dict[str, Any]] = []
+        self.molecules: list[dict[str, Any]] = []
 
     def read(self, file_path: str | Path) -> ForceField:
         """
@@ -62,7 +56,7 @@ class MolTemplateReader:
         # Initialize force field
         forcefield = ForceField(name=resolved_path.stem, units="real")
 
-        with open(resolved_path, "r") as f:
+        with open(resolved_path) as f:
             content = f.read()
 
         # Parse the content
@@ -71,7 +65,7 @@ class MolTemplateReader:
         return forcefield
 
     def read_molecule(
-        self, file_path: str | Path, molecule_name: Optional[str] = None
+        self, file_path: str | Path, molecule_name: str | None = None
     ) -> Atomistic:
         """
         Read a MolTemplate .lt file and return a specific molecule as Atomistic object.
@@ -108,7 +102,7 @@ class MolTemplateReader:
         # Convert to Atomistic object
         return self._create_atomistic_from_molecule(molecule_data, forcefield)
 
-    def read_all_molecules(self, file_path: str | Path) -> List[Atomistic]:
+    def read_all_molecules(self, file_path: str | Path) -> list[Atomistic]:
         """
         Read all molecules from a MolTemplate .lt file.
 
@@ -174,11 +168,7 @@ class MolTemplateReader:
             "include",
         ]
 
-        for keyword in section_keywords:
-            if line.startswith(keyword):
-                return True
-
-        return False
+        return any(line.startswith(keyword) for keyword in section_keywords)
 
     def _parse_section_header(self, line: str, forcefield: ForceField):
         """Parse a section header and set the current section."""
@@ -252,15 +242,13 @@ class MolTemplateReader:
             return
 
         # Try to parse different parameter types
-        if self._parse_atom_type_line(line, forcefield):
-            return
-        elif self._parse_bond_type_line(line, forcefield):
-            return
-        elif self._parse_angle_type_line(line, forcefield):
-            return
-        elif self._parse_dihedral_type_line(line, forcefield):
-            return
-        elif self._parse_pair_type_line(line, forcefield):
+        if (
+            self._parse_atom_type_line(line, forcefield)
+            or self._parse_bond_type_line(line, forcefield)
+            or self._parse_angle_type_line(line, forcefield)
+            or self._parse_dihedral_type_line(line, forcefield)
+            or self._parse_pair_type_line(line, forcefield)
+        ):
             return
 
     def _parse_molecular_structure_line(self, line: str, forcefield: ForceField):
@@ -270,13 +258,12 @@ class MolTemplateReader:
             return
 
         # Try to parse different structure elements
-        if self._parse_atom_line(line, forcefield):
-            return
-        elif self._parse_bond_line(line, forcefield):
-            return
-        elif self._parse_angle_line(line, forcefield):
-            return
-        elif self._parse_dihedral_line(line, forcefield):
+        if (
+            self._parse_atom_line(line, forcefield)
+            or self._parse_bond_line(line, forcefield)
+            or self._parse_angle_line(line, forcefield)
+            or self._parse_dihedral_line(line, forcefield)
+        ):
             return
 
     def _parse_atom_line(self, line: str, forcefield: ForceField) -> bool:
@@ -385,7 +372,7 @@ class MolTemplateReader:
         return False
 
     def _create_atomistic_from_molecule(
-        self, molecule_data: Dict[str, Any], forcefield: ForceField
+        self, molecule_data: dict[str, Any], forcefield: ForceField
     ) -> Atomistic:
         """Create an Atomistic object from parsed molecule data."""
         molecule_name = molecule_data.get("name", "molecule")
@@ -467,7 +454,9 @@ class MolTemplateReader:
 
             # Create atom type with default values
             atomstyle.def_type(
-                name=name, mass=1.0, charge=0.0  # Default mass  # Default charge
+                name=name,
+                mass=1.0,
+                charge=0.0,  # Default mass  # Default charge
             )
             return True
 
@@ -633,7 +622,7 @@ def read_moltemplate(file_path: str | Path) -> ForceField:
 
 
 def read_moltemplate_molecule(
-    file_path: str | Path, molecule_name: Optional[str] = None
+    file_path: str | Path, molecule_name: str | None = None
 ) -> Atomistic:
     """
     Convenience function to read a molecule from a MolTemplate .lt file.
@@ -649,7 +638,7 @@ def read_moltemplate_molecule(
     return reader.read_molecule(file_path, molecule_name)
 
 
-def read_moltemplate_molecules(file_path: str | Path) -> List[Atomistic]:
+def read_moltemplate_molecules(file_path: str | Path) -> list[Atomistic]:
     """
     Convenience function to read all molecules from a MolTemplate .lt file.
 

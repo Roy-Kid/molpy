@@ -1,7 +1,8 @@
 import numpy as np
+from numpy.typing import NDArray
 
 
-def rotate_by_rodrigues(xyz, axis, theta):
+def rotate_by_rodrigues(xyz: NDArray, axis: NDArray, theta: float) -> NDArray:
     """Rotate coordinates around an axis by an angle theta. Using the Rodrigues' rotation formula.
 
     Args:
@@ -15,7 +16,6 @@ def rotate_by_rodrigues(xyz, axis, theta):
     xyz = np.asarray(xyz)
     axis = np.asarray(axis, dtype=float)
     axis = axis / np.linalg.norm(axis)
-    original_shape = xyz.shape
     was_1d = xyz.ndim == 1
 
     xyz = np.atleast_2d(xyz)
@@ -33,7 +33,7 @@ def rotate_by_rodrigues(xyz, axis, theta):
     return rot
 
 
-def rotate_by_quaternion(xyz, q):
+def rotate_by_quaternion(xyz: NDArray, q: NDArray) -> NDArray:
     """Rotate coordinates using a quaternion.
 
     Args:
@@ -55,7 +55,7 @@ def rotate_by_quaternion(xyz, q):
     return np.dot(xyz, rot_mat)
 
 
-def translate(xyz, vector):
+def translate(xyz: NDArray, vector: NDArray) -> NDArray:
     """Translate coordinates by a vector.
 
     Args:

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Union
 
 __all__ = ["Element"]
 
@@ -56,7 +55,7 @@ class Element:
     _symbol_to_element: dict[str, ElementData] = {}
     _number_to_element: dict[int, ElementData] = {}
 
-    def __new__(cls, name_or_symbol_or_number: Union[str, int]) -> "ElementData":
+    def __new__(cls, name_or_symbol_or_number: str | int) -> "ElementData":
         """
         Create an ElementData instance based on name, symbol, or atomic number.
 
@@ -91,7 +90,7 @@ class Element:
         raise KeyError(f"Element not found: {name_or_symbol_or_number}")
 
     @classmethod
-    def get_symbols(cls, identifiers: List[Union[str, int]]) -> List[str]:
+    def get_symbols(cls, identifiers: list[str | int]) -> list[str]:
         """Convert list of element identifiers to symbols."""
         return [cls(e).symbol for e in identifiers]
 

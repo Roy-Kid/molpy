@@ -1,74 +1,76 @@
 import csv
 from collections import defaultdict
+from collections.abc import Iterator
 from io import StringIO
 from pathlib import Path
-from typing import Any, TypeVar, Generic, Iterator, cast
+from typing import Any, TypeVar
 
 from .frame import Block
 
-# --- TypeBucket 通用实现 ---
+# --- TypeBucket generic implementation ---
 
 T = TypeVar("T")
 
-def get_nearest_type(item: T) -> type[T]:
-    """获取对象的具体类型"""
+
+def get_nearest_type[T](item: T) -> type[T]:
+    """Get the concrete type of an object"""
     return type(item)
 
 
-class TypeBucket(Generic[T]):
+class TypeBucket[T]:
     """
-    通用的类型桶（TypeBucket）实现，按对象的具体类型分组存储。
-    
-    支持两种存储模式：
-    - 集合模式（set）：用于存储唯一的类型定义，自动去重
-    - 列表模式（list）：用于存储实体对象，保持顺序
-    
-    使用示例：
-        # 集合模式（forcefield 使用）
+    Generic TypeBucket implementation that groups and stores objects by their concrete type.
+
+    Supports two storage modes:
+    - Set mode (set): For storing unique type definitions with automatic deduplication
+    - List mode (list): For storing entity objects while maintaining order
+
+    Usage example:
+        # Set mode (used by forcefield)
         bucket = TypeBucket(container_type=set)
-        
-        # 列表模式（entity 使用）
+
+        # List mode (used by entity)
         bucket = TypeBucket(container_type=list)
     """
-    
+
     def __init__(self, container_type: type = set) -> None:
         """
-        初始化 TypeBucket
-        
+        Initialize TypeBucket
+
         Args:
-            container_type: 容器类型，set（去重）或 list（保持顺序）
+            container_type: Container type, set (deduplication) or list (maintain order)
         """
         self.container_type = container_type
         if container_type == set:
             self._items: dict[type[T], Any] = defaultdict(set)
         else:
             self._items: dict[type[T], Any] = defaultdict(list)
-    
+
     def add(self, item: T) -> None:
-        """添加一个对象到其对应类型的桶中"""
+        """Add an object to its corresponding type bucket"""
         cls = get_nearest_type(item)
         if self.container_type == set:
             self._items[cls].add(item)
         else:
             self._items[cls].append(item)
-    
+
     def add_many(self, items: Any) -> None:
-        """添加多个对象"""
+        """Add multiple objects"""
         for item in items:
             self.add(item)
-    
+
     def remove(self, item: T) -> bool:
         """
-        从桶中移除对象
-        
+        Remove an object from the bucket
+
         Returns:
-            如果成功移除返回 True，否则返回 False
+            True if successfully removed, False otherwise
         """
         cls = get_nearest_type(item)
         bucket = self._items.get(cls)
         if not bucket:
             return False
-        
+
         if self.container_type == set:
             if item in bucket:
                 bucket.discard(item)
@@ -77,7 +79,7 @@ class TypeBucket(Generic[T]):
                 return True
             return False
         else:
-            # 列表模式：使用身份比较（is）而非相等比较（==）
+            # List mode: use identity comparison (is) not equality comparison (==)
             for i, obj in enumerate(bucket):
                 if obj is item:
                     bucket.pop(i)
@@ -85,57 +87,57 @@ class TypeBucket(Generic[T]):
                         self._items.pop(cls, None)
                     return True
             return False
-    
+
     def bucket(self, cls: type[T]) -> list[T]:
         """
-        获取指定类型及其所有子类的对象
-        
+        Get objects of the specified type and all its subclasses
+
         Args:
-            cls: 目标类型
-            
+            cls: Target type
+
         Returns:
-            包含所有匹配对象的列表
+            List containing all matching objects
         """
         result: list[T] = []
         for k, items in self._items.items():
             if isinstance(k, type) and issubclass(k, cls):
                 result.extend(items)
         return result
-    
+
     def exact_bucket(self, cls: type[T]) -> list[T]:
         """
-        获取精确类型的对象（不包括子类）
-        
+        Get objects of exact type (excluding subclasses)
+
         Args:
-            cls: 目标类型
-            
+            cls: Target type
+
         Returns:
-            包含精确匹配对象的列表
+            List containing exact matching objects
         """
         bucket = self._items.get(cls)
         return list(bucket) if bucket else []
-    
+
     def classes(self) -> Iterator[type[T]]:
-        """返回当前存储的所有具体类型"""
+        """Return all concrete types currently stored"""
         return iter(self._items.keys())
-    
+
     def all(self) -> list[T]:
-        """返回所有桶中的所有对象"""
+        """Return all objects from all buckets"""
         result: list[T] = []
         for bucket in self._items.values():
             result.extend(bucket)
         return result
-    
+
     def __len__(self) -> int:
-        """返回所有桶中对象的总数"""
+        """Return total count of objects in all buckets"""
         return sum(len(b) for b in self._items.values())
-    
+
     def __getitem__(self, cls: type[T]) -> list[T]:
-        """获取精确类型的桶（不包括子类）"""
+        """Get exact type bucket (excluding subclasses)"""
         return self.exact_bucket(cls)
-    
+
     def __setitem__(self, cls: type[T], items: Any) -> None:
-        """设置指定类型的桶"""
+        """Set bucket for specified type"""
         if self.container_type == set:
             self._items[cls] = set(items)
         else:
@@ -176,7 +178,7 @@ def read_csv(file: Path | StringIO, delimiter: str = ",") -> Block:
         if not file.exists():
             raise FileNotFoundError(f"File {file} does not exist.")
 
-        with open(file, "r", newline="") as csvfile:
+        with open(file, newline="") as csvfile:
             reader = csv.DictReader(csvfile, delimiter=delimiter)
             data = [row for row in reader]
 
@@ -190,7 +192,7 @@ def read_csv(file: Path | StringIO, delimiter: str = ",") -> Block:
         fieldnames = reader.fieldnames or []
         dict_of_lists = {field: [] for field in fieldnames}
     elif not dict_of_lists and not isinstance(file, StringIO):
-        with open(file, "r", newline="") as csvfile:
+        with open(file, newline="") as csvfile:
             reader = csv.DictReader(csvfile, delimiter=delimiter)
             fieldnames = reader.fieldnames or []
             dict_of_lists = {field: [] for field in fieldnames}

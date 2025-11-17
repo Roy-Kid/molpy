@@ -5,15 +5,17 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from molpy.core.frame import Block, Frame
+from molpy import Block, Frame
 
 
 @pytest.fixture
 def simple_frame() -> Frame:
     f = Frame()
-    f["atoms", "xyz"] = np.arange(9).reshape(3, 3)
-    f["atoms", "charge"] = np.array([-1.0, 0.5, 0.5])
-    f["bonds", "i"] = np.arange(3)
+    f["atoms"] = Block()
+    f["atoms"]["xyz"] = np.arange(9).reshape(3, 3)
+    f["atoms"]["charge"] = np.array([-1.0, 0.5, 0.5])
+    f["bonds"] = Block()
+    f["bonds"]["i"] = np.arange(3)
     return f
 
 
@@ -624,14 +626,14 @@ Charlie,35,1.75"""
 
 class TestFrame:
     def test_set_and_get_variable(self, simple_frame):
-        assert np.isclose(simple_frame["atoms", "charge"][0], -1.0)
-        assert np.array_equal(simple_frame["bonds", "i"], np.arange(3))
+        assert np.isclose(simple_frame["atoms"]["charge"][0], -1.0)
+        assert np.array_equal(simple_frame["bonds"]["i"], np.arange(3))
 
     def test_setitem_creates_block(self):
         f = Frame()
         f["foo"] = {"bar": np.ones(4)}
         assert "foo" in list(f.blocks())
-        assert np.array_equal(f["foo", "bar"], np.ones(4))
+        assert np.array_equal(f["foo"]["bar"], np.ones(4))
 
     def test_get_block(self, simple_frame):
         blk = simple_frame["atoms"]
@@ -660,12 +662,14 @@ class TestFrame:
         restored = Frame.from_dict(dct)
         for g in restored.blocks():
             for v in restored.variables(g):
-                assert np.array_equal(restored[g, v], simple_frame[g, v])
+                assert np.array_equal(restored[g][v], simple_frame[g][v])
 
-    def test_forbid_assigning_non_block(self):
+    def test_assign_dict_converts_to_block(self):
+        """Test that assigning dict-like data auto-converts to Block."""
         f = Frame()
-        with pytest.raises(ValueError):
-            f["invalid"] = np.array([1, 2, 3])  # type: ignore[assignment]
+        f["test"] = {"x": [1, 2, 3], "y": [4, 5, 6]}
+        assert isinstance(f["test"], Block)
+        assert np.array_equal(f["test"]["x"], np.array([1, 2, 3]))
 
     # Tests for blocks validation and conversion
     def test_frame_init_with_valid_blocks(self):

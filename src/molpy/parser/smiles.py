@@ -17,7 +17,7 @@ class MolPyAPIError(Exception):
 
 
 # ===================================================================
-#   1. 中间表示 (IR) 数据类 (只包含SMILES部分)
+#   1. Intermediate Representation (IR) data classes (SMILES part only)
 # ===================================================================
 @dataclass(eq=True)
 class AtomIR:
@@ -49,10 +49,10 @@ class AtomIR:
 class BondIR:
     start: AtomIR
     end: AtomIR
-    bond_type: str
+    kind: str
 
     def __repr__(self):
-        return f"BondIR({self.start.symbol!r}, {self.end.symbol!r}, {self.bond_type!r})"
+        return f"BondIR({self.start.symbol!r}, {self.end.symbol!r}, {self.kind!r})"
 
 
 @dataclass(eq=True)
@@ -65,7 +65,7 @@ class SmilesIR:
 
 
 # ===================================================================
-#   2. SmilesTransformer (基类)
+#   2. SmilesTransformer (base class)
 # ===================================================================
 class SmilesTransformer(Transformer):
     def __init__(self):
@@ -73,7 +73,7 @@ class SmilesTransformer(Transformer):
         # Ring openings shared across the entire molecule (allows cross-branch closure)
         self.ring_openings: dict[str, tuple[AtomIR, str | None]] = {}
 
-    # ================== 终端转换 ==================
+    # ================== Terminal transformation ==================
     def INT(self, n: Token) -> int:
         return int(n)
 
@@ -98,7 +98,7 @@ class SmilesTransformer(Transformer):
     def ring_id(self, d: list[Token]) -> str:
         return "".join(t.value for t in d)
 
-    # ================== 原子及其属性构建 ==================
+    # ================== Atom and its attributes construction ==================
     def atom(self, children: list[AtomIR]) -> AtomIR:
         return children[0]
 
@@ -156,12 +156,12 @@ class SmilesTransformer(Transformer):
                 kwargs[k] = str(v)
         return AtomIR(symbol=str(symbol), **kwargs)  # type: ignore[arg-type]
 
-    # ================== 核心SMILES组装 ==================
+    # ================== Core SMILES assembly ==================
     def smiles(self, children: list) -> SmilesIR:
         """Assemble linear smiles: children = [first_branched_atom, (bond, branched_atom)*]"""
         ir = SmilesIR()
         active_atom: AtomIR | None = None
-        pending_bond_type = "-"
+        pending_bond_kind = "-"
         debug = os.getenv("SMILES_DEBUG")
         if debug:
             print(f"[SMILES] processing {len(children)} children")
@@ -195,7 +195,7 @@ class SmilesTransformer(Transformer):
 
         for item in seq:
             if isinstance(item, str):
-                pending_bond_type = item
+                pending_bond_kind = item
                 continue
             atom, rings, branches = item
 
@@ -203,39 +203,39 @@ class SmilesTransformer(Transformer):
             # These should not be added to the atoms list or create bonds
             if isinstance(atom, BondDescriptorIR):
                 # Skip bond descriptors in SMILES chains (they're markers, not atoms)
-                # Reset active atom and bond type
+                # Reset active atom and bond kind
                 active_atom = None
-                pending_bond_type = "-"
+                pending_bond_kind = "-"
                 continue
 
             ir.atoms.append(atom)
             if active_atom is not None:
-                ir.bonds.append(BondIR(active_atom, atom, pending_bond_type))
+                ir.bonds.append(BondIR(active_atom, atom, pending_bond_kind))
             active_atom = atom
-            pending_bond_type = "-"
-            for ring_id, bond_type in rings:
+            pending_bond_kind = "-"
+            for ring_id, bond_kind in rings:
                 if active_atom is None:
                     continue
                 # Check if ring was opened before, if so close it
                 if ring_id in self.ring_openings:
                     start_atom, start_bond = self.ring_openings.pop(ring_id)
-                    final_bond = bond_type or start_bond or "-"
+                    final_bond = bond_kind or start_bond or "-"
                     ir.bonds.append(BondIR(start_atom, active_atom, final_bond))
                     if debug:
                         print(
                             f"[SMILES] close ring {ring_id}: {start_atom.symbol}->{active_atom.symbol} bond={final_bond}"
                         )
                 else:
-                    self.ring_openings[ring_id] = (active_atom, bond_type)
+                    self.ring_openings[ring_id] = (active_atom, bond_kind)
                     if debug:
                         print(
-                            f"[SMILES] open ring {ring_id} at atom {active_atom.symbol} bond={bond_type}"
+                            f"[SMILES] open ring {ring_id} at atom {active_atom.symbol} bond={bond_kind}"
                         )
-            for branch_ir, branch_bond_type in branches:
+            for branch_ir, branch_bond_kind in branches:
                 if active_atom is None:
                     continue
                 head_atom = branch_ir.atoms[0]
-                ir.bonds.append(BondIR(active_atom, head_atom, branch_bond_type or "-"))
+                ir.bonds.append(BondIR(active_atom, head_atom, branch_bond_kind or "-"))
                 ir.atoms.extend(branch_ir.atoms)
                 ir.bonds.extend(branch_ir.bonds)
 
@@ -243,7 +243,7 @@ class SmilesTransformer(Transformer):
         # e.g., C1CCC2C(C1)CCC2 has ring 1 opened in main chain and closed in a branch
         # Ring validation should be done at the parser level, not transformer level
         if debug:
-            print(f"[SMILES] exit")
+            print("[SMILES] exit")
         return ir
 
     def branched_atom(self, children: list) -> tuple:
@@ -263,11 +263,11 @@ class SmilesTransformer(Transformer):
 
     def ring_bond(self, children: list) -> tuple:
         # children could include optional bond sym and digits, possibly with '%'
-        bond_type = None
+        bond_kind = None
         ring_digits: list[str] = []
         for c in children:
             if isinstance(c, str) and c in {"-", "=", "#", "$", ":", "/", "\\"}:
-                bond_type = c
+                bond_kind = c
             elif isinstance(c, Token) and c.type == "DIGIT":
                 ring_digits.append(c.value)
         ring_id = (
@@ -279,7 +279,7 @@ class SmilesTransformer(Transformer):
                 else str(children[-1])
             )
         )
-        return "ring", ring_id, bond_type
+        return "ring", ring_id, bond_kind
 
     def branch(self, children: list) -> tuple:
         # children may include LPAR/RPAR tokens; filter them out
@@ -288,9 +288,9 @@ class SmilesTransformer(Transformer):
             for c in children
             if not (isinstance(c, Token) and c.type in {"LPAR", "RPAR"})
         ]
-        bond_type = filtered[0] if filtered and isinstance(filtered[0], str) else None
+        bond_kind = filtered[0] if filtered and isinstance(filtered[0], str) else None
         smiles_ir = filtered[-1]
-        return "branch", smiles_ir, bond_type
+        return "branch", smiles_ir, bond_kind
 
     def atom_assembly(self, children: list):
         # children: [branched_atom] or [bond, branched_atom]
@@ -300,7 +300,7 @@ class SmilesTransformer(Transformer):
 
 
 # ===================================================================
-#   3. BigSMILES IR (扩展)
+#   3. BigSMILES IR (extension)
 # ===================================================================
 @dataclass
 class BondDescriptorIR:
@@ -387,7 +387,7 @@ class BigSmilesIR(SmilesIR):
 
 
 # ===================================================================
-#   4. BigSmilesTransformer (子类)
+#   4. BigSmilesTransformer (subclass)
 # ===================================================================
 class BigSmilesTransformer(SmilesTransformer):
     def NUMBER(self, n: Token) -> float:
@@ -531,7 +531,7 @@ class BigSmilesTransformer(SmilesTransformer):
         if right_idx >= 1 and isinstance(filtered[right_idx], BondDescriptorIR):
             right_desc = filtered[right_idx]
         else:
-            raise ValueError(f"Missing right bond descriptor in stochastic object")
+            raise ValueError("Missing right bond descriptor in stochastic object")
 
         # Everything between left and right descriptors are repeat units (and possibly end groups)
         middle_items = filtered[1:right_idx]
@@ -637,7 +637,6 @@ class BigSmilesTransformer(SmilesTransformer):
 
 
 class SmilesParser(GrammarParserBase):
-
     def __init__(self):
         config = GrammarConfig(
             grammar_path=Path(__file__).parent / "grammar" / "smiles.lark",
@@ -866,21 +865,21 @@ def smilesir_to_mol(ir: SmilesIR) -> "Chem.Mol":
         if start_idx is None or end_idx is None:
             raise ValueError(f"Bond references unknown atom: {bond_ir}")
 
-        # Determine bond type (upgrade single bonds between aromatic atoms to aromatic)
-        bond_type_str = bond_ir.bond_type
+        # Determine bond kind (upgrade single bonds between aromatic atoms to aromatic)
+        bond_kind_str = bond_ir.kind
         if (
-            bond_type_str == "-"
+            bond_kind_str == "-"
             and bond_ir.start.symbol.islower()
             and bond_ir.end.symbol.islower()
         ):
             # Single bond between aromatic atoms → aromatic bond
-            bond_type = Chem.BondType.AROMATIC
+            rdkit_bond_type = Chem.BondType.AROMATIC
         else:
-            bond_type = bond_type_map.get(bond_type_str)
-            if bond_type is None:
-                raise ValueError(f"Unknown bond type: {bond_type_str}")
+            rdkit_bond_type = bond_type_map.get(bond_kind_str)
+            if rdkit_bond_type is None:
+                raise ValueError(f"Unknown bond kind: {bond_kind_str}")
 
-        mol.AddBond(start_idx, end_idx, bond_type)
+        mol.AddBond(start_idx, end_idx, rdkit_bond_type)
 
     # Convert to immutable Mol
     final_mol = mol.GetMol()
@@ -893,21 +892,15 @@ def smilesir_to_mol(ir: SmilesIR) -> "Chem.Mol":
         import warnings
 
         warnings.warn(
-            f"Molecule sanitization failed: {e}. Returning unsanitized molecule."
+            f"Molecule sanitization failed: {e}. Returning unsanitized molecule.",
+            stacklevel=2,
         )
 
     return final_mol
 
 
-# Register converter if RDKit and adapter are available
-try:
-    from rdkit import Chem
-
-    from molpy.adapter.registry import REG
-
-    REG.register(SmilesIR, Chem.Mol, smilesir_to_mol)
-except ImportError:
-    pass  # RDKit or adapter not available, skip registration
+# Note: Converter registration is handled by molpy.adapter module
+# Parser module should NOT import adapter to avoid circular dependencies
 
 
 @dataclass
@@ -973,6 +966,7 @@ class PolymerSpec:
                 monomer for segment in self.segments for monomer in segment.monomers
             ]
 
+
 def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
     """
     Convert BigSmilesIR to Monomer (topology only).
@@ -995,13 +989,13 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
 
     Examples:
         >>> parser = SmilesParser()
-        
+
         >>> # BigSMILES format
         >>> ir = parser.parse_bigsmiles("{[<]CC[>]}")
         >>> monomer = bigsmilesir_to_monomer(ir)
         >>> monomer.port_names()
         ['in', 'out']
-        
+
         >>> # Plain SMILES with atom class ports
         >>> ir = parser.parse_bigsmiles("CCCCO[*:1]")
         >>> monomer = bigsmilesir_to_monomer(ir)
@@ -1015,11 +1009,11 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
         1. Get ChemMol: mol = smilesir_to_mol(ir.degenerate())
         2. Generate coords: mol_3d = add_3d_coords(mol)
         3. Extract coords: coords = extract_coords_from_mol(mol_3d)
-        4. Bind to atoms: monomer.unwrap().atoms[i]['pos'] = coords[i]
+        4. Bind to atoms: monomer.unwrap().atoms[i]['xyz'] = coords[i]
     """
     # Try BigSMILES format first (with stochastic objects)
     monomers = extract_monomers_from_ir(ir)
-    
+
     if len(monomers) == 1:
         return monomers[0]
     elif len(monomers) > 1:
@@ -1027,12 +1021,12 @@ def bigsmilesir_to_monomer(ir: BigSmilesIR) -> Monomer[Atomistic]:
             f"BigSmilesIR contains {len(monomers)} repeat units. "
             "Use bigsmilesir_to_polymerspec() for multiple repeat units."
         )
-    
+
     # If no stochastic objects, try plain SMILES with atom class ports
     monomer = create_monomer_from_atom_class_ports(ir)
     if monomer is not None:
         return monomer
-    
+
     raise ValueError(
         "BigSmilesIR contains no repeat units or atom class ports. "
         "Use {[<]...[>]} format or add [*:n] port markers."
@@ -1088,7 +1082,7 @@ def extract_monomers_from_ir(ir: BigSmilesIR) -> list[Monomer[Atomistic]]:
     Extract monomers from BigSmilesIR (topology only).
 
     Supports two formats:
-    1. BigSMILES with stochastic objects: {[<]CC[>]} 
+    1. BigSMILES with stochastic objects: {[<]CC[>]}
        - Extracts from repeat_segments
     2. Plain SMILES with atom class ports: CCCCO[*:1]
        - Uses atom class notation as port markers
@@ -1266,10 +1260,24 @@ def create_monomer_from_unit(
 
     # Add atoms without positions
     for atom_ir in unit.atoms:
-        atomistic.add_atom(
+        from molpy.core.element import Element
+        
+        # Get atomic number and element from symbol
+        atomic_num = None
+        element_symbol = None
+        if atom_ir.symbol:
+            try:
+                element_symbol = atom_ir.symbol.upper()
+                atomic_num = Element(element_symbol).number
+            except (ValueError, AttributeError):
+                element_symbol = atom_ir.symbol
+        
+        atomistic.def_atom(
             symbol=atom_ir.symbol,
+            element=element_symbol,
+            atomic_num=atomic_num,
             charge=atom_ir.charge,
-            # NO pos parameter!
+            # NO xyz parameter!
         )
 
     # Add bonds
@@ -1277,7 +1285,7 @@ def create_monomer_from_unit(
     for bond_ir in unit.bonds:
         i = unit.atoms.index(bond_ir.start)
         j = unit.atoms.index(bond_ir.end)
-        atomistic.add_bond(atoms[i], atoms[j], bond_type=bond_ir.bond_type)
+        atomistic.def_bond(atoms[i], atoms[j], kind=bond_ir.kind)
 
     # 2. Create Monomer and set ports
     monomer = Monomer(atomistic)
@@ -1380,7 +1388,7 @@ def create_monomer_from_atom_class_ports(ir: BigSmilesIR) -> Monomer[Atomistic] 
         >>> monomer.port_names()
         ['port_1']
         >>> # Port points to O atom (connected to [*:1])
-        
+
         >>> ir = parser.parse_bigsmiles("CC(C[*:2])O[*:3]")
         >>> monomer = create_monomer_from_atom_class_ports(ir)
         >>> set(monomer.port_names())
@@ -1389,72 +1397,92 @@ def create_monomer_from_atom_class_ports(ir: BigSmilesIR) -> Monomer[Atomistic] 
     # Find atoms with class_ attribute (atom class ports)
     port_markers: dict[int, AtomIR] = {}  # class_ -> AtomIR (the [*:n] atom)
     port_connections: dict[int, AtomIR] = {}  # class_ -> connected real atom
-    
+
     for atom_ir in ir.atoms:
         if isinstance(atom_ir, AtomIR) and atom_ir.class_ is not None:
             port_markers[atom_ir.class_] = atom_ir
-    
+
     if not port_markers:
         return None  # No ports found
-    
+
     # Find which atoms are connected to each port marker
     for class_num, marker_atom in port_markers.items():
         for bond_ir in ir.bonds:
-            if not (isinstance(bond_ir.start, AtomIR) and isinstance(bond_ir.end, AtomIR)):
+            if not (
+                isinstance(bond_ir.start, AtomIR) and isinstance(bond_ir.end, AtomIR)
+            ):
                 continue
-            
+
             if bond_ir.start == marker_atom:
                 port_connections[class_num] = bond_ir.end
                 break
             elif bond_ir.end == marker_atom:
                 port_connections[class_num] = bond_ir.start
                 break
-    
+
     # Filter out port marker atoms - only keep real atoms
-    real_atoms = [a for a in ir.atoms if isinstance(a, AtomIR) and a not in port_markers.values()]
-    
+    real_atoms = [
+        a for a in ir.atoms if isinstance(a, AtomIR) and a not in port_markers.values()
+    ]
+
     # Build mapping from original AtomIR to actual Atom object
     # CRITICAL: atomistic.atoms returns items from a set (unordered!)
     # So we must store Atom objects as they're created
     atomir_to_atom: dict[int, Atom] = {}  # id(AtomIR) -> Atom object
-    
+
     # Map port connections to AtomIR
     port_atomirs: dict[int, AtomIR] = {}  # class_ -> connected AtomIR
     for class_num, connected_atom in port_connections.items():
         port_atomirs[class_num] = connected_atom
-    
+
     # Filter bonds - remove bonds connected to port markers
     real_bonds = [
-        b for b in ir.bonds
-        if isinstance(b.start, AtomIR) and isinstance(b.end, AtomIR)
+        b
+        for b in ir.bonds
+        if isinstance(b.start, AtomIR)
+        and isinstance(b.end, AtomIR)
         and b.start not in port_markers.values()
         and b.end not in port_markers.values()
     ]
-    
+
     # Create Atomistic (topology only, no positions)
     atomistic = Atomistic()
-    
+
     # Add real atoms and store references immediately
     for atom_ir in real_atoms:
-        atom = atomistic.add_atom(
+        from molpy.core.element import Element
+        
+        # Get atomic number and element from symbol
+        atomic_num = None
+        element_symbol = None
+        if atom_ir.symbol:
+            try:
+                element_symbol = atom_ir.symbol.upper()
+                atomic_num = Element(element_symbol).number
+            except (ValueError, AttributeError):
+                element_symbol = atom_ir.symbol
+        
+        atom = atomistic.def_atom(
             symbol=atom_ir.symbol,
+            element=element_symbol,
+            atomic_num=atomic_num,
             charge=atom_ir.charge,
-            # NO pos parameter!
+            # NO xyz parameter!
         )
         atomir_to_atom[id(atom_ir)] = atom
-    
+
     # Add bonds using stored atom references
     for bond_ir in real_bonds:
         atom_i = atomir_to_atom[id(bond_ir.start)]
         atom_j = atomir_to_atom[id(bond_ir.end)]
-        atomistic.add_bond(atom_i, atom_j, bond_type=bond_ir.bond_type)
-    
+        atomistic.def_bond(atom_i, atom_j, kind=bond_ir.kind)
+
     # Create Monomer and set ports using stored atom references
     monomer = Monomer(atomistic)
-    
+
     for class_num, connected_atomir in port_atomirs.items():
         port_name = f"port_{class_num}"
         port_atom = atomir_to_atom[id(connected_atomir)]
         monomer.set_port(port_name, port_atom)
-    
+
     return monomer

@@ -1,6 +1,4 @@
 from math import cos, sin
-from typing import Iterable
-
 
 
 def _vec_add(a: list[float], b: list[float]) -> list[float]:
@@ -20,7 +18,11 @@ def _dot(a: list[float], b: list[float]) -> float:
 
 
 def _cross(a: list[float], b: list[float]) -> list[float]:
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+    return [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
 
 
 def _norm(v: list[float]) -> float:
@@ -34,7 +36,9 @@ def _unit(v: list[float]) -> list[float]:
     return [v[0] / n, v[1] / n, v[2] / n]
 
 
-def _rodrigues_rotate(p: list[float], k: list[float], angle: float, about: list[float]) -> list[float]:
+def _rodrigues_rotate(
+    p: list[float], k: list[float], angle: float, about: list[float]
+) -> list[float]:
     # p' = about + R (p - about)
     v = _vec_sub(p, about)
     kx, ky, kz = k
@@ -57,4 +61,3 @@ def _rodrigues_rotate(p: list[float], k: list[float], angle: float, about: list[
     y = r10 * v[0] + r11 * v[1] + r12 * v[2]
     z = r20 * v[0] + r21 * v[1] + r22 * v[2]
     return _vec_add([x, y, z], about)
-

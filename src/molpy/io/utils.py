@@ -6,7 +6,6 @@ FrameLike = mp.Frame | mp.System | mp.Struct
 
 
 def to_system(func):
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         if len(args) > 0:
@@ -20,16 +19,15 @@ def to_system(func):
         elif isinstance(system, (mp.Struct, mp.Segment)):
             system = mp.System(frame=system.to_frame())
 
-        assert isinstance(
-            system, mp.System
-        ), f"Expected system to be a molpy System object, got {type(system)}"
+        assert isinstance(system, mp.System), (
+            f"Expected system to be a molpy System object, got {type(system)}"
+        )
         return func(system, *args, **kwargs)
 
     return wrapper
 
 
 def to_frame(framelike: FrameLike) -> mp.Frame:
-
     if isinstance(framelike, mp.System):
         frame = framelike.frame
     elif isinstance(framelike, mp.Frame):
@@ -41,13 +39,10 @@ def to_frame(framelike: FrameLike) -> mp.Frame:
 
 
 class ZipReader:
-
     def __init__(self, *readers):
-
         self.readers = readers
 
     def __enter__(self):
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -55,5 +50,4 @@ class ZipReader:
             reader.__exit__(exc_type, exc_val, exc_tb)
 
     def __iter__(self):
-        for frames in zip(*self.readers):
-            yield frames
+        yield from zip(*self.readers)

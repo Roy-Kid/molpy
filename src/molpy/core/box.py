@@ -12,7 +12,6 @@ from .region import PeriodicBoundary
 
 
 class Box(PeriodicBoundary):
-
     class Style(Enum):
         FREE = 0
         ORTHOGONAL = 1

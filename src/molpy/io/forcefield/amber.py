@@ -1,6 +1,6 @@
 import math
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Callable, Iterator
 
 import numpy as np
 
@@ -8,7 +8,6 @@ import molpy as mp
 
 
 class AmberPrmtopReader:
-
     def __init__(
         self,
         file: str | Path,
@@ -17,18 +16,14 @@ class AmberPrmtopReader:
 
     @staticmethod
     def sanitizer(line: str) -> str:
-
         return line.strip()
 
     @staticmethod
     def read_section(lines: Iterator[str], convert_fn: Callable = int) -> list[str]:
-
         return list(map(convert_fn, " ".join(lines).split()))
 
     def read(self, frame: mp.Frame):
-
-        with open(self.file, "r") as f:
-
+        with open(self.file) as f:
             lines = filter(
                 lambda line: line, map(AmberPrmtopReader.sanitizer, f.readlines())
             )
@@ -39,8 +34,7 @@ class AmberPrmtopReader:
         flag = None
 
         for line in lines:
-
-            if line.startswith(f"%FLAG"):
+            if line.startswith("%FLAG"):
                 if flag:
                     if flag in self.raw_data:
                         self.raw_data[flag].extend(data)
@@ -50,7 +44,7 @@ class AmberPrmtopReader:
                 flag = line.split()[1]
                 data = []
 
-            elif line.startswith(f"%FORMAT"):
+            elif line.startswith("%FORMAT"):
                 pass
 
             else:
@@ -83,11 +77,9 @@ class AmberPrmtopReader:
             "k": [],
             "l": [],
         }
-        pairs = {}
 
         for key, value in self.raw_data.items():
             match key:
-
                 case "TITLE":
                     self.meta["title"] = value[0]
 
@@ -123,7 +115,6 @@ class AmberPrmtopReader:
                     | "LENNARD_JONES_ACOEF"
                     | "LENNARD_JONES_BCOEF"
                 ):
-
                     self.raw_data[key] = self.read_section(value, float)
 
                 case (
@@ -320,7 +311,6 @@ class AmberPrmtopReader:
         return meta
 
     def _read_atom_name(self, lines: list[str]):
-
         names = []
 
         for line in lines:
@@ -383,8 +373,7 @@ class AmberPrmtopReader:
         for ii in range(0, len(bondPointers), 3):
             if int(bondPointers[ii]) < 0 or int(bondPointers[ii + 1]) < 0:
                 raise Exception(
-                    "Found negative bonded atom pointers %s"
-                    % ((bondPointers[ii], bondPointers[ii + 1]),)
+                    f"Found negative bonded atom pointers {(bondPointers[ii], bondPointers[ii + 1])}"
                 )
             iType = int(bondPointers[ii + 2])
             i, j = sorted(
@@ -433,8 +422,7 @@ class AmberPrmtopReader:
                 or int(anglePointers[ii + 2]) < 0
             ):
                 raise Exception(
-                    "Found negative angle atom pointers %s"
-                    % (
+                    "Found negative angle atom pointers {}".format(
                         (
                             anglePointers[ii],
                             anglePointers[ii + 1],
@@ -473,8 +461,7 @@ class AmberPrmtopReader:
         for ii in range(0, len(dihedralPointers), 5):
             if int(dihedralPointers[ii]) < 0 or int(dihedralPointers[ii + 1]) < 0:
                 raise Exception(
-                    "Found negative dihedral atom pointers %s"
-                    % (
+                    "Found negative dihedral atom pointers {}".format(
                         (
                             dihedralPointers[ii],
                             dihedralPointers[ii + 1],
@@ -553,7 +540,7 @@ class AmberPrmtopReader:
         # energyConversionFactor = units.kilocalorie_per_mole.conversion_factor_to(units.kilojoule_per_mole)
         numTypes = self.meta["NTYPES"]
         atomTypeIndexes = self.raw_data["ATOM_TYPE_INDEX"]
-        type_parameters = [(0, 0) for i in range(numTypes)]
+        [(0, 0) for i in range(numTypes)]
         for iAtom in range(self.meta["NATOM"]):
             index = (numTypes + 1) * (atomTypeIndexes[iAtom] - 1)
             nbIndex = int(self.raw_data["NONBONDED_PARM_INDEX"][index]) - 1

@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 
 
 class Packer:
-
     def __init__(self):
         self.targets = []
 

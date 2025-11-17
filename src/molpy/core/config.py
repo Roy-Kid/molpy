@@ -1,12 +1,12 @@
 import contextlib
 import threading
-from typing import Generator, Self
+from collections.abc import Generator
+from typing import Self
 
 from pydantic import BaseModel, Field
 
 
 class Config(BaseModel):
-
     log_level: str = Field(default="INFO")
 
     n_threads: int = Field(

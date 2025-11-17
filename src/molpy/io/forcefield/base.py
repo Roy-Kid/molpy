@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
 
 from molpy.core.system import FrameSystem
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 class ForceFieldReader(ABC):
     """Base class for force field file readers."""
 
-    def __init__(self, path: PathLike, system: Optional[FrameSystem] = None):
+    def __init__(self, path: PathLike, system: FrameSystem | None = None) -> None:
         """
         Initialize force field reader.
 
@@ -22,7 +21,7 @@ class ForceFieldReader(ABC):
         self._system = system if system is not None else FrameSystem()
 
     @abstractmethod
-    def read(self, system: Optional[FrameSystem] = None) -> FrameSystem:
+    def read(self, system: FrameSystem | None = None) -> FrameSystem:
         """
         Read force field data into a FrameSystem.
 

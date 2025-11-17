@@ -163,7 +163,7 @@ class PDBReader(DataReader):
             ij = np.array(sorted(unique_bonds), dtype=int) - 1  # zero-based
             frame["bonds"] = Block({"i": ij[:, 0], "j": ij[:, 1]})
 
-        frame.box = Box(matrix=box_matrix) if box_matrix is not None else Box()
+        frame.metadata["box"] = Box(matrix=box_matrix) if box_matrix is not None else Box()
         return frame
 
 
@@ -214,14 +214,20 @@ class PDBWriter(DataWriter):
         res_seq = atom_data.get("resSeq", 1)
         i_code = atom_data.get("iCode", " ")
 
-        # Coordinates
-        x, y, z = atom_data["xyz"]
+        # Coordinates - try xyz first, then xyz, then x/y/z
+        if "xyz" in atom_data:
+            xyz = atom_data["xyz"]
+            x, y, z = float(xyz[0]), float(xyz[1]), float(xyz[2])
+        else:
+            x = atom_data.get("x")
+            y = atom_data.get("y")
+            z = atom_data.get("z")
 
         # Optional fields
         occupancy = atom_data.get("occupancy", 1.0)
         temp_factor = atom_data.get("tempFactor", 0.0)
-        element = atom_data.get("element", "")
-        charge = atom_data.get("charge", "")
+        element = atom_data.get("element")
+        charge = atom_data.get("charge")
 
         # Format according to PDB v3.3 specification
         # Columns 1-6: Record name, left-justified
@@ -288,10 +294,10 @@ class PDBWriter(DataWriter):
             line += "  "
 
         # Columns 79-80: Charge
-        if charge:
-            line += f"{charge[:2]:>2s}"
-        else:
-            line += "  "
+        # if charge:
+        #     line += f"{str(charge):2s}"
+        # else:
+        #     line += "  "
 
         line += "\n"  # End with newline
         return line
@@ -323,25 +329,24 @@ class PDBWriter(DataWriter):
             f.write(f"REMARK  {frame_name}\n")
 
             # Write CRYST1 record if box exists
-            if hasattr(frame, "box") and frame.box is not None:
-                f.write(self._format_cryst1_line(frame.box) + "\n")
+            if "box" in frame.metadata and frame.metadata["box"] is not None:
+                f.write(self._format_cryst1_line(frame.metadata["box"]) + "\n")
             else:
                 f.write(self._format_cryst1_line(None) + "\n")
 
-            # Write atoms
-            if "atoms" in frame:
-                atoms = frame["atoms"]
-                n_atoms = atoms.nrows
 
-                for i in range(n_atoms):
-                    atom_data = atoms[i]
-                    if "id" in atom_data:
-                        display_serial = int(atom_data["id"])
-                    else:
-                        display_serial = i + 1
-                    line = self._format_atom_line(display_serial, atom_data)
-                    f.write(line)
-                f.write("\n")
+            atoms = frame["atoms"]
+            n_atoms = atoms.nrows
+
+            for i in range(n_atoms):
+                atom_data = atoms[i]
+                if "id" in atom_data:
+                    display_serial = int(atom_data["id"])
+                else:
+                    display_serial = i + 1
+                line = self._format_atom_line(display_serial, atom_data)
+                f.write(line)
+            f.write("\n")
 
             # Write bonds as CONECT records
             if "bonds" in frame:

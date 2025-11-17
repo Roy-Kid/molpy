@@ -2,9 +2,8 @@ from pathlib import Path
 
 import numpy as np
 
-from molpy.core.box import Box
+from molpy import Block, Box, Frame
 from molpy.core.element import Element
-from molpy.core.frame import Block, Frame
 
 from .base import DataReader, DataWriter
 
@@ -111,44 +110,38 @@ class GroReader(DataReader):
                     clean_name = "".join(c for c in name if c.isalpha())
                     if clean_name:
                         try:
-                            # Use a simple lookup instead of Element.from_symbol
-                            element_map = {
-                                "H": 1,
-                                "C": 6,
-                                "N": 7,
-                                "O": 8,
-                                "F": 9,
-                                "P": 15,
-                                "S": 16,
-                                "Cl": 17,
-                                "Ca": 20,
-                                "Fe": 26,
-                                "Ni": 28,
-                                "Cu": 29,
-                                "Zn": 30,
-                                "Br": 35,
-                                "I": 53,
-                            }
-                            if clean_name[:2] in element_map:
-                                atom["number"] = element_map[clean_name[:2]]
-                            elif clean_name[:1] in element_map:
-                                atom["number"] = element_map[clean_name[:1]]
-                            else:
-                                atom["number"] = 1  # Default to hydrogen
-                        except:
+                            # Try two-letter element first
+                            if len(clean_name) >= 2:
+                                try:
+                                    element = Element(clean_name[:2].upper())
+                                    atom["number"] = element.number
+                                    continue
+                                except (KeyError, ValueError):
+                                    pass
+                            # Then try single letter
+                            if len(clean_name) >= 1:
+                                try:
+                                    element = Element(clean_name[:1].upper())
+                                    atom["number"] = element.number
+                                    continue
+                                except (KeyError, ValueError):
+                                    pass
+                            # Default to hydrogen if nothing works
+                            atom["number"] = 1
+                        except Exception:
                             atom["number"] = 1  # Default to hydrogen
 
     def read(self, frame: Frame | None = None) -> Frame:
         """Read GRO file and populate frame."""
 
         # Read file content
-        with open(self._file, "r") as f:
+        with open(self._file) as f:
             lines = f.readlines()
 
         lines = list(map(self.sanitizer, lines))
 
         # Parse title (first line)
-        title = lines[0] if lines else "Unknown"
+        lines[0] if lines else "Unknown"
 
         # Parse number of atoms (second line)
         try:

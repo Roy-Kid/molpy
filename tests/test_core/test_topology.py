@@ -4,7 +4,7 @@ Test suite for molpy.core.topology module.
 
 import pytest
 
-from molpy.core.topology import Topology
+from molpy import Topology
 
 
 class TestTopology:

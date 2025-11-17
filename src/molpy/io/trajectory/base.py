@@ -1,10 +1,10 @@
 import json
 import mmap
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Iterable, Iterator, NamedTuple
-
+from collections.abc import Iterable, Iterator
 from logging import getLogger as get_logger
+from pathlib import Path
+from typing import NamedTuple
 
 from molpy.core import Frame
 
@@ -186,7 +186,7 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
 
         # Try to load existing indexes first
         if self._load_indexes():
-            print(f"Loaded existing indexes")
+            print("Loaded existing indexes")
             # Still need to open memory-mapped files
             for file_index, fpath in enumerate(self.fpaths):
                 fp = open(fpath, "rb")
@@ -296,7 +296,7 @@ class BaseTrajectoryReader(ABC, Iterable["Frame"]):
             for file_index, (index_file, fpath) in enumerate(
                 zip(self._index_files, self.fpaths)
             ):
-                with open(index_file, "r") as f:
+                with open(index_file) as f:
                     index_data = json.load(f)
 
                 # Verify that the trajectory file matches

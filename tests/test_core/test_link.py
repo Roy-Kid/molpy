@@ -1,5 +1,6 @@
 from molpy.core.entity import Entity, Link
 
+
 class TestLink:
     def test_endpoints_and_replace(self) -> None:
         a = Entity({"id": 1})

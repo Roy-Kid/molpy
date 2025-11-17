@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from molpy.core.forcefield import (
+from molpy import (
     AtomisticForcefield,
     AtomType,
     DihedralType,
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 def _normalize_to_wildcard(value: str | None) -> str:
     """
     Normalize None or empty string to wildcard "*".
-    
+
     Args:
         value: Input value (can be None, "", or any string)
-        
+
     Returns:
         "*" if value is None or "", otherwise the original value
     """
@@ -31,21 +31,21 @@ def _normalize_to_wildcard(value: str | None) -> str:
 
 def _get_canonical_class(class_: str, aliases: dict[str, str]) -> str:
     """
-    获取类别的规范形式（解析别名）
-    
-    例如：CT_2 -> CT, CT_3 -> CT
-    
+    Get canonical form of class (resolve aliases)
+
+    Example: CT_2 -> CT, CT_3 -> CT
+
     Args:
-        class_: 原始类别名
-        aliases: 别名映射字典
-        
+        class_: Original class name
+        aliases: Alias mapping dictionary
+
     Returns:
-        规范类别名
+        Canonical class name
     """
-    # 如果是通配符或者不在别名表中，直接返回
+    # If wildcard or not in alias table, return directly
     if class_ == "*" or class_ not in aliases:
         return class_
-    # 递归解析（防止多层别名）
+    # Recursive resolution (prevent multi-level aliases)
     canonical = aliases[class_]
     if canonical in aliases:
         return _get_canonical_class(canonical, aliases)
@@ -55,34 +55,49 @@ def _get_canonical_class(class_: str, aliases: dict[str, str]) -> str:
 def _resolve_forcefield_path(filepath: str | Path) -> Path:
     """
     Resolve force field file path, checking built-in data directory first.
-    
+
     Args:
         filepath: Path to force field file, or just filename for built-in files
-        
+
     Returns:
         Resolved Path object
-        
+
     Raises:
         FileNotFoundError: If file not found in any location
     """
     filepath = Path(filepath)
-    
+
     # If it's just a filename (e.g., "oplsaa.xml"), check built-in data
     if filepath.name == str(filepath):
-        # Try built-in data directory
-        import molpy
-        molpy_root = Path(molpy.__file__).parent
-        builtin_path = molpy_root / "data" / "forcefield" / filepath.name
-        
-        if builtin_path.exists():
+        # Try built-in data directory using the new data module
+        try:
+            from molpy.data import get_forcefield_path
+
+            builtin_path = get_forcefield_path(filepath.name)
             logger.info(f"Using built-in force field: {builtin_path}")
-            return builtin_path
-    
+            return Path(builtin_path)
+        except FileNotFoundError:
+            # File not found in built-in data, continue to check provided path
+            pass
+
     # Otherwise use the provided path
     if filepath.exists():
         return filepath
-    
-    raise FileNotFoundError(f"Force field file not found: {filepath}")
+
+    raise FileNotFoundError(
+        f"Force field file not found: {filepath}. "
+        f"Available built-in force fields: {_list_available_forcefields()}"
+    )
+
+
+def _list_available_forcefields() -> list[str]:
+    """List available built-in force fields."""
+    try:
+        from molpy.data import list_forcefields
+
+        return list_forcefields()
+    except Exception:
+        return []
 
 
 class XMLForceFieldReader:
@@ -112,17 +127,22 @@ class XMLForceFieldReader:
         self._file = _resolve_forcefield_path(filepath)
         self._type_to_atomtype: dict[str, AtomType] = {}  # type -> AtomType mapping
         self._class_to_atomtype: dict[str, AtomType] = {}  # class -> AtomType mapping
-        self._any_atomtype: AtomType | None = None  # 全通配符 ("*", "*")
-        # 类别别名映射：派生类 -> 规范基类
-        # 例如 CT_2 -> CT, CT_3 -> CT
+        self._any_atomtype: AtomType | None = None  # Full wildcard ("*", "*")
+        # Class alias mapping: derived class -> canonical base class
+        # Example: CT_2 -> CT, CT_3 -> CT
         self._class_aliases: dict[str, str] = {}
-        # overrides 映射：type -> overridden_type
-        # 例如 opls_961 overrides opls_962
+        # Defined class set: classes explicitly defined in AtomTypes
+        # These classes should not be automatically resolved as aliases
+        self._defined_classes: set[str] = set()
+        # overrides mapping: type -> overridden_type
+        # Example: opls_961 overrides opls_962
         self._overrides: dict[str, str] = {}
-        
+
         self._ff: AtomisticForcefield | None = None
 
-    def read(self, forcefield: AtomisticForcefield | None = None) -> AtomisticForcefield:
+    def read(
+        self, forcefield: AtomisticForcefield | None = None
+    ) -> AtomisticForcefield:
         """
         Read and parse the XML force field file.
 
@@ -170,104 +190,116 @@ class XMLForceFieldReader:
 
         logger.info(f"Parsed {len(self._type_to_atomtype)} atom types (by type)")
         return self._ff
-    
+
     def _resolve_atomtype_with_alias(self, class_str: str) -> AtomType:
         """
-        解析类别字符串，如果不存在则尝试建立别名映射。
-        
-        策略：如果 class_str 形如 "XX_N"（N为数字），且 XX 存在于 class_to_atomtype，
-        则建立 XX_N -> XX 的别名映射，并返回 XX 对应的 AtomType。
-        
+        Parse class string, if not exist try to establish alias mapping.
+
+        Strategy: If class_str is like "XX_N" (N is digit), and XX exists in class_to_atomtype,
+        establish XX_N -> XX alias mapping and return AtomType for XX.
+
         Args:
-            class_str: 类别字符串（来自 BondType/AngleType/DihedralType 的 class 属性）
-            
+            class_str: Class string (from class attribute of BondType/AngleType/DihedralType)
+
         Returns:
-            对应的 AtomType
-            
+            Corresponding AtomType
+
         Raises:
-            KeyError: 如果找不到对应的 AtomType
+            KeyError: If Corresponding AtomType not found
         """
-        # 先尝试直接查找
+        # Try direct lookup first
         if class_str in self._class_to_atomtype:
             return self._class_to_atomtype[class_str]
-        
-        # 如果找不到，检查是否是派生类（XX_N 形式）
+
+        # If not found, check if it's derived class (XX_N form)
         if "_" in class_str:
             parts = class_str.rsplit("_", 1)
             if len(parts) == 2 and parts[1].isdigit():
                 base_class = parts[0]
-                # 检查基类是否存在
+                # Check if base class exists
                 if base_class in self._class_to_atomtype:
-                    # 建立别名映射
+                    # Establish alias mapping
                     self._class_aliases[class_str] = base_class
-                    logger.debug(f"Auto-registered class alias: {class_str} -> {base_class}")
+                    logger.debug(
+                        f"Auto-registered class alias: {class_str} -> {base_class}"
+                    )
                     return self._class_to_atomtype[base_class]
-        
-        # 都找不到，抛出异常
+
+        # If neither found, raise exception
         raise KeyError(f"AtomType with class '{class_str}' not found")
 
-    def _get_or_create_atomtype(self, type_: str, class_: str, **kwargs: Any) -> AtomType:
+    def _get_or_create_atomtype(
+        self, type_: str, class_: str, **kwargs: Any
+    ) -> AtomType:
         """
         Get or create an AtomType with exact type_ and class_.
-        
-        使用别名映射：派生类（如 CT_2, CT_3）会被规范化为基类（CT）
-        
-        维护三个映射表：
-        1. type_to_atomtype: type -> AtomType (仅当 type != "*" 时)
-        2. class_to_atomtype: class -> AtomType (仅当 class != "*" 时)
-        3. any_atomtype: 全通配符 ("*", "*")
-        
+
+        Use alias mapping: derived classes (like CT_2, CT_3) normalized to base class (CT)
+
+        Maintain three mapping tables:
+        1. type_to_atomtype: type -> AtomType (only when type != "*")
+        2. class_to_atomtype: class -> AtomType (only when class != "*")
+        3. any_atomtype: Full wildcard ("*", "*")
+
         Args:
-            type_: 类型标识符（已规范化，None或""已转为"*"）
-            class_: 类别标识符（已规范化，None或""已转为"*"）
-            **kwargs: 其他参数（element, mass 等）
-            
+            type_: Type identifier (normalized, None or "" converted to "*")
+            class_: Class identifier (normalized, None or "" converted to "*")
+            **kwargs: Other parameters (element, mass, etc.)
+
         Returns:
-            AtomType 实例
+            AtomType instance
         """
-        # 规范化输入
+        # Normalize input
         type_ = _normalize_to_wildcard(type_)
         class_ = _normalize_to_wildcard(class_)
-        
-        # 规范化 class（解析别名）
-        # 如果 class 不在 _class_to_atomtype 中，尝试别名解析
+
+        # Normalize class (resolve aliases)
+        # If class not in _class_to_atomtype, try alias resolution
         canonical_class = class_
         if class_ != "*" and class_ not in self._class_to_atomtype:
-            # 尝试别名解析
+            # Try alias resolution
             if class_ in self._class_aliases:
                 canonical_class = _get_canonical_class(class_, self._class_aliases)
             elif "_" in class_:
-                # 自动检测并注册别名（XX_N -> XX）
-                parts = class_.rsplit("_", 1)
-                if len(parts) == 2 and parts[1].isdigit():
-                    base_class = parts[0]
-                    if base_class in self._class_to_atomtype:
-                        self._class_aliases[class_] = base_class
-                        canonical_class = base_class
-                        logger.debug(f"Auto-registered class alias: {class_} -> {base_class}")
+                # Auto-detect and register aliases (XX_N -> XX)
+                # However, if this class is already defined in AtomTypes, should not resolve it as alias
+                # Example: O_3 is an independent class, should not be resolved as an alias of O
+                if class_ not in self._defined_classes:
+                    parts = class_.rsplit("_", 1)
+                    if len(parts) == 2 and parts[1].isdigit():
+                        base_class = parts[0]
+                        if base_class in self._class_to_atomtype:
+                            self._class_aliases[class_] = base_class
+                            canonical_class = base_class
+                            logger.debug(
+                                f"Auto-registered class alias: {class_} -> {base_class}"
+                            )
         elif class_ in self._class_aliases:
             canonical_class = _get_canonical_class(class_, self._class_aliases)
-        
-        # 确定 name：type 优先，否则 canonical_class，否则 "*"
+
+        # Determine name: type first, else canonical_class, else "*" "*"
         if type_ != "*":
             name = type_
         elif canonical_class != "*":
             name = canonical_class
         else:
             name = "*"
-        
-        # 将原始 type_ 和 canonical class_ 添加到 kwargs
-        kwargs['type_'] = type_
-        kwargs['class_'] = canonical_class  # 使用规范化的 class
+
+        # Add original type_ and canonical class_ to kwargs
+        kwargs["type_"] = type_
+        kwargs["class_"] = canonical_class  # Use normalized class
         # also expose a full_name (type-class) to preserve both identifiers
         if type_ != "*":
-            kwargs.setdefault('full_name', f"{type_}-{canonical_class}")
+            kwargs.setdefault("full_name", f"{type_}-{canonical_class}")
         else:
-            kwargs.setdefault('full_name', canonical_class)
-        
-        # 情况1: 全通配符 ("*", "*")
+            kwargs.setdefault("full_name", canonical_class)
+
+        # Case 1: Full wildcard ("*", "*")
         if type_ == "*" and canonical_class == "*":
             if self._any_atomtype is None:
+                assert self._ff is not None, (
+                    "Force field must be initialized before creating atom types"
+                )
                 atomstyle = self._ff.def_atomstyle("full")
                 self._any_atomtype = atomstyle.def_type(name=name, **kwargs)
                 # record overrides if present for a specific type (not wildcard)
@@ -276,11 +308,14 @@ class XMLForceFieldReader:
                     self._overrides[type_] = ov
                 logger.debug("Created global wildcard atom type (*,*)")
             return self._any_atomtype
-        
-        # 情况2: 具体 type，任意 class (type, "*")
+
+        # Case 2: Specific type, any class (type, "*")
         if type_ != "*" and canonical_class == "*":
             if type_ in self._type_to_atomtype:
                 return self._type_to_atomtype[type_]
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -289,11 +324,14 @@ class XMLForceFieldReader:
             self._type_to_atomtype[type_] = atomtype
             logger.debug(f"Created atom type ({type_}, *)")
             return atomtype
-        
-        # 情况3: 任意 type，具体 class ("*", class)
+
+        # Case 3: Any type, specific class ("*", class)
         if type_ == "*" and canonical_class != "*":
             if canonical_class in self._class_to_atomtype:
                 return self._class_to_atomtype[canonical_class]
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -302,27 +340,25 @@ class XMLForceFieldReader:
             self._class_to_atomtype[canonical_class] = atomtype
             logger.debug(f"Created atom type (*, {class_})")
             return atomtype
-        
-        # 情况4: 具体 type 和 class (type, class)
-        # 优先查找 type mapping
+
+        # Case 4: Specific type and class (type, class)
+        # Prefer type mapping lookup
         if type_ in self._type_to_atomtype:
             return self._type_to_atomtype[type_]
-        # 创建新的 AtomType
+        # Create new AtomType
+        assert self._ff is not None, (
+            "Force field must be initialized before creating atom types"
+        )
         atomstyle = self._ff.def_atomstyle("full")
         atomtype = atomstyle.def_type(name=name, **kwargs)
         ov = kwargs.get("overrides")
         if ov and type_ != "*":
             self._overrides[type_] = ov
-        # 只存入 type_to_atomtype，不存入 class_to_atomtype
-        # 因为 class_to_atomtype 只用于存储 (*, class) 形式的通用 AtomType
+        # Store only in type_to_atomtype, not in class_to_atomtype
+        # Because class_to_atomtype is only for storing (*, class) form generic AtomType
         self._type_to_atomtype[type_] = atomtype
         logger.debug(f"Created atom type ({type_}, {canonical_class})")
         return atomtype
-        self._type_to_atomtype[type_] = atomtype
-        self._class_to_atomtype[class_] = atomtype
-        logger.debug(f"Created atom type ({type_}, {class_})")
-        return atomtype
-
 
     def _parse_atomtypes(self, element: ET.Element) -> None:
         """
@@ -331,7 +367,8 @@ class XMLForceFieldReader:
         Args:
             element: AtomTypes XML element
         """
-        atomstyle = self._ff.def_atomstyle("full")
+        assert self._ff is not None, "Force field must be initialized before parsing"
+        self._ff.def_atomstyle("full")
         count = 0
 
         for type_elem in element:
@@ -340,8 +377,8 @@ class XMLForceFieldReader:
 
             # Extract attributes
             # In XML: "name" is the type, "class" is the class
-            type_name = type_elem.get("name")  # 可能是 None
-            class_name = type_elem.get("class")  # 可能是 None
+            type_name = type_elem.get("name")  # May be None
+            class_name = type_elem.get("class")  # May be None
             element_sym = type_elem.get("element")
             mass_str = type_elem.get("mass")
             def_str = type_elem.get("def")
@@ -352,10 +389,14 @@ class XMLForceFieldReader:
             # Parse mass
             mass = float(mass_str) if mass_str else 0.0
 
+            # If class is defined, record in _defined_classes
+            if class_name:
+                self._defined_classes.add(class_name)
+
             # Create atom type using _get_or_create_atomtype
-            # 使用 _normalize_to_wildcard 将 None 转换为 "*"
-            atomtype = self._get_or_create_atomtype(
-                type_=type_name or "",  # 空字符串会被规范化为 "*"
+            # Use _normalize_to_wildcard to convert None to "*" "*"
+            self._get_or_create_atomtype(
+                type_=type_name or "",  # Empty string will be normalized to "*" "*"
                 class_=class_name or "",
                 element=element_sym,
                 mass=mass,
@@ -376,6 +417,7 @@ class XMLForceFieldReader:
         Args:
             element: HarmonicBondForce XML element
         """
+        assert self._ff is not None, "Force field must be initialized before parsing"
         bondstyle = self._ff.def_bondstyle("harmonic")
         count = 0
 
@@ -419,6 +461,7 @@ class XMLForceFieldReader:
         Args:
             element: HarmonicAngleForce XML element
         """
+        assert self._ff is not None, "Force field must be initialized before parsing"
         anglestyle = self._ff.def_anglestyle("harmonic")
         count = 0
 
@@ -465,6 +508,7 @@ class XMLForceFieldReader:
         Args:
             element: RBTorsionForce XML element
         """
+        assert self._ff is not None, "Force field must be initialized before parsing"
         dihedralstyle = self._ff.def_dihedralstyle("opls")
         count = 0
 
@@ -507,16 +551,18 @@ class XMLForceFieldReader:
             name3 = type3 if type3 != "*" else class3
             name4 = type4 if type4 != "*" else class4
             dihedral_name = f"{name1}-{name2}-{name3}-{name4}"
-            
+
             # If still not unique (same name already exists), append counter
             # Note: we check by trying to find existing type with same name
             base_name = dihedral_name
             counter = 1
-            existing_names = {dt.name for dt in dihedralstyle.types.bucket(DihedralType)}
+            existing_names = {
+                dt.name for dt in dihedralstyle.types.bucket(DihedralType)
+            }
             while dihedral_name in existing_names:
                 dihedral_name = f"{base_name}#{counter}"
                 counter += 1
-            
+
             dihedral_type = DihedralType(dihedral_name, at1, at2, at3, at4, **params)
             dihedralstyle.types.add(dihedral_type)
             count += 1
@@ -530,6 +576,7 @@ class XMLForceFieldReader:
         Args:
             element: NonbondedForce XML element
         """
+        assert self._ff is not None, "Force field must be initialized before parsing"
         # Get scaling factors
         coulomb14scale = element.get("coulomb14scale", "0.5")
         lj14scale = element.get("lj14scale", "0.5")
@@ -537,7 +584,7 @@ class XMLForceFieldReader:
         pairstyle = self._ff.def_pairstyle(
             "lj/cut/coul/cut",
             coulomb14scale=float(coulomb14scale),
-            lj14scale=float(lj14scale)
+            lj14scale=float(lj14scale),
         )
         count = 0
 
@@ -552,8 +599,14 @@ class XMLForceFieldReader:
                 continue
 
             # Get or create atom type
-            # 在 NonbondedForce 中，type 通常对应实际的 type，没有 class
-            atomtype = self._get_or_create_atomtype(type_=type_name, class_="*")
+            # In NonbondedForce, type usually corresponds to actual type
+            # Try to find from existing atomtype first (may already defined in AtomTypes)
+            atomtype: AtomType | None = None
+            if type_name in self._type_to_atomtype:
+                atomtype = self._type_to_atomtype[type_name]
+            else:
+                # If not found, create new (class is "*") "*"）
+                atomtype = self._get_or_create_atomtype(type_=type_name, class_="*")
 
             # Parse parameters
             charge_str = atom_elem.get("charge")
@@ -565,20 +618,13 @@ class XMLForceFieldReader:
             epsilon = float(epsilon_str) if epsilon_str else 0.0
 
             # Define pair parameters (self-interaction)
+            # If atomtype exists, update its params; else create new pair type
             pairstyle.def_type(
-                atomtype,
-                atomtype,
-                charge=charge,
-                sigma=sigma,
-                epsilon=epsilon
+                atomtype, atomtype, charge=charge, sigma=sigma, epsilon=epsilon
             )
             count += 1
 
         logger.info(f"Parsed {count} nonbonded parameters")
-
-    def _is_wildcard(self, type_name: str) -> bool:
-        """检查类型名是否为通配符 ("*")"""
-        return type_name == "*" or type_name == ""
 
 
 def read_xml_forcefield(
@@ -598,7 +644,7 @@ def read_xml_forcefield(
     Example:
         >>> # Load built-in OPLS-AA force field
         >>> ff = read_xml_forcefield("oplsaa.xml")
-        >>> 
+        >>>
         >>> # Load custom force field from path
         >>> from pathlib import Path
         >>> ff = read_xml_forcefield(Path("/path/to/custom.xml"))

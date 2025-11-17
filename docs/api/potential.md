@@ -1,0 +1,4 @@
+# molpy.potential
+
+::: molpy.potential
+

@@ -1,8 +1,8 @@
 import csv
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Iterator, Mapping, MutableMapping
 from io import StringIO
 from pathlib import Path
-from typing import Any, Mapping, Self, TypeAlias, overload
+from typing import Any, Self, overload
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike, NDArray
 from .selector import Selector
 from .topology import Topology
 
-BlockLike: TypeAlias = Mapping[str, ArrayLike]
+type BlockLike = Mapping[str, ArrayLike]
 
 
 class Block(MutableMapping[str, np.ndarray]):
@@ -19,17 +19,59 @@ class Block(MutableMapping[str, np.ndarray]):
 
     • Behaves like a dict but auto-casts any assigned value to ndarray.
     • All built-in `dict`/`MutableMapping` helpers work out of the box.
+    • Supports advanced indexing: by key, by index/slice, by mask, by list of keys.
+
+    Parameters
+    ----------
+    vars_ : dict[str, ArrayLike] or None, optional
+        Initial data to populate the Block. Keys are variable names,
+        values are array-like data that will be converted to numpy arrays.
 
     Examples
     --------
+    Create and access basic data:
+
     >>> blk = Block()
-    >>> blk["xyz"] = [[0, 0, 0], [1, 1, 1]]
-    >>> "xyz" in blk
+    >>> blk["x"] = [0.0, 1.0, 2.0]
+    >>> blk["y"] = [0.0, 0.0, 0.0]
+    >>> "x" in blk
     True
     >>> len(blk)
-    1
-    >>> blk["xyz"].dtype
+    2
+    >>> blk["x"].dtype
     dtype('float64')
+
+    Multiple indexing methods:
+
+    >>> blk = Block({"id": [1, 2, 3], "x": [10.0, 20.0, 30.0]})
+    >>> blk[0]  # Access single row, returns dict
+    {'id': 1, 'x': 10.0}
+    >>> blk[0:2]  # Slice access
+    {'id': array([1, 2]), 'x': array([10., 20.])}
+    >>> blk[["id", "x"]]  # Multi-column access, returns 2D array (requires same dtype)
+    Traceback (most recent call last):
+        ...
+    ValueError: Arrays must have the same dtype...
+
+    Using boolean masks for filtering:
+
+    >>> blk = Block({"id": [1, 2, 3, 4, 5], "mol": [1, 1, 2, 2, 3]})
+    >>> mask = blk["mol"] < 3
+    >>> sub_blk = blk[mask]
+    >>> sub_blk["id"]
+    array([1, 2, 3, 4])
+    >>> sub_blk.nrows
+    4
+
+    Sorting:
+
+    >>> blk = Block({"x": [3, 1, 2], "y": [30, 10, 20]})
+    >>> sorted_blk = blk.sort("x")  # Returns new Block
+    >>> sorted_blk["x"]
+    array([1, 2, 3])
+    >>> _ = blk.sort_("x")  # In-place sort, returns self
+    >>> blk["x"]
+    array([1, 2, 3])
     """
 
     __slots__ = ("_vars",)
@@ -173,16 +215,26 @@ class Block(MutableMapping[str, np.ndarray]):
 
         Examples
         --------
-        >>> block = Block.from_csv("data.csv")
-        >>> block = Block.from_csv("data.csv", delimiter=";")
+        Read from StringIO:
+
         >>> from io import StringIO
         >>> csv_data = StringIO("x,y,z\\n0,1,2\\n3,4,5")
         >>> block = Block.from_csv(csv_data)
-        >>> # No header CSV
+        >>> block["x"]
+        array([0, 3])
+        >>> block.nrows
+        2
+
+        CSV without header:
+
         >>> csv_no_header = StringIO("0,1,2\\n3,4,5")
         >>> block = Block.from_csv(csv_no_header, header=["x", "y", "z"])
+        >>> list(block.keys())
+        ['x', 'y', 'z']
+        >>> block.nrows
+        2
         """
-        # 判断类型
+        # Determine type
         if isinstance(filepath, StringIO):
             csvfile = filepath
             csvfile.seek(0)
@@ -191,7 +243,7 @@ class Block(MutableMapping[str, np.ndarray]):
             filepath = Path(filepath)
             if not filepath.exists():
                 raise FileNotFoundError(f"CSV file not found: {filepath}")
-            csvfile = open(filepath, "r", encoding=encoding, newline="")
+            csvfile = open(filepath, encoding=encoding, newline="")
             close_file = True
 
         try:
@@ -322,7 +374,7 @@ class Block(MutableMapping[str, np.ndarray]):
 
         Example:
             >>> blk = Block({"x": [3, 1, 2], "y": [30, 10, 20]})
-            >>> blk.sort_("x")
+            >>> _ = blk.sort_("x")  # Returns self for chaining
             >>> blk["x"]
             array([1, 2, 3])
             >>> blk["y"]
@@ -373,7 +425,7 @@ class Block(MutableMapping[str, np.ndarray]):
         ...     "y": [0.0, 0.0, 1.0],
         ...     "z": [0.0, 0.0, 0.0]
         ... })
-        >>> for index, row in blk.iterrows():
+        >>> for index, row in blk.iterrows():  # doctest: +SKIP
         ...     print(f"Row {index}: {row}")
         Row 0: {'id': 1, 'type': 'C', 'x': 0.0, 'y': 0.0, 'z': 0.0}
         Row 1: {'id': 2, 'type': 'O', 'x': 1.0, 'y': 0.0, 'z': 0.0}
@@ -458,10 +510,7 @@ class Block(MutableMapping[str, np.ndarray]):
         var_names = list(self._vars.keys())
 
         # Create field names for the named tuple
-        if index:
-            field_names = ["Index"] + var_names
-        else:
-            field_names = var_names
+        field_names = ["Index", *var_names] if index else var_names
 
         # Create the named tuple class
         RowTuple = namedtuple(name, field_names)
@@ -488,11 +537,75 @@ class Block(MutableMapping[str, np.ndarray]):
 
 class Frame:
     """
-    Hierarchical numerical data container.
+    Hierarchical numerical data container with named blocks.
 
+    Frame stores multiple Block objects under string keys (e.g., "atoms", "bonds")
+    and allows arbitrary metadata to be attached. It's designed for molecular
+    simulation data where different entity types need separate tabular storage.
+
+    Structure
+    ---------
         Frame
-        ├- blocks (dict[str, Block])
-        ├- metadata   (dict[str, Any])  # metadata
+        ├─ blocks: dict[str, Block]     # Named data blocks
+        └─ metadata: dict[str, Any]     # Arbitrary metadata (box, timestep, etc.)
+
+    Parameters
+    ----------
+    blocks : dict[str, Block | dict] or None, optional
+        Initial blocks. If a dict value is not a Block, it will be converted.
+    **props
+        Arbitrary keyword arguments stored in metadata.
+
+    Examples
+    --------
+    Create Frame and add data blocks:
+
+    >>> frame = Frame()
+    >>> frame["atoms"] = Block({"x": [0.0, 1.0], "y": [0.0, 0.0], "z": [0.0, 0.0]})
+    >>> frame["atoms"]["x"]
+    array([0., 1.])
+    >>> frame["atoms"].nrows
+    2
+
+    Initialize with nested dictionaries:
+
+    >>> frame = Frame(blocks={
+    ...     "atoms": {"id": [1, 2, 3], "type": ["C", "H", "H"]},
+    ...     "bonds": {"i": [0, 0], "j": [1, 2]}
+    ... })
+    >>> list(frame.blocks())
+    ['atoms', 'bonds']
+    >>> frame["atoms"]["id"]
+    array([1, 2, 3])
+
+    Add metadata:
+
+    >>> frame = Frame()
+    >>> frame.metadata["timestep"] = 0
+    >>> frame.metadata["description"] = "Test system"
+    >>> frame.metadata["timestep"]
+    0
+    >>> frame.metadata["description"]
+    'Test system'
+
+    Chained access:
+
+    >>> frame = Frame(blocks={"atoms": {"x": [1, 2, 3], "y": [4, 5, 6]}})
+    >>> atoms = frame["atoms"]
+    >>> xyz_combined = atoms[["x", "y"]]
+    >>> xyz_combined.shape
+    (3, 2)
+
+    Iterate over all blocks and variables:
+
+    >>> frame = Frame(blocks={
+    ...     "atoms": {"id": [1, 2], "mass": [12.0, 1.0]},
+    ...     "bonds": {"i": [0], "j": [1]}
+    ... })
+    >>> for block_name in frame.blocks():
+    ...     print(f"{block_name}: {list(frame.variables(block_name))}")
+    atoms: ['id', 'mass']
+    bonds: ['i', 'j']
     """
 
     def __init__(self, blocks=None, **props) -> None:
@@ -562,47 +675,142 @@ class Frame:
 
     # ---------- main get/set --------------------------------------------
 
-    @overload
-    def __getitem__(self, key: str) -> Block: ...  # str  → Block
+    def __getitem__(self, key: str) -> Block:
+        """
+        Get a Block by name.
 
-    @overload
-    def __getitem__(self, key: tuple[str, str]) -> np.ndarray: ...  # tuple→ ndarray
+        Parameters
+        ----------
+        key : str
+            Name of the block to retrieve.
 
-    def __getitem__(self, key: str | tuple[str, str]) -> np.ndarray | Block:
-        if isinstance(key, tuple):
-            grp, var = key
-            return self._blocks[grp][var]
+        Returns
+        -------
+        Block
+            The requested block.
+
+        Raises
+        ------
+        KeyError
+            If the block name doesn't exist.
+
+        Examples
+        --------
+        >>> frame = Frame(blocks={"atoms": {"x": [1, 2], "y": [3, 4]}})
+        >>> atoms = frame["atoms"]
+        >>> atoms["x"]
+        array([1, 2])
+        >>> frame["nonexistent"]
+        Traceback (most recent call last):
+            ...
+        KeyError: 'nonexistent'
+        """
         return self._blocks[key]
 
-    def __setitem__(self, key: str | tuple[str, str], value: BlockLike | Block):
+    def __setitem__(self, key: str, value: BlockLike | Block) -> None:
+        """
+        Set a Block by name.
 
-        if isinstance(key, tuple):
-            grp, var = key
-            self._blocks.setdefault(grp, Block())[var] = value
-        elif isinstance(key, str):
-            if not isinstance(value, Block):
-                value = Block(value)
-            self._blocks[key] = value
-        else:
-            raise KeyError(
-                f"Invalid key type: {type(key)}. Expected str, tuple[str, str]."
-            )
+        Parameters
+        ----------
+        key : str
+            Name of the block to set.
+        value : Block or dict[str, ArrayLike]
+            Block to store, or dict-like data that will be converted to Block.
 
-    def __delitem__(self, key: str | tuple[str, str]) -> None:
-        del self[key]
+        Examples
+        --------
+        >>> frame = Frame()
+        >>> frame["atoms"] = Block({"x": [1, 2, 3]})
+        >>> frame["bonds"] = {"i": [0, 1], "j": [1, 2]}  # Auto-converted
+        >>> isinstance(frame["bonds"], Block)
+        True
+        """
+        if not isinstance(value, Block):
+            value = Block(value)
+        self._blocks[key] = value
 
-    def __contains__(self, key: str | tuple[str, str]) -> bool:
-        if isinstance(key, tuple):
-            grp, var = key
-            return grp in self._blocks and var in self._blocks[grp]
+    def __delitem__(self, key: str) -> None:
+        """
+        Delete a Block by name.
+
+        Parameters
+        ----------
+        key : str
+            Name of the block to delete.
+
+        Examples
+        --------
+        >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}})
+        >>> del frame["atoms"]
+        >>> "atoms" in frame
+        False
+        """
+        del self._blocks[key]
+
+    def __contains__(self, key: str) -> bool:
+        """
+        Check if a block exists.
+
+        Parameters
+        ----------
+        key : str
+            Name of the block to check.
+
+        Returns
+        -------
+        bool
+            True if the block exists, False otherwise.
+
+        Examples
+        --------
+        >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}})
+        >>> "atoms" in frame
+        True
+        >>> "bonds" in frame
+        False
+        """
         return key in self._blocks
 
     # ---------- helpers -------------------------------------------------
     def blocks(self) -> Iterator[str]:
+        """
+        Iterate over all block names.
+
+        Returns
+        -------
+        Iterator[str]
+            Iterator over block names.
+
+        Examples
+        --------
+        >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+        >>> sorted(frame.blocks())
+        ['atoms', 'bonds']
+        """
         return iter(self._blocks)
 
-    def variables(self, block: str) -> Iterator[str]:
-        return iter(self._blocks[block])
+    def variables(self, block_name: str) -> Iterator[str]:
+        """
+        Iterate over all variable names in a specific block.
+
+        Parameters
+        ----------
+        block_name : str
+            Name of the block.
+
+        Returns
+        -------
+        Iterator[str]
+            Iterator over variable names in the block.
+
+        Examples
+        --------
+        >>> frame = Frame(blocks={"atoms": {"x": [1, 2], "y": [3, 4], "z": [5, 6]}})
+        >>> sorted(frame.variables("atoms"))
+        ['x', 'y', 'z']
+        """
+        return iter(self._blocks[block_name])
 
     # ---------- (de)serialization --------------------------------------
     def to_dict(self) -> dict:

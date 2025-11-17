@@ -1,25 +1,35 @@
 from collections import UserDict
+from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Iterable, Protocol, Self, Iterator, TypeVar, Generic, cast, overload
-from collections import defaultdict
-from molpy.core.utils import TypeBucket as BaseTypeBucket, get_nearest_type
+from typing import (
+    Any,
+    Protocol,
+    Self,
+    TypeVar,
+    cast,
+    overload,
+)
+
 from molpy.core.ops.geometry import (
+    _cross,
     _dot,
     _norm,
-    _unit,
-    _cross,
     _rodrigues_rotate,
+    _unit,
     _vec_add,
     _vec_scale,
     _vec_sub,
 )
+from molpy.core.utils import get_nearest_type
 
 
 class EntityLike(Protocol):
     """Protocol for objects that can act as Entities (Entity or subclass)."""
 
+    data: dict[str, Any]
+
     def __getitem__(self, key: str) -> Any: ...
-    def __setitem__(self, key: str, value: Any) -> None: ...
+    def __setitem__(self, key: str, item: Any) -> None: ...
     def __hash__(self) -> int: ...
     def get(self, key: str, default: Any = None) -> Any: ...
 
@@ -38,9 +48,11 @@ class Entity(UserDict):
 class LinkLike(Protocol):
     """Protocol for objects that can act as Links (Link or subclass)."""
 
+    data: dict[str, Any]
     endpoints: tuple[EntityLike, ...]
+
     def __getitem__(self, key: str) -> Any: ...
-    def __setitem__(self, key: str, value: Any) -> None: ...
+    def __setitem__(self, key: str, item: Any) -> None: ...
     def __hash__(self) -> int: ...
     def get(self, key: str, default: Any = None) -> Any: ...
 
@@ -74,35 +86,48 @@ class Link[T: Entity](UserDict):
 # Note: EntityLike is already defined above (line 18), removing duplicate definition
 # The first definition is the canonical one with full protocol methods
 
-E = TypeVar("E", bound=EntityLike)
-U = TypeVar("U", bound=E)
+E = TypeVar("E", bound=Entity)
+U = TypeVar("U", bound=Entity)
+
 
 # ---------- Column-friendly list ----------
-class Entities(list[E], Generic[E]):
-    """A list of Entity-like objects supporting column-style access via a string key."""
+class Entities[E: Entity](list[E]):
+    """A list of Entity-like objects supporting column-style access via a string key.
+
+    When accessing with a string key, returns a numpy array if numpy is available,
+    otherwise returns a list.
+    """
 
     @overload
-    def __getitem__(self, index: int) -> E: ...
+    def __getitem__(self, key: int) -> E: ...  # type: ignore[override]
     @overload
-    def __getitem__(self, s: slice) -> list[E]: ...
+    def __getitem__(self, key: slice) -> list[E]: ...  # type: ignore[override]
     @overload
-    def __getitem__(self, key: str) -> list[object]: ...
+    def __getitem__(self, key: str) -> Any: ...
 
-    def __getitem__(self, arg: int | slice | str) -> E | list[E] | list[object]:
-        if isinstance(arg, str):
-            # Column access (switch to getattr/ent[arg] if needed)
-            return [ent.get(arg) for ent in self]
-        return super().__getitem__(arg)
+    def __getitem__(self, key: int | slice | str) -> E | list[E] | Any:  # type: ignore[override]
+        if isinstance(key, str):
+            # Column access - returns numpy array if available
+            values = [ent.get(key) for ent in self]
+            try:
+                import numpy as np
+
+                return np.array(values)
+            except ImportError:
+                return values
+        return super().__getitem__(key)
+
 
 # ---------- Helper: choose bucket key (override if needed) ----------
-# 注意：get_nearest_type 现在从 utils 导入
+# Note: get_nearest_type is now imported from utils
 
-# ---------- Entity 专用的 TypeBucket（返回 Entities 类型）----------
-class TypeBucket(Generic[E]):
+
+# ---------- Entity-specific TypeBucket (returns Entities type) ----------
+class TypeBucket[E: Entity]:
     """
-    Entity 专用的 TypeBucket，按对象的具体类型分组存储。
-    使用 Entities 作为容器以支持列式访问。
-    
+    Entity-specific TypeBucket that groups and stores objects by their concrete type.
+    Uses Entities as container to support column-style access.
+
     Bucket objects by (concrete) type using dict[type, Entities].
     - Key:  type[U], where U <: E
     - Item: Entities[U], paired with the same U as in the key
@@ -111,14 +136,13 @@ class TypeBucket(Generic[E]):
     """
 
     def __init__(self) -> None:
-        # Internal store uses wide types; method signatures enforce proper pairing.
-        # Using object instead of Any for better type safety while maintaining flexibility
-        self._items: dict[type[object], Entities[object]] = {}
+        # Internal store uses Any for flexibility across entity types
+        self._items: dict[type[Any], Entities[Any]] = {}
 
     # ----- mutate -----
     def add(self, item: E) -> None:
         """Add one object to the bucket for its nearest type."""
-        cls = get_nearest_type(item)                 # type: ignore[arg-type]
+        cls = get_nearest_type(item)  # type: ignore[arg-type]
         bucket = self._items.setdefault(cls, Entities())
         # Check if item already exists (use identity check, not equality)
         for existing in bucket:
@@ -133,7 +157,7 @@ class TypeBucket(Generic[E]):
 
     def remove(self, item: E) -> bool:
         """Remove an object from its bucket; returns True if removed."""
-        cls = get_nearest_type(item)                 # type: ignore[arg-type]
+        cls = get_nearest_type(item)  # type: ignore[arg-type]
         bucket = self._items.get(cls)
         if not bucket:
             return False
@@ -146,8 +170,8 @@ class TypeBucket(Generic[E]):
                     self._items.pop(cls, None)
                 return True
         return False
-    
-    def register_type(self, cls: type[U]) -> None:
+
+    def register_type(self, cls: type[Any]) -> None:
         """Ensure a bucket exists for the given class."""
         self._items.setdefault(cls, Entities())
 
@@ -173,8 +197,12 @@ class TypeBucket(Generic[E]):
         if cls in self._items:
             out.extend(cast(Entities[U], self._items[cls]))
         for k, b in self._items.items():
-            if k is not cls and isinstance(k, type) and issubclass(k, cls):
-                out.extend(cast(Entities[U], b))
+            try:
+                if k is not cls and isinstance(k, type) and issubclass(k, cls):  # type: ignore[arg-type]
+                    out.extend(cast(Entities[U], b))
+            except TypeError:
+                # Skip if k is not a proper class
+                pass
         return out
 
     def classes(self) -> Iterator[type[E]]:
@@ -184,25 +212,24 @@ class TypeBucket(Generic[E]):
     def __len__(self) -> int:
         """Total number of stored objects across all buckets."""
         return sum(len(b) for b in self._items.values())
-    
+
     def __getitem__(self, cls: type[U]) -> Entities[U]:
         """Get bucket for class (includes subclasses)."""
         return self.bucket(cls)
-    
+
     def __setitem__(self, cls: type[U], items: Iterable[U]) -> None:
         """Set the bucket for a given class."""
         self._items[cls] = Entities(items)
 
 
-
 class StructLike(Protocol):
     """Protocol for objects that can act as Structs (Struct or subclass).
-    
+
     Defines the interface for structural containers that hold entities and links.
     """
 
-    entities: TypeBucket[EntityLike]
-    links: TypeBucket[LinkLike]
+    entities: TypeBucket[Any]
+    links: TypeBucket[Any]
 
 
 T = TypeVar("T", bound="Struct")
@@ -210,10 +237,10 @@ T = TypeVar("T", bound="Struct")
 
 class Struct:
     """Container holding entities and links via typed buckets.
-    
+
     This is the root class for all molecular structure types in MolPy.
     Supports entity/link management and serves as the base for wrappers.
-    
+
     A Struct is a typed container that organizes entities (e.g., atoms, residues)
     and links (e.g., bonds, angles) into type-specific buckets for efficient
     access and manipulation.
@@ -221,56 +248,56 @@ class Struct:
 
     def __init__(self, **props: Any) -> None:
         """Initialize a new Struct.
-        
+
         Args:
             **props: Additional properties to store in the struct
         """
-        self.entities: TypeBucket[Entity] = TypeBucket()
-        self.links: TypeBucket[Link] = TypeBucket()
+        self.entities: TypeBucket[Any] = TypeBucket()
+        self.links: TypeBucket[Any] = TypeBucket()
         self._props: dict[str, Any] = dict(props)
 
     # ---------- dict-like access to props ----------
     def __getitem__(self, key: str) -> Any:
         """Get property by key.
-        
+
         Args:
             key: Property key
-            
+
         Returns:
             Property value
-            
+
         Raises:
             KeyError: If key doesn't exist
         """
         return self._props[key]
-    
+
     def __setitem__(self, key: str, value: Any) -> None:
         """Set property by key.
-        
+
         Args:
             key: Property key
             value: Property value
         """
         self._props[key] = value
-    
+
     def __contains__(self, key: str) -> bool:
         """Check if key exists in props.
-        
+
         Args:
             key: Property key to check
-            
+
         Returns:
             True if key exists, False otherwise
         """
         return key in self._props
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get property with default.
-        
+
         Args:
             key: Property key
             default: Default value if key not found
-            
+
         Returns:
             Property value or default
         """
@@ -305,14 +332,14 @@ class Struct:
                     cloned_ep = ep.__class__(deepcopy(getattr(ep, "data", None)))
                     emap[ep] = cloned_ep
                     new.entities.add(cloned_ep)
-            
+
             mapped_eps = [emap[ep] for ep in link.endpoints]
             attrs = deepcopy(getattr(link, "data", {}))
             lcls: type[Link] = type(link)
             try:
-                new_link = lcls(*mapped_eps, **attrs)  # 两端点位置参数
+                new_link = lcls(*mapped_eps, **attrs)  # Endpoints as positional args
             except TypeError:
-                new_link = lcls(mapped_eps, **attrs)  # 或者列表形式
+                new_link = lcls(mapped_eps, **attrs)  # Or as list
             new.links.add(new_link)
 
         return new
@@ -320,30 +347,30 @@ class Struct:
     def merge(self, other: "Struct") -> Self:
         """
         Transfer all entities and links from another struct into self.
-        
+
         **NO deep copy** - entities and links are directly transferred.
         After merge, `other` should not be used (its entities now belong to self).
-        
+
         Args:
             other: Struct to merge into self
-        
+
         Returns:
             Self for method chaining
-        
+
         Raises:
             ValueError: If struct contains orphan links (endpoints not in entities)
-        
+
         Example:
             >>> struct1.merge(struct2)  # Transfers struct2 into struct1
             >>> # struct2 should not be used after this!
         """
         # Collect all entities from other
         other_entities = set(other._iter_all_entities())
-        
+
         # Transfer all entities directly (NO copy)
         for ent in other_entities:
             self.entities.add(ent)
-        
+
         # Transfer all links directly (NO copy)
         for link in other._iter_all_links():
             # Verify all endpoints are in entities
@@ -351,23 +378,24 @@ class Struct:
             for ep in link.endpoints:
                 if ep not in other_entities:
                     missing_endpoints.append(ep)
-            
+
             if missing_endpoints:
                 # This indicates a malformed struct with orphan links
                 raise ValueError(
-                    f"Found link with endpoints not in entities bucket. "
-                    f"This indicates orphan links in the struct."
+                    "Found link with endpoints not in entities bucket. "
+                    "This indicates orphan links in the struct."
                 )
-            
+
             self.links.add(link)
-        
+
         return self
+
 
 class SpatialMixin:
     """Geometry operations on entities with a "xyz" key only."""
 
-    entities: TypeBucket[Entity]
-    links: TypeBucket[Link]
+    entities: TypeBucket[Any]
+    links: TypeBucket[Any]
 
     def move(self, delta: list[float], *, entity_type: type[Entity]) -> Self:
         for e in self.entities.bucket(entity_type):
@@ -385,9 +413,9 @@ class SpatialMixin:
         k = _unit(axis)
         o = [0.0, 0.0, 0.0] if about is None else about
         for e in self.entities.bucket(entity_type):
-            pos = e.get("xyz")
-            if isinstance(pos, list) and len(pos) == 3:
-                e["xyz"] = _rodrigues_rotate(pos, k, angle, o)
+            xyz = e.get("xyz")
+            if isinstance(xyz, list) and len(xyz) == 3:
+                e["xyz"] = _rodrigues_rotate(xyz, k, angle, o)
         return self
 
     def scale(
@@ -399,9 +427,9 @@ class SpatialMixin:
     ) -> Self:
         o = [0.0, 0.0, 0.0] if about is None else about
         for e in self.entities.bucket(entity_type):
-            pos = e.get("xyz")
-            if isinstance(pos, list) and len(pos) == 3:
-                v = _vec_sub(pos, o)
+            xyz = e.get("xyz")
+            if isinstance(xyz, list) and len(xyz) == 3:
+                v = _vec_sub(xyz, o)
                 e["xyz"] = _vec_add(o, _vec_scale(v, factor))
         return self
 
@@ -442,27 +470,27 @@ class SpatialMixin:
 
                 angle = atan2(na, _dot(va, vb))
                 for e in ents:
-                    pos = e.get("xyz")
-                    if isinstance(pos, list) and len(pos) == 3:
+                    xyz = e.get("xyz")
+                    if isinstance(xyz, list) and len(xyz) == 3:
                         e["xyz"] = _rodrigues_rotate(
-                            pos, _vec_scale(axis, 1.0 / na), angle, pa
+                            xyz, _vec_scale(axis, 1.0 / na), angle, pa
                         )
         # translate so that a -> b
         new_pa = a.get("xyz")
         if isinstance(new_pa, list) and len(new_pa) == 3:
             delta = _vec_sub(pb, new_pa)
             self.move(delta, entity_type=entity_type)
-        
+
         return self
 
 
 class MembershipMixin:
     """CRUD operations for entities and links within a StructLike."""
 
-    entities: TypeBucket[Entity]
-    links: TypeBucket[Link]
+    entities: TypeBucket[Any]
+    links: TypeBucket[Any]
 
-    def register_type(self, cls: type[Entity]) -> None:
+    def register_type(self, cls: type[Any]) -> None:
         self.entities._items.setdefault(cls, Entities())
 
     # Entities -------------------------------------------------------------
@@ -519,15 +547,17 @@ class MembershipMixin:
             if doomed:
                 self.remove_link(*doomed)
 
+
 class ConnectivityMixin:
+    entities: TypeBucket[Any]
+    links: TypeBucket[Any]
 
-    entities: TypeBucket[Entity]
-    links: TypeBucket[Link]
-
-    def get_neighbors(self, entity: Entity, link_type: type[Link] = Link) -> list[Entity]:
+    def get_neighbors(
+        self, entity: Entity, link_type: type[Link] = Link
+    ) -> list[Entity]:  # type: ignore[assignment]
         neighbors: list[Entity] = []
         try:
-            bucket = self.links.bucket(link_type)
+            bucket = self.links.bucket(link_type)  # type: ignore[arg-type]
         except KeyError:
             return neighbors
         for link in bucket:
@@ -535,5 +565,5 @@ class ConnectivityMixin:
             if any(ep is entity for ep in link.endpoints):
                 for ep in link.endpoints:
                     if ep is not entity:
-                        neighbors.append(ep)
+                        neighbors.append(ep)  # type: ignore[arg-type]
         return neighbors

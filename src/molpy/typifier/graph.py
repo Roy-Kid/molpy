@@ -1,14 +1,17 @@
 """Module for SMARTSGraph and SMARTS matching logic."""
 
 import itertools
-import re
-from collections import OrderedDict, defaultdict
-from typing import Any, Callable
+from collections import OrderedDict
 
 from igraph import Graph, plot
 
 from molpy.core.element import Element
-from molpy.parser.smarts import SmartsParser, SmartsIR, AtomExpressionIR, AtomPrimitiveIR
+from molpy.parser.smarts import (
+    AtomExpressionIR,
+    AtomPrimitiveIR,
+    SmartsIR,
+    SmartsParser,
+)
 
 
 class SMARTSGraph(Graph):
@@ -36,13 +39,13 @@ class SMARTSGraph(Graph):
     Notes
     -----
     SMARTSGraph inherits from igraph.Graph
-    
+
     Vertex attributes:
         - preds: list[Callable] - list of predicates that must all pass
-    
+
     Edge attributes:
         - preds: list[Callable] - list of predicates that must all pass
-    
+
     Graph attributes:
         - atomtype_name: str
         - priority: int
@@ -72,15 +75,17 @@ class SMARTSGraph(Graph):
         self.target_vertices = target_vertices or []
         self.source = source
         self.overrides = overrides
-        
+
         # Dependency tracking
-        self.dependencies: set[str] = set()  # Set of atom type names this pattern depends on
+        self.dependencies: set[str] = (
+            set()
+        )  # Set of atom type names this pattern depends on
         self.level: int | None = None  # Topological level (0 = no deps, 1+ = has deps)
 
         # Legacy support
         self.smarts_string = smarts_string
         self.ir: SmartsIR | None = None
-        
+
         if smarts_string is not None:
             # Legacy mode: construct from SMARTS string
             if parser is None:
@@ -91,10 +96,10 @@ class SMARTSGraph(Graph):
             self._atom_indices = OrderedDict()
             self._add_nodes()
             self._add_edges()
-            
+
             # Extract dependencies from SMARTS string
             self.dependencies = self.extract_dependencies()
-        
+
         self._graph_matcher = None
         self._specificity_score: int | None = None
 
@@ -113,14 +118,14 @@ class SMARTSGraph(Graph):
         source: str = "",
     ) -> "SMARTSGraph":
         """Create SmartsGraph from an existing igraph.Graph.
-        
+
         Args:
             graph: igraph.Graph with vertex/edge predicates
             atomtype_name: Atom type this pattern assigns
             priority: Priority for conflict resolution
             target_vertices: Which vertices should be typed (empty = all)
             source: Source identifier
-        
+
         Returns:
             SMARTSGraph instance
         """
@@ -131,59 +136,59 @@ class SMARTSGraph(Graph):
             target_vertices=target_vertices or [],
             source=source,
         )
-        
+
         # Copy graph structure and attributes
         instance.add_vertices(graph.vcount())
         if graph.ecount() > 0:
             instance.add_edges(graph.get_edgelist())
-        
+
         # Copy vertex attributes
         for attr in graph.vs.attributes():
             instance.vs[attr] = graph.vs[attr]
-        
+
         # Copy edge attributes
         for attr in graph.es.attributes():
             instance.es[attr] = graph.es[attr]
-        
+
         return instance
 
     def __repr__(self):
         if self.smarts_string:
             return f"<SmartsGraph({self.smarts_string})>"
         return f"<SmartsGraph(name={self.atomtype_name}, vertices={self.vcount()}, edges={self.ecount()})>"
-    
+
     def get_specificity_score(self) -> int:
         """Compute specificity score for this pattern.
-        
+
         Scoring heuristic:
             +0 per element predicate (baseline)
             +1 per charge/degree/hyb constraint
             +2 per aromatic/in_ring constraint
             +3 per bond order predicate
             +4 per custom predicate
-        
+
         Returns:
             Specificity score (higher = more specific)
         """
         if self._specificity_score is not None:
             return self._specificity_score
-        
+
         score = 0
-        
+
         # Score vertex predicates
         for v in self.vs:
             preds = v["preds"] if "preds" in v.attributes() else []
             for pred in preds:
                 if hasattr(pred, "meta"):
                     score += pred.meta.weight
-        
+
         # Score edge predicates
         for e in self.es:
             preds = e["preds"] if "preds" in e.attributes() else []
             for pred in preds:
                 if hasattr(pred, "meta"):
                     score += pred.meta.weight
-        
+
         self._specificity_score = score
         return score
 
@@ -198,7 +203,7 @@ class SMARTSGraph(Graph):
         self.overrides = overrides
         # Legacy behavior: compute priority from overrides
         # Now priority is set explicitly, but keep this for compatibility
-        if hasattr(self, '_priority'):
+        if hasattr(self, "_priority"):
             # New mode: use explicit priority
             pass
         else:
@@ -208,44 +213,44 @@ class SMARTSGraph(Graph):
 
     def get_priority(self) -> int:
         """Get priority value (supports both new and legacy modes)."""
-        if hasattr(self, '_priority'):
+        if hasattr(self, "_priority"):
             return self._priority
         # Legacy: compute from overrides
         if self.overrides is None:
             return 0
         return max([override.priority for override in self.overrides]) + 1
-    
+
     def extract_dependencies(self) -> set[str]:
         """Extract type references from SMARTS IR.
-        
+
         Finds all has_label primitives that reference atom types (e.g., %opls_154).
         These are parsed by Lark as AtomPrimitiveIR(type="has_label", value="%opls_154").
-        
+
         Returns:
             Set of referenced atom type names (e.g., {'opls_154', 'opls_135'})
         """
         if not self.ir or not self.ir.atoms:
             return set()
-        
+
         dependencies = set()
-        
+
         def extract_from_expr(expr):
             """Recursively extract dependencies from expression."""
             if isinstance(expr, AtomPrimitiveIR):
                 if expr.type == "has_label" and isinstance(expr.value, str):
                     # has_label value is like "%opls_154"
                     label = expr.value
-                    if label.startswith('%opls_'):
+                    if label.startswith("%opls_"):
                         # Strip the % to get "opls_154"
                         dependencies.add(label[1:])
             elif isinstance(expr, AtomExpressionIR):
                 for child in expr.children:
                     extract_from_expr(child)
-        
+
         # Extract from all atoms
         for atom in self.ir.atoms:
             extract_from_expr(atom.expression)
-        
+
         return dependencies
 
     def _add_nodes(self):
@@ -265,57 +270,59 @@ class SMARTSGraph(Graph):
 
     def _node_match_fn(self, g1, g2, v1, v2):
         """Determine if two graph nodes are equal.
-        
+
         This method supports both legacy (SMARTS IR) and new (predicate) modes.
         """
         host = g1.vs[v1]
         pattern = g2.vs[v2]
-        
+
         # New predicate mode
         if "preds" in pattern.attributes():
             preds = pattern["preds"]
             host_attrs = host.attributes()
             return all(pred(host_attrs) for pred in preds)
-        
+
         # Legacy mode (SMARTS IR)
         if "atom" in pattern.attributes():
             atom_ir = pattern["atom"]
             neighbors = g1.neighbors(v1)
             result = self._atom_expr_matches(atom_ir.expression, host, neighbors, g1)
             return result
-        
+
         # No constraints - match anything
         return True
-    
+
     def _edge_match_fn(self, g1, g2, e1, e2):
         """Determine if two graph edges are equal.
-        
+
         This method supports both legacy (bond_type) and new (predicate) modes.
         """
         host_edge = g1.es[e1]
         pattern_edge = g2.es[e2]
-        
+
         # New predicate mode
         if "preds" in pattern_edge.attributes():
             preds = pattern_edge["preds"]
             host_attrs = host_edge.attributes()
             return all(pred(host_attrs) for pred in preds)
-        
+
         # Legacy mode (bond_type)
         if "bond_type" in pattern_edge.attributes():
             # Simple bond type matching for now
             # TODO: Implement full bond type matching logic
             return True
-        
+
         # No constraints - match anything
         return True
 
-    def _atom_expr_matches(self, atom_expr: AtomExpressionIR | AtomPrimitiveIR, atom, bond_partners, graph):
+    def _atom_expr_matches(
+        self, atom_expr: AtomExpressionIR | AtomPrimitiveIR, atom, bond_partners, graph
+    ):
         """Evaluate SMARTS IR expressions."""
         # Handle AtomPrimitiveIR directly
         if isinstance(atom_expr, AtomPrimitiveIR):
             return self._atom_primitive_matches(atom_expr, atom, bond_partners, graph)
-        
+
         # Handle AtomExpressionIR
         if atom_expr.op == "not":
             return not self._atom_expr_matches(
@@ -340,12 +347,12 @@ class SMARTSGraph(Graph):
                 )
             return True
         else:
-            raise TypeError(
-                f"Unexpected atom expression op: {atom_expr.op}"
-            )
+            raise TypeError(f"Unexpected atom expression op: {atom_expr.op}")
 
     @staticmethod
-    def _atom_primitive_matches(atom_primitive: AtomPrimitiveIR, atom, bond_partners, graph):
+    def _atom_primitive_matches(
+        atom_primitive: AtomPrimitiveIR, atom, bond_partners, graph
+    ):
         """Compare atomic primitives against atom properties."""
         atomic_num = atom.attributes().get("number", None)
         atom_name = atom.attributes().get("name", None)
@@ -374,7 +381,7 @@ class SMARTSGraph(Graph):
         elif atom_primitive.type == "has_label":
             # Type reference (e.g., %opls_154)
             label = str(atom_primitive.value)
-            if label.startswith('%opls_'):
+            if label.startswith("%opls_"):
                 # This is a type reference - check if atom has this type assigned
                 required_type = label[1:]  # Strip % to get "opls_154"
                 assigned_type = atom.attributes().get("atomtype")
@@ -382,23 +389,50 @@ class SMARTSGraph(Graph):
             else:
                 # Legacy behavior: check if label is in type attribute
                 label = label[1:]  # Strip the % sign
-                return label in graph.vs[atom_idx].get("type", [])
+                vertex = graph.vs[atom_idx]
+                vertex_type = vertex["type"] if "type" in vertex.attributes() else []
+                return label in vertex_type
         elif atom_primitive.type == "neighbor_count":
             assert isinstance(atom_primitive.value, int)
             return len(bond_partners) == atom_primitive.value
         elif atom_primitive.type == "ring_size":
             assert isinstance(atom_primitive.value, int)
             cycle_len = atom_primitive.value
-            for cycle in graph.vs[atom_idx].get("cycles", []):
-                if len(cycle) == cycle_len:
-                    return True
-            return False
+            vertex = graph.vs[atom_idx]
+            cycles = vertex["cycles"] if "cycles" in vertex.attributes() else []
+            return any(len(cycle) == cycle_len for cycle in cycles)
         elif atom_primitive.type == "ring_count":
             assert isinstance(atom_primitive.value, int)
-            n_cycles = len(graph.vs[atom_idx].get("cycles", []))
+            vertex = graph.vs[atom_idx]
+            cycles = vertex["cycles"] if "cycles" in vertex.attributes() else []
+            n_cycles = len(cycles)
             return n_cycles == atom_primitive.value
+        elif atom_primitive.type == "hydrogen_count":
+            # Explicit hydrogen count (H2): count H atoms bonded to this atom
+            assert isinstance(atom_primitive.value, int)
+            h_count = 0
+            for partner_idx in bond_partners:
+                partner_vertex = graph.vs[partner_idx]
+                partner_num = partner_vertex.get("number", None)
+                if partner_num == 1:  # Hydrogen has atomic number 1
+                    h_count += 1
+            return h_count == atom_primitive.value
+        elif atom_primitive.type == "implicit_hydrogen_count":
+            # Implicit hydrogen count (h2): this is typically used for SMILES
+            # In SMARTS context, we treat it similarly to explicit hydrogen count
+            # but this might need refinement based on actual usage
+            assert isinstance(atom_primitive.value, int)
+            h_count = 0
+            for partner_idx in bond_partners:
+                partner_vertex = graph.vs[partner_idx]
+                partner_num = partner_vertex.get("number", None)
+                if partner_num == 1:  # Hydrogen has atomic number 1
+                    h_count += 1
+            return h_count == atom_primitive.value
         elif atom_primitive.type == "matches_smarts":
-            raise NotImplementedError("Recursive SMARTS (matches_smarts) is not yet implemented")
+            raise NotImplementedError(
+                "Recursive SMARTS (matches_smarts) is not yet implemented"
+            )
         else:
             raise ValueError(f"Unknown atom primitive type: {atom_primitive.type}")
 
@@ -427,9 +461,10 @@ class SMARTSGraph(Graph):
         self.calc_signature(graph)
 
         self._graph_matcher = SMARTSMatcher(
-            graph, self, 
+            graph,
+            self,
             node_match_fn=self._node_match_fn,
-            edge_match_fn=self._edge_match_fn
+            edge_match_fn=self._edge_match_fn,
         )
 
         matches = self._graph_matcher.subgraph_isomorphisms()
@@ -438,6 +473,7 @@ class SMARTSGraph(Graph):
 
     def calc_signature(self, graph):
         """Calculate graph signatures for pattern matching."""
+
         # Check if any atoms have ring-related properties
         def check_expr_for_rings(expr):
             """Recursively check expression for ring-related primitives."""
@@ -446,10 +482,9 @@ class SMARTSGraph(Graph):
             if isinstance(expr, AtomExpressionIR):
                 return any(check_expr_for_rings(child) for child in expr.children)
             return False
-        
+
         has_ring_rules = any(
-            check_expr_for_rings(atom.expression) 
-            for atom in self.ir.atoms
+            check_expr_for_rings(atom.expression) for atom in self.ir.atoms
         )
 
         if has_ring_rules:
@@ -479,12 +514,12 @@ class SMARTSMatcher:
         # Build edge compatibility function if provided
         edge_compat_fn = None
         if self.edge_match_fn is not None:
-            edge_compat_fn = lambda g1, g2, e1, e2: self.edge_match_fn(g1, g2, e1, e2)
-        
+
+            def edge_compat_fn(g1, g2, e1, e2):
+                return self.edge_match_fn(g1, g2, e1, e2)
+
         matches = self.G1.get_subisomorphisms_vf2(
-            self.G2, 
-            node_compat_fn=self.node_match_fn,
-            edge_compat_fn=edge_compat_fn
+            self.G2, node_compat_fn=self.node_match_fn, edge_compat_fn=edge_compat_fn
         )
         results = []
         for sgi in matches:
@@ -563,7 +598,7 @@ def _find_chordless_cycles(graph, max_cycle_size):
                     next_neighbors = graph.neighbors(possible_ring[-1])
                     for next_neighbor in next_neighbors:
                         if next_neighbor != possible_ring[-2]:
-                            new_possible_rings.append(possible_ring + [next_neighbor])
+                            new_possible_rings.append([*possible_ring, next_neighbor])
                 possible_rings = new_possible_rings
 
                 for possible_ring in possible_rings:

@@ -1,6 +1,6 @@
 import numpy as np
 
-import molpy as mp
+from molpy.core.region import BoxRegion, SphereRegion
 
 
 # === Base Constraint class ===
@@ -51,7 +51,7 @@ class OrConstraint(Constraint):
 
 class InsideBoxConstraint(Constraint):
     def __init__(self, length, origin=np.array([0, 0, 0])):
-        self.region = mp.BoxRegion(length, origin)
+        self.region = BoxRegion(length, origin)
         self.lengths = np.array(length)
         self.origin = np.array(origin)
         self.upper = self.origin + self.lengths
@@ -74,7 +74,7 @@ class InsideBoxConstraint(Constraint):
 
 class OutsideBoxConstraint(Constraint):
     def __init__(self, origin, lengths):
-        self.region = mp.BoxRegion(lengths, origin)
+        self.region = BoxRegion(lengths, origin)
         self.origin = np.array(origin)
         self.upper = self.origin + np.array(lengths)
 
@@ -97,7 +97,7 @@ class OutsideBoxConstraint(Constraint):
 
 class InsideSphereConstraint(Constraint):
     def __init__(self, radius, center):
-        self.region = mp.SphereRegion(radius, center)
+        self.region = SphereRegion(radius, center)
         self.radius = radius
         self.center = np.array(center, dtype=np.float64)
 
@@ -119,9 +119,8 @@ class InsideSphereConstraint(Constraint):
 
 
 class OutsideSphereConstraint(Constraint):
-
     def __init__(self, radius, center):
-        self.region = mp.SphereRegion(radius, center)
+        self.region = SphereRegion(radius, center)
         self.radius = radius
         self.center = np.array(center, dtype=np.float64)
 

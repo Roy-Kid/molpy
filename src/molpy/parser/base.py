@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generic, TypeVar, Literal
+from typing import Literal, TypeVar
 
 from lark import Lark, Tree
 
@@ -13,15 +13,16 @@ class GrammarConfig:
     """
     Configuration for the grammar-backed parser.
     """
-    grammar_path: Path                 # Path to a .lark grammar file
-    start: str                         # Start rule name in grammar
+
+    grammar_path: Path  # Path to a .lark grammar file
+    start: str  # Start rule name in grammar
     parser: Literal["lalr", "earley"] = "lalr"
     propagate_positions: bool = False  # Lark option
-    maybe_placeholders: bool = False   # Lark option
-    auto_reload: bool = True           # Reload grammar on file change
+    maybe_placeholders: bool = False  # Lark option
+    auto_reload: bool = True  # Reload grammar on file change
 
 
-class GrammarParserBase(ABC, Generic[T]):
+class GrammarParserBase[T](ABC):
     """
     Base class for parsers backed by an external Lark grammar file.
 
@@ -60,7 +61,9 @@ class GrammarParserBase(ABC, Generic[T]):
         try:
             mtime = self.config.grammar_path.stat().st_mtime
         except FileNotFoundError as e:
-            raise FileNotFoundError(f"Grammar file not found: {self.config.grammar_path}") from e
+            raise FileNotFoundError(
+                f"Grammar file not found: {self.config.grammar_path}"
+            ) from e
 
         if self._mtime is None or mtime != self._mtime:
             self._compile_grammar(force=True)

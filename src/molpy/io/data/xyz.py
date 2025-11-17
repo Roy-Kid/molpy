@@ -1,11 +1,10 @@
-import re
 import shlex
 
 import numpy as np
 
 from molpy.core import Block, Box, Frame
 
-from .base import DataReader, DataWriter
+from .base import DataReader
 
 
 class XYZReader(DataReader):
@@ -93,7 +92,7 @@ class XYZReader(DataReader):
                 else:
                     result[key] = value.strip('"')
             else:
-                # 单独出现的 key，当作 bool flag
+                # Standalone key, treat as bool flag
                 result[token] = True
 
         if "Lattice" in result:
@@ -102,5 +101,4 @@ class XYZReader(DataReader):
                     3, 3
                 )
             )
-        print(result)
         frame.metadata.update(result)

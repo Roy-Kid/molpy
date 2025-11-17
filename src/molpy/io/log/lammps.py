@@ -10,9 +10,7 @@ import numpy as np
 
 
 class LAMMPSLog:
-
     def __init__(self, file: str | Path, style="default"):
-
         self.file = Path(file)
         self.info = {
             "n_stages": 0,
@@ -21,8 +19,7 @@ class LAMMPSLog:
         self.style = style
 
     def read(self):
-
-        with open(self.file, "r") as f:
+        with open(self.file) as f:
             log_str = f.read()
 
         self.read_version(log_str)
@@ -33,12 +30,10 @@ class LAMMPSLog:
         self["version"] = text[:index]
 
     def read_thermo(self, text, style):
-
         if style == "default":
             pattern = r"Per MPI rank .*?\n(.*?Loop time.*?)\n"
             result = re.search(pattern, text, re.DOTALL)
             for stage in result.groups():
-
                 lines = stage.split("\n")
                 fields = lines[0].split()
 

@@ -19,6 +19,8 @@ atom_id: atom_symbol
             | "X" neighbor_count
             | "r" ring_size
             | "R" ring_count
+            | "H" hydrogen_count
+            | "h" implicit_hydrogen_count
 atom_symbol: SYMBOL | STAR
 atomic_num: NUM
 matches_string: _string
@@ -26,6 +28,8 @@ has_label: LABEL
 neighbor_count: NUM
 ring_size: NUM
 ring_count: NUM
+hydrogen_count: NUM
+implicit_hydrogen_count: NUM
 
 // Terminals
 STAR: "*"

@@ -1,2 +1,2 @@
-# from .smiles import SmilesParser
-# from .smarts import SmartsParser
+from .smarts import SmartsParser
+from .smiles import SmilesParser

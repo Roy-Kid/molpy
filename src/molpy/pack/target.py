@@ -1,15 +1,12 @@
-from typing import Union
-
 import numpy as np
 
-from molpy.core.frame import Frame
+from molpy import Frame
 
 # Note: All constraint classes are now in molpy.pack.constraint
 # No need for molpack dependency
 
 
 class Target:
-
     def __init__(
         self,
         frame: Frame,
@@ -31,7 +28,9 @@ class Target:
         n_atoms = (
             len(atoms["id"])
             if "id" in atoms
-            else len(atoms["x"]) if "x" in atoms else 0
+            else len(atoms["x"])
+            if "x" in atoms
+            else 0
         )
         return f"<Target {self.name}: {n_atoms} atoms in {self.constraint}>"
 
@@ -41,7 +40,9 @@ class Target:
         n_atoms = (
             len(atoms["id"])
             if "id" in atoms
-            else len(atoms["x"]) if "x" in atoms else 0
+            else len(atoms["x"])
+            if "x" in atoms
+            else 0
         )
         return n_atoms * self.number
 

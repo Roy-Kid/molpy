@@ -7,13 +7,12 @@ from .base import DataReader
 
 
 class AcReader(DataReader):
-
     def __init__(self, file: str | Path):
         super().__init__(Path(file))
         self._file = Path(file)
 
     def read(self, frame: mp.Frame) -> mp.Frame:
-        with open(self._file, "r") as f:
+        with open(self._file) as f:
             lines = [line.strip() for line in f if line.strip()]
 
         self.atoms = []

@@ -7,13 +7,13 @@ from .frame import Block
 from .selector import MaskPredicate
 
 __all__ = [
-    "Region",
-    "Cube",
-    "BoxRegion",
-    "SphereRegion",
     "AndRegion",
-    "OrRegion",
+    "BoxRegion",
+    "Cube",
     "NotRegion",
+    "OrRegion",
+    "Region",
+    "SphereRegion",
 ]
 
 
@@ -71,7 +71,6 @@ class PeriodicBoundary(Region): ...
 
 
 class BoxRegion(Region):
-
     def __init__(
         self,
         lengths: ArrayLike,
@@ -119,7 +118,6 @@ class BoxRegion(Region):
 
 
 class Cube(BoxRegion):
-
     def __init__(
         self, edge: float, origin: ArrayLike | None = None, coord_field: str = "xyz"
     ):
@@ -147,7 +145,6 @@ class Cube(BoxRegion):
 
 
 class SphereRegion(Region):
-
     def __init__(
         self, radius: float, center: ArrayLike | None = None, coord_field: str = "xyz"
     ):
@@ -193,7 +190,6 @@ class SphereRegion(Region):
 
 
 class AndRegion(Region):
-
     def __init__(self, a: Region, b: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a
@@ -225,7 +221,6 @@ class AndRegion(Region):
 
 
 class OrRegion(Region):
-
     def __init__(self, a: Region, b: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a
@@ -256,7 +251,6 @@ class OrRegion(Region):
 
 
 class NotRegion(Region):
-
     def __init__(self, a: Region, coord_field: str = "xyz"):
         super().__init__(coord_field)
         self.a = a

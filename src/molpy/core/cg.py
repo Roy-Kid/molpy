@@ -6,7 +6,7 @@ from .entity import Entity, Link
 
 
 class Bead(Entity):
-    """Coarse-grain bead; may include {"type": "X", "pos": [...], "members": list[Entity] | None}."""
+    """Coarse-grain bead; may include {"type": "X", "xyz": [...], "members": list[Entity] | None}."""
 
 
 class Bond(Link):

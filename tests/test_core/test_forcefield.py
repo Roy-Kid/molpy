@@ -5,7 +5,7 @@ Tests the ForceField, AtomisticForcefield, and related classes.
 """
 
 import pytest
-from molpy.core.forcefield import (
+from molpy import (
     ForceField,
     AtomisticForcefield,
     AtomType,
@@ -25,6 +25,11 @@ from molpy.core.forcefield import (
     Parameters,
     TypeBucket,
 )
+
+# Import Potential classes to ensure they are registered in the registry
+from molpy.potential.bond.harmonic import Harmonic as BondHarmonic
+from molpy.potential.angle.harmonic import Harmonic as AngleHarmonic
+from molpy.potential.pair.lj import LJ126
 
 
 class TestParameters:
@@ -155,7 +160,7 @@ class TestTypeBucket:
         assert len(atom_types) == 2
         assert len(bond_types) == 1
         assert len(all_types) == 3
-        
+
         # Verify they contain the right instances
         assert at1 in atom_types
         assert at2 in atom_types
@@ -297,7 +302,7 @@ class TestForceField:
         ff = ForceField()
         s1 = ff.def_style(AtomStyle, "full")
         s2 = ff.def_style(BondStyle, "harmonic")
-        
+
         atom_styles = ff.get_styles(AtomStyle)
         bond_styles = ff.get_styles(BondStyle)
         all_styles = ff.get_styles(Style)
@@ -447,3 +452,213 @@ class TestAtomisticForcefield:
         assert ha in ff.get_atomtypes()
         assert ca_ha_bond in ff.get_bondtypes()
         assert ha_ca_ha_angle in ff.get_angletypes()
+
+
+class TestStyleToPotential:
+    """Test converting Style to Potential instances."""
+
+    def test_bondstyle_to_potential(self):
+        """Test converting BondStyle to Potential."""
+        ff = AtomisticForcefield(name="TestFF")
+        bstyle = ff.def_bondstyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        bt = bstyle.def_type(at1, at2, k=1000.0, r0=1.5)
+
+        # Convert to potential
+        potential = bstyle.to_potential()
+
+        # Verify potential is created
+        assert potential is not None
+        assert hasattr(potential, "calc_energy")
+        assert hasattr(potential, "calc_forces")
+        assert hasattr(potential, "k")
+        assert hasattr(potential, "r0")
+
+        # Verify parameters
+        import numpy as np
+
+        assert len(potential.k) == 1
+        assert len(potential.r0) == 1
+        assert potential.k[0] == 1000.0
+        assert potential.r0[0] == 1.5
+
+    def test_bondstyle_to_potential_multiple_types(self):
+        """Test converting BondStyle with multiple types to Potential."""
+        ff = AtomisticForcefield(name="TestFF")
+        bstyle = ff.def_bondstyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        at3 = AtomType("CC")
+        bt1 = bstyle.def_type(at1, at2, k=1000.0, r0=1.5)
+        bt2 = bstyle.def_type(at2, at3, k=800.0, r0=1.4)
+
+        # Convert to potential
+        potential = bstyle.to_potential()
+
+        # Verify parameters (order may vary, so check both values are present)
+        import numpy as np
+
+        assert len(potential.k) == 2
+        assert len(potential.r0) == 2
+        assert set(potential.k.flatten()) == {1000.0, 800.0}
+        assert set(potential.r0.flatten()) == {1.5, 1.4}
+
+    def test_bondstyle_to_potential_missing_parameters(self):
+        """Test that missing parameters raise ValueError."""
+        ff = AtomisticForcefield(name="TestFF")
+        bstyle = ff.def_bondstyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        # Missing r0 parameter
+        bt = bstyle.def_type(at1, at2, k=1000.0)
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="missing required parameters"):
+            bstyle.to_potential()
+
+    def test_anglestyle_to_potential(self):
+        """Test converting AngleStyle to Potential."""
+        ff = AtomisticForcefield(name="TestFF")
+        astyle = ff.def_anglestyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        at3 = AtomType("CC")
+        angle = astyle.def_type(at1, at2, at3, k=500.0, theta0=120.0)
+
+        # Convert to potential
+        potential = astyle.to_potential()
+
+        # Verify potential is created
+        assert potential is not None
+        assert hasattr(potential, "calc_energy")
+        assert hasattr(potential, "calc_forces")
+        assert hasattr(potential, "k")
+        assert hasattr(potential, "theta0")
+
+        # Verify parameters
+        import numpy as np
+
+        assert len(potential.k) == 1
+        assert len(potential.theta0) == 1
+        assert potential.k[0] == 500.0
+        assert potential.theta0[0] == 120.0
+
+    def test_pairstyle_to_potential(self):
+        """Test converting PairStyle to Potential."""
+        ff = AtomisticForcefield(name="TestFF")
+        pstyle = ff.def_pairstyle("lj126/cut")
+        at1 = AtomType("CA")
+        pt = pstyle.def_type(at1, epsilon=0.293, sigma=0.355)
+
+        # Convert to potential
+        potential = pstyle.to_potential()
+
+        # Verify potential is created
+        assert potential is not None
+        assert hasattr(potential, "calc_energy")
+        assert hasattr(potential, "calc_forces")
+        assert hasattr(potential, "epsilon")
+        assert hasattr(potential, "sigma")
+
+        # Verify parameters
+        import numpy as np
+
+        assert len(potential.epsilon) == 1
+        assert len(potential.sigma) == 1
+        assert potential.epsilon[0] == 0.293
+        assert potential.sigma[0] == 0.355
+
+    def test_pairstyle_to_potential_multiple_types(self):
+        """Test converting PairStyle with multiple types to Potential."""
+        ff = AtomisticForcefield(name="TestFF")
+        pstyle = ff.def_pairstyle("lj126/cut")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        pt1 = pstyle.def_type(at1, epsilon=0.293, sigma=0.355)
+        pt2 = pstyle.def_type(at2, epsilon=0.126, sigma=0.242)
+
+        # Convert to potential
+        potential = pstyle.to_potential()
+
+        # Verify parameters (order may vary, so check both values are present)
+        import numpy as np
+
+        assert len(potential.epsilon) == 2
+        assert len(potential.sigma) == 2
+        assert set(potential.epsilon.flatten()) == {0.293, 0.126}
+        assert set(potential.sigma.flatten()) == {0.355, 0.242}
+
+    def test_pairstyle_to_potential_missing_parameters(self):
+        """Test that missing parameters raise ValueError."""
+        ff = AtomisticForcefield(name="TestFF")
+        pstyle = ff.def_pairstyle("lj126/cut")
+        at1 = AtomType("CA")
+        # Missing sigma parameter
+        pt = pstyle.def_type(at1, epsilon=0.293)
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="missing required parameters"):
+            pstyle.to_potential()
+
+
+class TestForceFieldToPotentials:
+    """Test converting ForceField to Potentials collection."""
+
+    def test_forcefield_to_potentials(self):
+        """Test converting ForceField to Potentials."""
+        ff = AtomisticForcefield(name="TestFF")
+
+        # Define bond style and types
+        bstyle = ff.def_bondstyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        bstyle.def_type(at1, at2, k=1000.0, r0=1.5)
+
+        # Define angle style and types
+        astyle = ff.def_anglestyle("harmonic")
+        at3 = AtomType("CC")
+        astyle.def_type(at1, at2, at3, k=500.0, theta0=120.0)
+
+        # Define pair style and types
+        pstyle = ff.def_pairstyle("lj126/cut")
+        pstyle.def_type(at1, epsilon=0.293, sigma=0.355)
+
+        # Convert to potentials
+        potentials = ff.to_potentials()
+
+        # Verify potentials collection
+        assert len(potentials) == 3
+        assert all(hasattr(p, "calc_energy") for p in potentials)
+        assert all(hasattr(p, "calc_forces") for p in potentials)
+
+    def test_forcefield_to_potentials_empty_styles(self):
+        """Test converting ForceField with no types to Potentials."""
+        ff = AtomisticForcefield(name="TestFF")
+        ff.def_bondstyle("harmonic")
+        ff.def_anglestyle("harmonic")
+
+        # Convert to potentials (should return empty collection)
+        potentials = ff.to_potentials()
+
+        # Should return empty collection since no types are defined
+        assert len(potentials) == 0
+
+    def test_forcefield_to_potentials_partial_types(self):
+        """Test converting ForceField with some styles missing types."""
+        ff = AtomisticForcefield(name="TestFF")
+
+        # Define bond style with types
+        bstyle = ff.def_bondstyle("harmonic")
+        at1 = AtomType("CA")
+        at2 = AtomType("CB")
+        bstyle.def_type(at1, at2, k=1000.0, r0=1.5)
+
+        # Define angle style without types
+        ff.def_anglestyle("harmonic")
+
+        # Convert to potentials
+        potentials = ff.to_potentials()
+
+        # Should only have bond potential
+        assert len(potentials) == 1

@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 
-from molpy.core.box import Box
+from molpy import Box
 
 
 class TestBoxConstruction:
@@ -61,4 +61,3 @@ class TestBoxOps:
         npt.assert_allclose(box2.ly, 6)
         npt.assert_allclose(box2.lz, 8)
         assert "Box" in repr(box)
-

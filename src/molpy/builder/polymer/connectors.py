@@ -5,19 +5,14 @@ Connectors decide which ports to connect between adjacent monomers
 and optionally execute chemical reactions during connection.
 """
 
-from typing import Literal, Any, Mapping, Tuple, Callable, Iterable, TYPE_CHECKING
-from ...core.wrappers.monomer import Monomer, Port
-from ..errors import (
-    AmbiguousPortsError,
-    MissingConnectorRule,
-    NoCompatiblePortsError,
-    BondKindConflictError,
-)
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, Literal
 
-if TYPE_CHECKING:
-    from molpy.reacter.base import Reacter
-    from molpy.core.atomistic import Atomistic
+from molpy import Atomistic
+from molpy.core.wrappers.monomer import Monomer, Port
+from molpy.reacter.base import Reacter
 
+from .errors import AmbiguousPortsError, MissingConnectorRule, NoCompatiblePortsError
 
 BondKind = Literal["-", "=", "#", ":"]
 
@@ -25,7 +20,7 @@ BondKind = Literal["-", "=", "#", ":"]
 class ConnectorContext(dict[str, Any]):
     """
     Shared context passed to connectors during linear build.
-    
+
     Contains information like:
     - step: int (current connection step index)
     - sequence: str (full sequence being built)
@@ -33,38 +28,39 @@ class ConnectorContext(dict[str, Any]):
     - right_label: str (label of right monomer)
     - audit: list (accumulated connection records)
     """
+
     pass
 
 
 class Connector:
     """
     Abstract base for port selection between two adjacent monomers.
-    
+
     This is topology-only: connectors decide WHICH ports to connect,
     not HOW to position them geometrically.
     """
-    
+
     def select_ports(
         self,
         left: Monomer,
         right: Monomer,
-        left_ports: Mapping[str, Port],   # unconsumed ports
+        left_ports: Mapping[str, Port],  # unconsumed ports
         right_ports: Mapping[str, Port],  # unconsumed ports
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """
         Select which ports to connect between left and right monomers.
-        
+
         Args:
             left: Left monomer in the sequence
             right: Right monomer in the sequence
             left_ports: Available (unconsumed) ports on left monomer
             right_ports: Available (unconsumed) ports on right monomer
             ctx: Shared context with step info, sequence, etc.
-            
+
         Returns:
             Tuple of (left_port_name, right_port_name, optional_bond_kind_override)
-            
+
         Raises:
             AmbiguousPortsError: Cannot uniquely determine ports
             NoCompatiblePortsError: No valid port pair found
@@ -76,17 +72,17 @@ class Connector:
 class AutoConnector(Connector):
     """
     BigSMILES-guided automatic port selection.
-    
+
     Strategy:
     1. If left has port with role='right' and right has role='left' → use those
     2. Else if each side has exactly one unconsumed port → use that pair
     3. Else raise AmbiguousPortsError
-    
+
     This implements the common case where:
     - BigSMILES uses [<] for "left" role and [>] for "right" role
     - We connect left's "right" port to right's "left" port
     """
-    
+
     def select_ports(
         self,
         left: Monomer,
@@ -94,35 +90,39 @@ class AutoConnector(Connector):
         left_ports: Mapping[str, Port],
         right_ports: Mapping[str, Port],
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """Select ports using BigSMILES role heuristics."""
-        
+
         # Strategy 1: Try role-based selection (BigSMILES < and >)
         # Case 1a: left has role='right', right has role='left' (normal chain extension)
-        left_right_role = [name for name, p in left_ports.items() 
-                          if p.data.get('role') == 'right']
-        right_left_role = [name for name, p in right_ports.items() 
-                          if p.data.get('role') == 'left']
-        
+        left_right_role = [
+            name for name, p in left_ports.items() if p.data.get("role") == "right"
+        ]
+        right_left_role = [
+            name for name, p in right_ports.items() if p.data.get("role") == "left"
+        ]
+
         if len(left_right_role) == 1 and len(right_left_role) == 1:
             return (left_right_role[0], right_left_role[0], None)
-        
+
         # Case 1b: left has role='left', right has role='right' (terminus connection)
         # E.g., HO[*:t] (left terminus) connects to CC[>] (right-directed monomer)
-        left_left_role = [name for name, p in left_ports.items()
-                         if p.data.get('role') == 'left']
-        right_right_role = [name for name, p in right_ports.items()
-                           if p.data.get('role') == 'right']
-        
+        left_left_role = [
+            name for name, p in left_ports.items() if p.data.get("role") == "left"
+        ]
+        right_right_role = [
+            name for name, p in right_ports.items() if p.data.get("role") == "right"
+        ]
+
         if len(left_left_role) == 1 and len(right_right_role) == 1:
             return (left_left_role[0], right_right_role[0], None)
-        
+
         # Strategy 2: If exactly one port on each side, use those
         if len(left_ports) == 1 and len(right_ports) == 1:
             left_name = next(iter(left_ports.keys()))
             right_name = next(iter(right_ports.keys()))
             return (left_name, right_name, None)
-        
+
         # Strategy 3: Ambiguous - cannot decide
         raise AmbiguousPortsError(
             f"Cannot auto-select ports between {ctx.get('left_label')} and {ctx.get('right_label')}: "
@@ -135,9 +135,9 @@ class AutoConnector(Connector):
 class TableConnector(Connector):
     """
     Rule-based port selection using a lookup table.
-    
+
     Maps (left_label, right_label) → (left_port, right_port [, bond_kind])
-    
+
     Example:
         rules = {
             ("A", "B"): ("1", "2"),
@@ -146,7 +146,7 @@ class TableConnector(Connector):
         }
         connector = TableConnector(rules, fallback=AutoConnector())
     """
-    
+
     def __init__(
         self,
         rules: Mapping[tuple[str, str], tuple[str, str] | tuple[str, str, BondKind]],
@@ -154,14 +154,14 @@ class TableConnector(Connector):
     ):
         """
         Initialize table connector.
-        
+
         Args:
             rules: Mapping from (left_label, right_label) to port specifications
             fallback: Optional connector to try if pair not in rules
         """
         self.rules = dict(rules)  # Convert to dict for internal use
         self.fallback = fallback
-    
+
     def select_ports(
         self,
         left: Monomer,
@@ -169,24 +169,24 @@ class TableConnector(Connector):
         left_ports: Mapping[str, Port],
         right_ports: Mapping[str, Port],
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """Select ports using table lookup."""
-        
-        left_label = ctx.get('left_label', '')
-        right_label = ctx.get('right_label', '')
+
+        left_label = ctx.get("left_label", "")
+        right_label = ctx.get("right_label", "")
         key = (left_label, right_label)
-        
+
         if key in self.rules:
             rule = self.rules[key]
             if len(rule) == 2:
                 return (rule[0], rule[1], None)
             else:
                 return (rule[0], rule[1], rule[2])
-        
+
         # Try fallback if available
         if self.fallback is not None:
             return self.fallback.select_ports(left, right, left_ports, right_ports, ctx)
-        
+
         # No rule and no fallback
         raise MissingConnectorRule(
             f"No rule found for ({left_label}, {right_label}) and no fallback connector"
@@ -196,31 +196,37 @@ class TableConnector(Connector):
 class CallbackConnector(Connector):
     """
     User-defined callback for port selection.
-    
+
     Example:
         def my_selector(left, right, left_ports, right_ports, ctx):
             # Custom logic here
             return ("port_out", "port_in", "-")
-        
+
         connector = CallbackConnector(my_selector)
     """
-    
+
     def __init__(
-        self, 
+        self,
         fn: Callable[
-            [Monomer, Monomer, Mapping[str, Port], Mapping[str, Port], ConnectorContext],
-            Tuple[str, str] | Tuple[str, str, BondKind]
-        ]
+            [
+                Monomer,
+                Monomer,
+                Mapping[str, Port],
+                Mapping[str, Port],
+                ConnectorContext,
+            ],
+            tuple[str, str] | tuple[str, str, BondKind],
+        ],
     ):
         """
         Initialize callback connector.
-        
+
         Args:
             fn: Callable that takes (left, right, left_ports, right_ports, ctx)
                 and returns (left_port, right_port [, bond_kind])
         """
         self.fn = fn
-    
+
     def select_ports(
         self,
         left: Monomer,
@@ -228,11 +234,11 @@ class CallbackConnector(Connector):
         left_ports: Mapping[str, Port],
         right_ports: Mapping[str, Port],
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """Select ports using user callback."""
-        
+
         result = self.fn(left, right, left_ports, right_ports, ctx)
-        
+
         if len(result) == 2:
             return (result[0], result[1], None)
         else:
@@ -242,23 +248,23 @@ class CallbackConnector(Connector):
 class ChainConnector(Connector):
     """
     Try a list of connectors in order; first one that succeeds wins.
-    
+
     Example:
         connector = ChainConnector([
             TableConnector(specific_rules),
             AutoConnector(),
         ])
     """
-    
+
     def __init__(self, connectors: Iterable[Connector]):
         """
         Initialize chain connector.
-        
+
         Args:
             connectors: List of connectors to try in order
         """
         self.connectors = list(connectors)
-    
+
     def select_ports(
         self,
         left: Monomer,
@@ -266,17 +272,21 @@ class ChainConnector(Connector):
         left_ports: Mapping[str, Port],
         right_ports: Mapping[str, Port],
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """Try connectors in order until one succeeds."""
-        
+
         errors = []
         for connector in self.connectors:
             try:
                 return connector.select_ports(left, right, left_ports, right_ports, ctx)
-            except (AmbiguousPortsError, MissingConnectorRule, NoCompatiblePortsError) as e:
+            except (
+                AmbiguousPortsError,
+                MissingConnectorRule,
+                NoCompatiblePortsError,
+            ) as e:
                 errors.append(f"{type(connector).__name__}: {e}")
                 continue
-        
+
         # All connectors failed
         raise AmbiguousPortsError(
             f"All connectors failed for ({ctx.get('left_label')}, {ctx.get('right_label')}): "
@@ -287,28 +297,28 @@ class ChainConnector(Connector):
 class ReacterConnector(Connector):
     """
     Connector that uses chemical reactions (Reacter) for polymer assembly.
-    
+
     This connector integrates port selection and chemical reaction execution.
     It manages multiple Reacter instances and port mapping strategies for
     different monomer pairs.
-    
+
     **Port Selection Strategy:**
     Port selection is handled via a `port_strategy` which must be one of:
     1. **Callable**: Custom function (left, right, left_ports, right_ports, ctx) -> (port_L, port_R)
     2. **Dict**: Explicit mapping {('A','B'): ('1','2'), ...}
-    
+
     There is NO 'auto' mode - port selection must be explicit via port_map.
-    
+
     Attributes:
         default: Default Reacter for most connections
         overrides: Dict mapping (left_type, right_type) -> specialized Reacter
         port_map: Dict mapping (left_type, right_type) -> (port_L, port_R)
-    
+
     Example:
         >>> from molpy.reacter import Reacter
         >>> from molpy.reacter.selectors import port_anchor_selector, remove_one_H
         >>> from molpy.reacter.transformers import make_single_bond
-        >>> 
+        >>>
         >>> default_reacter = Reacter(
         ...     name="C-C_coupling",
         ...     anchor_left=port_anchor_selector,
@@ -317,7 +327,7 @@ class ReacterConnector(Connector):
         ...     leaving_right=remove_one_H,
         ...     bond_maker=make_single_bond,
         ... )
-        >>> 
+        >>>
         >>> # Explicit port mapping for all monomer pairs
         >>> connector = ReacterConnector(
         ...     default=default_reacter,
@@ -328,7 +338,7 @@ class ReacterConnector(Connector):
         ...     overrides={('B', 'C'): special_reacter},
         ... )
     """
-    
+
     def __init__(
         self,
         default: "Reacter",
@@ -337,41 +347,38 @@ class ReacterConnector(Connector):
     ):
         """
         Initialize ReacterConnector.
-        
+
         Args:
             default: Default Reacter for most connections
-            port_strategy: Port selection strategy:
-                - Callable: (left, right, left_ports, right_ports, ctx) -> (port_L, port_R)
-                - Dict: {(left_type, right_type): (port_L, port_R)}
-            overrides: Dict mapping (left_type, right_type) -> specialized Reacter
-        
+            port_map: Mapping from (left_type, right_type) to (port_L, port_R)
+            overrides: Optional mapping from (left_type, right_type) to
+                specialized Reacter instances
+
         Raises:
-            TypeError: If port_map is not dict
+            TypeError: If port_map is not a dict
         """
         if not isinstance(port_map, dict):
-            raise TypeError(
-                f"port_map must be dict, got {type(port_map).__name__}"
-            )
-        
+            raise TypeError(f"port_map must be dict, got {type(port_map).__name__}")
+
         self.default = default
         self.overrides = overrides or {}
         self.port_map = port_map
         self._history: list = []  # List of ProductSet objects
-    
+
     def get_reacter(self, left_type: str, right_type: str) -> "Reacter":
         """
         Get appropriate reacter for a monomer pair.
-        
+
         Args:
             left_type: Type label of left monomer (e.g., 'A', 'B')
             right_type: Type label of right monomer
-            
+
         Returns:
             The appropriate Reacter (override if exists, else default)
         """
         key = (left_type, right_type)
         return self.overrides.get(key, self.default)
-    
+
     def select_ports(
         self,
         left: Monomer,
@@ -379,27 +386,27 @@ class ReacterConnector(Connector):
         left_ports: Mapping[str, Port],
         right_ports: Mapping[str, Port],
         ctx: ConnectorContext,
-    ) -> Tuple[str, str, BondKind | None]:
+    ) -> tuple[str, str, BondKind | None]:
         """
         Select ports using the configured port_map.
-        
+
         Args:
             left: Left monomer
             right: Right monomer
             left_ports: Available ports on left
             right_ports: Available ports on right
             ctx: Connector context with monomer type information
-            
+
         Returns:
             Tuple of (port_L, port_R, None)
-            
+
         Raises:
             ValueError: If port mapping not found or ports invalid
         """
         # Get monomer types from context
-        left_type = ctx.get('left_label', '')
-        right_type = ctx.get('right_label', '')
-        
+        left_type = ctx.get("left_label", "")
+        right_type = ctx.get("right_label", "")
+
         # Look up explicit mapping
         key = (left_type, right_type)
         if key not in self.port_map:
@@ -408,15 +415,19 @@ class ReacterConnector(Connector):
                 f"Available mappings: {list(self.port_map.keys())}"
             )
         port_L, port_R = self.port_map[key]
-        
+
         # Validate ports exist
         if port_L not in left_ports:
-            raise ValueError(f"Selected port '{port_L}' not found in left monomer ({left_type})")
+            raise ValueError(
+                f"Selected port '{port_L}' not found in left monomer ({left_type})"
+            )
         if port_R not in right_ports:
-            raise ValueError(f"Selected port '{port_R}' not found in right monomer ({right_type})")
-        
+            raise ValueError(
+                f"Selected port '{port_R}' not found in right monomer ({right_type})"
+            )
+
         return port_L, port_R, None  # bond_kind determined by reacter
-    
+
     def connect(
         self,
         left: Monomer,
@@ -428,13 +439,13 @@ class ReacterConnector(Connector):
     ) -> tuple["Atomistic", dict[str, Any]]:
         """
         Execute chemical reaction between two monomers.
-        
+
         This method performs the full chemical reaction including:
         1. Selecting appropriate reacter based on monomer types
         2. Executing reaction (merging, bond making, removing leaving groups)
         3. Computing new topology (angles, dihedrals)
         4. Collecting metadata for retypification
-        
+
         Args:
             left: Left monomer
             right: Right monomer
@@ -442,7 +453,7 @@ class ReacterConnector(Connector):
             right_type: Type label of right monomer
             port_L: Port name on left monomer
             port_R: Port name on right monomer
-            
+
         Returns:
             Tuple of (assembly, metadata) where:
             - assembly: Atomistic product of reaction
@@ -454,52 +465,56 @@ class ReacterConnector(Connector):
                 - needs_retypification: whether retypification is needed
         """
         from molpy.reacter.base import ProductSet
-        
+
         # Select reacter
         reacter = self.get_reacter(left_type, right_type)
-        
+
         # Execute reaction
         product_set: ProductSet = reacter.run(
-            left, right,
+            left,
+            right,
             port_L=port_L,
             port_R=port_R,
             compute_topology=True,
         )
-        
+
         # Store in history
         self._history.append(product_set)
-        
+
         # Extract metadata
         metadata = {
-            'port_L': port_L,
-            'port_R': port_R,
-            'reaction_name': reacter.name,
-            'new_bonds': product_set.notes.get('new_bonds', []),
-            'new_angles': product_set.notes.get('new_angles', []),
-            'new_dihedrals': product_set.notes.get('new_dihedrals', []),
-            'modified_atoms': product_set.notes.get('modified_atoms', set()),
-            'needs_retypification': product_set.notes.get('needs_retypification', False),
-            'entity_maps': product_set.notes.get('entity_maps', []),  # For port remapping
+            "port_L": port_L,
+            "port_R": port_R,
+            "reaction_name": reacter.name,
+            "new_bonds": product_set.notes.get("new_bonds", []),
+            "new_angles": product_set.notes.get("new_angles", []),
+            "new_dihedrals": product_set.notes.get("new_dihedrals", []),
+            "modified_atoms": product_set.notes.get("modified_atoms", set()),
+            "needs_retypification": product_set.notes.get(
+                "needs_retypification", False
+            ),
+            "entity_maps": product_set.notes.get(
+                "entity_maps", []
+            ),  # For port remapping
         }
-        
+
         return product_set.product, metadata
-    
+
     def get_history(self) -> list:
         """Get all reaction history (list of ProductSet)."""
         return self._history
-    
+
     def get_all_modified_atoms(self) -> set:
         """Get all atoms modified across all reactions."""
         all_atoms = set()
         for product in self._history:
-            all_atoms.update(product.notes.get('modified_atoms', set()))
+            all_atoms.update(product.notes.get("modified_atoms", set()))
         return all_atoms
-    
+
     def needs_retypification(self) -> bool:
         """Check if any reactions require retypification."""
-        return any(p.notes.get('needs_retypification', False) for p in self._history)
+        return any(p.notes.get("needs_retypification", False) for p in self._history)
 
 
 # Alias for backward compatibility
 TopologyConnector = AutoConnector
-

@@ -4,10 +4,10 @@ from .xyz import XYZTrajectoryReader, XYZTrajectoryWriter
 
 __all__ = [
     "BaseTrajectoryReader",
-    "TrajectoryWriter",
     "FrameLocation",
     "LammpsTrajectoryReader",
     "LammpsTrajectoryWriter",
+    "TrajectoryWriter",
     "XYZTrajectoryReader",
     "XYZTrajectoryWriter",
 ]

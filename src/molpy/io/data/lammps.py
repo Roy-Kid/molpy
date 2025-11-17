@@ -8,13 +8,11 @@ LAMMPS data files using the Block.from_csv functionality.
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 
-from molpy.core.box import Box
-from molpy.core.forcefield import ForceField
-from molpy.core.frame import Block, Frame
+from molpy import Block, Box, ForceField, Frame
 
 from .base import DataReader, DataWriter
 
@@ -22,11 +20,11 @@ from .base import DataReader, DataWriter
 class LammpsDataReader(DataReader):
     """Modern LAMMPS data file reader using Block.from_csv."""
 
-    def __init__(self, path: Union[str, Path], atom_style: str = "full"):
+    def __init__(self, path: str | Path, atom_style: str = "full") -> None:
         super().__init__(Path(path))
         self.atom_style = atom_style
 
-    def read(self, frame: Optional[Frame] = None) -> Frame:
+    def read(self, frame: Frame | None = None) -> Frame:
         """Read LAMMPS data file into a Frame."""
         frame = frame or Frame()
 
@@ -87,16 +85,16 @@ class LammpsDataReader(DataReader):
 
         return frame
 
-    def _read_lines(self) -> List[str]:
+    def _read_lines(self) -> list[str]:
         """Read file and return non-empty, non-comment lines."""
-        with open(self._path, "r") as f:
+        with open(self._path) as f:
             return [
                 line.strip()
                 for line in f
                 if line.strip() and not line.strip().startswith("#")
             ]
 
-    def _extract_sections(self, lines: List[str]) -> Dict[str, List[str]]:
+    def _extract_sections(self, lines: list[str]) -> dict[str, list[str]]:
         """Extract sections from LAMMPS data file."""
         sections = {"header": []}
         current_section = "header"
@@ -146,7 +144,7 @@ class LammpsDataReader(DataReader):
 
         return sections
 
-    def _parse_header(self, header_lines: List[str]) -> Dict[str, Any]:
+    def _parse_header(self, header_lines: list[str]) -> dict[str, Any]:
         """Parse header information."""
         counts = {}
         box_bounds = {}
@@ -193,7 +191,7 @@ class LammpsDataReader(DataReader):
 
         return {"counts": counts, "box_bounds": box_bounds if box_bounds else None}
 
-    def _create_box(self, box_bounds: Optional[Dict[str, Tuple[float, float]]]) -> Box:
+    def _create_box(self, box_bounds: dict[str, tuple[float, float]] | None) -> Box:
         """Create Box from bounds."""
         if not box_bounds:
             # Default box
@@ -218,7 +216,7 @@ class LammpsDataReader(DataReader):
         )
         return Box(lengths, origin=origin)
 
-    def _parse_masses(self, mass_lines: List[str]) -> Dict[str, float]:
+    def _parse_masses(self, mass_lines: list[str]) -> dict[str, float]:
         """Parse mass section."""
         masses = {}
         for line in mass_lines:
@@ -233,8 +231,8 @@ class LammpsDataReader(DataReader):
         return masses
 
     def _parse_type_labels(
-        self, sections: Dict[str, List[str]]
-    ) -> Dict[str, Dict[int, str]]:
+        self, sections: dict[str, list[str]]
+    ) -> dict[str, dict[int, str]]:
         """Parse all type labels sections."""
         type_labels = {}
 
@@ -262,21 +260,20 @@ class LammpsDataReader(DataReader):
 
         return type_labels
 
-    def _parse_force_field(self, sections: Dict[str, List[str]]) -> ForceField:
+    def _parse_force_field(self, sections: dict[str, list[str]]) -> ForceField:
         """Parse force field parameters into ForceField."""
         forcefield = ForceField()
 
         # Parse pair coefficients
         if "PairCoeffs" in sections:
-            pair_style = forcefield.def_pairstyle("lj/cut")
+            forcefield.def_pairstyle("lj/cut")
             for line in sections["PairCoeffs"]:
                 parts = line.split()
                 if len(parts) >= 3:
                     try:
-                        type_id = int(parts[0])
-                        epsilon = float(parts[1])
-                        sigma = float(parts[2])
-                        type_name = f"pair_{type_id}"
+                        int(parts[0])
+                        float(parts[1])
+                        float(parts[2])
                         # TODO: Fix force field implementation
                         # pair_type = pair_style.def_type(type_name)
                         # pair_type["epsilon"] = epsilon
@@ -286,15 +283,14 @@ class LammpsDataReader(DataReader):
 
         # Parse bond coefficients
         if "BondCoeffs" in sections:
-            bond_style = forcefield.def_bondstyle("harmonic")
+            forcefield.def_bondstyle("harmonic")
             for line in sections["BondCoeffs"]:
                 parts = line.split()
                 if len(parts) >= 3:
                     try:
-                        type_id = int(parts[0])
-                        k = float(parts[1])
-                        r0 = float(parts[2])
-                        type_name = f"bond_{type_id}"
+                        int(parts[0])
+                        float(parts[1])
+                        float(parts[2])
                         # TODO: Fix force field implementation
                         # bond_type = bond_style.def_type(type_name)
                         # bond_type["k"] = k
@@ -304,15 +300,14 @@ class LammpsDataReader(DataReader):
 
         # Parse angle coefficients
         if "AngleCoeffs" in sections:
-            angle_style = forcefield.def_anglestyle("harmonic")
+            forcefield.def_anglestyle("harmonic")
             for line in sections["AngleCoeffs"]:
                 parts = line.split()
                 if len(parts) >= 3:
                     try:
-                        type_id = int(parts[0])
-                        k = float(parts[1])
-                        theta0 = float(parts[2])
-                        type_name = f"angle_{type_id}"
+                        int(parts[0])
+                        float(parts[1])
+                        float(parts[2])
                         # TODO: Fix force field implementation
                         # angle_type = angle_style.def_type(type_name)
                         # angle_type["k"] = k
@@ -322,16 +317,15 @@ class LammpsDataReader(DataReader):
 
         # Parse dihedral coefficients
         if "DihedralCoeffs" in sections:
-            dihedral_style = forcefield.def_dihedralstyle("harmonic")
+            forcefield.def_dihedralstyle("harmonic")
             for line in sections["DihedralCoeffs"]:
                 parts = line.split()
                 if len(parts) >= 4:
                     try:
-                        type_id = int(parts[0])
-                        k = float(parts[1])
-                        d = int(parts[2])
-                        n = int(parts[3])
-                        type_name = f"dihedral_{type_id}"
+                        int(parts[0])
+                        float(parts[1])
+                        int(parts[2])
+                        int(parts[3])
                         # TODO: Fix force field implementation
                         # dihedral_type = dihedral_style.def_type(type_name)
                         # dihedral_type["k"] = k
@@ -342,16 +336,15 @@ class LammpsDataReader(DataReader):
 
         # Parse improper coefficients
         if "ImproperCoeffs" in sections:
-            improper_style = forcefield.def_improperstyle("harmonic")
+            forcefield.def_improperstyle("harmonic")
             for line in sections["ImproperCoeffs"]:
                 parts = line.split()
                 if len(parts) >= 4:
                     try:
-                        type_id = int(parts[0])
-                        k = float(parts[1])
-                        d = int(parts[2])
-                        n = int(parts[3])
-                        type_name = f"improper_{type_id}"
+                        int(parts[0])
+                        float(parts[1])
+                        int(parts[2])
+                        int(parts[3])
                         # TODO: Fix force field implementation
                         # improper_type = improper_style.def_type(type_name)
                         # improper_type["k"] = k
@@ -364,9 +357,9 @@ class LammpsDataReader(DataReader):
 
     def _parse_atoms_section(
         self,
-        atom_lines: List[str],
-        masses: Dict[str, float],
-        type_labels: Dict[int, str],
+        atom_lines: list[str],
+        masses: dict[str, float],
+        type_labels: dict[int, str],
     ) -> Block:
         """Parse atoms section using Block.from_csv with space delimiter."""
         if not atom_lines:
@@ -419,7 +412,7 @@ class LammpsDataReader(DataReader):
         return block
 
     def _parse_connectivity_section(
-        self, lines: List[str], section_type: str, type_labels: Dict[int, str]
+        self, lines: list[str], section_type: str, type_labels: dict[int, str]
     ) -> Block:
         """Parse connectivity sections (bonds, angles, dihedrals, impropers)."""
         if not lines:
@@ -427,10 +420,10 @@ class LammpsDataReader(DataReader):
 
         # Define headers for each section type
         headers = {
-            "bond": ["id", "type", "atom1", "atom2"],
-            "angle": ["id", "type", "atom1", "atom2", "atom3"],
-            "dihedral": ["id", "type", "atom1", "atom2", "atom3", "atom4"],
-            "improper": ["id", "type", "atom1", "atom2", "atom3", "atom4"],
+            "bond": ["id", "type", "atom_i", "atom_j"],
+            "angle": ["id", "type", "atom_i", "atom_j", "atom_k"],
+            "dihedral": ["id", "type", "atom_i", "atom_j", "atom_k", "atom_l"],
+            "improper": ["id", "type", "atom_i", "atom_j", "atom_k", "atom_l"],
         }
 
         header = headers[section_type]
@@ -448,13 +441,24 @@ class LammpsDataReader(DataReader):
             StringIO(csv_string), delimiter=" ", skipinitialspace=True
         )
 
+        # Convert LAMMPS 1-based atom indices to 0-based
+        if block.nrows > 0:
+            if "atom_i" in block:
+                block["atom_i"] = block["atom_i"].astype(int) - 1
+            if "atom_j" in block:
+                block["atom_j"] = block["atom_j"].astype(int) - 1
+            if "k" in block:
+                block["k"] = block["k"].astype(int) - 1
+            if "l" in block:
+                block["l"] = block["l"].astype(int) - 1
+
         return block
 
 
 class LammpsDataWriter(DataWriter):
     """Modern LAMMPS data file writer using Block.to_csv approach."""
 
-    def __init__(self, path: Union[str, Path], atom_style: str = "full"):
+    def __init__(self, path: str | Path, atom_style: str = "full") -> None:
         super().__init__(Path(path))
         self.atom_style = atom_style
 
@@ -481,12 +485,12 @@ class LammpsDataWriter(DataWriter):
         self._write_box_bounds(lines, frame)
         lines.append("")
 
+        # Type labels sections (must come before Masses for LAMMPS)
+        self._write_type_labels_sections(lines, frame)
+
         # Masses section
         if "atoms" in frame:
             self._write_masses_section(lines, frame)
-
-        # Type labels sections
-        self._write_type_labels_sections(lines, frame)
 
         # Force field coefficients sections
         self._write_force_field_coeffs_sections(lines, frame)
@@ -511,7 +515,7 @@ class LammpsDataWriter(DataWriter):
         with open(self._path, "w") as f:
             f.write("\n".join(lines))
 
-    def _get_counts(self, frame: Frame) -> Dict[str, int]:
+    def _get_counts(self, frame: Frame) -> dict[str, int]:
         """Get counts from frame."""
         counts = {}
         if "atoms" in frame:
@@ -526,7 +530,7 @@ class LammpsDataWriter(DataWriter):
             counts["impropers"] = frame["impropers"].nrows
         return counts
 
-    def _write_counts(self, lines: List[str], counts: Dict[str, int]) -> None:
+    def _write_counts(self, lines: list[str], counts: dict[str, int]) -> None:
         """Write count lines."""
         if "atoms" in counts:
             lines.append(f"{counts['atoms']} atoms")
@@ -539,7 +543,7 @@ class LammpsDataWriter(DataWriter):
         if "impropers" in counts and counts["impropers"] > 0:
             lines.append(f"{counts['impropers']} impropers")
 
-    def _write_type_counts(self, lines: List[str], frame: Frame) -> None:
+    def _write_type_counts(self, lines: list[str], frame: Frame) -> None:
         """Write type count lines."""
         if "atoms" in frame:
             unique_types = np.unique(frame["atoms"]["type"])
@@ -561,7 +565,7 @@ class LammpsDataWriter(DataWriter):
             unique_types = np.unique(frame["impropers"]["type"])
             lines.append(f"{len(unique_types)} improper types")
 
-    def _write_box_bounds(self, lines: List[str], frame: Frame) -> None:
+    def _write_box_bounds(self, lines: list[str], frame: Frame) -> None:
         """Write box bounds."""
         if frame.metadata.get("box") is not None:
             box = frame.metadata["box"]
@@ -579,7 +583,7 @@ class LammpsDataWriter(DataWriter):
             lines.append("0.0 10.0 ylo yhi")
             lines.append("0.0 10.0 zlo zhi")
 
-    def _write_masses_section(self, lines: List[str], frame: Frame) -> None:
+    def _write_masses_section(self, lines: list[str], frame: Frame) -> None:
         """Write masses section."""
         lines.append("Masses")
         lines.append("")
@@ -590,12 +594,22 @@ class LammpsDataWriter(DataWriter):
 
         for atom_type in sorted(unique_types):
             mask = atoms_data["type"] == atom_type
-            mass = atoms_data["mass"][mask][0]
+            
+            # Get mass - prefer element field, fallback to mass field
+            if "element" in atoms_data:
+                from molpy.core.element import Element
+                element_symbol = atoms_data["element"][mask][0]
+                mass = Element(element_symbol).mass
+            elif "mass" in atoms_data:
+                mass = atoms_data["mass"][mask][0]
+            else:
+                mass = 1.0  # Default fallback
+            
             lines.append(f"{type_to_id[atom_type]} {mass:.6f}")
 
         lines.append("")
 
-    def _write_type_labels_sections(self, lines: List[str], frame: Frame) -> None:
+    def _write_type_labels_sections(self, lines: list[str], frame: Frame) -> None:
         """Write type labels sections if needed."""
         sections = [
             ("atoms", "Atom Type Labels"),
@@ -622,22 +636,38 @@ class LammpsDataWriter(DataWriter):
 
     def _needs_type_labels(self, types: np.ndarray) -> bool:
         """Check if type labels section is needed."""
-        return True  # Always include for consistency
+        # Only write type labels if types are non-numeric (strings)
+        # Numeric types (integers) don't need labels
+        if len(types) == 0:
+            return False
+        # Check if any type is a string (not numeric)
+        return types.dtype.kind in ("U", "S", "O")  # Unicode, byte string, or object
 
     def _write_force_field_coeffs_sections(
-        self, lines: List[str], frame: Frame
+        self, lines: list[str], frame: Frame
     ) -> None:
         """Write force field coefficients sections."""
         forcefield = frame.metadata.get("forcefield")
         if not forcefield:
             return
 
+        # Import style classes
+        from molpy import (
+            AngleStyle,
+            BondStyle,
+            DihedralStyle,
+            ImproperStyle,
+            PairStyle,
+            Type,
+        )
+
         # Write pair coefficients
-        if forcefield.pairstyles:
+        pair_styles = forcefield.get_styles(PairStyle)
+        if pair_styles:
             lines.append("Pair Coeffs")
             lines.append("")
-            for style in forcefield.pairstyles:
-                for type_obj in style.types:
+            for style in pair_styles:
+                for type_obj in style.types.bucket(Type):
                     type_id = int(type_obj.name.split("_")[1])
                     epsilon = type_obj.get("epsilon", 0.0)
                     sigma = type_obj.get("sigma", 1.0)
@@ -645,11 +675,12 @@ class LammpsDataWriter(DataWriter):
             lines.append("")
 
         # Write bond coefficients
-        if forcefield.bondstyles:
+        bond_styles = forcefield.get_styles(BondStyle)
+        if bond_styles:
             lines.append("Bond Coeffs")
             lines.append("")
-            for style in forcefield.bondstyles:
-                for type_obj in style.types:
+            for style in bond_styles:
+                for type_obj in style.types.bucket(Type):
                     type_id = int(type_obj.name.split("_")[1])
                     k = type_obj.get("k", 0.0)
                     r0 = type_obj.get("r0", 1.0)
@@ -657,11 +688,12 @@ class LammpsDataWriter(DataWriter):
             lines.append("")
 
         # Write angle coefficients
-        if forcefield.anglestyles:
+        angle_styles = forcefield.get_styles(AngleStyle)
+        if angle_styles:
             lines.append("Angle Coeffs")
             lines.append("")
-            for style in forcefield.anglestyles:
-                for type_obj in style.types:
+            for style in angle_styles:
+                for type_obj in style.types.bucket(Type):
                     type_id = int(type_obj.name.split("_")[1])
                     k = type_obj.get("k", 0.0)
                     theta0 = type_obj.get("theta0", 0.0)
@@ -669,11 +701,12 @@ class LammpsDataWriter(DataWriter):
             lines.append("")
 
         # Write dihedral coefficients
-        if forcefield.dihedralstyles:
+        dihedral_styles = forcefield.get_styles(DihedralStyle)
+        if dihedral_styles:
             lines.append("Dihedral Coeffs")
             lines.append("")
-            for style in forcefield.dihedralstyles:
-                for type_obj in style.types:
+            for style in dihedral_styles:
+                for type_obj in style.types.bucket(Type):
                     type_id = int(type_obj.name.split("_")[1])
                     k = type_obj.get("k", 0.0)
                     d = type_obj.get("d", 1)
@@ -682,11 +715,12 @@ class LammpsDataWriter(DataWriter):
             lines.append("")
 
         # Write improper coefficients
-        if forcefield.improperstyles:
+        improper_styles = forcefield.get_styles(ImproperStyle)
+        if improper_styles:
             lines.append("Improper Coeffs")
             lines.append("")
-            for style in forcefield.improperstyles:
-                for type_obj in style.types:
+            for style in improper_styles:
+                for type_obj in style.types.bucket(Type):
                     type_id = int(type_obj.name.split("_")[1])
                     k = type_obj.get("k", 0.0)
                     d = type_obj.get("d", 1)
@@ -694,7 +728,7 @@ class LammpsDataWriter(DataWriter):
                     lines.append(f"{type_id} {k:.6f} {d} {n}")
             lines.append("")
 
-    def _write_atoms_section(self, lines: List[str], frame: Frame) -> None:
+    def _write_atoms_section(self, lines: list[str], frame: Frame) -> None:
         """Write atoms section."""
         lines.append("Atoms")
         lines.append("")
@@ -703,25 +737,22 @@ class LammpsDataWriter(DataWriter):
         unique_types = np.unique(atoms_data["type"])
         type_to_id = {t: i + 1 for i, t in enumerate(sorted(unique_types))}
 
-        # Ensure atom IDs exist
-        if "id" not in atoms_data:
-            atoms_data["id"] = np.arange(1, atoms_data.nrows + 1)
-
-        for i in range(atoms_data.nrows):
-            atom_id = int(atoms_data["id"][i])
+        for i in range(len(atoms_data["type"])):
+            atom_id = i + 1
             atom_type = type_to_id[atoms_data["type"][i]]
 
-            # Handle coordinates - check if xyz exists or separate x, y, z
-            if "xyz" in atoms_data:
-                x, y, z = atoms_data["xyz"][i]
+            # Get coordinates - prefer xyz field, fallback to x/y/z
+            if "xyz" in atoms_data and atoms_data["xyz"][i] is not None:
+                xyz = atoms_data["xyz"][i]
+                x, y, z = float(xyz[0]), float(xyz[1]), float(xyz[2])
             else:
                 x = float(atoms_data["x"][i])
                 y = float(atoms_data["y"][i])
                 z = float(atoms_data["z"][i])
 
             if self.atom_style == "full":
-                mol_id = int(atoms_data["mol"][i]) if "mol" in atoms_data else 1
-                charge = float(atoms_data["q"][i]) if "q" in atoms_data else 0.0
+                mol_id = int(atoms_data["mol"][i])
+                charge = float(atoms_data["q"][i])
                 lines.append(
                     f"{atom_id} {mol_id} {atom_type} {charge:.6f} {x:.6f} {y:.6f} {z:.6f}"
                 )
@@ -736,7 +767,7 @@ class LammpsDataWriter(DataWriter):
         lines.append("")
 
     def _write_connectivity_section(
-        self, lines: List[str], frame: Frame, section_name: str
+        self, lines: list[str], frame: Frame, section_name: str
     ) -> None:
         """Write connectivity section (bonds, angles, dihedrals, impropers)."""
         lines.append(section_name.capitalize())
@@ -746,28 +777,23 @@ class LammpsDataWriter(DataWriter):
         unique_types = np.unique(data["type"])
         type_to_id = {t: i + 1 for i, t in enumerate(sorted(unique_types))}
 
-        # Ensure IDs exist
-        if "id" not in data:
-            data["id"] = np.arange(1, data.nrows + 1)
-
-        for i in range(data.nrows):
-            item_id = int(data["id"][i])
-            item_type = type_to_id[data["type"][i]]
+        for idx in range(len(data["type"])):
+            item_id = idx + 1
+            item_type = type_to_id[data["type"][idx]]
 
             if section_name == "bonds":
-                atom1 = int(data["atom1"][i])
-                atom2 = int(data["atom2"][i])
-                lines.append(f"{item_id} {item_type} {atom1} {atom2}")
+                atom_i = int(data["atom_i"][idx]) + 1
+                atom_j = int(data["atom_j"][idx]) + 1
+                lines.append(f"{item_id} {item_type} {atom_i} {atom_j}")
             elif section_name == "angles":
-                atom1 = int(data["atom1"][i])
-                atom2 = int(data["atom2"][i])
-                atom3 = int(data["atom3"][i])
-                lines.append(f"{item_id} {item_type} {atom1} {atom2} {atom3}")
+                atom_i = int(data["atom_i"][idx]) + 1
+                atom_j = int(data["atom_j"][idx]) + 1
+                atom_k = int(data["atom_k"][idx]) + 1
+                lines.append(f"{item_id} {item_type} {atom_i} {atom_j} {atom_k}")
             elif section_name in ["dihedrals", "impropers"]:
-                atom1 = int(data["atom1"][i])
-                atom2 = int(data["atom2"][i])
-                atom3 = int(data["atom3"][i])
-                atom4 = int(data["atom4"][i])
-                lines.append(f"{item_id} {item_type} {atom1} {atom2} {atom3} {atom4}")
-
+                atom_i = int(data["atom_i"][idx]) + 1
+                atom_j = int(data["atom_j"][idx]) + 1
+                atom_k = int(data["atom_k"][idx]) + 1
+                atom_l = int(data["atom_l"][idx]) + 1
+                lines.append(f"{item_id} {item_type} {atom_i} {atom_j} {atom_k} {atom_l}")
         lines.append("")

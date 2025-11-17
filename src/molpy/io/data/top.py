@@ -17,7 +17,7 @@ class TopReader(DataReader):
         return line.strip()
 
     def read(self, frame=None):
-        with open(self._file, "r") as f:
+        with open(self._file) as f:
             lines = f.readlines()
 
         self.atoms = []
@@ -75,23 +75,22 @@ class TopReader(DataReader):
         """Guesses the atomic number"""
         # Special-case single-atom residues, which are almost always ions
         name = "".join(c for c in name if c.isalpha())
-        if residue is None or len(residue.atoms) == 1:
-            if len(name) > 1:
-                try:
-                    return Element(name[0].upper() + name[1].lower())
-                except KeyError:
-                    return Element(name)
+        if (residue is None or len(residue.atoms) == 1) and len(name) > 1:
+            try:
+                return Element(name[0].upper() + name[1].lower())
+            except KeyError:
+                return Element(name)
         return Element(name)
 
     def _parse_atom_section(self, line):
         data = line.split()
         index = data[0]
         type = data[1]
-        subst_id = data[2]
-        subst_name = data[3]
+        data[2]
+        data[3]
         name = data[4]
-        charge_id = data[5]
-        charge = data[6]
+        data[5]
+        data[6]
 
         x = float(data[3])
         y = float(data[4])

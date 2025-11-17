@@ -43,51 +43,52 @@ Design Goals:
 - Auditable: all changes recorded in ProductSet.notes
 """
 
-from .base import Reacter, ProductSet, AtomId
+from .base import AtomId, ProductSet, Reacter
 from .connector import ReacterConnector
 from .selectors import (
+    no_leaving_group,
     port_anchor_selector,
-    remove_one_H,
     remove_all_H,
     remove_dummy_atoms,
     remove_OH,
+    remove_one_H,
     remove_water,
-    no_leaving_group,
 )
 from .transformers import (
-    make_single_bond,
-    make_double_bond,
-    make_triple_bond,
-    make_bond_by_order,
-    make_aromatic_bond,
-    no_new_bond,
     break_bond,
+    make_aromatic_bond,
+    make_bond_by_order,
+    make_double_bond,
+    make_single_bond,
+    make_triple_bond,
+    no_new_bond,
 )
-from .utils import find_neighbors
+from .utils import create_atom_mapping, find_neighbors
 
 __all__ = [
+    "AtomId",
+    "ProductSet",
     # Core classes
     "Reacter",
-    "ProductSet",
-    "AtomId",
     # Connectors
     "ReacterConnector",
-    # Selectors
-    "port_anchor_selector",
-    "remove_one_H",
-    "remove_all_H",
-    "remove_dummy_atoms",
-    "remove_OH",
-    "remove_water",
-    "no_leaving_group",
-    # Transformers
-    "make_single_bond",
-    "make_double_bond",
-    "make_triple_bond",
-    "make_bond_by_order",
-    "make_aromatic_bond",
-    "no_new_bond",
     "break_bond",
+    "create_atom_mapping",
     # Utilities
     "find_neighbors",
+    "make_aromatic_bond",
+    "make_bond_by_order",
+    "make_double_bond",
+    # Transformers
+    "make_single_bond",
+    "make_triple_bond",
+    "no_leaving_group",
+    "no_new_bond",
+    # Selectors
+    "port_anchor_selector",
+    "remove_OH",
+    "remove_all_H",
+    "remove_dummy_atoms",
+    "remove_one_H",
+    "remove_water",
 ]

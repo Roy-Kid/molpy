@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from molpy.core.frame import Block
+from molpy import Block
 from molpy.core.selector import AtomIndexSelector, AtomTypeSelector, MaskPredicate
 
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -7,12 +7,12 @@ if TYPE_CHECKING:
     from .frame import Block
 
 __all__ = [
-    "MaskPredicate",
-    "AtomTypeSelector",
     "AtomIndexSelector",
-    "ElementSelector",
+    "AtomTypeSelector",
     "CoordinateRangeSelector",
     "DistanceSelector",
+    "ElementSelector",
+    "MaskPredicate",
 ]
 
 
@@ -45,7 +45,7 @@ Selector = MaskPredicate
 class AtomTypeSelector(MaskPredicate):
     """Select atoms by their type (integer or string)."""
 
-    def __init__(self, atom_type: Union[int, str], field: str = "type"):
+    def __init__(self, atom_type: int | str, field: str = "type") -> None:
         """
         Initialize atom type Selector.
 
@@ -64,7 +64,7 @@ class AtomTypeSelector(MaskPredicate):
 class AtomIndexSelector(MaskPredicate):
     """Select atoms by their indices."""
 
-    def __init__(self, indices: Union[List[int], np.ndarray], id_field: str = "id"):
+    def __init__(self, indices: list[int] | np.ndarray, id_field: str = "id") -> None:
         """
         Initialize atom index Selector.
 
@@ -116,9 +116,9 @@ class CoordinateRangeSelector(MaskPredicate):
     def __init__(
         self,
         axis: str,
-        min_value: Optional[float] = None,
-        max_value: Optional[float] = None,
-    ):
+        min_value: float | None = None,
+        max_value: float | None = None,
+    ) -> None:
         """
         Initialize coordinate range Selector.
 
@@ -158,10 +158,10 @@ class DistanceSelector(MaskPredicate):
 
     def __init__(
         self,
-        center: Union[List[float], np.ndarray],
+        center: list[float] | np.ndarray,
         max_distance: float,
-        min_distance: Optional[float] = None,
-    ):
+        min_distance: float | None = None,
+    ) -> None:
         """
         Initialize distance-based Selector.
 

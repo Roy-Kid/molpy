@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 from molpy.core import Block, Frame
 
@@ -85,7 +84,7 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
 
         self._total_frames = len(self._frame_locations)
 
-    def _parse_frame(self, frame_lines: List[str]) -> Frame:
+    def _parse_frame(self, frame_lines: list[str]) -> Frame:
         """Parse XYZ frame lines into a Frame object."""
         if not frame_lines:
             return Frame()
@@ -114,7 +113,7 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
             atom_line = frame_lines[2 + i]
             parts = atom_line.split()
             if len(parts) < 4:
-                raise ValueError(f"Invalid atom line {i+1}: {atom_line}")
+                raise ValueError(f"Invalid atom line {i + 1}: {atom_line}")
 
             try:
                 element = parts[0]
@@ -123,7 +122,9 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
                 atom = {"element": element, "x": x, "y": y, "z": z, "id": i + 1}
                 atoms_data.append(atom)
             except ValueError:
-                raise ValueError(f"Invalid coordinates in atom line {i+1}: {atom_line}")
+                raise ValueError(
+                    f"Invalid coordinates in atom line {i + 1}: {atom_line}"
+                )
 
         # Add atoms to frame
         if atoms_data:
@@ -137,7 +138,7 @@ class XYZTrajectoryReader(BaseTrajectoryReader):
             ids = np.array([atom["id"] for atom in atoms_data])
 
             # Create block
-            atoms_block = Block(
+            Block(
                 {
                     "element": elements,
                     "x": x_coords,

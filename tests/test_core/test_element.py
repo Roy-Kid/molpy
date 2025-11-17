@@ -5,7 +5,6 @@ from molpy.core.element import Element, ElementData
 
 
 class TestElement:
-
     @pytest.fixture(autouse=True)
     def setup_method(self):
         """Initialize elements before each test"""

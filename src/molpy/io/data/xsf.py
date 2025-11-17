@@ -10,9 +10,8 @@ from typing import Any
 
 import numpy as np
 
-from molpy.core.box import Box
+from molpy import Block, Box, Frame
 from molpy.core.element import Element
-from molpy.core.frame import Block, Frame
 
 from .base import DataReader, DataWriter
 
@@ -94,7 +93,7 @@ class XsfReader(DataReader):
                     raise ValueError("Invalid PRIMCOORD header")
 
                 n_atoms = int(coord_info[0])
-                multiplicity = int(coord_info[1])
+                int(coord_info[1])
 
                 # Read atomic coordinates
                 atoms_data = self._parse_atoms(lines[i + 2 : i + 2 + n_atoms])

@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from molpy.core.forcefield import ForceField
+from molpy import ForceField
 
 
 class GromacsTopReader:
@@ -89,7 +89,6 @@ class GromacsTopReader:
         strip_comments: bool,
         recursive: bool,
     ) -> None:
-
         if path in visited:
             return  # Prevent infinite include loops
         visited.add(path)
@@ -187,7 +186,9 @@ class GromacsTopReader:
         -------
         None
         """
-        atomstyle = ff.def_atomstyle("full")
+        from molpy import AtomStyle
+
+        atomstyle = ff.def_style(AtomStyle, "full")
 
         header = [
             "nr",
@@ -241,7 +242,9 @@ class GromacsTopReader:
             if style_name is None:
                 raise ValueError(f"Unknown bond funct '{funct}' in line: {raw}")
 
-            bondstyle = ff.def_bondstyle(style_name)
+            from molpy import BondStyle
+
+            bondstyle = ff.def_style(BondStyle, style_name)
 
             itype = self.atomtypes[int(i) - 1]
             jtype = self.atomtypes[int(j) - 1]
@@ -253,7 +256,7 @@ class GromacsTopReader:
             param_dict = {n: v for n, v in zip(param_names, params)}
 
             # Register the bond type in the force‑field object
-            bondstyle.def_type(itype=itype, jtype=jtype, name=name, **param_dict)
+            bondstyle.def_type(itype, jtype, name=name, **param_dict)
 
     def _parse_angle_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [angletypes] section of a GROMACS topology file."""
@@ -285,7 +288,9 @@ class GromacsTopReader:
             if style_name is None:
                 raise ValueError(f"Unknown angle funct '{funct}' in line: {raw}")
 
-            anglestyle = ff.def_anglestyle(style_name)
+            from molpy import AngleStyle
+
+            anglestyle = ff.def_style(AngleStyle, style_name)
 
             itype = self.atomtypes[int(i) - 1]
             jtype = self.atomtypes[int(j) - 1]
@@ -295,9 +300,7 @@ class GromacsTopReader:
             param_names = param_specs[style_name]
             param_dict = {n: v for n, v in zip(param_names, params)}
 
-            anglestyle.def_type(
-                name=name, itype=itype, jtype=jtype, ktype=ktype, **param_dict
-            )
+            anglestyle.def_type(itype, jtype, ktype, name=name, **param_dict)
 
     def _parse_dihedral_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [dihedraltypes] section of a GROMACS topology file."""
@@ -327,7 +330,9 @@ class GromacsTopReader:
             if style_name is None:
                 raise ValueError(f"Unknown dihedral funct '{funct}' in line: {raw}")
 
-            dihstyle = ff.def_dihedralstyle(style_name)
+            from molpy import DihedralStyle
+
+            dihstyle = ff.def_style(DihedralStyle, style_name)
 
             itype = self.atomtypes[int(i) - 1]
             jtype = self.atomtypes[int(j) - 1]
@@ -338,14 +343,7 @@ class GromacsTopReader:
             param_names = param_specs[style_name]
             param_dict = {n: v for n, v in zip(param_names, params)}
 
-            dihstyle.def_type(
-                name=name,
-                itype=itype,
-                jtype=jtype,
-                ktype=ktype,
-                ltype=ltype,
-                **param_dict,
-            )
+            dihstyle.def_type(itype, jtype, ktype, ltype, name=name, **param_dict)
 
     def _parse_pair_section(self, lines: list[str], ff: ForceField) -> None:
         """Parse the [pairtypes] or [nonbond_params] section."""
@@ -372,13 +370,15 @@ class GromacsTopReader:
                 raise ValueError(f"Unknown pair funct '{funct}' in line: {raw}")
             param_names = param_specs[style_name]
 
-            pairstyle = ff.def_pairstyle(style_name)
+            from molpy import PairStyle
+
+            pairstyle = ff.def_style(PairStyle, style_name)
             itype = self.atomtypes[int(i) - 1]
             jtype = self.atomtypes[int(j) - 1]
 
             pairstyle.def_type(
+                itype,
+                jtype,
                 name=f"{itype.name}-{jtype.name}",
-                itype=itype,
-                jtype=jtype,
                 **{n: v for n, v in zip(param_names, params)},
             )

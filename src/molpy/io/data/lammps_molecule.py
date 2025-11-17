@@ -7,9 +7,8 @@ supporting both native format and JSON format as described in the LAMMPS documen
 
 import json
 from datetime import datetime
-from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 
@@ -21,11 +20,11 @@ from .base import DataReader, DataWriter
 class LammpsMoleculeReader(DataReader):
     """LAMMPS molecule file reader supporting both native and JSON formats."""
 
-    def __init__(self, path: Union[str, Path]):
+    def __init__(self, path: str | Path) -> None:
         super().__init__(Path(path))
         self.is_json = self._path.suffix.lower() == ".json"
 
-    def read(self, frame: Optional[mp.Frame] = None) -> mp.Frame:
+    def read(self, frame: mp.Frame | None = None) -> mp.Frame:
         """Read LAMMPS molecule file into a Frame."""
         frame = frame or mp.Frame()
 
@@ -36,7 +35,7 @@ class LammpsMoleculeReader(DataReader):
 
     def _read_json_format(self, frame: mp.Frame) -> mp.Frame:
         """Read JSON format molecule file."""
-        with open(self._path, "r") as f:
+        with open(self._path) as f:
             data = json.load(f)
 
         # Validate required fields
@@ -149,7 +148,7 @@ class LammpsMoleculeReader(DataReader):
         return frame
 
     def _parse_json_connectivity(
-        self, data: Dict, frame: mp.Frame, section: str
+        self, data: dict, frame: mp.Frame, section: str
     ) -> None:
         """Parse connectivity sections from JSON data."""
         if section not in data:
@@ -164,7 +163,7 @@ class LammpsMoleculeReader(DataReader):
             atom1_list = []
             atom2_list = []
 
-            for i, bond_entry in enumerate(connectivity_data):
+            for _i, bond_entry in enumerate(connectivity_data):
                 bond_types.append(bond_entry[0])
                 atom1_list.append(int(bond_entry[1]))
                 atom2_list.append(int(bond_entry[2]))
@@ -184,7 +183,7 @@ class LammpsMoleculeReader(DataReader):
             atom2_list = []
             atom3_list = []
 
-            for i, angle_entry in enumerate(connectivity_data):
+            for _i, angle_entry in enumerate(connectivity_data):
                 angle_types.append(angle_entry[0])
                 atom1_list.append(int(angle_entry[1]))
                 atom2_list.append(int(angle_entry[2]))
@@ -207,7 +206,7 @@ class LammpsMoleculeReader(DataReader):
             atom3_list = []
             atom4_list = []
 
-            for i, entry in enumerate(connectivity_data):
+            for _i, entry in enumerate(connectivity_data):
                 types_list.append(entry[0])
                 atom1_list.append(int(entry[1]))
                 atom2_list.append(int(entry[2]))
@@ -261,14 +260,14 @@ class LammpsMoleculeReader(DataReader):
 
         return frame
 
-    def _read_lines(self) -> List[str]:
+    def _read_lines(self) -> list[str]:
         """Read file and return all lines."""
-        with open(self._path, "r") as f:
+        with open(self._path) as f:
             return [line.rstrip("\n\r") for line in f]
 
     def _parse_native_sections(
-        self, lines: List[str]
-    ) -> Tuple[Dict[str, Any], Dict[str, List[str]]]:
+        self, lines: list[str]
+    ) -> tuple[dict[str, Any], dict[str, list[str]]]:
         """Parse header and body sections from native format."""
         header_info = {}
         sections = {}
@@ -310,7 +309,7 @@ class LammpsMoleculeReader(DataReader):
 
         return header_info, sections
 
-    def _parse_header_line(self, line: str, header_info: Dict[str, Any]) -> bool:
+    def _parse_header_line(self, line: str, header_info: dict[str, Any]) -> bool:
         """Parse a header line and update header_info. Returns True if parsed."""
         parts = line.split()
         if len(parts) < 2:
@@ -358,7 +357,7 @@ class LammpsMoleculeReader(DataReader):
 
         return False
 
-    def _get_section_name(self, line: str) -> Optional[str]:
+    def _get_section_name(self, line: str) -> str | None:
         """Get section name if line is a section header."""
         line_lower = line.lower().strip()
 
@@ -391,8 +390,8 @@ class LammpsMoleculeReader(DataReader):
         return None
 
     def _parse_native_atoms(
-        self, sections: Dict[str, List[str]], header_info: Dict[str, Any]
-    ) -> Dict[str, np.ndarray]:
+        self, sections: dict[str, list[str]], header_info: dict[str, Any]
+    ) -> dict[str, np.ndarray]:
         """Parse atoms data from native format sections."""
         atoms_data = {}
 
@@ -468,8 +467,8 @@ class LammpsMoleculeReader(DataReader):
         return atoms_data
 
     def _parse_native_connectivity(
-        self, sections: Dict[str, List[str]], section_type: str
-    ) -> Optional[Dict[str, np.ndarray]]:
+        self, sections: dict[str, list[str]], section_type: str
+    ) -> dict[str, np.ndarray] | None:
         """Parse connectivity sections from native format."""
         section_name = section_type.capitalize()
 
@@ -529,7 +528,7 @@ class LammpsMoleculeReader(DataReader):
 class LammpsMoleculeWriter(DataWriter):
     """LAMMPS molecule file writer supporting both native and JSON formats."""
 
-    def __init__(self, path: Union[str, Path], format_type: str = "native"):
+    def __init__(self, path: str | Path, format_type: str = "native") -> None:
         super().__init__(Path(path))
         self.format_type = format_type.lower()
         if self.format_type not in ["native", "json"]:
@@ -655,7 +654,7 @@ class LammpsMoleculeWriter(DataWriter):
         with open(self._path, "w") as f:
             json.dump(data, f, indent=4)
 
-    def _add_json_connectivity(self, data: Dict, frame: mp.Frame, section: str) -> None:
+    def _add_json_connectivity(self, data: dict, frame: mp.Frame, section: str) -> None:
         """Add connectivity section to JSON data."""
         if section not in frame:
             return
@@ -750,7 +749,7 @@ class LammpsMoleculeWriter(DataWriter):
         with open(self._path, "w") as f:
             f.write("\n".join(lines))
 
-    def _write_native_atoms_sections(self, lines: List[str], atoms: mp.Block) -> None:
+    def _write_native_atoms_sections(self, lines: list[str], atoms: mp.Block) -> None:
         """Write atoms-related sections in native format."""
         # Coords section
         if "x" in atoms and "y" in atoms and "z" in atoms:
@@ -792,13 +791,16 @@ class LammpsMoleculeWriter(DataWriter):
 
                 for i in range(atoms.nrows):
                     atom_id = int(atoms["id"][i]) if "id" in atoms else i + 1
-                    value = float(atoms[attr_name][i])
+                    value = atoms[attr_name][i]
+                    if value is None:
+                        value = 0.0
+                    value = float(value)
                     lines.append(f"{atom_id} {value:.6f}")
 
                 lines.append("")
 
     def _write_native_connectivity_section(
-        self, lines: List[str], block: mp.Block, section_type: str
+        self, lines: list[str], block: mp.Block, section_type: str
     ) -> None:
         """Write connectivity section in native format."""
         lines.append(section_type.capitalize())

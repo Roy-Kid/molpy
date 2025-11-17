@@ -5,8 +5,8 @@ This module provides simple version information for MolPy.
 """
 
 # Version information
-__version__ = "0.1.0"
-__release_date__ = "2024-01-01"
+__version__ = "0.2.0"
+__release_date__ = "2025-11-17"
 
 # NumPy-style version attributes for compatibility
 version = __version__

@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from pathlib import Path
-from typing import IO, Any, Iterator, Union
+from typing import IO
 
-from molpy.core.frame import Frame
+from molpy import Frame
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ class FileBase(ABC):
         self._path = Path(path)
         self._mode = mode
         self._open_kwargs = open_kwargs
-        self._fh: IO[Any] | None = None
+        self._fh: IO[str] | None = None
 
     # ---------- context-manager hooks ---------------------------------
     def __enter__(self):
@@ -31,7 +32,7 @@ class FileBase(ABC):
 
     # ---------- lazy accessor (works with or without `with`) ----------
     @property
-    def fh(self) -> IO[Any]:
+    def fh(self) -> IO[str]:
         if self._fh is None:
             self._fh = self._path.open(self._mode, **self._open_kwargs)
         return self._fh
