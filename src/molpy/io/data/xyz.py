@@ -169,12 +169,9 @@ class XYZReader(DataReader):
         if "pos" in atoms_blk and "x" not in atoms_blk:
             # pos is (N, 3) array, split into x, y, z
             pos = atoms_blk["pos"]
-            if isinstance(pos, np.ndarray) and pos.ndim == 2 and pos.shape[1] == 3:
-                atoms_blk["x"] = pos[:, 0]
-                atoms_blk["y"] = pos[:, 1]
-                atoms_blk["z"] = pos[:, 2]
-            else:
-                atoms_blk["x"] = pos
+            atoms_blk["x"] = pos[:, 0]
+            atoms_blk["y"] = pos[:, 1]
+            atoms_blk["z"] = pos[:, 2]
 
         # Add atomic numbers if not present
         if "number" not in atoms_blk and "element" in atoms_blk:
