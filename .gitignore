@@ -143,8 +143,11 @@ dmypy.json
 
 # Output files of docs
 docs/**
+!docs/
+!docs/**/
 !docs/**/*.ipynb
 !docs/**/*.md
+!docs/assets/**/
 
 # Demo Notebooks
 notebooks/

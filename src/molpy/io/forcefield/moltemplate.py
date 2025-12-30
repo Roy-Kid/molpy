@@ -390,7 +390,7 @@ class MolTemplateReader:
         for bond_info in molecule_data["bonds"]:
             atom1 = atom_map[bond_info["atoms"][0]]
             atom2 = atom_map[bond_info["atoms"][1]]
-            bond = molecule.def_bond(i=atom1, j=atom2)
+            bond = molecule.def_bond(atom1, atom2)
             bond["type"] = bond_info["type"]
 
         # Create angles
@@ -398,7 +398,7 @@ class MolTemplateReader:
             atom1 = atom_map[angle_info["atoms"][0]]
             atom2 = atom_map[angle_info["atoms"][1]]
             atom3 = atom_map[angle_info["atoms"][2]]
-            angle = molecule.def_angle(i=atom1, j=atom2, k=atom3)
+            angle = molecule.def_angle(atom1, atom2, atom3)
             angle["type"] = angle_info["type"]
 
         # Create dihedrals
@@ -407,7 +407,7 @@ class MolTemplateReader:
             atom2 = atom_map[dihedral_info["atoms"][1]]
             atom3 = atom_map[dihedral_info["atoms"][2]]
             atom4 = atom_map[dihedral_info["atoms"][3]]
-            dihedral = molecule.def_dihedral(i=atom1, j=atom2, k=atom3, l=atom4)
+            dihedral = molecule.def_dihedral(atom1, atom2, atom3, atom4)
             dihedral["type"] = dihedral_info["type"]
 
         return molecule

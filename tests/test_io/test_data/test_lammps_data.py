@@ -277,8 +277,8 @@ class TestLammpsDataWriter:
         bonds_data = {
             "id": np.array([1, 2]),
             "type": np.array(["C-C", "C-O"]),
-            "atom_i": np.array([0, 1]),
-            "atom_j": np.array([1, 2]),
+            "atomi": np.array([0, 1]),
+            "atomj": np.array([1, 2]),
         }
         frame["bonds"] = mp.Block(bonds_data)
 
@@ -559,8 +559,8 @@ class TestMetadataTypeLabels:
         bonds_data = {
             "id": np.array([1, 2]),
             "type": np.array(["C-C", "C-O"]),
-            "atom_i": np.array([0, 1]),
-            "atom_j": np.array([1, 2]),
+            "atomi": np.array([0, 1]),
+            "atomj": np.array([1, 2]),
         }
         frame["bonds"] = mp.Block(bonds_data)
         frame.metadata["box"] = mp.Box([10.0, 10.0, 10.0])

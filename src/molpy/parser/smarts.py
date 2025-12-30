@@ -24,7 +24,7 @@ class AtomPrimitiveIR:
         - neighbor_count=3 (X3, exactly 3 neighbors)
         - ring_size=6 (r6, in 6-membered ring)
         - ring_count=2 (R2, in exactly 2 rings)
-        - has_label='%atom1' (has label %atom1)
+        - has_label='%atomA' (has label %atomA)
         - matches_smarts=SmartsIR(...) (recursive SMARTS)
     """
 
@@ -117,13 +117,13 @@ class SmartsBondIR:
     Explicit bond types can be specified between atoms.
     """
 
-    start: SmartsAtomIR
-    end: SmartsAtomIR
+    itom: SmartsAtomIR
+    jtom: SmartsAtomIR
     bond_type: str = "-"  # default single bond, can be =, #, :, ~, @, etc.
 
     def __repr__(self):
-        expr_start = getattr(self.start.expression, "value", str(self.start.expression))
-        expr_end = getattr(self.end.expression, "value", str(self.end.expression))
+        expr_start = getattr(self.itom.expression, "value", str(self.itom.expression))
+        expr_end = getattr(self.jtom.expression, "value", str(self.jtom.expression))
         return f"SmartsBondIR({expr_start!r}, {expr_end!r}, {self.bond_type!r})"
 
 
@@ -589,8 +589,8 @@ def _ir_to_smarts_string(ir: SmartsIR) -> str:
     # Build adjacency list
     adj: dict[int, list[tuple[int, str]]] = {id(atom): [] for atom in ir.atoms}
     for bond in ir.bonds:
-        start_id = id(bond.start)
-        end_id = id(bond.end)
+        start_id = id(bond.itom)
+        end_id = id(bond.jtom)
         adj[start_id].append((end_id, bond.bond_type))
         adj[end_id].append((start_id, bond.bond_type))
 

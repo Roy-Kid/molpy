@@ -28,6 +28,8 @@ class Atom(Entity):
 
 class Bond(Link):
     def __init__(self, a: Atom, b: Atom, /, **attrs: Any):
+        assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
+        assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
         super().__init__([a, b], **attrs)
 
     def __repr__(self) -> str:
@@ -44,6 +46,9 @@ class Bond(Link):
 
 class Angle(Link):
     def __init__(self, a: Atom, b: Atom, c: Atom, /, **attrs: Any):
+        assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
+        assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
+        assert isinstance(c, Atom), f"atom c must be an Atom instance, got {type(c)}"
         super().__init__([a, b, c], **attrs)
 
     def __repr__(self) -> str:
@@ -66,6 +71,10 @@ class Dihedral(Link):
     """Dihedral (torsion) angle between four atoms"""
 
     def __init__(self, a: Atom, b: Atom, c: Atom, d: Atom, /, **attrs: Any):
+        assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
+        assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
+        assert isinstance(c, Atom), f"atom c must be an Atom instance, got {type(c)}"
+        assert isinstance(d, Atom), f"atom d must be an Atom instance, got {type(d)}"
         super().__init__([a, b, c, d], **attrs)
 
     def __repr__(self) -> str:
@@ -348,7 +357,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     def def_bonds(
         self, bonds_data: list[tuple[Atom, Atom] | tuple[Atom, Atom, dict[str, Any]]], /
     ) -> list[Bond]:
-        """Create multiple Bonds from a list of (atom1, atom2) or (atom1, atom2, attrs) tuples."""
+        """Create multiple Bonds from a list of (itom, jtom) or (itom, jtom, attrs) tuples."""
         bonds = []
         for bond_spec in bonds_data:
             if len(bond_spec) == 2:
@@ -367,7 +376,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         ],
         /,
     ) -> list[Angle]:
-        """Create multiple Angles from a list of (atom1, atom2, atom3) or (atom1, atom2, atom3, attrs) tuples."""
+        """Create multiple Angles from a list of (itom, jtom, ktom) or (itom, jtom, ktom, attrs) tuples."""
         angles = []
         for angle_spec in angles_data:
             if len(angle_spec) == 3:
@@ -387,7 +396,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         ],
         /,
     ) -> list[Dihedral]:
-        """Create multiple Dihedrals from a list of (atom1, atom2, atom3, atom4) or (atom1, atom2, atom3, atom4, attrs) tuples."""
+        """Create multiple Dihedrals from a list of (itom, jtom, ktom, ltom) or (itom, jtom, ktom, ltom, attrs) tuples."""
         dihedrals = []
         for dihe_spec in dihedrals_data:
             if len(dihe_spec) == 4:
@@ -575,15 +584,15 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
             # Add new angles, avoiding duplicates
             for angle in topo.angles:
                 angle_indices = angle.tolist()
-                atom_i = atoms[angle_indices[0]]
-                atom_j = atoms[angle_indices[1]]
-                atom_k = atoms[angle_indices[2]]
+                itom = atoms[angle_indices[0]]
+                jtom = atoms[angle_indices[1]]
+                ktom = atoms[angle_indices[2]]
 
                 # Check if this angle already exists
-                if (atom_i, atom_j, atom_k) not in existing_angle_endpoints:
-                    new_angle = Angle(atom_i, atom_j, atom_k)
+                if (itom, jtom, ktom) not in existing_angle_endpoints:
+                    new_angle = Angle(itom, jtom, ktom)
                     self.links.add(new_angle)
-                    existing_angle_endpoints.add((atom_i, atom_j, atom_k))
+                    existing_angle_endpoints.add((itom, jtom, ktom))
 
         if gen_dihe:
             if clear_existing:
@@ -603,16 +612,16 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
             # Add new dihedrals, avoiding duplicates
             for dihe in topo.dihedrals:
                 dihe_indices = dihe.tolist()
-                atom_i = atoms[dihe_indices[0]]
-                atom_j = atoms[dihe_indices[1]]
-                atom_k = atoms[dihe_indices[2]]
-                atom_l = atoms[dihe_indices[3]]
+                itom = atoms[dihe_indices[0]]
+                jtom = atoms[dihe_indices[1]]
+                ktom = atoms[dihe_indices[2]]
+                ltom = atoms[dihe_indices[3]]
 
                 # Check if this dihedral already exists
-                if (atom_i, atom_j, atom_k, atom_l) not in existing_dihedral_endpoints:
-                    new_dihedral = Dihedral(atom_i, atom_j, atom_k, atom_l)
+                if (itom, jtom, ktom, ltom) not in existing_dihedral_endpoints:
+                    new_dihedral = Dihedral(itom, jtom, ktom, ltom)
                     self.links.add(new_dihedral)
-                    existing_dihedral_endpoints.add((atom_i, atom_j, atom_k, atom_l))
+                    existing_dihedral_endpoints.add((itom, jtom, ktom, ltom))
 
         return topo
 
@@ -699,21 +708,21 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 # Validate that atoms exist in atoms_data
                 if id(bond.itom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Bond {bond_idx + 1}: atom_i (id={id(bond.itom)}) is not in atoms list. "
+                        f"Bond {bond_idx + 1}: atomi (id={id(bond.itom)}) is not in atoms list. "
                         f"This bond references an atom that was removed or is invalid."
                     )
                 if id(bond.jtom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Bond {bond_idx + 1}: atom_j (id={id(bond.jtom)}) is not in atoms list. "
+                        f"Bond {bond_idx + 1}: atomj (id={id(bond.jtom)}) is not in atoms list. "
                         f"This bond references an atom that was removed or is invalid."
                     )
-                bond_dict["atom_i"].append(atom_id_to_index[id(bond.itom)])
-                bond_dict["atom_j"].append(atom_id_to_index[id(bond.jtom)])
+                bond_dict["atomi"].append(atom_id_to_index[id(bond.itom)])
+                bond_dict["atomj"].append(atom_id_to_index[id(bond.jtom)])
                 # Data fields - iterate over all keys to ensure consistent length
                 for key in all_bond_keys:
                     if key not in [
-                        "atom_i",
-                        "atom_j",
+                        "atomi",
+                        "atomj",
                     ]:  # Skip atom indices, already added
                         value = bond.get(key, None)
                         bond_dict[key].append(value)
@@ -752,28 +761,28 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 # Validate that atoms exist in atoms_data
                 if id(angle.itom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Angle {angle_idx + 1}: atom_i (id={id(angle.itom)}) is not in atoms list. "
+                        f"Angle {angle_idx + 1}: atomi (id={id(angle.itom)}) is not in atoms list. "
                         f"This angle references an atom that was removed or is invalid."
                     )
                 if id(angle.jtom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Angle {angle_idx + 1}: atom_j (id={id(angle.jtom)}) is not in atoms list. "
+                        f"Angle {angle_idx + 1}: atomj (id={id(angle.jtom)}) is not in atoms list. "
                         f"This angle references an atom that was removed or is invalid."
                     )
                 if id(angle.ktom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Angle {angle_idx + 1}: atom_k (id={id(angle.ktom)}) is not in atoms list. "
+                        f"Angle {angle_idx + 1}: atomk (id={id(angle.ktom)}) is not in atoms list. "
                         f"This angle references an atom that was removed or is invalid."
                     )
-                angle_dict["atom_i"].append(atom_id_to_index[id(angle.itom)])
-                angle_dict["atom_j"].append(atom_id_to_index[id(angle.jtom)])
-                angle_dict["atom_k"].append(atom_id_to_index[id(angle.ktom)])
+                angle_dict["atomi"].append(atom_id_to_index[id(angle.itom)])
+                angle_dict["atomj"].append(atom_id_to_index[id(angle.jtom)])
+                angle_dict["atomk"].append(atom_id_to_index[id(angle.ktom)])
                 # Data fields - iterate over all keys to ensure consistent length
                 for key in all_angle_keys:
                     if key not in [
-                        "atom_i",
-                        "atom_j",
-                        "atom_k",
+                        "atomi",
+                        "atomj",
+                        "atomk",
                     ]:  # Skip atom indices, already added
                         value = angle.get(key, None)
                         angle_dict[key].append(value)
@@ -808,35 +817,35 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 # Validate that atoms exist in atoms_data
                 if id(dihedral.itom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Dihedral {dihedral_idx + 1}: atom_i (id={id(dihedral.itom)}) is not in atoms list. "
+                        f"Dihedral {dihedral_idx + 1}: atomi (id={id(dihedral.itom)}) is not in atoms list. "
                         f"This dihedral references an atom that was removed or is invalid."
                     )
                 if id(dihedral.jtom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Dihedral {dihedral_idx + 1}: atom_j (id={id(dihedral.jtom)}) is not in atoms list. "
+                        f"Dihedral {dihedral_idx + 1}: atomj (id={id(dihedral.jtom)}) is not in atoms list. "
                         f"This dihedral references an atom that was removed or is invalid."
                     )
                 if id(dihedral.ktom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Dihedral {dihedral_idx + 1}: atom_k (id={id(dihedral.ktom)}) is not in atoms list. "
+                        f"Dihedral {dihedral_idx + 1}: atomk (id={id(dihedral.ktom)}) is not in atoms list. "
                         f"This dihedral references an atom that was removed or is invalid."
                     )
                 if id(dihedral.ltom) not in atom_id_to_index:
                     raise ValueError(
-                        f"Dihedral {dihedral_idx + 1}: atom_l (id={id(dihedral.ltom)}) is not in atoms list. "
+                        f"Dihedral {dihedral_idx + 1}: atoml (id={id(dihedral.ltom)}) is not in atoms list. "
                         f"This dihedral references an atom that was removed or is invalid."
                     )
-                dihedral_dict["atom_i"].append(atom_id_to_index[id(dihedral.itom)])
-                dihedral_dict["atom_j"].append(atom_id_to_index[id(dihedral.jtom)])
-                dihedral_dict["atom_k"].append(atom_id_to_index[id(dihedral.ktom)])
-                dihedral_dict["atom_l"].append(atom_id_to_index[id(dihedral.ltom)])
+                dihedral_dict["atomi"].append(atom_id_to_index[id(dihedral.itom)])
+                dihedral_dict["atomj"].append(atom_id_to_index[id(dihedral.jtom)])
+                dihedral_dict["atomk"].append(atom_id_to_index[id(dihedral.ktom)])
+                dihedral_dict["atoml"].append(atom_id_to_index[id(dihedral.ltom)])
                 # Data fields - iterate over all keys to ensure consistent length
                 for key in all_dihedral_keys:
                     if key not in [
-                        "atom_i",
-                        "atom_j",
-                        "atom_k",
-                        "atom_l",
+                        "atomi",
+                        "atomj",
+                        "atomk",
+                        "atoml",
                     ]:  # Skip atom indices, already added
                         value = dihedral.get(key, None)
                         dihedral_dict[key].append(value)

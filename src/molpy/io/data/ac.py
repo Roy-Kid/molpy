@@ -50,8 +50,8 @@ class AcReader(DataReader):
                 self.atoms.append(atom)
             elif line.startswith("BOND"):
                 bond = self._parse_bond_section(line)
-                itom_type = self.atoms[bond["i"]]["type"]
-                jtom_type = self.atoms[bond["j"]]["type"]
+                itom_type = self.atoms[bond["atomi"]]["type"]
+                jtom_type = self.atoms[bond["atomj"]]["type"]
                 bond["type"] = f"{itom_type}-{jtom_type}"
                 self.bonds.append(bond)
 
@@ -101,8 +101,8 @@ class AcReader(DataReader):
 
         return {
             "id": bond_id,
-            "i": atom1,
-            "j": atom2,
+            "atomi": atom1,
+            "atomj": atom2,
             # "type": bond_type
         }
 
