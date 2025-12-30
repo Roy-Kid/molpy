@@ -40,8 +40,10 @@ class XYZReader(DataReader):
             Frame with:
               * block ``"atoms"``:
                   - ``element``   -> (N,)  <U3   array
-                  - ``x``         -> (N,3) float array (Å)
-                  - ``z``         -> (N,)  int array (atomic numbers)
+                  - ``x``         -> (N,)  float array (x-coordinates in Å)
+                  - ``y``         -> (N,)  float array (y-coordinates in Å)
+                  - ``z``         -> (N,)  float array (z-coordinates in Å)
+                  - ``number``    -> (N,)  int array (atomic numbers)
                   - additional columns from Properties if extxyz
               * metadata from comment line
         """
