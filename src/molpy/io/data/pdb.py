@@ -195,11 +195,23 @@ class PDBReader(DataReader):
             frame["atoms"] = _dict_to_block(atoms_data)
 
         if unique_bonds:
-            # Keep atom IDs as 1-based (no conversion)
-            # Use atom1, atom2 field names
-            bonds_array = np.array(sorted(unique_bonds), dtype=int)
+            # Map 1-based atom IDs to 0-based indices
+            # First, build id -> index mapping from atoms_data
+            id_to_idx = {atom_id: idx for idx, atom_id in enumerate(atoms_data["id"])}
+
+            # Convert bonds
+            atomi_list = []
+            atomj_list = []
+            for id1, id2 in sorted(unique_bonds):
+                if id1 in id_to_idx and id2 in id_to_idx:
+                    atomi_list.append(id_to_idx[id1])
+                    atomj_list.append(id_to_idx[id2])
+
             frame["bonds"] = Block(
-                {"atom1": bonds_array[:, 0], "atom2": bonds_array[:, 1]}
+                {
+                    "atomi": np.array(atomi_list, dtype=int),
+                    "atomj": np.array(atomj_list, dtype=int),
+                }
             )
 
         frame.metadata["box"] = (
@@ -515,6 +527,14 @@ class PDBWriter(DataWriter):
                             f"Required field '{field}' contains None values"
                         )
 
+            # Build index -> id mapping for bonds
+            index_to_id = {}
+            if "id" in atoms:
+                for i, atom_id in enumerate(atoms["id"]):
+                    index_to_id[i] = int(atom_id) if atom_id is not None else i + 1
+            else:
+                index_to_id = {i: i + 1 for i in range(n_atoms)}
+
             for i in range(n_atoms):
                 # Extract required fields - raise error if None
                 x_val = atoms["x"][i]
@@ -532,11 +552,7 @@ class PDBWriter(DataWriter):
                 z = float(z_val)
 
                 # Extract optional fields with defaults
-                atom_id = (
-                    int(atoms["id"][i])
-                    if "id" in atoms and atoms["id"][i] is not None
-                    else i + 1
-                )
+                atom_id = index_to_id[i]
 
                 # Get element from metadata list or atom_data
                 element = None
@@ -600,18 +616,18 @@ class PDBWriter(DataWriter):
             # Write bonds as CONECT records
             if "bonds" in frame:
                 bonds = frame["bonds"]
-                if "atom1" in bonds and "atom2" in bonds:
+                if "atomi" in bonds and "atomj" in bonds:
                     connect = defaultdict(list)
-                    # atom1, atom2 are stored as atom IDs (1-based), use directly
-                    for atom1_id, atom2_id in zip(
-                        bonds["atom1"].tolist(), bonds["atom2"].tolist()
+                    # atomi, atomj are stored as atom indices (0-based), use index_to_id
+                    for idx1, idx2 in zip(
+                        bonds["atomi"].tolist(), bonds["atomj"].tolist()
                     ):
-                        atom1_id_int = int(atom1_id)
-                        atom2_id_int = int(atom2_id)
-                        connect[atom1_id_int].append(atom2_id_int)
-                        connect[atom2_id_int].append(atom1_id_int)
-                    for atom1_id, atom2_ids in connect.items():
-                        js = [str(atom2_id).rjust(5) for atom2_id in atom2_ids]
-                        f.write(f"CONECT{str(atom1_id).rjust(5)}{''.join(js)}\n")
+                        id1 = index_to_id[int(idx1)]
+                        id2 = index_to_id[int(idx2)]
+                        connect[id1].append(id2)
+                        connect[id2].append(id1)
+                    for id1, id2s in sorted(connect.items()):
+                        js = [str(id2).rjust(5) for id2 in sorted(id2s)]
+                        f.write(f"CONECT{str(id1).rjust(5)}{''.join(js)}\n")
             # Write END record
             f.write("END\n")

@@ -151,7 +151,7 @@ def extract_bond_data(frame: Frame) -> tuple[NDArray, NDArray, NDArray]:
     z = atoms["z"]
     r = np.column_stack([x, y, z])
     bonds = frame["bonds"]
-    bond_idx = bonds[["atom_i", "atom_j"]]
+    bond_idx = bonds[["atomi", "atomj"]]
     bond_types = bonds["type"]
     return r, bond_idx, bond_types
 
@@ -171,7 +171,7 @@ def extract_angle_data(frame: Frame) -> tuple[NDArray, NDArray, NDArray]:
     z = frame["atoms"]["z"]
     r = np.column_stack([x, y, z])
     angles = frame["angles"]
-    angle_idx = angles[["atom_i", "atom_j", "atom_k"]]
+    angle_idx = angles[["atomi", "atomj", "atomk"]]
     angle_types = angles["type"]
     return r, angle_idx, angle_types
 

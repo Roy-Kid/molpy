@@ -300,8 +300,8 @@ def create_monomer_from_repeat_unit(
 
     for bond_ir in graph.bonds:
         # Use id() for reliable atom matching (not == which compares by value)
-        i = atom_ir_to_idx.get(id(bond_ir.atom_i))
-        j = atom_ir_to_idx.get(id(bond_ir.atom_j))
+        i = atom_ir_to_idx.get(id(bond_ir.itom))
+        j = atom_ir_to_idx.get(id(bond_ir.jtom))
 
         # Skip if atoms not found or same atom (by identity, not value)
         if i is None or j is None or i == j:
@@ -370,8 +370,8 @@ def create_monomer_from_end_group(end_group: EndGroupIR) -> Atomistic | None:
 
     for bond_ir in graph.bonds:
         # Use id() for reliable atom matching
-        i = atom_ir_to_idx.get(id(bond_ir.atom_i))
-        j = atom_ir_to_idx.get(id(bond_ir.atom_j))
+        i = atom_ir_to_idx.get(id(bond_ir.itom))
+        j = atom_ir_to_idx.get(id(bond_ir.jtom))
 
         # Skip if atoms not found or same atom (by identity)
         if i is None or j is None or i == j:
@@ -426,8 +426,8 @@ def create_monomer_from_unit(
 
     for bond_ir in unit.bonds:
         # Use id() for reliable atom matching
-        i = atom_ir_to_idx.get(id(bond_ir.atom_i))
-        j = atom_ir_to_idx.get(id(bond_ir.atom_j))
+        i = atom_ir_to_idx.get(id(bond_ir.itom))
+        j = atom_ir_to_idx.get(id(bond_ir.jtom))
 
         # Skip if atoms not found or same atom (by identity)
         if i is None or j is None or i == j:
@@ -523,11 +523,11 @@ def create_monomer_from_atom_class_ports(ir: SmilesGraphIR) -> Atomistic | None:
     # Find which atoms are connected to each port marker
     for class_num, marker_atom in port_markers.items():
         for bond_ir in ir.bonds:
-            if bond_ir.atom_i == marker_atom:
-                port_connections[class_num] = bond_ir.atom_j
+            if bond_ir.itom == marker_atom:
+                port_connections[class_num] = bond_ir.jtom
                 break
-            elif bond_ir.atom_j == marker_atom:
-                port_connections[class_num] = bond_ir.atom_i
+            elif bond_ir.jtom == marker_atom:
+                port_connections[class_num] = bond_ir.itom
                 break
 
     # Filter out port marker atoms - only keep real atoms
@@ -545,8 +545,7 @@ def create_monomer_from_atom_class_ports(ir: SmilesGraphIR) -> Atomistic | None:
     real_bonds = [
         b
         for b in ir.bonds
-        if b.atom_i not in port_markers.values()
-        and b.atom_j not in port_markers.values()
+        if b.itom not in port_markers.values() and b.jtom not in port_markers.values()
     ]
 
     # Create Atomistic structure (topology only, no positions)
@@ -560,8 +559,8 @@ def create_monomer_from_atom_class_ports(ir: SmilesGraphIR) -> Atomistic | None:
 
     # Add bonds using stored atom references
     for bond_ir in real_bonds:
-        atom_i = atomir_to_atom[id(bond_ir.atom_i)]
-        atom_j = atomir_to_atom[id(bond_ir.atom_j)]
+        atom_i = atomir_to_atom[id(bond_ir.itom)]
+        atom_j = atomir_to_atom[id(bond_ir.jtom)]
         bond_order = bond_ir.order
         bond_kind = _convert_bond_order_to_kind(bond_order)
         struct.def_bond(atom_i, atom_j, order=bond_order, kind=bond_kind)

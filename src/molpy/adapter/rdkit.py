@@ -540,15 +540,15 @@ class RDKitAdapter(Adapter[Atomistic, Chem.Mol]):
                 begin_idx = rd_bond.GetBeginAtomIdx()
                 end_idx = rd_bond.GetEndAtomIdx()
 
-                atom1 = rdkit_to_atom.get(begin_idx)
-                atom2 = rdkit_to_atom.get(end_idx)
-                if atom1 is None or atom2 is None:
+                itom = rdkit_to_atom.get(begin_idx)
+                jtom = rdkit_to_atom.get(end_idx)
+                if itom is None or jtom is None:
                     raise RuntimeError(
                         "RDKit bond references an atom missing from the mapping."
                     )
 
                 order = _order_from_rdkit(rd_bond.GetBondType())
-                atomistic.def_bond(atom1, atom2, order=order)
+                atomistic.def_bond(itom, jtom, order=order)
 
         # Rebuild atom mapper after updating atomistic (new atoms may have been added)
         self._rebuild_atom_mapper()

@@ -663,6 +663,499 @@ class TestHDF5TrajectoryAppend:
         assert read_reader.n_frames == len(frames_1) + len(frames_2)
 
 
+class TestHDF5Downsample:
+    """Test downsampling functionality for trajectories."""
+
+    def test_downsample_with_stride_2(self, TEST_DATA_DIR, tmp_path):
+        """Test downsampling with stride 2 (every other frame)."""
+        reader = read_lammps_trajectory(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
+
+        # Collect frames
+        all_frames = []
+        for i, frame in enumerate(reader):
+            all_frames.append(frame)
+            if i >= 9:  # Get 10 frames
+                break
+
+        # Write with stride 2 (every other frame)
+        h5_file = tmp_path / "downsampled.h5"
+        downsampled_frames = all_frames[::2]
+        write_h5_trajectory(h5_file, downsampled_frames)
+
+        # Read back
+        read_reader = read_h5_trajectory(h5_file)
+        assert read_reader.n_frames == len(downsampled_frames)
+
+        # Verify we got the right frames
+        for i, expected_frame in enumerate(downsampled_frames):
+            read_frame = read_reader.read_frame(i)
+            expected_atoms = expected_frame["atoms"]
+            read_atoms = read_frame["atoms"]
+
+            assert expected_atoms.nrows == read_atoms.nrows
+            # Compare positions (xu, yu, zu in unwrapped LAMMPS)
+            if "xu" in expected_atoms and "xu" in read_atoms:
+                np.testing.assert_array_almost_equal(
+                    expected_atoms["xu"], read_atoms["xu"], decimal=6
+                )
+            elif "x" in expected_atoms and "x" in read_atoms:
+                np.testing.assert_array_almost_equal(
+                    expected_atoms["x"], read_atoms["x"], decimal=6
+                )
+
+    def test_downsample_with_stride_3(self, TEST_DATA_DIR, tmp_path):
+        """Test downsampling with stride 3 (every third frame)."""
+        reader = read_lammps_trajectory(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
+
+        # Collect frames
+        all_frames = []
+        for i, frame in enumerate(reader):
+            all_frames.append(frame)
+            if i >= 11:  # Get 12 frames
+                break
+
+        # Write with stride 3
+        h5_file = tmp_path / "downsampled_s3.h5"
+        downsampled_frames = all_frames[::3]
+        write_h5_trajectory(h5_file, downsampled_frames)
+
+        # Read back
+        read_reader = read_h5_trajectory(h5_file)
+        assert read_reader.n_frames == len(downsampled_frames)
+        assert read_reader.n_frames == 4  # 0, 3, 6, 9
+
+    def test_downsample_with_slice_range(self, TEST_DATA_DIR, tmp_path):
+        """Test downsampling with specific slice range [start:stop:step]."""
+        reader = read_lammps_trajectory(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
+
+        # Collect frames
+        all_frames = []
+        for i, frame in enumerate(reader):
+            all_frames.append(frame)
+            if i >= 9:
+                break
+
+        # Write frames 2:8:2 (indices 2, 4, 6)
+        h5_file = tmp_path / "downsampled_range.h5"
+        downsampled_frames = all_frames[2:8:2]
+        write_h5_trajectory(h5_file, downsampled_frames)
+
+        # Read back
+        read_reader = read_h5_trajectory(h5_file)
+        assert read_reader.n_frames == 3
+
+        # Verify we got the right frames
+        for i, orig_idx in enumerate([2, 4, 6]):
+            expected_frame = all_frames[orig_idx]
+            read_frame = read_reader.read_frame(i)
+            expected_atoms = expected_frame["atoms"]
+            read_atoms = read_frame["atoms"]
+            # Compare positions
+            if "xu" in expected_atoms and "xu" in read_atoms:
+                np.testing.assert_array_almost_equal(
+                    expected_atoms["xu"], read_atoms["xu"], decimal=6
+                )
+            elif "x" in expected_atoms and "x" in read_atoms:
+                np.testing.assert_array_almost_equal(
+                    expected_atoms["x"], read_atoms["x"], decimal=6
+                )
+
+    def test_metadata_preservation_after_downsample(self, TEST_DATA_DIR, tmp_path):
+        """Test that downsampling preserves frame metadata (timestep, box, etc.)."""
+        reader = read_lammps_trajectory(TEST_DATA_DIR / "lammps/unwrapped.lammpstrj")
+
+        # Collect frames
+        all_frames = []
+        for i, frame in enumerate(reader):
+            all_frames.append(frame)
+            if i >= 5:
+                break
+
+        # Downsample
+        downsampled_frames = all_frames[::2]
+        h5_file = tmp_path / "downsampled_meta.h5"
+        write_h5_trajectory(h5_file, downsampled_frames)
+
+        # Read back and verify metadata
+        read_reader = read_h5_trajectory(h5_file)
+        for i, orig_frame in enumerate(downsampled_frames):
+            read_frame = read_reader.read_frame(i)
+
+            # Check timestep
+            if "timestep" in orig_frame.metadata:
+                assert "timestep" in read_frame.metadata
+                assert (
+                    orig_frame.metadata["timestep"] == read_frame.metadata["timestep"]
+                )
+
+            # Check box
+            if "box" in orig_frame.metadata and orig_frame.metadata["box"] is not None:
+                assert "box" in read_frame.metadata
+                orig_box = orig_frame.metadata["box"]
+                read_box = read_frame.metadata["box"]
+                assert isinstance(read_box, mp.Box)
+                np.testing.assert_array_almost_equal(
+                    orig_box.matrix, read_box.matrix, decimal=6
+                )
+
+
+class TestHDF5Roundtrip:
+    """Test complete roundtrip for various formats: Format -> H5 -> Frame (lossless)."""
+
+    def test_roundtrip_from_lammps_basic(self, TEST_DATA_DIR, tmp_path):
+        """Test basic LAMMPS trajectory -> H5 -> Trajectory roundtrip."""
+        # Read original LAMMPS trajectory
+        lammps_file = TEST_DATA_DIR / "lammps/unwrapped.lammpstrj"
+        original_reader = read_lammps_trajectory(lammps_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 4:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back from H5
+        h5_reader = read_h5_trajectory(h5_file)
+        assert h5_reader.n_frames == len(original_frames)
+
+        # Verify all frames are identical
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            # Check all blocks
+            assert set(orig_frame._blocks.keys()) == set(read_frame._blocks.keys())
+
+            for block_name in orig_frame._blocks.keys():
+                orig_block = orig_frame[block_name]
+                read_block = read_frame[block_name]
+
+                # Check all fields in block
+                assert set(orig_block.keys()) == set(read_block.keys())
+
+                for field_name in orig_block.keys():
+                    orig_data = orig_block[field_name]
+                    read_data = read_block[field_name]
+
+                    # Check dtype
+                    assert orig_data.dtype == read_data.dtype
+
+                    # Check values
+                    if orig_data.dtype.kind in "biufc":
+                        np.testing.assert_array_almost_equal(
+                            orig_data,
+                            read_data,
+                            decimal=6,
+                            err_msg=f"Frame {i}, block {block_name}, field {field_name}",
+                        )
+                    elif orig_data.dtype.kind == "U":
+                        np.testing.assert_array_equal(
+                            orig_data,
+                            read_data,
+                            err_msg=f"Frame {i}, block {block_name}, field {field_name}",
+                        )
+
+            # Check metadata
+            assert set(orig_frame.metadata.keys()) == set(read_frame.metadata.keys())
+
+            for meta_key in orig_frame.metadata.keys():
+                if meta_key == "box":
+                    if orig_frame.metadata["box"] is not None:
+                        orig_box = orig_frame.metadata["box"]
+                        read_box = read_frame.metadata["box"]
+                        assert isinstance(read_box, mp.Box)
+                        np.testing.assert_array_almost_equal(
+                            orig_box.matrix, read_box.matrix, decimal=6
+                        )
+                        np.testing.assert_array_equal(orig_box.pbc, read_box.pbc)
+                        np.testing.assert_array_almost_equal(
+                            orig_box.origin, read_box.origin, decimal=6
+                        )
+                else:
+                    assert (
+                        orig_frame.metadata[meta_key] == read_frame.metadata[meta_key]
+                    )
+
+    def test_roundtrip_from_lammps_with_properties(self, TEST_DATA_DIR, tmp_path):
+        """Test LAMMPS trajectory -> H5 roundtrip with additional properties."""
+        lammps_file = TEST_DATA_DIR / "lammps/properties.lammpstrj"
+        original_reader = read_lammps_trajectory(lammps_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 2:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip_props.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back
+        h5_reader = read_h5_trajectory(h5_file)
+
+        # Verify all properties are preserved
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            orig_atoms = orig_frame["atoms"]
+            read_atoms = read_frame["atoms"]
+
+            # All fields should be present
+            assert set(orig_atoms.keys()) == set(read_atoms.keys())
+
+            # Check each field
+            for field_name in orig_atoms.keys():
+                orig_data = orig_atoms[field_name]
+                read_data = read_atoms[field_name]
+
+                if orig_data.dtype.kind in "biufc":
+                    np.testing.assert_array_almost_equal(
+                        orig_data,
+                        read_data,
+                        decimal=6,
+                        err_msg=f"Frame {i}, field {field_name}",
+                    )
+
+    def test_roundtrip_from_lammps_all_metadata(self, TEST_DATA_DIR, tmp_path):
+        """Test that all metadata is preserved in LAMMPS trajectory -> H5 roundtrip."""
+        lammps_file = TEST_DATA_DIR / "lammps/unwrapped.lammpstrj"
+        original_reader = read_lammps_trajectory(lammps_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 2:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip_allmeta.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back
+        h5_reader = read_h5_trajectory(h5_file)
+
+        # Check every metadata field in every frame
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            # Metadata keys should match
+            assert set(orig_frame.metadata.keys()) == set(read_frame.metadata.keys())
+
+            # Check each metadata entry
+            for key, orig_value in orig_frame.metadata.items():
+                read_value = read_frame.metadata[key]
+
+                if isinstance(orig_value, mp.Box):
+                    assert isinstance(read_value, mp.Box)
+                    np.testing.assert_array_almost_equal(
+                        orig_value.matrix, read_value.matrix, decimal=6
+                    )
+                    np.testing.assert_array_equal(orig_value.pbc, read_value.pbc)
+                    np.testing.assert_array_almost_equal(
+                        orig_value.origin, read_value.origin, decimal=6
+                    )
+                elif isinstance(orig_value, np.ndarray):
+                    np.testing.assert_array_almost_equal(
+                        orig_value, read_value, decimal=6
+                    )
+                else:
+                    assert orig_value == read_value
+
+    def test_roundtrip_from_xyz_basic(self, TEST_DATA_DIR, tmp_path):
+        """Test basic XYZ trajectory -> H5 -> Frame roundtrip."""
+        from molpy.io import read_xyz_trajectory
+
+        # Read original XYZ trajectory (compressed multi-frame file)
+        xyz_file = TEST_DATA_DIR / "xyz/water.9.xyz.gz"
+        original_reader = read_xyz_trajectory(xyz_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 4:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip_xyz.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back from H5
+        h5_reader = read_h5_trajectory(h5_file)
+        assert h5_reader.n_frames == len(original_frames)
+
+        # Verify all frames are identical
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            # Check all blocks
+            assert set(orig_frame._blocks.keys()) == set(read_frame._blocks.keys())
+
+            for block_name in orig_frame._blocks.keys():
+                orig_block = orig_frame[block_name]
+                read_block = read_frame[block_name]
+
+                # Check all fields
+                assert set(orig_block.keys()) == set(read_block.keys())
+
+                for field_name in orig_block.keys():
+                    orig_data = orig_block[field_name]
+                    read_data = read_block[field_name]
+
+                    # Check dtype
+                    assert orig_data.dtype == read_data.dtype
+
+                    # Check values
+                    if orig_data.dtype.kind in "biufc":
+                        np.testing.assert_array_almost_equal(
+                            orig_data,
+                            read_data,
+                            decimal=6,
+                            err_msg=f"Frame {i}, block {block_name}, field {field_name}",
+                        )
+                    elif orig_data.dtype.kind == "U":
+                        np.testing.assert_array_equal(
+                            orig_data,
+                            read_data,
+                            err_msg=f"Frame {i}, block {block_name}, field {field_name}",
+                        )
+
+    def test_roundtrip_from_xyz_extended(self, TEST_DATA_DIR, tmp_path):
+        """Test XYZ trajectory -> H5 roundtrip with extended XYZ format."""
+        from molpy.io import read_xyz_trajectory
+
+        # Read extended XYZ with properties
+        xyz_file = TEST_DATA_DIR / "xyz/extended.xyz"
+        original_reader = read_xyz_trajectory(xyz_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 2:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip_xyz_ext.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back
+        h5_reader = read_h5_trajectory(h5_file)
+
+        # Verify all data
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            # Check atoms block
+            orig_atoms = orig_frame["atoms"]
+            read_atoms = read_frame["atoms"]
+
+            # All fields should be preserved
+            assert set(orig_atoms.keys()) == set(read_atoms.keys())
+
+            for field_name in orig_atoms.keys():
+                orig_data = orig_atoms[field_name]
+                read_data = read_atoms[field_name]
+
+                if orig_data.dtype.kind in "biufc":
+                    np.testing.assert_array_almost_equal(
+                        orig_data,
+                        read_data,
+                        decimal=6,
+                        err_msg=f"Frame {i}, field {field_name}",
+                    )
+                elif orig_data.dtype.kind == "U":
+                    np.testing.assert_array_equal(
+                        orig_data, read_data, err_msg=f"Frame {i}, field {field_name}"
+                    )
+
+    def test_roundtrip_from_xyz_single_frame(self, TEST_DATA_DIR, tmp_path):
+        """Test single XYZ frame -> H5 -> Frame roundtrip."""
+        from molpy.io import read_xyz
+
+        # Read single frame
+        xyz_file = TEST_DATA_DIR / "xyz/water.xyz"
+        original_frame = read_xyz(xyz_file)
+
+        # Write to H5 (single frame trajectory)
+        h5_file = tmp_path / "single_frame.h5"
+        write_h5_trajectory(h5_file, [original_frame])
+
+        # Read back
+        h5_reader = read_h5_trajectory(h5_file)
+        assert h5_reader.n_frames == 1
+
+        read_frame = h5_reader.read_frame(0)
+
+        # Verify frame is identical
+        orig_atoms = original_frame["atoms"]
+        read_atoms = read_frame["atoms"]
+
+        assert set(orig_atoms.keys()) == set(read_atoms.keys())
+
+        for field_name in orig_atoms.keys():
+            orig_data = orig_atoms[field_name]
+            read_data = read_atoms[field_name]
+
+            if orig_data.dtype.kind in "biufc":
+                np.testing.assert_array_almost_equal(orig_data, read_data, decimal=6)
+            elif orig_data.dtype.kind == "U":
+                np.testing.assert_array_equal(orig_data, read_data)
+
+    def test_roundtrip_from_xyz_metadata_preservation(self, TEST_DATA_DIR, tmp_path):
+        """Test that XYZ trajectory comment line metadata is preserved in roundtrip."""
+        from molpy.io import read_xyz_trajectory
+
+        xyz_file = TEST_DATA_DIR / "xyz/water.9.xyz.gz"
+        original_reader = read_xyz_trajectory(xyz_file)
+
+        # Collect frames
+        original_frames = []
+        for i, frame in enumerate(original_reader):
+            original_frames.append(frame)
+            if i >= 2:
+                break
+
+        # Write to H5
+        h5_file = tmp_path / "roundtrip_xyz_meta.h5"
+        write_h5_trajectory(h5_file, original_frames)
+
+        # Read back
+        h5_reader = read_h5_trajectory(h5_file)
+
+        # Check metadata
+        for i in range(len(original_frames)):
+            orig_frame = original_frames[i]
+            read_frame = h5_reader.read_frame(i)
+
+            # Check that metadata keys match
+            assert set(orig_frame.metadata.keys()) == set(read_frame.metadata.keys())
+
+            # Check each metadata value
+            for key in orig_frame.metadata.keys():
+                orig_value = orig_frame.metadata[key]
+                read_value = read_frame.metadata[key]
+
+                if isinstance(orig_value, np.ndarray):
+                    np.testing.assert_array_almost_equal(
+                        orig_value, read_value, decimal=6
+                    )
+                else:
+                    assert orig_value == read_value
+
+
 class TestHDF5TrajectoryCompression:
     """Comprehensive tests for HDF5 trajectory compression options."""
 
