@@ -39,11 +39,11 @@ class XYZReader(DataReader):
         Frame
             Frame with:
               * block ``"atoms"``:
-                  - ``element``       -> (N,)  <U3   array
-                  - ``x``             -> (N,)  float array
-                  - ``y``             -> (N,)  float array
-                  - ``z``             -> (N,)  float array
-                  - ``atomic_number`` -> (N,)  int array
+                  - ``element``   -> (N,)  <U3   array
+                  - ``x``         -> (N,)  float array
+                  - ``y``         -> (N,)  float array
+                  - ``z``         -> (N,)  float array
+                  - ``number``    -> (N,)  int array (atomic numbers)
                   - additional columns from Properties if extxyz
               * metadata from comment line
         """
@@ -110,7 +110,7 @@ class XYZReader(DataReader):
 
         # Add atomic numbers
         z_list = [Element.get_atomic_number(sym) for sym in symbols]
-        atoms_blk["atomic_number"] = np.array(z_list, dtype=np.int64)
+        atoms_blk["number"] = np.array(z_list, dtype=np.int64)
 
         return atoms_blk
 
@@ -177,10 +177,10 @@ class XYZReader(DataReader):
                 atoms_blk["x"] = pos
 
         # Add atomic numbers if not present
-        if "atomic_number" not in atoms_blk and "element" in atoms_blk:
+        if "number" not in atoms_blk and "element" in atoms_blk:
             symbols = atoms_blk["element"]
             z_list = [Element.get_atomic_number(str(sym)) for sym in symbols]
-            atoms_blk["atomic_number"] = np.array(z_list, dtype=np.int64)
+            atoms_blk["number"] = np.array(z_list, dtype=np.int64)
 
         return atoms_blk
 
