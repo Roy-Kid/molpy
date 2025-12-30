@@ -165,6 +165,7 @@ class XYZReader(DataReader):
         if "species" in atoms_blk and "element" not in atoms_blk:
             atoms_blk["element"] = atoms_blk["species"]
 
+        # Split pos (N×3) into separate x, y, z arrays (standard convention)
         if "pos" in atoms_blk and "x" not in atoms_blk:
             # pos is (N, 3) array, split into x, y, z
             pos = atoms_blk["pos"]

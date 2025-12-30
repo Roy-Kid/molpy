@@ -50,7 +50,7 @@ Steps:
 
 This prompt style prevents the agent from guessing. It forces an explicit “docs → plan → execute” loop, which is the whole point of adding MCP + Context7 in the first place.
 
-Let's start with an example that using MolPy to build a water box with tip3p force field. The prompt would be:
+Let's start with an example using MolPy to build a water box with tip3p force field. The prompt would be:
 
 ```text
 Task: Build a periodic TIP3P water box using MolPy with Packmol, then export LAMMPS force-field files and a LAMMPS data file.
@@ -74,7 +74,7 @@ Steps:
 
 Sending this prompt to an LLM-based agent with MCP + Context7 enabled should yield a correct plan and code snippet that accomplishes the task.
 
-### 3. Summary
+## 3. Summary
 
 MolPy’s suitability for LLM-assisted work follows from its design: explicit data models, inspectable transformations, and a clear boundary between modeling and backend execution.
 
