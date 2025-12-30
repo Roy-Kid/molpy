@@ -50,7 +50,7 @@ def mk_smiles_ir(atom_specs, bond_tuples):
                 )
             )
     bonds = [
-        SmilesBondIR(atom_i=atoms[i], atom_j=atoms[j], order=_bond_order(b))
+        SmilesBondIR(itom=atoms[i], jtom=atoms[j], order=_bond_order(b))
         for (i, j, b) in bond_tuples
     ]
     return SmilesGraphIR(atoms=atoms, bonds=bonds)

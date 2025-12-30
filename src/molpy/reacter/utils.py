@@ -63,7 +63,7 @@ def get_bond_between(
         Bond entity if found, None otherwise
 
     Example:
-        >>> bond = get_bond_between(asm, atom1, atom2)
+        >>> bond = get_bond_between(asm, itom, jtom)
         >>> if bond:
         ...     print(f"Bond order: {bond.get('order', 1)}")
     """

@@ -221,7 +221,7 @@ class SmilesTransformer(Transformer):
                 order, stereo = self._bond_from_symbol(pending_bond_kind)
                 ir.bonds.append(
                     SmilesBondIR(
-                        atom_i=active_atom, atom_j=atom, order=order, stereo=stereo
+                        itom=active_atom, jtom=atom, order=order, stereo=stereo
                     )
                 )
             active_atom = atom
@@ -236,8 +236,8 @@ class SmilesTransformer(Transformer):
                     order, stereo = self._bond_from_symbol(final_bond)
                     ir.bonds.append(
                         SmilesBondIR(
-                            atom_i=start_atom,
-                            atom_j=active_atom,
+                            itom=start_atom,
+                            jtom=active_atom,
                             order=order,
                             stereo=stereo,
                         )
@@ -266,8 +266,8 @@ class SmilesTransformer(Transformer):
                     order, stereo = self._bond_from_symbol(branch_bond_kind)
                     ir.bonds.append(
                         SmilesBondIR(
-                            atom_i=active_atom,
-                            atom_j=head_atom,
+                            itom=active_atom,
+                            jtom=head_atom,
                             order=order,
                             stereo=stereo,
                         )

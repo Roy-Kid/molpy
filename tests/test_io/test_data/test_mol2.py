@@ -125,8 +125,8 @@ class TestMol2Comprehensive:
         # If bonds are present, check connectivity
         if "bonds" in frame:
             bonds = frame["bonds"]
-            assert "i" in bonds
-            assert "j" in bonds
+            assert "atomi" in bonds
+            assert "atomj" in bonds
 
     def test_coordinate_precision(self, TEST_DATA_DIR):
         """Test coordinate precision in MOL2 files."""
@@ -216,12 +216,12 @@ class TestMol2Comprehensive:
                     bonds = frame["bonds"]
 
                     # Check bond connectivity
-                    assert "i" in bonds
-                    assert "j" in bonds
+                    assert "atomi" in bonds
+                    assert "atomj" in bonds
 
                     # Bond indices should be valid
-                    bond_i = bonds["i"]
-                    bond_j = bonds["j"]
+                    bond_i = bonds["atomi"]
+                    bond_j = bonds["atomj"]
                     assert all(i >= 0 for i in bond_i)
                     assert all(j >= 0 for j in bond_j)
                 break

@@ -25,8 +25,8 @@ class TestPDBIO:
         assert frame.metadata["box"] is not None
         # Bonds block exists and has correct shape
         bonds = frame["bonds"]
-        assert bonds["atom1"].shape[0] == 7
-        assert bonds["atom2"].shape[0] == 7
+        assert bonds["atomi"].shape[0] == 7
+        assert bonds["atomj"].shape[0] == 7
 
     def test_read_water(self, pdb_test_files):
         if "water.pdb" not in pdb_test_files:

@@ -442,7 +442,7 @@ class BigSmilesTransformer(Transformer):
                 order, stereo = _bond_from_symbol(pending_bond)
                 segment.graph.bonds.append(
                     SmilesBondIR(
-                        atom_i=active_atom, atom_j=node, order=order, stereo=stereo
+                        itom=active_atom, jtom=node, order=order, stereo=stereo
                     )
                 )
             active_atom = node
@@ -454,8 +454,8 @@ class BigSmilesTransformer(Transformer):
                         order, stereo = _bond_from_symbol(bond_symbol or start_symbol)
                         segment.graph.bonds.append(
                             SmilesBondIR(
-                                atom_i=start_atom,
-                                atom_j=node,
+                                itom=start_atom,
+                                jtom=node,
                                 order=order,
                                 stereo=stereo,
                             )
@@ -475,7 +475,7 @@ class BigSmilesTransformer(Transformer):
                 if active_atom is not None and active_atom is not head:
                     segment.graph.bonds.append(
                         SmilesBondIR(
-                            atom_i=active_atom, atom_j=head, order=order, stereo=stereo
+                            itom=active_atom, jtom=head, order=order, stereo=stereo
                         )
                     )
                 segment.graph.atoms.extend(branch_segment.graph.atoms)
