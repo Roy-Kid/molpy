@@ -25,9 +25,13 @@ class TestXYZReader:
         reader = XYZReader(xyz_test_dir / "methane.xyz")
         frame = reader.read()
 
-        # Check coordinate shape - should be (N, 3) not separate x,y,z
+        # Check coordinate fields - should be separate x, y, z 1D arrays
         assert "x" in frame["atoms"]
-        assert frame["atoms"]["x"].shape == (5, 3), "Coordinates should be (N, 3)"
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert frame["atoms"]["x"].shape == (5,), "x coordinates should be 1D"
+        assert frame["atoms"]["y"].shape == (5,), "y coordinates should be 1D"
+        assert frame["atoms"]["z"].shape == (5,), "z coordinates should be 1D"
 
         # Check elements
         assert "element" in frame["atoms"]
@@ -36,18 +40,26 @@ class TestXYZReader:
         assert all(elements[1:] == "H"), "Other atoms should be Hydrogen"
 
         # Check atomic numbers
-        assert "z" in frame["atoms"]
-        assert frame["atoms"]["z"][0] == 6, "Carbon should have Z=6"
-        assert all(frame["atoms"]["z"][1:] == 1), "Hydrogen should have Z=1"
+        assert "atomic_number" in frame["atoms"]
+        assert (
+            frame["atoms"]["atomic_number"][0] == 6
+        ), "Carbon should have atomic_number=6"
+        assert all(
+            frame["atoms"]["atomic_number"][1:] == 1
+        ), "Hydrogen should have atomic_number=1"
 
     def test_extended_xyz_format(self, xyz_test_dir):
         """Test reading extended XYZ format with Properties."""
         reader = XYZReader(xyz_test_dir / "extended.xyz")
         frame = reader.read()
 
-        # Check coordinate shape - should be (N, 3)
+        # Check coordinate fields - should be separate x, y, z 1D arrays
         assert "x" in frame["atoms"]
-        assert frame["atoms"]["x"].shape == (192, 3), "Coordinates should be (192, 3)"
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert frame["atoms"]["x"].shape == (192,), "x coordinates should be 1D"
+        assert frame["atoms"]["y"].shape == (192,), "y coordinates should be 1D"
+        assert frame["atoms"]["z"].shape == (192,), "z coordinates should be 1D"
 
         # Check box from Lattice
         box = frame.box
@@ -71,8 +83,8 @@ class TestXYZReader:
         assert frame.metadata["Natoms"] == "192"
 
         # Check atomic numbers are present
-        assert "z" in frame["atoms"]
-        assert frame["atoms"]["z"].shape == (192,)
+        assert "atomic_number" in frame["atoms"]
+        assert frame["atoms"]["atomic_number"].shape == (192,)
 
     def test_extended_xyz_with_properties(self, xyz_test_dir):
         """Test extended XYZ with Properties specification parsing."""
@@ -83,9 +95,13 @@ class TestXYZReader:
         # Check that species was mapped to element
         assert "element" in frame["atoms"]
 
-        # Check that pos was mapped to x
+        # Check that pos was split into x, y, z
         assert "x" in frame["atoms"]
-        assert frame["atoms"]["x"].shape == (192, 3)
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert frame["atoms"]["x"].shape == (192,)
+        assert frame["atoms"]["y"].shape == (192,)
+        assert frame["atoms"]["z"].shape == (192,)
 
         # Check that CS (custom property) is present
         assert "CS" in frame["atoms"]
@@ -98,14 +114,20 @@ class TestXYZReader:
 
         # Water has 3 atoms per molecule
         assert "x" in frame["atoms"]
-        assert frame["atoms"]["x"].shape[1] == 3, "Coordinates should have 3 columns"
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert (
+            len(frame["atoms"]["x"])
+            == len(frame["atoms"]["y"])
+            == len(frame["atoms"]["z"])
+        )
 
         # Check atomic numbers
-        assert "z" in frame["atoms"]
+        assert "atomic_number" in frame["atoms"]
         # Water molecules have O-H-H pattern
-        z_values = frame["atoms"]["z"]
+        atomic_numbers = frame["atoms"]["atomic_number"]
         assert (
-            len(z_values) % 3 == 0
+            len(atomic_numbers) % 3 == 0
         ), "Should have multiple of 3 atoms (water molecules)"
 
     def test_topology_xyz(self, xyz_test_dir):
@@ -115,12 +137,15 @@ class TestXYZReader:
 
         # Check basic structure
         assert "x" in frame["atoms"]
-        assert "element" in frame["atoms"]
+        assert "y" in frame["atoms"]
         assert "z" in frame["atoms"]
+        assert "element" in frame["atoms"]
+        assert "atomic_number" in frame["atoms"]
 
-        # Coordinates should be (N, 3)
-        assert frame["atoms"]["x"].ndim == 2
-        assert frame["atoms"]["x"].shape[1] == 3
+        # Coordinates should be 1D arrays
+        assert frame["atoms"]["x"].ndim == 1
+        assert frame["atoms"]["y"].ndim == 1
+        assert frame["atoms"]["z"].ndim == 1
 
     def test_velocities_xyz(self, xyz_test_dir):
         """Test reading XYZ with velocities."""
@@ -129,13 +154,17 @@ class TestXYZReader:
 
         # Check structure
         assert "x" in frame["atoms"]
-        assert "element" in frame["atoms"]
+        assert "y" in frame["atoms"]
         assert "z" in frame["atoms"]
+        assert "element" in frame["atoms"]
+        assert "atomic_number" in frame["atoms"]
 
         # Check if velocities are present (depends on Properties specification)
         # The file might have velocities in the Properties field
         atoms = frame["atoms"]
-        assert atoms["x"].shape[1] == 3
+        assert atoms["x"].ndim == 1
+        assert atoms["y"].ndim == 1
+        assert atoms["z"].ndim == 1
 
     def test_atomic_number_generation(self, xyz_test_dir):
         """Test that atomic numbers are correctly generated from element symbols."""
@@ -143,17 +172,17 @@ class TestXYZReader:
         frame = reader.read()
 
         elements = frame["atoms"]["element"]
-        z_values = frame["atoms"]["z"]
+        atomic_numbers = frame["atoms"]["atomic_number"]
 
         # Verify atomic numbers match elements
-        for elem, z in zip(elements, z_values):
+        for elem, z in zip(elements, atomic_numbers):
             expected_z = Element.get_atomic_number(elem)
             assert (
                 z == expected_z
-            ), f"Element {elem} should have Z={expected_z}, got {z}"
+            ), f"Element {elem} should have atomic_number={expected_z}, got {z}"
 
     def test_coordinate_array_shape(self, xyz_test_dir):
-        """Test that coordinates are always (N, 3) shape."""
+        """Test that coordinates are separate 1D arrays."""
         test_files = ["methane.xyz", "water.xyz", "topology.xyz"]
 
         for filename in test_files:
@@ -161,8 +190,14 @@ class TestXYZReader:
             frame = reader.read()
 
             x = frame["atoms"]["x"]
-            assert x.ndim == 2, f"{filename}: coordinates should be 2D"
-            assert x.shape[1] == 3, f"{filename}: coordinates should have 3 columns"
+            y = frame["atoms"]["y"]
+            z = frame["atoms"]["z"]
+            assert x.ndim == 1, f"{filename}: x coordinates should be 1D"
+            assert y.ndim == 1, f"{filename}: y coordinates should be 1D"
+            assert z.ndim == 1, f"{filename}: z coordinates should be 1D"
+            assert (
+                len(x) == len(y) == len(z)
+            ), f"{filename}: x, y, z should have same length"
 
     def test_element_to_atomic_number_mapping(self, xyz_test_dir):
         """Test various element symbols are correctly mapped to atomic numbers."""
@@ -171,13 +206,13 @@ class TestXYZReader:
         frame = reader.read()
 
         # Check that all atomic numbers are valid (> 0)
-        z_values = frame["atoms"]["z"]
-        assert all(z_values > 0), "All atomic numbers should be positive"
+        atomic_numbers = frame["atoms"]["atomic_number"]
+        assert all(atomic_numbers > 0), "All atomic numbers should be positive"
 
         # Check that elements and atomic numbers are consistent
         if "element" in frame["atoms"]._vars:
             elements = frame["atoms"]["element"]
-            for elem, z in zip(elements, z_values):
+            for elem, z in zip(elements, atomic_numbers):
                 expected_z = Element.get_atomic_number(str(elem))
                 assert z == expected_z
 
@@ -202,7 +237,9 @@ class TestXYZReader:
 
         # Should still parse correctly even with empty comment
         assert "x" in frame["atoms"]
+        assert "y" in frame["atoms"]
         assert "z" in frame["atoms"]
+        assert "atomic_number" in frame["atoms"]
 
     def test_spaces_in_xyz(self, xyz_test_dir):
         """Test XYZ file with various spacing."""
@@ -211,5 +248,9 @@ class TestXYZReader:
 
         # Should handle various spacing correctly
         assert "x" in frame["atoms"]
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
         assert "element" in frame["atoms"]
-        assert frame["atoms"]["x"].shape[1] == 3
+        assert frame["atoms"]["x"].ndim == 1
+        assert frame["atoms"]["y"].ndim == 1
+        assert frame["atoms"]["z"].ndim == 1
