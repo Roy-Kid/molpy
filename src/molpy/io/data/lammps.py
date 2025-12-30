@@ -54,25 +54,37 @@ class LammpsDataReader(DataReader):
                 sections["Atoms"], masses, type_labels.get("atom", {})
             )
 
+        # Build id to index mapping for connectivity
+        id_to_idx = {}
+        if "atoms" in frame:
+            for i, atom_id in enumerate(frame["atoms"]["id"]):
+                id_to_idx[int(atom_id)] = i
+
         # Parse connectivity sections
         if "Bonds" in sections and header_info["counts"].get("bonds", 0) > 0:
             frame["bonds"] = self._parse_connectivity_section(
-                sections["Bonds"], "bond", type_labels.get("bond", {})
+                sections["Bonds"], "bond", type_labels.get("bond", {}), id_to_idx
             )
 
         if "Angles" in sections and header_info["counts"].get("angles", 0) > 0:
             frame["angles"] = self._parse_connectivity_section(
-                sections["Angles"], "angle", type_labels.get("angle", {})
+                sections["Angles"], "angle", type_labels.get("angle", {}), id_to_idx
             )
 
         if "Dihedrals" in sections and header_info["counts"].get("dihedrals", 0) > 0:
             frame["dihedrals"] = self._parse_connectivity_section(
-                sections["Dihedrals"], "dihedral", type_labels.get("dihedral", {})
+                sections["Dihedrals"],
+                "dihedral",
+                type_labels.get("dihedral", {}),
+                id_to_idx,
             )
 
         if "Impropers" in sections and header_info["counts"].get("impropers", 0) > 0:
             frame["impropers"] = self._parse_connectivity_section(
-                sections["Impropers"], "improper", type_labels.get("improper", {})
+                sections["Impropers"],
+                "improper",
+                type_labels.get("improper", {}),
+                id_to_idx,
             )
 
         # Store metadata
@@ -415,14 +427,17 @@ class LammpsDataReader(DataReader):
         return block
 
     def _parse_connectivity_section(
-        self, lines: list[str], section_type: str, type_labels: dict[int, str]
+        self,
+        lines: list[str],
+        section_type: str,
+        type_labels: dict[int, str],
+        id_to_idx: dict[int, int],
     ) -> Block:
         """Parse connectivity sections (bonds, angles, dihedrals, impropers)."""
         if not lines:
             return Block()
 
-        # Define headers for each section type
-        # Note: atom IDs are kept as 1-based (no conversion to indices)
+        # Define temporary headers for parsing (using atom1, atom2 etc. as placeholders)
         headers = {
             "bond": ["id", "type", "atom1", "atom2"],
             "angle": ["id", "type", "atom1", "atom2", "atom3"],
@@ -439,14 +454,39 @@ class LammpsDataReader(DataReader):
             if len(parts) >= len(header):
                 csv_lines.append(line)
 
-        # Parse using Block.from_csv with space delimiter
+        # Parse using Block.from_csv
         csv_string = "\n".join(csv_lines)
         block = Block.from_csv(
             StringIO(csv_string), delimiter=" ", skipinitialspace=True
         )
 
-        # Keep atom IDs as 1-based (no conversion)
-        # atom1, atom2, etc. are stored as atom IDs (1-based)
+        # Map atom IDs to 0-based indices and rename columns
+        atom_key_map = {
+            "atom1": "atomi",
+            "atom2": "atomj",
+            "atom3": "atomk",
+            "atom4": "atoml",
+        }
+
+        for old_key, new_key in atom_key_map.items():
+            if old_key in block:
+                # Convert IDs to indices using the provided mapping
+                ids = block[old_key].astype(int)
+                indices = np.array([id_to_idx.get(id_val, -1) for id_val in ids])
+
+                # Check for unmapped IDs
+                if np.any(indices == -1):
+                    unmapped = ids[indices == -1]
+                    import warnings
+
+                    warnings.warn(
+                        f"Found {len(unmapped)} atom IDs in {section_type} section "
+                        f"that could not be mapped to atom indices: {unmapped[:5]}..."
+                    )
+
+                # Add new column and remove old one
+                block[new_key] = indices
+                del block[old_key]
 
         return block
 
@@ -464,7 +504,7 @@ class LammpsDataWriter(DataWriter):
 
     **Frame Structure:**
     - Atoms: Must include 'id' field. Other required fields depend on atom_style.
-    - Bonds/Angles/Dihedrals: Use atom indices in 'atom_i', 'atom_j', 'atom_k', 'atom_l'
+    - Bonds/Angles/Dihedrals: Use atom indices in 'atomi', 'atomj', 'atomk', 'atoml'
       (from to_frame()). These are 0-based indices that will be converted to 1-based atom IDs.
     """
 
@@ -1084,24 +1124,24 @@ class LammpsDataWriter(DataWriter):
 
         # Validate that all required atom index fields exist
         if section_name == "bonds":
-            if "atom_i" not in data or "atom_j" not in data:
+            if "atomi" not in data or "atomj" not in data:
                 raise ValueError(
-                    f"Bonds must have 'atom_i' and 'atom_j' fields (0-based atom indices)"
+                    f"Bonds must have 'atomi' and 'atomj' fields (0-based atom indices)"
                 )
         elif section_name == "angles":
-            if "atom_i" not in data or "atom_j" not in data or "atom_k" not in data:
+            if "atomi" not in data or "atomj" not in data or "atomk" not in data:
                 raise ValueError(
-                    f"Angles must have 'atom_i', 'atom_j', and 'atom_k' fields (0-based atom indices)"
+                    f"Angles must have 'atomi', 'atomj', and 'atomk' fields (0-based atom indices)"
                 )
         elif section_name in ["dihedrals", "impropers"]:
             if (
-                "atom_i" not in data
-                or "atom_j" not in data
-                or "atom_k" not in data
-                or "atom_l" not in data
+                "atomi" not in data
+                or "atomj" not in data
+                or "atomk" not in data
+                or "atoml" not in data
             ):
                 raise ValueError(
-                    f"{section_name.capitalize()} must have 'atom_i', 'atom_j', 'atom_k', and 'atom_l' "
+                    f"{section_name.capitalize()} must have 'atomi', 'atomj', 'atomk', and 'atoml' "
                     f"fields (0-based atom indices)"
                 )
 
@@ -1129,8 +1169,8 @@ class LammpsDataWriter(DataWriter):
 
             if section_name == "bonds":
                 # Convert indices to IDs
-                atom1_idx = int(data["atom_i"][idx])
-                atom2_idx = int(data["atom_j"][idx])
+                atom1_idx = int(data["atomi"][idx])
+                atom2_idx = int(data["atomj"][idx])
 
                 # Validate indices before converting - raise error if invalid
                 if atom1_idx not in index_to_id:
@@ -1149,9 +1189,9 @@ class LammpsDataWriter(DataWriter):
                 lines.append(f"{item_id} {item_type} {atom1_id} {atom2_id}")
             elif section_name == "angles":
                 # Convert indices to IDs
-                atom1_idx = int(data["atom_i"][idx])
-                atom2_idx = int(data["atom_j"][idx])
-                atom3_idx = int(data["atom_k"][idx])
+                atom1_idx = int(data["atomi"][idx])
+                atom2_idx = int(data["atomj"][idx])
+                atom3_idx = int(data["atomk"][idx])
 
                 # Validate indices before converting - raise error if invalid
                 if atom1_idx not in index_to_id:
@@ -1176,10 +1216,10 @@ class LammpsDataWriter(DataWriter):
                 lines.append(f"{item_id} {item_type} {atom1_id} {atom2_id} {atom3_id}")
             elif section_name in ["dihedrals", "impropers"]:
                 # Convert indices to IDs
-                atom1_idx = int(data["atom_i"][idx])
-                atom2_idx = int(data["atom_j"][idx])
-                atom3_idx = int(data["atom_k"][idx])
-                atom4_idx = int(data["atom_l"][idx])
+                atom1_idx = int(data["atomi"][idx])
+                atom2_idx = int(data["atomj"][idx])
+                atom3_idx = int(data["atomk"][idx])
+                atom4_idx = int(data["atoml"][idx])
 
                 # Validate indices before converting - raise error if invalid
                 if atom1_idx not in index_to_id:

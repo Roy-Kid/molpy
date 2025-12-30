@@ -26,6 +26,12 @@ We recommend following these guides in order:
 
     Understand MolPy's fundamental data structures: `Atomistic`, `Frame`, `Block`, and `Box`. Learn how topology and coordinates work together.
 
+- :four:{ .lg .middle } __[Naming Conventions](naming-conventions.md)__
+
+    ---
+
+    Learn the standardized field names used throughout MolPy for coordinates, atomic properties, and connectivity data.
+
 - :question:{ .lg .middle } __[FAQ](faq.md)__
 
     ---

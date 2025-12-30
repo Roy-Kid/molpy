@@ -183,7 +183,7 @@ class TestBranches:
         assert len(ir.bonds) == 2
 
         # Atom 0 should connect to atoms 1 and 2
-        bond_pairs = {(id(b.start), id(b.end)) for b in ir.bonds}
+        bond_pairs = {(id(b.itom), id(b.jtom)) for b in ir.bonds}
         atom_ids = [id(a) for a in ir.atoms]
 
         # Check connectivity
@@ -218,8 +218,8 @@ class TestRings:
 
         # Should form a closed ring
         # Verify ring closure: last bond connects atom 5 to atom 0
-        ring_bond = next(b for b in ir.bonds if id(b.start) == id(ir.atoms[5]))
-        assert id(ring_bond.end) == id(ir.atoms[0])
+        ring_bond = next(b for b in ir.bonds if id(b.itom) == id(ir.atoms[5]))
+        assert id(ring_bond.jtom) == id(ir.atoms[0])
 
     def test_aromatic_ring(self, parser):
         """Test parsing c1ccccc1 - benzene."""
@@ -428,8 +428,8 @@ class TestIRStructure:
         ir = parser.parse_smarts("CC")
         bond = ir.bonds[0]
 
-        assert hasattr(bond, "start")
-        assert hasattr(bond, "end")
+        assert hasattr(bond, "itom")
+        assert hasattr(bond, "jtom")
         assert hasattr(bond, "bond_type")
         # Default bond type (implicit single bond)
         assert bond.bond_type in ["-", None, ""]

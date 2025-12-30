@@ -58,8 +58,8 @@ class SmilesBondIR:
     Bonds directly reference AtomIR objects, not just IDs.
     """
 
-    atom_i: SmilesAtomIR = field(compare=False)
-    atom_j: SmilesAtomIR = field(compare=False)
+    itom: SmilesAtomIR = field(compare=False)
+    jtom: SmilesAtomIR = field(compare=False)
     order: BondOrder = 1
     stereo: Literal["/", "\\"] | None = None
     id: int = field(default_factory=_generate_id, compare=False)
@@ -70,8 +70,8 @@ class SmilesBondIR:
     def __repr__(self):
         attrs = [
             f"id={self.id}",
-            f"atom_i={self.atom_i.element!r}",
-            f"atom_j={self.atom_j.element!r}",
+            f"itom={self.itom.element!r}",
+            f"jtom={self.jtom.element!r}",
             f"order={self.order!r}",
         ]
         if self.stereo is not None:

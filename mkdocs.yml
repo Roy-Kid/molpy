@@ -90,6 +90,7 @@ nav:
       - Overview: getting-started/index.md
       - Installation: getting-started/installation.ipynb
       - Quickstart: getting-started/quickstart.ipynb
+      - LLM-friendly usage: getting-started/llm_friendly.md
       - Core Concepts: getting-started/core-concepts.ipynb
       - FAQ: getting-started/faq.md
   - Tutorials:

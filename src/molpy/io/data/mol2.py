@@ -194,8 +194,8 @@ class Mol2Reader(DataReader):
             self.bonds.append(
                 {
                     "id": index,
-                    "i": atom1 - 1,
-                    "j": atom2 - 1,  # Convert to zero-based index
+                    "atomi": atom1 - 1,
+                    "atomj": atom2 - 1,  # Convert to zero-based index
                     "type": bond_type,
                     "status_bits": status_bits,
                 }

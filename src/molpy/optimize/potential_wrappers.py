@@ -29,7 +29,7 @@ class BondPotentialWrapper:
         z = frame["atoms"]["z"]
         r = np.column_stack([x, y, z])
         bonds = frame["bonds"]
-        bond_idx = bonds[["atom_i", "atom_j"]]
+        bond_idx = bonds[["atomi", "atomj"]]
         bond_types = bonds["type"]
         return self.potential.calc_energy(r, bond_idx, bond_types)
 
@@ -41,7 +41,7 @@ class BondPotentialWrapper:
         z = frame["atoms"]["z"]
         r = np.column_stack([x, y, z])
         bonds = frame["bonds"]
-        bond_idx = bonds[["atom_i", "atom_j"]]
+        bond_idx = bonds[["atomi", "atomj"]]
         bond_types = bonds["type"]
         return self.potential.calc_forces(r, bond_idx, bond_types)
 
@@ -65,7 +65,7 @@ class AnglePotentialWrapper:
         z = frame["atoms"]["z"]
         r = np.column_stack([x, y, z])
         angles = frame["angles"]
-        angle_idx = angles[["atom_i", "atom_j", "atom_k"]]
+        angle_idx = angles[["atomi", "atomj", "atomk"]]
         angle_types = angles["type"]
         return self.potential.calc_energy(r, angle_idx, angle_types)
 
@@ -77,6 +77,6 @@ class AnglePotentialWrapper:
         z = frame["atoms"]["z"]
         r = np.column_stack([x, y, z])
         angles = frame["angles"]
-        angle_idx = angles[["atom_i", "atom_j", "atom_k"]]
+        angle_idx = angles[["atomi", "atomj", "atomk"]]
         angle_types = angles["type"]
         return self.potential.calc_forces(r, angle_idx, angle_types)

@@ -25,11 +25,11 @@ def get_ports(struct: Atomistic) -> dict[str, list[Atom]]:
 
     Example:
         >>> # Mark ports on atoms
-        >>> atom1["port"] = "head"
-        >>> atom2["port"] = "tail"
-        >>> atom3["port"] = "head"  # Same name as atom1
+        >>> itom["port"] = "head"
+        >>> jtom["port"] = "tail"
+        >>> ktom["port"] = "head"  # Same name as itom
         >>> ports = get_ports(struct)
-        >>> # ports = {"head": [atom1, atom3], "tail": [atom2]}
+        >>> # ports = {"head": [itom, ktom], "tail": [jtom]}
     """
     ports: dict[str, list[Atom]] = {}
     for atom in struct.atoms:

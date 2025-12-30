@@ -264,8 +264,8 @@ class SMARTSGraph(Graph):
         """Add all bonds in the SMARTS IR as edges in the graph."""
         atom_indices = self._atom_indices
         for bond in self.ir.bonds:
-            start_idx = atom_indices[id(bond.start)]
-            end_idx = atom_indices[id(bond.end)]
+            start_idx = atom_indices[id(bond.itom)]
+            end_idx = atom_indices[id(bond.jtom)]
             self.add_edge(start_idx, end_idx, bond_type=bond.bond_type)
 
     def _node_match_fn(self, g1, g2, v1, v2):
