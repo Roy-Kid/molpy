@@ -40,8 +40,10 @@ class XYZReader(DataReader):
             Frame with:
               * block ``"atoms"``:
                   - ``element``   -> (N,)  <U3   array
-                  - ``x``         -> (N,3) float array (Å)
-                  - ``z``         -> (N,)  int array (atomic numbers)
+                  - ``x``         -> (N,)  float array (x-coordinates in Å)
+                  - ``y``         -> (N,)  float array (y-coordinates in Å)
+                  - ``z``         -> (N,)  float array (z-coordinates in Å)
+                  - ``number``    -> (N,)  int array (atomic numbers)
                   - additional columns from Properties if extxyz
               * metadata from comment line
         """
@@ -100,13 +102,15 @@ class XYZReader(DataReader):
         atoms_blk = Block()
         atoms_blk["element"] = np.array(symbols, dtype="U3")
 
-        # Store coordinates as (N, 3) array
+        # Store coordinates as separate x, y, z arrays (standard convention)
         coords_array = np.asarray(coords, dtype=float)
-        atoms_blk["x"] = coords_array
+        atoms_blk["x"] = coords_array[:, 0]
+        atoms_blk["y"] = coords_array[:, 1]
+        atoms_blk["z"] = coords_array[:, 2]
 
-        # Add atomic numbers
-        z_list = [Element.get_atomic_number(sym) for sym in symbols]
-        atoms_blk["z"] = np.array(z_list, dtype=np.int64)
+        # Add atomic numbers using "number" field to avoid conflict with "z" coordinate
+        number_list = [Element.get_atomic_number(sym) for sym in symbols]
+        atoms_blk["number"] = np.array(number_list, dtype=np.int64)
 
         return atoms_blk
 
@@ -161,14 +165,21 @@ class XYZReader(DataReader):
         if "species" in atoms_blk and "element" not in atoms_blk:
             atoms_blk["element"] = atoms_blk["species"]
 
+        # Split pos (N×3) into separate x, y, z arrays (standard convention)
         if "pos" in atoms_blk and "x" not in atoms_blk:
-            atoms_blk["x"] = atoms_blk["pos"]
+            pos = atoms_blk["pos"]
+            if pos.ndim == 2 and pos.shape[1] == 3:
+                atoms_blk["x"] = pos[:, 0]
+                atoms_blk["y"] = pos[:, 1]
+                atoms_blk["z"] = pos[:, 2]
+            else:
+                atoms_blk["x"] = pos
 
-        # Add atomic numbers if not present
-        if "z" not in atoms_blk and "element" in atoms_blk:
+        # Add atomic numbers if not present using "number" field to avoid conflict with "z" coordinate
+        if "number" not in atoms_blk and "element" in atoms_blk:
             symbols = atoms_blk["element"]
-            z_list = [Element.get_atomic_number(str(sym)) for sym in symbols]
-            atoms_blk["z"] = np.array(z_list, dtype=np.int64)
+            number_list = [Element.get_atomic_number(str(sym)) for sym in symbols]
+            atoms_blk["number"] = np.array(number_list, dtype=np.int64)
 
         return atoms_blk
 

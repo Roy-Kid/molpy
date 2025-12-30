@@ -24,15 +24,18 @@ The following sections define the complete schema for Frame and Block structures
 
 #### Atomic Properties (`atoms`)
 
-The `atoms` namespace contains per-atom properties, including atomic numbers, positions, and optional velocity or charge data. All arrays within this Block have length `N`, where `N` is the number of atoms.
+The `atoms` namespace contains per-atom properties, including atomic numbers, positions, and optional velocity or charge data. All arrays within this Block have length `N`, where `N` is the number of atoms. Atomic positions are stored as three separate 1D arrays (`x`, `y`, `z`) of length `N`, which is the standard convention used by MolPy readers and expected by downstream code (e.g., potential energy calculations).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `z` | int array | Atomic numbers |
-| `x` | float array (N×3) | Atomic positions |
+| `number` | int array | Atomic numbers (optional) |
+| `element` | string array | Element symbols (optional) |
+| `x` | float array (N) | Atomic x-coordinates |
+| `y` | float array (N) | Atomic y-coordinates |
+| `z` | float array (N) | Atomic z-coordinates |
 | `v` | float array (N×3) | Atomic velocities (optional) |
 | `q` | float array | Atomic charges (optional) |
-| `type` | int array | Atom types (optional) |
+| `type` | int or string array | Atom types (optional) |
 
 #### Bond Topology (`bonds`)
 
