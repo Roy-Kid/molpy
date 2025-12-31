@@ -91,7 +91,7 @@ class PDBReader(DataReader):
 
     # ------------------------------------------------------------------
     def __init__(self, file: Path, **kwargs):
-        super().__init__(path=file, **kwargs)
+        super().__init__(source=file, **kwargs)
 
     # ------------------------------------------------------------------ private parsers
     @staticmethod

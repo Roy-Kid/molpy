@@ -2,6 +2,7 @@
 Tests for XYZReader and XYZWriter using chemfiles-testcases/xyz files.
 """
 
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -253,3 +254,92 @@ class TestXYZReader:
         assert frame["atoms"]["x"].ndim == 1
         assert frame["atoms"]["y"].ndim == 1
         assert frame["atoms"]["z"].ndim == 1
+
+    def test_bytesio_standard_xyz(self):
+        """Test reading standard XYZ format from BytesIO."""
+        xyz_data = """5
+Methane molecule
+C     0.000000     0.000000     0.000000
+H     0.000000     0.000000     1.089000
+H     1.026719     0.000000    -0.363000
+H    -0.513360    -0.889165    -0.363000
+H    -0.513360     0.889165    -0.363000
+"""
+        bytesio_obj = BytesIO(xyz_data.encode("utf-8"))
+        reader = XYZReader(bytesio_obj)
+        frame = reader.read()
+
+        # Check structure
+        assert len(frame["atoms"]["element"]) == 5
+        assert frame["atoms"]["element"][0] == "C"
+        assert all(frame["atoms"]["element"][1:] == "H")
+
+        # Check coordinates
+        assert "x" in frame["atoms"]
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert frame["atoms"]["x"].shape == (5,)
+        assert frame["atoms"]["y"].shape == (5,)
+        assert frame["atoms"]["z"].shape == (5,)
+
+        # Check atomic numbers
+        assert frame["atoms"]["number"][0] == 6  # Carbon
+        assert all(frame["atoms"]["number"][1:] == 1)  # Hydrogen
+
+    def test_bytesio_extended_xyz(self):
+        """Test reading extended XYZ format from BytesIO."""
+        extxyz_data = """3
+Properties=species:S:1:pos:R:3 Lattice="5.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 5.0" ENERGY=-10.5
+H 0.0 0.0 0.0
+O 1.0 0.0 0.0
+H 2.0 0.0 0.0
+"""
+        bytesio_obj = BytesIO(extxyz_data.encode("utf-8"))
+        reader = XYZReader(bytesio_obj)
+        frame = reader.read()
+
+        # Check structure
+        assert len(frame["atoms"]["element"]) == 3
+        assert frame["atoms"]["element"][0] == "H"
+        assert frame["atoms"]["element"][1] == "O"
+        assert frame["atoms"]["element"][2] == "H"
+
+        # Check coordinates are split into x, y, z
+        assert "x" in frame["atoms"]
+        assert "y" in frame["atoms"]
+        assert "z" in frame["atoms"]
+        assert np.allclose(frame["atoms"]["x"], [0.0, 1.0, 2.0])
+        assert np.allclose(frame["atoms"]["y"], [0.0, 0.0, 0.0])
+        assert np.allclose(frame["atoms"]["z"], [0.0, 0.0, 0.0])
+
+        # Check box from Lattice
+        assert frame.box is not None
+        assert np.allclose(frame.box.matrix, np.eye(3) * 5.0)
+
+        # Check metadata
+        assert "ENERGY" in frame.metadata
+        assert float(frame.metadata["ENERGY"]) == pytest.approx(-10.5)
+
+    def test_bytesio_reusability(self):
+        """Test that BytesIO can be rewound and read multiple times."""
+        xyz_data = """2
+Water
+O 0.0 0.0 0.0
+H 1.0 0.0 0.0
+"""
+        bytesio_obj = BytesIO(xyz_data.encode("utf-8"))
+
+        # First read
+        reader1 = XYZReader(bytesio_obj)
+        frame1 = reader1.read()
+        assert len(frame1["atoms"]["element"]) == 2
+
+        # Rewind and read again
+        bytesio_obj.seek(0)
+        reader2 = XYZReader(bytesio_obj)
+        frame2 = reader2.read()
+        assert len(frame2["atoms"]["element"]) == 2
+
+        # Verify both reads produced the same data
+        assert np.array_equal(frame1["atoms"]["element"], frame2["atoms"]["element"])
+        assert np.array_equal(frame1["atoms"]["x"], frame2["atoms"]["x"])

@@ -34,7 +34,7 @@ class AmberInpcrdReader(DataReader):
     __slots__ = ()
 
     def __init__(self, file: str | Path, **kwargs):
-        super().__init__(path=Path(file), **kwargs)
+        super().__init__(source=Path(file), **kwargs)
 
     # ------------------------------------------------------------------
     def read(self, frame: Frame | None = None) -> Frame:

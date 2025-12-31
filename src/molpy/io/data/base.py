@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from typing import IO
 
 from molpy.core.frame import Frame
 
 PathLike = str | Path
+FileLike = PathLike | IO | BytesIO | StringIO
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -42,10 +44,64 @@ class FileBase(ABC):
 # DataReader
 # ─────────────────────────────────────────────────────────────────────
 class DataReader(FileBase, ABC):
-    """Base class for data file readers."""
+    """Base class for data file readers.
 
-    def __init__(self, path: PathLike, **open_kwargs):
-        super().__init__(path, mode="r", **open_kwargs)
+    Supports reading from both file paths and file-like objects (BytesIO, StringIO, etc.).
+    """
+
+    def __init__(self, source: FileLike, **open_kwargs):
+        """Initialize the DataReader.
+
+        Args:
+            source: Either a file path (str/Path) or a file-like object (BytesIO, StringIO, etc.)
+            **open_kwargs: Additional keyword arguments for file opening (only used for paths)
+        """
+        # Check if source is a file-like object
+        if hasattr(source, "read"):
+            # It's a file-like object
+            self._is_file_object = True
+            self._path = None
+            self._mode = "r"
+            self._open_kwargs = {}
+
+            # Wrap BytesIO in TextIOWrapper if needed
+            if isinstance(source, BytesIO):
+                self._fh = TextIOWrapper(source, encoding="utf-8")
+                self._owns_wrapper = True
+            else:
+                self._fh = source
+                self._owns_wrapper = False
+        else:
+            # It's a path
+            self._is_file_object = False
+            self._path = Path(source)
+            self._mode = "r"
+            self._open_kwargs = open_kwargs
+            self._fh = None
+            self._owns_wrapper = False
+
+    # Override parent methods to handle file-like objects
+    def __enter__(self):
+        if self._is_file_object:
+            return self
+        else:
+            self._fh = self._path.open(self._mode, **self._open_kwargs)
+            return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._fh and not self._is_file_object:
+            self._fh.close()
+            self._fh = None
+        elif self._owns_wrapper and self._fh:
+            # Close the wrapper but not the underlying BytesIO
+            self._fh.detach()
+            self._fh = None
+
+    @property
+    def fh(self) -> IO[str]:
+        if self._fh is None and not self._is_file_object:
+            self._fh = self._path.open(self._mode, **self._open_kwargs)
+        return self._fh
 
     # -- line helpers --------------------------------------------------
     def _iter_nonblank(self) -> Iterator[str]:

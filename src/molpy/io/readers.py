@@ -5,10 +5,12 @@ This module provides convenient factory functions for creating various data file
 All functions return Frame objects by populating an optional frame parameter.
 """
 
+from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Any
+from typing import Any, IO
 
 PathLike = str | Path
+FileLike = PathLike | IO | BytesIO | StringIO
 
 
 # Lazy import to avoid loading all dependencies
@@ -168,12 +170,12 @@ def read_gro(file: PathLike, frame: Any = None) -> Any:
     return reader.read(frame)
 
 
-def read_xyz(file: PathLike, frame: Any = None) -> Any:
+def read_xyz(file: FileLike, frame: Any = None) -> Any:
     """
     Read XYZ file and return a Frame object.
 
     Args:
-        file: Path to XYZ file
+        file: Path to XYZ file or a file-like object (BytesIO, StringIO, etc.)
         frame: Optional existing Frame to populate
 
     Returns:
@@ -182,7 +184,7 @@ def read_xyz(file: PathLike, frame: Any = None) -> Any:
     from .data.xyz import XYZReader
 
     frame = _ensure_frame(frame)
-    reader = XYZReader(Path(file))
+    reader = XYZReader(file)
     return reader.read(frame)
 
 
