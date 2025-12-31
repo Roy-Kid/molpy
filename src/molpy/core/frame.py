@@ -542,6 +542,268 @@ class Block(MutableMapping[str, np.ndarray]):
 
             yield RowTuple(*row_values)
 
+    # ------------------------------------------------------------------ dict-like methods
+    def keys(self) -> Iterator[str]:
+        """Return an iterator over variable names.
+
+        Returns:
+            Iterator[str]: Iterator over variable names in this block.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
+            >>> list(blk.keys())
+            ['x', 'y', 'z']
+            >>> 'x' in blk.keys()
+            True
+        """
+        return iter(self._vars.keys())
+
+    def values(self) -> Iterator[np.ndarray]:
+        """Return an iterator over variable arrays.
+
+        Returns:
+            Iterator[np.ndarray]: Iterator over numpy arrays in this block.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> arrays = list(blk.values())
+            >>> len(arrays)
+            2
+            >>> arrays[0].shape
+            (2,)
+        """
+        return iter(self._vars.values())
+
+    def items(self) -> Iterator[tuple[str, np.ndarray]]:
+        """Return an iterator over (name, array) pairs.
+
+        Returns:
+            Iterator[tuple[str, np.ndarray]]: Iterator over (variable_name, array) pairs.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> for name, arr in blk.items():
+            ...     print(f"{name}: {arr}")
+            x: [1 2]
+            y: [3 4]
+        """
+        return iter(self._vars.items())
+
+    def get(self, key: str, default: Any = None) -> np.ndarray | Any:
+        """Get a variable by name with optional default.
+
+        Args:
+            key: Variable name to retrieve.
+            default: Value to return if key doesn't exist. Defaults to None.
+
+        Returns:
+            np.ndarray | Any: The array if key exists, otherwise default.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2, 3]})
+            >>> blk.get("x")
+            array([1, 2, 3])
+            >>> blk.get("y", np.array([0]))
+            array([0])
+            >>> blk.get("z") is None
+            True
+        """
+        return self._vars.get(key, default)
+
+    def pop(self, key: str, default: Any = None) -> np.ndarray | Any:
+        """Remove and return a variable.
+
+        Args:
+            key: Variable name to remove.
+            default: Value to return if key doesn't exist. If not provided,
+                raises KeyError when key is not found.
+
+        Returns:
+            np.ndarray | Any: The removed array if key exists, otherwise default.
+
+        Raises:
+            KeyError: If key doesn't exist and no default is provided.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> arr = blk.pop("x")
+            >>> arr
+            array([1, 2])
+            >>> "x" in blk
+            False
+            >>> blk.pop("z", np.array([0]))
+            array([0])
+        """
+        if default is None:
+            return self._vars.pop(key)
+        return self._vars.pop(key, default)
+
+    def update(self, other: "BlockLike | Block") -> None:
+        """Update block with variables from another block or dict.
+
+        Args:
+            other: Block or dict-like object to update from.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2]})
+            >>> blk.update({"y": [3, 4], "z": [5, 6]})
+            >>> list(blk.keys())
+            ['x', 'y', 'z']
+            >>> blk2 = Block({"a": [7, 8]})
+            >>> blk.update(blk2)
+            >>> "a" in blk
+            True
+        """
+        if isinstance(other, Block):
+            for k, v in other._vars.items():
+                self._vars[k] = v
+        else:
+            for k, v in other.items():
+                self._vars[k] = np.asarray(v)
+
+    def clear(self) -> None:
+        """Remove all variables from the block.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> len(blk)
+            2
+            >>> blk.clear()
+            >>> len(blk)
+            0
+        """
+        self._vars.clear()
+
+    def setdefault(self, key: str, default: ArrayLike) -> np.ndarray:
+        """Get variable value, setting it to default if not present.
+
+        Args:
+            key: Variable name.
+            default: Default value to set if key doesn't exist.
+
+        Returns:
+            np.ndarray: The existing or newly set array.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2]})
+            >>> blk.setdefault("x", [0, 0])
+            array([1, 2])
+            >>> blk.setdefault("y", [3, 4])
+            array([3, 4])
+            >>> "y" in blk
+            True
+        """
+        if key not in self._vars:
+            self._vars[key] = np.asarray(default)
+        return self._vars[key]
+
+    # ------------------------------------------------------------------ semantic methods
+    @property
+    def nvars(self) -> int:
+        """Get number of variables in the block.
+
+        Equivalent to len(block).
+
+        Returns:
+            int: Number of variables.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> blk.nvars
+            2
+            >>> blk.nvars == len(blk)
+            True
+        """
+        return len(self._vars)
+
+    def has_key(self, name: str) -> bool:
+        """Check if a key exists in the block.
+
+        Equivalent to `name in block`.
+
+        Args:
+            name: Key name to check.
+
+        Returns:
+            bool: True if key exists, False otherwise.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> blk.has_key("x")
+            True
+            >>> blk.has_key("z")
+            False
+            >>> blk.has_key("x") == ("x" in blk)
+            True
+        """
+        return name in self._vars
+
+    def rename_key(self, old_name: str, new_name: str) -> None:
+        """Rename a key in the block.
+
+        Args:
+            old_name: Current key name.
+            new_name: New key name.
+
+        Raises:
+            KeyError: If old_name doesn't exist.
+            ValueError: If new_name already exists.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4]})
+            >>> blk.rename_key("x", "position_x")
+            >>> "position_x" in blk
+            True
+            >>> "x" in blk
+            False
+        """
+        if old_name not in self._vars:
+            raise KeyError(f"Key '{old_name}' not found in block")
+        if new_name in self._vars:
+            raise ValueError(f"Key '{new_name}' already exists in block")
+        self._vars[new_name] = self._vars.pop(old_name)
+
+    def select_keys(self, names: list[str]) -> "Block":
+        """Create a new block with only the specified keys.
+
+        Args:
+            names: List of key names to include.
+
+        Returns:
+            Block: New block containing only the specified keys.
+
+        Raises:
+            KeyError: If any key name doesn't exist.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
+            >>> sub_blk = blk.select_keys(["x", "z"])
+            >>> list(sub_blk.keys())
+            ['x', 'z']
+            >>> sub_blk.nvars
+            2
+        """
+        return Block({name: self._vars[name] for name in names})
+
+    def drop_keys(self, names: list[str]) -> "Block":
+        """Create a new block without the specified keys.
+
+        Args:
+            names: List of key names to exclude.
+
+        Returns:
+            Block: New block without the specified keys.
+
+        Examples:
+            >>> blk = Block({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
+            >>> sub_blk = blk.drop_keys(["y"])
+            >>> list(sub_blk.keys())
+            ['x', 'z']
+            >>> "y" in sub_blk
+            False
+        """
+        return Block({k: v for k, v in self._vars.items() if k not in names})
+
 
 class Frame:
     """Hierarchical numerical data container with named blocks.
@@ -760,6 +1022,314 @@ class Frame:
             False
         """
         return key in self._blocks
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over block names.
+
+        Returns:
+            Iterator[str]: Iterator over block names in this frame.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> list(frame)
+            ['atoms', 'bonds']
+            >>> for block_name in frame:
+            ...     print(block_name)
+            atoms
+            bonds
+        """
+        return iter(self._blocks)
+
+    def __len__(self) -> int:
+        """Return the number of blocks in the frame.
+
+        Returns:
+            int: Number of blocks.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> len(frame)
+            2
+        """
+        return len(self._blocks)
+
+    # ------------------------------------------------------------------ dict-like methods
+    def keys(self) -> Iterator[str]:
+        """Return an iterator over block names.
+
+        Returns:
+            Iterator[str]: Iterator over block names in this frame.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> list(frame.keys())
+            ['atoms', 'bonds']
+            >>> 'atoms' in frame.keys()
+            True
+        """
+        return iter(self._blocks.keys())
+
+    def values(self) -> Iterator[Block]:
+        """Return an iterator over Block objects.
+
+        Returns:
+            Iterator[Block]: Iterator over Block objects in this frame.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}, "bonds": {"i": [0]}})
+            >>> blocks = list(frame.values())
+            >>> len(blocks)
+            2
+            >>> isinstance(blocks[0], Block)
+            True
+        """
+        return iter(self._blocks.values())
+
+    def items(self) -> Iterator[tuple[str, Block]]:
+        """Return an iterator over (block_name, Block) pairs.
+
+        Returns:
+            Iterator[tuple[str, Block]]: Iterator over (name, block) pairs.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}, "bonds": {"i": [0]}})
+            >>> for name, block in frame.items():
+            ...     print(f"{name}: {block.nvars} variables")
+            atoms: 1 variables
+            bonds: 1 variables
+        """
+        return iter(self._blocks.items())
+
+    def get(self, key: str, default: Block | None = None) -> Block | None:
+        """Get a block by name with optional default.
+
+        Args:
+            key: Block name to retrieve.
+            default: Value to return if key doesn't exist. Defaults to None.
+
+        Returns:
+            Block | None: The block if key exists, otherwise default.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2, 3]}})
+            >>> frame.get("atoms")
+            Block(x: shape=(3,))
+            >>> frame.get("bonds") is None
+            True
+            >>> frame.get("bonds", Block())
+            Block()
+        """
+        return self._blocks.get(key, default)
+
+    def pop(self, key: str, default: Block | None = None) -> Block | None:
+        """Remove and return a block.
+
+        Args:
+            key: Block name to remove.
+            default: Value to return if key doesn't exist. If not provided,
+                raises KeyError when key is not found.
+
+        Returns:
+            Block | None: The removed block if key exists, otherwise default.
+
+        Raises:
+            KeyError: If key doesn't exist and no default is provided.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}, "bonds": {"i": [0]}})
+            >>> block = frame.pop("atoms")
+            >>> "atoms" in frame
+            False
+            >>> frame.pop("missing", Block())
+            Block()
+        """
+        if default is None:
+            return self._blocks.pop(key)
+        return self._blocks.pop(key, default)
+
+    def update(self, other: "dict[str, Block | BlockLike] | Frame") -> None:
+        """Update frame with blocks from another frame or dict.
+
+        Args:
+            other: Frame or dict-like object to update from.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}})
+            >>> frame.update({"bonds": {"i": [0], "j": [1]}})
+            >>> list(frame.keys())
+            ['atoms', 'bonds']
+            >>> frame2 = Frame(blocks={"angles": {"i": [0]}})
+            >>> frame.update(frame2)
+            >>> "angles" in frame
+            True
+        """
+        if isinstance(other, Frame):
+            for k, v in other._blocks.items():
+                self._blocks[k] = v
+        else:
+            for k, v in other.items():
+                if not isinstance(v, Block):
+                    v = Block(v)
+                self._blocks[k] = v
+
+    def clear(self) -> None:
+        """Remove all blocks from the frame.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> len(frame)
+            2
+            >>> frame.clear()
+            >>> len(frame)
+            0
+        """
+        self._blocks.clear()
+
+    def setdefault(self, key: str, default: Block | BlockLike) -> Block:
+        """Get block, setting it to default if not present.
+
+        Args:
+            key: Block name.
+            default: Default block to set if key doesn't exist.
+
+        Returns:
+            Block: The existing or newly set block.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1, 2]}})
+            >>> frame.setdefault("atoms", Block())
+            Block(x: shape=(2,))
+            >>> frame.setdefault("bonds", {"i": [0], "j": [1]})
+            Block(i: shape=(1,), j: shape=(1,))
+            >>> "bonds" in frame
+            True
+        """
+        if key not in self._blocks:
+            if not isinstance(default, Block):
+                default = Block(default)
+            self._blocks[key] = default
+        return self._blocks[key]
+
+    # ------------------------------------------------------------------ semantic methods
+    @property
+    def nblocks(self) -> int:
+        """Get number of blocks in the frame.
+
+        Equivalent to len(frame).
+
+        Returns:
+            int: Number of blocks.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> frame.nblocks
+            2
+            >>> frame.nblocks == len(frame)
+            True
+        """
+        return len(self._blocks)
+
+    def has_key(self, name: str) -> bool:
+        """Check if a key exists in the frame.
+
+        Equivalent to `name in frame`.
+
+        Args:
+            name: Key name to check.
+
+        Returns:
+            bool: True if key exists, False otherwise.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> frame.has_key("atoms")
+            True
+            >>> frame.has_key("angles")
+            False
+            >>> frame.has_key("atoms") == ("atoms" in frame)
+            True
+        """
+        return name in self._blocks
+
+    def rename_key(self, old_name: str, new_name: str) -> None:
+        """Rename a key in the frame.
+
+        Args:
+            old_name: Current key name.
+            new_name: New key name.
+
+        Raises:
+            KeyError: If old_name doesn't exist.
+            ValueError: If new_name already exists.
+
+        Examples:
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> frame.rename_key("atoms", "particles")
+            >>> "particles" in frame
+            True
+            >>> "atoms" in frame
+            False
+        """
+        if old_name not in self._blocks:
+            raise KeyError(f"Key '{old_name}' not found in frame")
+        if new_name in self._blocks:
+            raise ValueError(f"Key '{new_name}' already exists in frame")
+        self._blocks[new_name] = self._blocks.pop(old_name)
+
+    def select_keys(self, names: list[str]) -> "Frame":
+        """Create a new frame with only the specified keys.
+
+        Args:
+            names: List of key names to include.
+
+        Returns:
+            Frame: New frame containing only the specified keys.
+
+        Raises:
+            KeyError: If any key name doesn't exist.
+
+        Examples:
+            >>> frame = Frame(blocks={
+            ...     "atoms": {"x": [1]},
+            ...     "bonds": {"i": [0]},
+            ...     "angles": {"i": [0]}
+            ... })
+            >>> sub_frame = frame.select_keys(["atoms", "bonds"])
+            >>> list(sub_frame.keys())
+            ['atoms', 'bonds']
+            >>> sub_frame.nblocks
+            2
+        """
+        new_blocks = {name: self._blocks[name].copy() for name in names}
+        new_frame = Frame(blocks=new_blocks)
+        new_frame.metadata = self.metadata.copy()
+        return new_frame
+
+    def drop_keys(self, names: list[str]) -> "Frame":
+        """Create a new frame without the specified keys.
+
+        Args:
+            names: List of key names to exclude.
+
+        Returns:
+            Frame: New frame without the specified keys.
+
+        Examples:
+            >>> frame = Frame(blocks={
+            ...     "atoms": {"x": [1]},
+            ...     "bonds": {"i": [0]},
+            ...     "angles": {"i": [0]}
+            ... })
+            >>> sub_frame = frame.drop_keys(["angles"])
+            >>> list(sub_frame.keys())
+            ['atoms', 'bonds']
+            >>> "angles" in sub_frame
+            False
+        """
+        new_blocks = {k: v.copy() for k, v in self._blocks.items() if k not in names}
+        new_frame = Frame(blocks=new_blocks)
+        new_frame.metadata = self.metadata.copy()
+        return new_frame
 
     # ---------- helpers -------------------------------------------------
     @property
