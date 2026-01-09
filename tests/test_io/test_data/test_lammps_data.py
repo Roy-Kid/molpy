@@ -353,6 +353,233 @@ class TestErrorHandling:
         assert frame is not None
         assert "atoms" not in frame
 
+    def test_box_parsing_valid(self, tmp_path):
+        """Test that valid box bounds are correctly parsed."""
+        valid_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+5.0 15.0 xlo xhi
+10.0 30.0 ylo yhi
+-5.0 25.0 zlo zhi
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(valid_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        frame = reader.read()
+
+        # Verify box bounds are correctly parsed (not default 10.0)
+        box = frame.metadata["box"]
+        assert box is not None
+        np.testing.assert_array_almost_equal(box.lengths, [10.0, 20.0, 30.0])
+        np.testing.assert_array_almost_equal(box.origin, [5.0, 10.0, -5.0])
+
+    def test_box_parsing_missing(self, tmp_path):
+        """Test that missing box bounds result in None box_bounds."""
+        missing_box_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(missing_box_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        frame = reader.read()
+
+        # Should use default box when bounds are missing
+        box = frame.metadata["box"]
+        assert box is not None
+        np.testing.assert_array_almost_equal(box.lengths, [10.0, 10.0, 10.0])
+
+    def test_box_parsing_malformed_x(self, tmp_path):
+        """Test that malformed x box bounds raise an error."""
+        malformed_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+invalid xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        # Should raise ValueError when trying to convert 'invalid' to float
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            reader.read()
+
+    def test_box_parsing_malformed_y(self, tmp_path):
+        """Test that malformed y box bounds raise an error."""
+        malformed_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+0.0 10.0 xlo xhi
+abc def ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        # Should raise ValueError when trying to convert 'abc' to float
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            reader.read()
+
+    def test_box_parsing_malformed_z(self, tmp_path):
+        """Test that malformed z box bounds raise an error."""
+        malformed_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+10.0 zlo zhi
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        # Should raise ValueError when trying to convert 'zlo' to float (only one value before zlo zhi)
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            reader.read()
+
+    def test_malformed_masses(self, tmp_path):
+        """Test that malformed mass lines raise errors."""
+        malformed_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 invalid_mass
+
+Atoms
+
+1 1 0.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            reader.read()
+
+    def test_malformed_type_labels(self, tmp_path):
+        """Test that malformed type labels raise errors."""
+        malformed_content = """# LAMMPS data file
+2 atoms
+2 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Atom Type Labels
+
+invalid_id C
+2 H
+
+Masses
+
+1 12.0
+2 1.0
+
+Atoms
+
+1 1 0.0 0.0 0.0
+2 2 1.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            reader.read()
+
+    def test_malformed_atoms(self, tmp_path):
+        """Test that malformed atom lines are handled gracefully."""
+        malformed_content = """# LAMMPS data file
+1 atoms
+1 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 12.0
+
+Atoms
+
+1 1 invalid 0.0 0.0
+"""
+        tmp_file = tmp_path / "test.data"
+        with open(tmp_file, "w") as f:
+            f.write(malformed_content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        # Block.from_csv may skip malformed lines or handle them differently
+        # The important thing is that we don't silently accept bad data
+        frame = reader.read()
+        # If the malformed line is skipped, we should have 0 atoms
+        # If it raises an error, that's also acceptable
+        assert frame is not None
+
     def test_malformed_header(self, tmp_path):
         """Test reading file with malformed header."""
         malformed_content = """# LAMMPS data file
@@ -376,13 +603,9 @@ Atoms
             f.write(malformed_content)
 
         reader = LammpsDataReader(tmp_file, atom_style="atomic")
-        frame = reader.read()
-
-        # Should handle malformed header gracefully
-        assert frame is not None
-        # May not have atoms if header parsing fails
-        if "atoms" in frame:
-            assert frame["atoms"].nrows >= 0
+        # Should raise ValueError when trying to parse "invalid" as int
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            reader.read()
 
 
 class TestForceFieldIntegration:

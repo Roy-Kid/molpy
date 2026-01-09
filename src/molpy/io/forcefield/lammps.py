@@ -1,6 +1,6 @@
 from itertools import islice
 from pathlib import Path
-from typing import Callable, TextIO, cast
+from typing import Callable, ClassVar, TextIO, cast
 
 from molpy import (
     AngleStyle,
@@ -19,6 +19,8 @@ from molpy.potential.bond import BondHarmonicStyle
 from molpy.potential.dihedral import DihedralOPLSStyle
 from molpy.potential.pair import PairLJ126CoulCutStyle, PairLJ126CoulLongStyle
 from molpy.version import version
+
+from .formatter_registry import ParameterFormatterRegistry
 
 
 class LAMMPSForceFieldReader:
@@ -736,22 +738,6 @@ def _format_generic_pair(typ) -> list[float]:
     return result
 
 
-# Parameter formatters registry: maps Style class to formatter function
-_PARAM_FORMATTERS: dict[type, callable] = {
-    # Specialized styles
-    BondHarmonicStyle: _format_bond_harmonic,
-    AngleHarmonicStyle: _format_angle_harmonic,
-    DihedralOPLSStyle: _format_dihedral_opls,
-    PairLJ126CoulCutStyle: _format_pair_lj,
-    PairLJ126CoulLongStyle: _format_pair_lj,
-    # Generic styles (fallback)
-    BondStyle: _format_generic_bond,
-    AngleStyle: _format_generic_angle,
-    DihedralStyle: _format_generic_dihedral,
-    PairStyle: _format_generic_pair,
-}
-
-
 # ===================================================================
 #               LAMMPS Force Field Writer
 # ===================================================================
@@ -765,16 +751,52 @@ class LAMMPSForceFieldWriter:
     - Hybrid styles
     - Type filtering
     - Specialized Style and Type classes
+    - Extensible parameter formatters via class-level registry
     """
 
-    def __init__(self, fpath: str | Path | TextIO, precision: int = 6):
+    # Class-level formatter registry (shared by all instances unless overridden)
+    _formatters: ClassVar[ParameterFormatterRegistry] = ParameterFormatterRegistry()
+
+    def __init__(
+        self,
+        fpath: str | Path | TextIO,
+        precision: int = 6,
+        formatter_registry: ParameterFormatterRegistry | None = None,
+    ):
         """
         Args:
             fpath: Output file path or file-like object
             precision: Number of decimal places for floating point values
+            formatter_registry: Optional instance-level registry override.
+                              If None, uses class-level registry.
         """
         self.precision = precision
         self._fpath = fpath
+        # Instance can override class-level registry
+        self._instance_formatters = formatter_registry
+
+    @property
+    def formatters(self) -> ParameterFormatterRegistry:
+        """Get the active formatter registry for this instance."""
+        return self._instance_formatters or self._formatters
+
+    @classmethod
+    def register_formatter(
+        cls, style_class: type, formatter: Callable[[type], list[float]]
+    ) -> None:
+        """Register a formatter for this writer class.
+
+        Args:
+            style_class: Style class to register formatter for
+            formatter: Formatter function (typ) -> list[float]
+
+        Example:
+            >>> LAMMPSForceFieldWriter.register_formatter(
+            ...     MyCustomStyle,
+            ...     lambda typ: [typ.params.kwargs['k']]
+            ... )
+        """
+        cls._formatters.register(style_class, formatter)
 
     def _format_number(self, value: float | int) -> str:
         """Format a single number with configured precision."""
@@ -799,24 +821,15 @@ class LAMMPSForceFieldWriter:
         Raises:
             ValueError: If no formatter is found and parameters cannot be extracted
         """
-        style_class = type(style)
-
-        # Try registered formatter first
-        if style_class in _PARAM_FORMATTERS:
-            formatter = _PARAM_FORMATTERS[style_class]
-            try:
-                return formatter(typ)
-            except (KeyError, TypeError) as e:
-                raise ValueError(
-                    f"Failed to format parameters for {style_class.__name__} "
-                    f"with type {type(typ).__name__}: {e}"
-                ) from e
-
-        # No formatter found - this is an error for specialized styles
-        raise ValueError(
-            f"No parameter formatter registered for style class {style_class.__name__}. "
-            f"Available formatters: {list(_PARAM_FORMATTERS.keys())}"
-        )
+        try:
+            return self.formatters.format(typ, style)
+        except ValueError as e:
+            raise ValueError(
+                f"Failed to format parameters for {type(style).__name__} "
+                f"with type {type(typ).__name__}: {e}\n"
+                f"Register a formatter using: "
+                f"LAMMPSForceFieldWriter.register_formatter({type(style).__name__}, formatter_func)"
+            ) from e
 
     def _get_coeff_id(self, typ, style_type: str) -> str:
         """Get coefficient identifier for a type.
@@ -1047,3 +1060,21 @@ class LAMMPSForceFieldWriter:
                 f.writelines(lines)
         else:
             self._fpath.writelines(lines)
+
+
+# ===================================================================
+#               Initialize Default Formatters
+# ===================================================================
+
+# Register default LAMMPS formatters in the class-level registry
+LAMMPSForceFieldWriter.register_formatter(BondHarmonicStyle, _format_bond_harmonic)
+LAMMPSForceFieldWriter.register_formatter(AngleHarmonicStyle, _format_angle_harmonic)
+LAMMPSForceFieldWriter.register_formatter(DihedralOPLSStyle, _format_dihedral_opls)
+LAMMPSForceFieldWriter.register_formatter(PairLJ126CoulCutStyle, _format_pair_lj)
+LAMMPSForceFieldWriter.register_formatter(PairLJ126CoulLongStyle, _format_pair_lj)
+
+# Register generic fallback formatters
+LAMMPSForceFieldWriter.register_formatter(BondStyle, _format_generic_bond)
+LAMMPSForceFieldWriter.register_formatter(AngleStyle, _format_generic_angle)
+LAMMPSForceFieldWriter.register_formatter(DihedralStyle, _format_generic_dihedral)
+LAMMPSForceFieldWriter.register_formatter(PairStyle, _format_generic_pair)

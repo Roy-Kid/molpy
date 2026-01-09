@@ -185,12 +185,22 @@ class Packmol(Packer):
         script.append("")  # Empty line for readability
 
         # Write structure files and add to input
+        # Note: Packmol may renumber atoms in output, so we'll match by order
+        # Each structure file should have sequential IDs starting from 1
         for i, target in enumerate(targets):
             frame = target.frame
             number = target.number
             constraint = target.constraint
 
             # Frame should already have x, y, z fields (never use xyz)
+            # Ensure id field exists for PDB output (1-based, sequential within structure)
+            atoms = frame["atoms"]
+            n_atoms = atoms.nrows  # 0-based count of atoms (idx 0 to n_atoms-1)
+            if "id" not in atoms:
+                # Create sequential IDs starting from 1 for this structure
+                # id is 1-based LAMMPS ID, idx is 0-based array index
+                atoms["id"] = np.arange(1, n_atoms + 1, dtype=int)
+                frame["atoms"] = atoms
 
             # Create structure file
             struct_file = workdir / f"structure_{i}.pdb"
@@ -245,6 +255,7 @@ class Packmol(Packer):
         self, packmol_path: str, input_file: Path, workdir: Path
     ) -> None:
         """Execute Packmol process."""
+        # Packmol writes stdout to .packmol.out, stderr to .packmol.log
         output_file = workdir / ".packmol.out"
         log_file = workdir / ".packmol.log"
 
@@ -362,10 +373,11 @@ class Packmol(Packer):
         """
         # Step 1: Expand target frames according to instance counts
         # Count atoms per instance to compute offsets
+        # Use nrows (0-based count) not len() (which returns number of fields)
         target_atoms_count = []
         for target in targets:
             atoms_block = target.frame["atoms"]
-            n_atoms = len(atoms_block.get("id", atoms_block.get("xyz", [])))
+            n_atoms = atoms_block.nrows  # 0-based count of atoms
             for _ in range(target.number):
                 target_atoms_count.append(n_atoms)
 
@@ -391,28 +403,18 @@ class Packmol(Packer):
 
                 # Expand atoms block - preserve ALL fields including type and charge
                 atoms = target.frame["atoms"].copy()
-                n = len(atoms.get("id", atoms.get("xyz", [])))
+                n = atoms.nrows  # 0-based count of atoms (idx 0 to n-1)
 
                 # Set molecule ID for this instance
                 atoms["mol"] = np.full(n, current_instance + 1, dtype=int)
 
-                # Reassign atom IDs sequentially (1-indexed)
-                if "id" in atoms:
-                    atoms["id"] = np.arange(offset + 1, offset + n + 1, dtype=int)
-
-                # Ensure charge field is available as 'q' for LAMMPS compatibility
-                # LAMMPS uses 'q' but we store as 'charge' in atoms
-                if "charge" in atoms and "q" not in atoms:
-                    atoms["q"] = atoms["charge"]
-                elif "q" in atoms and "charge" not in atoms:
-                    atoms["charge"] = atoms["q"]
-
+                # Don't set id here - will be generated at the end for all atoms
                 all_atoms.append(atoms)
 
                 # Expand bonds block
                 if "bonds" in target.frame:
                     bonds = target.frame["bonds"].copy()
-                    m = len(bonds.get("id", bonds.get("i", bonds.get("atom_i", []))))
+                    m = len(bonds["atomi"])
 
                     # Reassign bond IDs sequentially
                     if "id" in bonds:
@@ -422,16 +424,15 @@ class Packmol(Packer):
                         bond_id_counter += m
 
                     # Offset atom indices in bonds
-                    for end in ("i", "j", "atom_i", "atom_j"):
-                        if end in bonds:
-                            bonds[end] = bonds[end] + offset
+                    bonds["atomi"] = bonds["atomi"] + offset
+                    bonds["atomj"] = bonds["atomj"] + offset
 
                     all_bonds.append(bonds)
 
                 # Expand angles block
                 if "angles" in target.frame:
                     angles = target.frame["angles"].copy()
-                    p = len(angles.get("id", angles.get("i", angles.get("atom_i", []))))
+                    p = len(angles["atomi"])
 
                     # Reassign angle IDs sequentially
                     if "id" in angles:
@@ -441,20 +442,16 @@ class Packmol(Packer):
                         angle_id_counter += p
 
                     # Offset atom indices in angles
-                    for end in ("i", "j", "k", "atom_i", "atom_j", "atom_k"):
-                        if end in angles:
-                            angles[end] = angles[end] + offset
+                    angles["atomi"] = angles["atomi"] + offset
+                    angles["atomj"] = angles["atomj"] + offset
+                    angles["atomk"] = angles["atomk"] + offset
 
                     all_angles.append(angles)
 
                 # Expand dihedrals block
                 if "dihedrals" in target.frame:
                     dihedrals = target.frame["dihedrals"].copy()
-                    q = len(
-                        dihedrals.get(
-                            "id", dihedrals.get("i", dihedrals.get("atom_i", []))
-                        )
-                    )
+                    q = len(dihedrals["atomi"])
 
                     # Reassign dihedral IDs sequentially
                     if "id" in dihedrals:
@@ -466,18 +463,10 @@ class Packmol(Packer):
                         dihedral_id_counter += q
 
                     # Offset atom indices in dihedrals
-                    for end in (
-                        "i",
-                        "j",
-                        "k",
-                        "l",
-                        "atom_i",
-                        "atom_j",
-                        "atom_k",
-                        "atom_l",
-                    ):
-                        if end in dihedrals:
-                            dihedrals[end] = dihedrals[end] + offset
+                    dihedrals["atomi"] = dihedrals["atomi"] + offset
+                    dihedrals["atomj"] = dihedrals["atomj"] + offset
+                    dihedrals["atomk"] = dihedrals["atomk"] + offset
+                    dihedrals["atoml"] = dihedrals["atoml"] + offset
 
                     all_dihedrals.append(dihedrals)
 
@@ -519,22 +508,42 @@ class Packmol(Packer):
         if all_dihedrals:
             final_frame["dihedrals"] = concat_blocks(all_dihedrals)
 
+        # Step 3.5: Generate atom IDs for all atoms (1-based, sequential)
+        # Do this after concatenation so IDs are continuous
+        final_atoms = final_frame["atoms"]
+        n_final = final_atoms.nrows  # 0-based count (idx 0 to n_final-1)
+        final_atoms["id"] = np.arange(1, n_final + 1, dtype=int)
+
         # Step 4: Write optimized coordinates back to expanded frame
-        # Packmol returns coordinates in optimized_frame, overwrite them
-        # Always use x, y, z fields (never use xyz)
+        # Packmol returns coordinates in optimized_frame in the order they appear
+        # id is 1-based LAMMPS ID (for output), idx is 0-based array index (for access)
+        final_atoms = final_frame["atoms"]
+        n_final = final_atoms.nrows  # 0-based count (idx 0 to n_final-1)
+
         if (
-            "x" in optimized_frame["atoms"]
-            and "y" in optimized_frame["atoms"]
-            and "z" in optimized_frame["atoms"]
+            "x" not in optimized_frame["atoms"]
+            or "y" not in optimized_frame["atoms"]
+            or "z" not in optimized_frame["atoms"]
         ):
-            # Handle separate x, y, z columns
-            final_frame["atoms"]["x"] = optimized_frame["atoms"]["x"]
-            final_frame["atoms"]["y"] = optimized_frame["atoms"]["y"]
-            final_frame["atoms"]["z"] = optimized_frame["atoms"]["z"]
-        else:
+            raise ValueError("Optimized frame must contain 'x', 'y', 'z' coordinates")
+
+        optimized_atoms = optimized_frame["atoms"]
+        n_optimized = optimized_atoms.nrows  # 0-based count (idx 0 to n_optimized-1)
+
+        # Packmol outputs atoms in the order: structure_0 (instance 1), structure_0 (instance 2), ...
+        # So we can match by sequential order using idx (0-based)
+        if n_final != n_optimized:
             raise ValueError(
-                "Optimized frame must contain 'xyz' or 'x', 'y', 'z' coordinates"
+                f"Length mismatch: final_frame has {n_final} atoms (idx 0-{n_final-1}), "
+                f"but optimized_frame has {n_optimized} atoms (idx 0-{n_optimized-1}). "
+                f"Expected {n_final} atoms from Packmol output."
             )
+
+        # Copy coordinates directly by idx (0-based index)
+        # Packmol output order matches our expanded frame order
+        final_atoms["x"] = optimized_atoms["x"].copy()
+        final_atoms["y"] = optimized_atoms["y"].copy()
+        final_atoms["z"] = optimized_atoms["z"].copy()
 
         return final_frame
 

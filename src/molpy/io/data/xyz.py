@@ -25,7 +25,15 @@ class XYZReader(DataReader):
         1. integer `N`  - number of atoms
         2. comment line with key=value pairs (e.g., Properties=species:S:1:pos:R:3)
         3. N lines with columns defined by Properties specification
+
+    Args:
+        source: File source (path or file-like object)
+        header: Optional list of keys to map comment line values to metadata (for non-extxyz formats)
     """
+
+    def __init__(self, source, header: list[str] | None = None, **open_kwargs):
+        super().__init__(source, **open_kwargs)
+        self.header = header
 
     def read(self, frame: Frame | None = None) -> Frame:
         """
@@ -62,14 +70,24 @@ class XYZReader(DataReader):
         # --- build / update frame ----------------------------------------
         frame = frame or Frame()
 
-        # Parse comment line for extxyz metadata
-        metadata = self._parse_xyz_comment(comment)
-
-        # Check if this is extxyz format with Properties
-        if "Properties" in metadata:
-            atoms_blk = self._parse_extxyz_atoms(records, metadata["Properties"])
-        else:
+        # Parse comment line
+        if self.header:
+            # Map comment values to header keys
+            comment_parts = comment.split()
+            metadata = {}
+            for i, key in enumerate(self.header):
+                if i < len(comment_parts):
+                    metadata[key] = comment_parts[i]
             atoms_blk = self._parse_standard_xyz_atoms(records)
+        else:
+            # Detect extxyz format
+            metadata = self._parse_xyz_comment(comment)
+
+            # Check if this is extxyz format with Properties
+            if "Properties" in metadata:
+                atoms_blk = self._parse_extxyz_atoms(records, metadata["Properties"])
+            else:
+                atoms_blk = self._parse_standard_xyz_atoms(records)
 
         # Set box if Lattice is present
         if "Lattice" in metadata:
@@ -81,7 +99,11 @@ class XYZReader(DataReader):
         frame_metadata = {
             k: v for k, v in metadata.items() if k not in ["Properties", "Lattice"]
         }
-        frame.metadata.update(frame_metadata)
+        if not frame_metadata and not self.header and comment.strip():
+            # If no key=value found, store the whole comment as a string
+            frame.metadata["comment"] = comment.strip()
+        else:
+            frame.metadata.update(frame_metadata)
 
         frame["atoms"] = atoms_blk
         return frame
@@ -185,15 +207,23 @@ class XYZReader(DataReader):
         """
         Parse an extended XYZ comment line into a dictionary of key-value pairs.
 
+        If no 'key=value' pairs are found, returns an empty dictionary,
+        signaling that this should be treated as a standard comment string.
+
         Args:
             comment (str): The comment line from an XYZ file.
 
         Returns:
-            dict: Parsed key-value pairs.
+            dict: Parsed key-value pairs or empty dict if not extxyz.
         """
-        result: dict = {}
+        tokens = shlex.split(comment)
 
-        for token in shlex.split(comment):
+        # Heuristic: if no '=' in any token, it's a standard comment (except if it's empty)
+        if not any("=" in token for token in tokens):
+            return {}
+
+        result: dict = {}
+        for token in tokens:
             if "=" in token:
                 key, value = token.split("=", 1)
                 if key == "Properties":
