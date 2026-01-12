@@ -274,7 +274,10 @@ class TestLAMMPSForceFieldWriterFormatters:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             outpath = os.path.join(tmpdir, "test.ff")
-            writer = LAMMPSForceFieldWriter(outpath)
+
+            # Create a custom registry without fallback formatters
+            custom_registry = ParameterFormatterRegistry()
+            writer = LAMMPSForceFieldWriter(outpath, formatter_registry=custom_registry)
 
             # Should raise helpful error
             with pytest.raises(ValueError, match="Failed to format parameters"):

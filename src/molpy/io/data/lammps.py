@@ -744,6 +744,9 @@ class LammpsDataWriter(DataWriter):
             lines.append(
                 f"{box.origin[2]:.6f} {box.origin[2] + box.lengths[2]:.6f} zlo zhi"
             )
+            # Add tilt factors for triclinic boxes
+            if box.style == box.Style.TRICLINIC:
+                lines.append(f"{box.xy:.6f} {box.xz:.6f} {box.yz:.6f} xy xz yz")
         else:
             lines.append("0.0 10.0 xlo xhi")
             lines.append("0.0 10.0 ylo yhi")
