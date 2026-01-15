@@ -73,6 +73,47 @@ def write_xsf(file: PathLike, frame: Any) -> None:
     writer.write(frame)
 
 
+def write_amber_frcmod(
+    file: PathLike,
+    *,
+    remark: str = "",
+    mass: str = "",
+    bond: str = "",
+    angle: str = "",
+    dihe: str = "",
+    improper: str = "",
+    nonbon: str = "",
+) -> None:
+    """
+    Write an AMBER FRCMOD file.
+
+    FRCMOD files contain additional force field parameters. This function
+    creates a properly formatted file with the provided sections.
+
+    Args:
+        file: Output file path
+        remark: Optional comment/remark line
+        mass: MASS section content
+        bond: BOND section content
+        angle: ANGLE section content
+        dihe: DIHEDRAL section content
+        improper: IMPROPER section content
+        nonbon: NONBON section content
+    """
+    from .forcefield.frcmod import write_frcmod
+
+    write_frcmod(
+        file,
+        remark=remark,
+        mass=mass,
+        bond=bond,
+        angle=angle,
+        dihe=dihe,
+        improper=improper,
+        nonbon=nonbon,
+    )
+
+
 def write_lammps_molecule(
     file: PathLike, frame: Any, format_type: str = "native"
 ) -> None:

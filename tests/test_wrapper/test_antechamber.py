@@ -52,15 +52,35 @@ def test_antechamber_wrapper_run_raw(tmp_path: Path):
         ]
 
 
-def test_antechamber_wrapper_run_raw_with_cwd(tmp_path: Path):
-    """Test run_raw() with cwd override."""
+def test_antechamber_wrapper_atomtype_assign(tmp_path: Path):
+    """Test atomtype_assign() method."""
 
-    wrapper = AntechamberWrapper(name="ante", workdir=tmp_path / "default")
-    override_cwd = tmp_path / "override"
+    wrapper = AntechamberWrapper(name="ante", workdir=tmp_path / "work")
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
-        wrapper.run_raw(["-i", "test.mol2"], cwd=override_cwd)
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
 
-        call_kwargs = mock_run.call_args[1]
-        assert call_kwargs["cwd"] == str(override_cwd)
+        wrapper.atomtype_assign(
+            input_file="tfsi.pdb",
+            output_file="tfsi_gaff2.mol2",
+            input_format="pdb",
+            output_format="mol2",
+            charge_method="bcc",
+            atom_type="gaff2",
+            net_charge=-1,
+        )
+
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert call_args == [
+            "antechamber",
+            "-i", "tfsi.pdb",
+            "-fi", "pdb",
+            "-o", "tfsi_gaff2.mol2",
+            "-fo", "mol2",
+            "-c", "bcc",
+            "-at", "gaff2",
+            "-nc", "-1",
+        ]

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Any, Iterable, TYPE_CHECKING
 
 from .entity import (
     ConnectivityMixin,
@@ -10,6 +10,9 @@ from .entity import (
     SpatialMixin,
     Struct,
 )
+
+if TYPE_CHECKING:
+    from .frame import Frame
 
 
 class Atom(Entity):
@@ -727,23 +730,6 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                         value = bond.get(key, None)
                         bond_dict[key].append(value)
 
-            # Ensure a 'type' column exists for compatibility with writers
-            # If missing, raise error instead of using default
-            n_bonds = len(bonds_data)
-            if "type" not in bond_dict:
-                raise ValueError(
-                    f"Bonds are missing 'type' field. All {n_bonds} bonds must have a 'type' attribute. "
-                    f"This may indicate that ring closure bonds were created without proper typing."
-                )
-            elif len(bond_dict["type"]) != n_bonds:
-                # Some bonds are missing 'type' field
-                missing_count = n_bonds - len(bond_dict["type"])
-                raise ValueError(
-                    f"Bonds 'type' field has {len(bond_dict['type'])} values, but expected {n_bonds} "
-                    f"(based on atom index fields). {missing_count} bond(s) are missing 'type' field. "
-                    f"This may indicate that ring closure bonds were created without proper typing."
-                )
-
             bond_dict_np = {k: np.array(v) for k, v in bond_dict.items()}
             frame["bonds"] = Block.from_dict(bond_dict_np)
 
@@ -786,20 +772,6 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                     ]:  # Skip atom indices, already added
                         value = angle.get(key, None)
                         angle_dict[key].append(value)
-
-            # Ensure a 'type' column exists for compatibility with writers
-            # If missing, raise error instead of using default
-            n_angles = len(angles_data)
-            if "type" not in angle_dict:
-                raise ValueError(
-                    f"Angles are missing 'type' field. All {n_angles} angles must have a 'type' attribute."
-                )
-            elif len(angle_dict["type"]) != n_angles:
-                missing_count = n_angles - len(angle_dict["type"])
-                raise ValueError(
-                    f"Angles 'type' field has {len(angle_dict['type'])} values, but expected {n_angles} "
-                    f"(based on atom index fields). {missing_count} angle(s) are missing 'type' field."
-                )
 
             angle_dict_np = {k: np.array(v) for k, v in angle_dict.items()}
             frame["angles"] = Block.from_dict(angle_dict_np)
@@ -849,20 +821,6 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                     ]:  # Skip atom indices, already added
                         value = dihedral.get(key, None)
                         dihedral_dict[key].append(value)
-
-            # Ensure a 'type' column exists for compatibility with writers
-            # If missing, raise error instead of using default
-            n_dihedrals = len(dihedrals_data)
-            if "type" not in dihedral_dict:
-                raise ValueError(
-                    f"Dihedrals are missing 'type' field. All {n_dihedrals} dihedrals must have a 'type' attribute."
-                )
-            elif len(dihedral_dict["type"]) != n_dihedrals:
-                missing_count = n_dihedrals - len(dihedral_dict["type"])
-                raise ValueError(
-                    f"Dihedrals 'type' field has {len(dihedral_dict['type'])} values, but expected {n_dihedrals} "
-                    f"(based on atom index fields). {missing_count} dihedral(s) are missing 'type' field."
-                )
 
             dihedral_dict_np = {k: np.array(v) for k, v in dihedral_dict.items()}
             frame["dihedrals"] = Block.from_dict(dihedral_dict_np)

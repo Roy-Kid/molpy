@@ -51,3 +51,12 @@ def pytest_collection_modifyitems(
             item.add_marker(pytest.mark.external)
         if "test_builder" in fspath.parts and fspath.name == "test_polymer_builder.py":
             item.add_marker(pytest.mark.external)
+        # AmberTools-dependent tests
+        if "test_wrapper" in fspath.parts and fspath.name in (
+            "test_antechamber.py",
+            "test_parmchk2.py",
+            "test_tleap.py",
+        ):
+            item.add_marker(pytest.mark.external)
+        if "test_builder" in fspath.parts and "amber" in fspath.name:
+            item.add_marker(pytest.mark.external)

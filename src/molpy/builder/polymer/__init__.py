@@ -17,7 +17,6 @@ from .connectors import (
     TopologyConnector,
 )
 from .growth_kernel import GrowthKernel, ProbabilityTableKernel
-
 from .polymer_builder import PolymerBuilder
 from .sequence_generator import SequenceGenerator, WeightedSequenceGenerator
 from .system import (
@@ -41,11 +40,11 @@ from .types import (
 )
 
 __all__ = [
+    # Connectors
     "AutoConnector",
     "BondKind",
     "CallbackConnector",
     "ChainConnector",
-    # Connectors
     "Connector",
     "ConnectorContext",
     "ReacterConnector",
