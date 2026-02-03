@@ -1,4 +1,5 @@
 from .atomistic import Angle, Atom, Atomistic, Bond, Dihedral
+from .cg import Bead, CGBond, CoarseGrain
 from .box import Box
 from .forcefield import (
     AngleStyle,

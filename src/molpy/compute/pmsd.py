@@ -62,13 +62,19 @@ class PMSDCompute(Compute["Trajectory", PMSDResult]):
         max_dt: float,
         dt: float,
     ):
+        super().__init__(
+            cation_type=cation_type,
+            anion_type=anion_type,
+            max_dt=max_dt,
+            dt=dt
+        )
         self.cation_type = cation_type
         self.anion_type = anion_type
         self.max_dt = max_dt
         self.dt = dt
         self.n_cache = int(max_dt / dt)
 
-    def compute(self, trajectory: "Trajectory") -> PMSDResult:
+    def _compute(self, trajectory: "Trajectory") -> PMSDResult:
         """Compute PMSD from trajectory.
 
         Args:

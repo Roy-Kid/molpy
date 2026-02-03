@@ -51,6 +51,20 @@ result = cc_coupling.run(fragments[0], fragments[1], port_atom_L=p1, port_atom_R
 - Generate chains following Poisson or Schulz-Zimm distributions.
 - Plan systems with target total mass and compositions.
 
+## 🎯 [Polydisperse Systems → LAMMPS](06_polymer_polydisperse_lammps.ipynb)
+**Goal:** Generate complete LAMMPS-ready polydisperse polymer systems.
+- Build atomistic structures from chain sequences.
+- Typify with OPLS-AA force field.
+- Pack into simulation box with Packmol.
+- Export to LAMMPS data and force field files.
+
+## ⚡ [Force Field Typification](07_typifier_tfsi.ipynb)
+**Goal:** Assign force field parameters to molecular structures.
+- Understand the Typifier system and SMARTS-based atom typing.
+- Use TFSI (ionic liquid anion) as a concrete example.
+- Assign atom, bond, angle, and dihedral types automatically.
+- Export typified structures to LAMMPS format.
+
 ---
 
 ## Need API Basics?

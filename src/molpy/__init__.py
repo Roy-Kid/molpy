@@ -8,6 +8,7 @@ unit tests that target the new core architecture.
 from . import data, io, parser, potential, typifier
 from .core.atomistic import Angle, Atom, Atomistic, Bond, Dihedral
 from .core.box import Box
+from .core.cg import Bead, CGBond, CoarseGrain
 
 # Core atomistic classes
 from .core.entity import Entity, Link, Struct
