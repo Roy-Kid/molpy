@@ -143,12 +143,33 @@ root = ["./src"]
 
 [tool.ty.rules]
 all = "warn"
-# Noise from untyped third-party stubs (igraph, lark, h5py, etc.)
+
+# --- Ignored: untyped third-party stubs (igraph, lark, h5py, etc.) ---
 unresolved-import = "ignore"
 unresolved-attribute = "ignore"
-# Overly strict for a codebase without full type annotations yet
 invalid-argument-type = "ignore"
-# Minor / informational
+
+# --- Ignored: codebase not fully annotated yet (long-term fix) ---
+# TODO: fix these incrementally and promote to "warn"
+invalid-assignment = "ignore"        # 26 warnings: Optional imports, dict subscript
+invalid-method-override = "ignore"   # 20 warnings: subclass signature mismatches
+invalid-return-type = "ignore"       # 17 warnings: return type mismatches
+unresolved-reference = "ignore"      # 9 warnings: forward refs in TYPE_CHECKING
+unsupported-operator = "ignore"      # 7 warnings: operator type mismatches
+not-iterable = "ignore"              # 7 warnings: iteration over non-iterable
+unknown-argument = "ignore"          # 4 warnings: unknown kwargs
+invalid-type-arguments = "ignore"    # 4 warnings: generic type arg issues
+not-subscriptable = "ignore"         # 3 warnings: subscript on non-subscriptable
+index-out-of-bounds = "ignore"       # 3 warnings: tuple index (false positives)
+no-matching-overload = "ignore"      # 2 warnings: overload resolution
+missing-argument = "ignore"          # 2 warnings: missing required args
+division-by-zero = "ignore"          # 2 warnings: guarded by if (false positives)
+invalid-parameter-default = "ignore" # 2 warnings: default value type mismatch
+too-many-positional-arguments = "ignore"  # 1 warning
+invalid-type-form = "ignore"         # 1 warning
+call-non-callable = "ignore"         # 1 warning: reassigned variable (false positive)
+
+# --- Minor / informational ---
 unused-type-ignore-comment = "ignore"
 redundant-cast = "ignore"
 possibly-unresolved-reference = "ignore"

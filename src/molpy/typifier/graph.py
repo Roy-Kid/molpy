@@ -641,8 +641,8 @@ class SMARTSMatcher:
         edge_compat_fn = None
         if self.edge_match_fn is not None:
 
-            def edge_compat_fn(g1, g2, e1, e2):
-                return self.edge_match_fn(g1, g2, e1, e2)
+            def edge_compat_fn(g1, g2, e1, e2):  # type: ignore[misc]
+                return self.edge_match_fn(g1, g2, e1, e2)  # type: ignore[misc]
 
         matches = self.G1.get_subisomorphisms_vf2(
             self.G2, node_compat_fn=self.node_match_fn, edge_compat_fn=edge_compat_fn

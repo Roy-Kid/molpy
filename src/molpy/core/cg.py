@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
+
+if TYPE_CHECKING:
+    from .atomistic import Atomistic
 
 from .entity import (
     ConnectivityMixin,
