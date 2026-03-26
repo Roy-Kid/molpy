@@ -49,7 +49,7 @@ class TestPolymerBuilder:
 
     def test_init(self):
         """Test PolymerBuilder initialization."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         # Create minimal library
@@ -66,7 +66,7 @@ class TestPolymerBuilder:
         )
         # port_map: maps (left_port, right_port) to (left_port_name, right_port_name)
         port_map = {(">", "<"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         # Initialize builder
         builder = PolymerBuilder(
@@ -79,7 +79,7 @@ class TestPolymerBuilder:
 
     def test_validate_missing_label(self):
         """Test validation catches missing labels."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.builder.polymer.errors import SequenceError
         from molpy.reacter import Reacter, form_single_bond
 
@@ -95,7 +95,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {(">", "<"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -105,7 +105,7 @@ class TestPolymerBuilder:
 
     def test_validate_empty_graph(self):
         """Test validation catches empty graphs."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         library = {"A": create_test_monomer("CC")}
@@ -119,7 +119,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {(">", "<"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -129,7 +129,7 @@ class TestPolymerBuilder:
 
     def test_build_linear_chain(self):
         """Test building a simple linear chain."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         # Create library with one monomer type
@@ -144,7 +144,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {("A", "A"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -157,7 +157,7 @@ class TestPolymerBuilder:
 
     def test_build_with_repeat_operator(self):
         """Test building with repeat operator."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         library = {"A": create_test_monomer("CC")}
@@ -171,7 +171,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {("A", "A"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -183,7 +183,7 @@ class TestPolymerBuilder:
 
     def test_build_branched_structure(self):
         """Test building a branched structure."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         library = {"A": create_test_monomer("CC")}
@@ -197,7 +197,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {("A", "A"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -209,7 +209,7 @@ class TestPolymerBuilder:
 
     def test_build_cyclic_structure(self):
         """Test building a cyclic structure."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         library = {"A": create_test_monomer("CC")}
@@ -223,7 +223,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {("A", "A"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
 
@@ -235,7 +235,7 @@ class TestPolymerBuilder:
 
     def test_connection_history_tracking(self):
         """Test that connection history is properly tracked."""
-        from molpy.builder.polymer import PolymerBuilder, ReacterConnector
+        from molpy.builder.polymer import PolymerBuilder, Connector
         from molpy.reacter import Reacter, form_single_bond
 
         library = {"A": create_test_monomer("CC")}
@@ -249,7 +249,7 @@ class TestPolymerBuilder:
             bond_former=form_single_bond,
         )
         port_map = {("A", "A"): (">", "<")}
-        connector = ReacterConnector(default=reacter, port_map=port_map)
+        connector = Connector(reacter=reacter, port_map=port_map)
 
         builder = PolymerBuilder(library=library, connector=connector)
         result = builder.build("{[#A][#A]}")

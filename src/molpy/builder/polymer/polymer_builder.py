@@ -18,7 +18,7 @@ from molpy.parser.smiles.cgsmiles_ir import (
 )
 from molpy.typifier.atomistic import TypifierBase
 
-from .connectors import ConnectorContext, ReacterConnector
+from .connectors import ConnectorContext, Connector
 from .errors import NoCompatiblePortsError, SequenceError
 from .placer import Placer
 from .port_utils import (
@@ -53,7 +53,7 @@ class PolymerBuilder:
     def __init__(
         self,
         library: Mapping[str, Atomistic],
-        connector: ReacterConnector,
+        connector: Connector,
         typifier: TypifierBase | None = None,
         placer: Placer | None = None,
     ):
@@ -62,7 +62,7 @@ class PolymerBuilder:
 
         Args:
             library: Mapping from CGSmiles labels to Atomistic monomer structures
-            connector: ReacterConnector for port selection and chemical reactions
+            connector: Connector for port selection and chemical reactions
             typifier: Optional typifier for automatic retypification
             placer: Optional Placer for positioning structures before connection
         """

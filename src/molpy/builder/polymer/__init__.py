@@ -6,15 +6,8 @@ plus optional geometric placement via Placer strategies.
 """
 
 from .connectors import (
-    AutoConnector,
-    BondKind,
-    CallbackConnector,
-    ChainConnector,
     Connector,
     ConnectorContext,
-    ReacterConnector,
-    TableConnector,
-    TopologyConnector,
 )
 from .growth_kernel import GrowthKernel, ProbabilityTableKernel
 from .polymer_builder import PolymerBuilder
@@ -40,16 +33,9 @@ from .types import (
 )
 
 __all__ = [
-    # Connectors
-    "AutoConnector",
-    "BondKind",
-    "CallbackConnector",
-    "ChainConnector",
+    # Connector
     "Connector",
     "ConnectorContext",
-    "ReacterConnector",
-    "TableConnector",
-    "TopologyConnector",
     # CGSmiles Builder
     "PolymerBuilder",
     # Sequence Generators

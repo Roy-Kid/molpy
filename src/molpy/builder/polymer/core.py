@@ -67,7 +67,7 @@ class AmbiguousPortsError(AssemblyError):
 
 
 class MissingConnectorRule(AssemblyError):
-    """TableConnector has no rule for a given monomer pair."""
+    """No connector rule found for a given monomer pair."""
 
     pass
 
@@ -187,9 +187,9 @@ class PolymerBuilder:
             raise TypeError("One of 'connector' or 'reacter' is required")
 
         if reacter is not None:
-            from .connectors import ReacterConnector
+            from .connectors import Connector
 
-            connector = ReacterConnector(default=reacter, port_map={})
+            connector = Connector(reacter=reacter)
 
         self.library = library
         self.connector = connector
