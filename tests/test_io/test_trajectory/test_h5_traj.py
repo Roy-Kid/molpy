@@ -249,9 +249,9 @@ class TestHDF5TrajectoryReader:
                 orig_box = orig_frame.metadata["box"]
                 read_box = read_frame.metadata["box"]
                 assert read_box is not None, "Box should not be None"
-                assert isinstance(
-                    read_box, mp.Box
-                ), f"Expected Box, got {type(read_box)}"
+                assert isinstance(read_box, mp.Box), (
+                    f"Expected Box, got {type(read_box)}"
+                )
                 if orig_box is not None:
                     np.testing.assert_array_almost_equal(
                         orig_box.matrix, read_box.matrix, decimal=6
@@ -298,9 +298,9 @@ class TestHDF5TrajectoryReader:
                 assert "box" in read_frame.metadata, f"Box missing in frame {i}"
                 read_box = read_frame.metadata["box"]
                 assert read_box is not None, f"Box is None in frame {i}"
-                assert isinstance(
-                    read_box, mp.Box
-                ), f"Box type wrong in frame {i}: {type(read_box)}"
+                assert isinstance(read_box, mp.Box), (
+                    f"Box type wrong in frame {i}: {type(read_box)}"
+                )
 
                 orig_box = orig_frame.metadata["box"]
                 np.testing.assert_array_almost_equal(

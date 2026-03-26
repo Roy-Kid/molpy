@@ -7,247 +7,121 @@ hide:
 
 # MolPy
 
-<div class="badges" markdown>
-  [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-  [![License](https://img.shields.io/badge/license-BSD-green.svg)](https://github.com/MolCrafts/molpy/blob/master/LICENSE)
-  [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://molcrafts.github.io/molpy)
-</div>
+<p class="lead" markdown>Composable molecular modeling in Python.</p>
 
-<p class="lead" markdown>a LLM-ready toolkit for building molecular systems.</p>
+<div class="badges" markdown>
+  [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+  [![License: BSD](https://img.shields.io/badge/license-BSD-green.svg)](https://github.com/MolCrafts/molpy/blob/master/LICENSE)
+  [![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://molcrafts.github.io/molpy)
+  [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+  [![Type checked: ty](https://img.shields.io/badge/type%20checked-ty-blue.svg)](https://github.com/astral-sh/ty)
+</div>
 
 <div class="button-group" markdown>
-  [Quick Start](getting-started/quickstart.ipynb){ .md-button .md-button--primary }
-  [GitHub](https://github.com/MolCrafts/molpy){ .md-button }
+  [Get Started](getting-started/index.md){ .md-button .md-button--primary }
+  [Guides](user-guide/index.md){ .md-button }
+  [API Reference](api/index.md){ .md-button }
 </div>
 
 ---
 
-## Features
+## See it work
 
-<div class="grid cards" markdown>
+<div class="hero-code" markdown>
 
-- :robot:{ .lg .middle } __LLM-Friendly__
+```python
+import molpy as mp
 
-    ---
+# editable chemistry
+mol = mp.parser.parse_molecule("CCO")
+mol = mp.tool.generate_3d(mol)
+mol.get_topo(gen_angle=True, gen_dihe=True)
 
-    Stateless functions, explicit types, zero global state. Every parameter is documented and visible, making it trivial for AI agents to read, understand, and generate correct code.
+# inspectable force field (OPLS-AA ships with MolPy)
+ff = mp.io.read_xml_forcefield("oplsaa.xml")
+typed = mp.typifier.OplsTypifier(ff).typify(mol)
 
-- :building_construction:{ .lg .middle } __Extensible__
-
-    ---
-
-    Build custom workflows by composing functions and data structures. No inheritance hierarchies to navigate, just pure functions you can mix and match.
-
-- :link:{ .lg .middle } __Interoperable__
-
-    ---
-
-    Native adapters for industry-standard tools: AmberTools, LAMMPS, OpenMM, Packmol, RDKit. One-function export to simulation engines or analysis pipelines.
-
-- :gear:{ .lg .middle } __Modular Architecture__
-
-    ---
-
-    Organized into domain-specific modules (builder, parser, typifier, adapter) around a unified `Frame`/`Block` data model. Use only what you need.
-
-- :bar_chart:{ .lg .middle } __Flexible Structures__
-
-    ---
-
-    Lightweight `Frame` for single configurations, hierarchical `Block` for composed systems, memory-mapped `Trajectory` for multi-million atom simulations.
-
-- :wrench:{ .lg .middle } __Force-Field System__
-
-    ---
-
-    Rule-based atom typing with SMARTS/SMIRKS patterns. Store, validate, and export force field parameters to any simulation engine with full provenance tracking.
-
+# portable export
+mp.io.write_lammps_system("output/", typed.to_frame(), ff)
+```
 
 </div>
 
 ---
 
-## Why MolPy?
+## Why MolPy
 
-MolPy is designed for researchers and engineers who need **reliable**, **transparent**, and **composable** molecular modeling workflows. Whether you're building simulation systems, designing force fields, or integrating ML/AI pipelines, MolPy provides the building blocks you need.
+<div class="feature-rows" markdown>
 
-<div class="grid cards" markdown>
+<a class="feature-row" href="tutorials/index.md">
+<span class="feature-icon">:material-swap-horizontal:</span>
+<span class="feature-body">
+<strong>Explicit representations</strong>
+Chemistry editing, system snapshots, and force field data are separate objects with visible transitions.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
-- :mag:{ .lg .middle } __Typical Use Cases__
+<a class="feature-row" href="tutorials/04_force_field.md">
+<span class="feature-icon">:material-database-search:</span>
+<span class="feature-body">
+<strong>Force fields as data</strong>
+Parameters stay inspectable until you convert them to potentials. Catch errors before export.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
-    ---
-
-    - **System preparation** – build polymer melts, solvated proteins, or crystal interfaces
-    - **Force field development** – define custom atom types with SMARTS/SMIRKS patterns
-    - **Simulation workflows** – export to LAMMPS, OpenMM, or GROMACS with one function call
-    - **LLM-driven research** – let AI agents write and run molecular modeling scripts
-
-- :bulb:{ .lg .middle } __Design Highlights__
-
-    ---
-
-    - **No global state** – all functions are pure and testable
-    - **Explicit over implicit** – every parameter is visible and documented
-    - **Composition over inheritance** – mix and match components freely
-    - **Memory efficiency** – lazy loading and memory-mapped trajectories for large systems
-
-- :rocket:{ .lg .middle } __When to Choose MolPy__
-
-    ---
-
-    - You need **type-safe APIs** for LLM integration or code generation
-    - You want **full control** without framework lock-in
-    - You're building **custom workflows** that don't fit traditional GUI tools
-    - You need **interoperability** between multiple simulation engines
+<a class="feature-row" href="api/index.md">
+<span class="feature-icon">:material-puzzle:</span>
+<span class="feature-body">
+<strong>Composable modules</strong>
+Parser, builder, typifier, packer, and I/O are independent. Use one alone or wire several together.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
 </div>
 
 ---
 
-## Quick Links
+## Learn MolPy
 
-<div class="grid" markdown>
+<div class="feature-rows" markdown>
 
-!!! info "Documentation"
-    New to MolPy? Start with our [Quick Start](getting-started/quickstart.ipynb). Explore comprehensive guides in our [User Guide](user-guide/index.md) and [Tutorials](tutorials/index.md) with runnable notebooks and end-to-end examples.
+<a class="feature-row" href="getting-started/index.md">
+<span class="feature-icon">:material-rocket-launch:</span>
+<span class="feature-body">
+<strong>Getting Started</strong>
+Install, run one example, learn the core objects.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
-!!! example "API Reference"
-    Detailed API documentation is available in the [API Reference](api/index.md) section.
+<a class="feature-row" href="tutorials/index.md">
+<span class="feature-icon">:material-book-open-variant:</span>
+<span class="feature-body">
+<strong>Concepts</strong>
+Atomistic, Block, Frame, Box, Trajectory, ForceField.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
-!!! question "Need Help?"
-    Check out our [FAQ](getting-started/faq.md) or open an issue on [GitHub](https://github.com/MolCrafts/molpy/issues).
+<a class="feature-row" href="user-guide/index.md">
+<span class="feature-icon">:material-hammer-wrench:</span>
+<span class="feature-body">
+<strong>Guides</strong>
+Parse, build polymers, typify, export to LAMMPS.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
-</div>
-
----
-
-## Comprehensive Documentation
-
-MolPy provides a growing collection of runnable Jupyter notebooks alongside generated API documentation.
-
-<div class="grid cards" markdown>
-
-- :books:{ .lg .middle } __Runnable Notebooks__
-
-    ---
-
-    Practical examples across the core modules: Parser, Reacter, Builder, Typifier, IO, Adapter, Potential, and more.
-
-- :wrapped_gift:{ .lg .middle } __Extensive API Coverage__
-
-    ---
-
-    Public APIs are documented with parameters, return values, and usage examples.
-
-- :school:{ .lg .middle } __Architecture Guides__
-
-    ---
-
-    Developer documentation covering recipe system, design patterns, IR principles, and contribution guidelines.
-
-</div>
-
-[Explore the User Guide →](user-guide/index.md){ .md-button .md-button--primary }
-
----
-
-## Roadmap
-
-<div class="roadmap-grid" markdown>
-
-<div markdown>
-
-### Core Foundations
-- [x] Stabilize core data structures (`Frame`, `Block`, `Box`, `Trajectory`)
-- [x] Unify topology representation (bonds/angles/dihedrals)
-- [x] Improve I/O layer (XYZ, PDB, LAMMPS DATA)
-- [x] Strengthen typing, doctests, and basic documentation
+<a class="feature-row" href="developer/index.md">
+<span class="feature-icon">:material-code-braces:</span>
+<span class="feature-body">
+<strong>Developer Guide</strong>
+Extend the tool layer or add new core types.
+</span>
+<span class="feature-arrow">:octicons-arrow-right-24:</span>
+</a>
 
 </div>
-
-<div markdown>
-
-### Modeling & Construction
-- [x] General lattice + crystal builder (SC/BCC/FCC/HCP + regions)
-- [x] Basic molecular builders (monomers, ports, polymer assembly)
-- [x] System assembly utilities (packing, placement, initialization)
-- [x] Core editing tools (add/remove atoms, merge fragments, simple reactions)
-
-</div>
-
-<div markdown>
-
-### Force Fields & Typing
-- [x] Force field container (atom types + bonded parameters)
-- [x] Typifier system (rule-based SMARTS-style typing)
-- [x] Parameter assignment and export for external engines
-- [x] Validation / consistency tools for typed systems
-
-</div>
-
-<div markdown>
-
-### Compute & Analysis
-- [x] Unified `Compute` + `Result` abstraction
-- [x] Common analysis functions (RDF, MSD, basic time series)
-- [ ] Optional shared context (neighbor lists, box info)
-- [ ] Export analysis results to arrays / DataFrames
-
-</div>
-
-<div markdown>
-
-### Performance & User Experience
-- [ ] Rust backend for performance-critical operations
-- [ ] Visualization integration with molvis
-
-</div>
-
-</div>
-
----
-
-## Ecosystem
-
-- **[MolVis](https://github.com/MolCrafts/molvis)** — Production-level visualization with WebGL acceleration and real-time manipulation
-- **[MolRS](https://github.com/MolCrafts/molrs)** — Rust backend for performance-critical operations
-
-MolPy is the **core Python library** in the MolCrafts ecosystem. MolVis provides high-performance 3D visualization, while MolRS offers compiled speed for compute-intensive tasks. All three projects share a unified data model and can be used independently or together.
-
----
-
-## Community & Contributing
-
-We welcome contributions from researchers, developers, and users. There are three main ways to get involved:
-
-<div class="grid" markdown>
-
-!!! abstract "Contribute Code"
-    Found a bug or have an idea for improvement? Read the [Contributing Guide](developer/contributing.md) and submit a pull request on
-    [GitHub](https://github.com/MolCrafts/molpy).
-
-!!! note "Share & Discuss"
-    Built something with MolPy or want to discuss workflows, design choices, or publications?
-    Join the conversation in [Discussions](https://github.com/MolCrafts/molpy/discussions).
-
-!!! question "Get Help & Request Features"
-    Need help or missing a feature? Start with the [FAQ](getting-started/faq.md), then open an issue or proposal on
-    [GitHub Issues](https://github.com/MolCrafts/molpy/issues) or [Discussions](https://github.com/MolCrafts/molpy/discussions).
-
-</div>
-
-
----
-
-## Dependencies
-
-- [numpy](https://github.com/numpy/numpy) — Numerical computing
-- [python-igraph](https://github.com/igraph/python-igraph) — Graph analysis
-- [lark](https://github.com/lark-parser/lark) — SMARTS/SMILES parsing
-- [h5py](https://www.h5py.org/) - Serialization
-
----
-
-## License
-
-This project is licensed under the BSD-3-Clause License. See [LICENSE](https://github.com/MolCrafts/molpy/blob/master/LICENSE) for details.

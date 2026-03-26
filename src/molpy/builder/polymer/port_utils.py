@@ -141,10 +141,14 @@ def set_port_metadata(
 
 class PortInfo:
     """
-    Simple container for port information, similar to the old Port class.
+    Immutable container for port information, similar to the old Port class.
 
     This is used for compatibility with code that expects Port-like objects.
+    Instances are frozen after creation: setting attributes raises
+    ``AttributeError``.
     """
+
+    __slots__ = ("_name", "_target", "_data")
 
     def __init__(self, name: str, target: Atom, **metadata: Any):
         """
@@ -155,37 +159,70 @@ class PortInfo:
             target: Target atom entity
             **metadata: Optional metadata (role, bond_kind, compat, etc.)
         """
-        self.name = name
-        self.target = target
-        self.data = metadata
+        object.__setattr__(self, "_name", name)
+        object.__setattr__(self, "_target", target)
+        object.__setattr__(self, "_data", metadata)
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        raise AttributeError(f"Cannot set attribute {key!r} on frozen PortInfo")
+
+    @property
+    def name(self) -> str:
+        """Port name."""
+        return self._name
+
+    @property
+    def target(self) -> Atom:
+        """Target atom."""
+        return self._target
+
+    @property
+    def data(self) -> dict[str, Any]:
+        """Metadata dictionary."""
+        return self._data
 
     @property
     def role(self) -> str | None:
         """Port role."""
-        return self.data.get("role")
+        return self._data.get("role")
 
     @property
     def bond_kind(self) -> str | None:
         """Bond type."""
-        return self.data.get("bond_kind")
+        return self._data.get("bond_kind")
 
     @property
     def compat(self) -> set[str] | str | None:
         """Compatibility specification."""
-        return self.data.get("compat")
+        return self._data.get("compat")
 
     @property
     def multiplicity(self) -> int | None:
         """Connection count limit."""
-        return self.data.get("multiplicity")
+        return self._data.get("multiplicity")
 
     @property
     def priority(self) -> int | None:
         """Selection priority."""
-        return self.data.get("priority")
+        return self._data.get("priority")
+
+    def connects_to(self, other: "PortInfo") -> bool:
+        """Check whether this port is compatible with *other*.
+
+        Compatibility rules:
+        - ``>`` connects to ``<`` (and vice versa)
+        - Identical names (e.g. ``$``, ``$1``) connect to each other
+        - Everything else is incompatible
+        """
+        a, b = self._name, other._name
+        if {a, b} == {">", "<"}:
+            return True
+        if a == b and a not in {">", "<"}:
+            return True
+        return False
 
     def __repr__(self) -> str:
-        return f"<PortInfo {self.name!r} -> {self.target}>"
+        return f"<PortInfo {self._name!r} -> {self._target}>"
 
 
 def get_port_info(struct: Atomistic, port_name: str) -> PortInfo | None:
@@ -226,6 +263,34 @@ def get_all_port_info(struct: Atomistic) -> dict[str, list[PortInfo]]:
     ports: dict[str, list[PortInfo]] = {}
     for atom in struct.atoms:
         # Check single port marker
+        port_name = atom.get("port")
+        if port_name is not None:
+            metadata = get_port_metadata(atom, port_name)
+            if port_name not in ports:
+                ports[port_name] = []
+            ports[port_name].append(PortInfo(port_name, atom, **metadata))
+    return ports
+
+
+# Alias used by placer / stochastic modules
+get_all_ports = get_all_port_info
+
+
+def get_ports_on_node(struct: Atomistic, node_id: int) -> dict[str, list[PortInfo]]:
+    """
+    Get all ports belonging to atoms with a specific monomer_node_id.
+
+    Args:
+        struct: Atomistic structure
+        node_id: The monomer_node_id to filter by
+
+    Returns:
+        Dictionary mapping port name -> list of PortInfo objects for the node
+    """
+    ports: dict[str, list[PortInfo]] = {}
+    for atom in struct.atoms:
+        if atom.get("monomer_node_id") != node_id:
+            continue
         port_name = atom.get("port")
         if port_name is not None:
             metadata = get_port_metadata(atom, port_name)

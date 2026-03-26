@@ -49,7 +49,7 @@ class Engine(ABC):
         >>>
         >>> # Create engine and prepare
         >>> engine = LAMMPSEngine(executable="lmp")
-        >>> engine.prepare(work_dir="./calc", scripts=[script])
+        >>> engine.run(script, workdir="./calc", check=False)
         >>>
         >>> # Run calculation
         >>> result = engine.run()
@@ -57,19 +57,43 @@ class Engine(ABC):
         0
     """
 
-    def __init__(self, executable: str, *, check_executable: bool = True):
+    def __init__(
+        self,
+        executable: str,
+        *,
+        workdir: str | Path | None = None,
+        env_vars: dict[str, str] | None = None,
+        env: str | None = None,
+        env_manager: str | None = None,
+        check_executable: bool = True,
+    ):
         """
         Initialize the engine.
 
         Args:
-            executable: Path or command to the executable
-            check_executable: Whether to check if executable exists in PATH
-                             (default: True)
+            executable: Path or command to the executable.
+            workdir: Default working directory for calculations.
+            env_vars: Environment variables to set during execution.
+            env: Conda/virtual environment name.
+            env_manager: Environment manager type (e.g. "conda").
+            check_executable: Whether to check if executable exists in PATH.
 
         Raises:
-            FileNotFoundError: If check_executable is True and executable not found
+            FileNotFoundError: If check_executable is True and executable not found.
+            ValueError: If env and env_manager are not both set or both None.
         """
         self.executable = executable
+        self.work_dir = Path(workdir) if workdir is not None else None
+        self.env_vars = env_vars or {}
+        self.env = env
+        self.env_manager = env_manager
+
+        if (env is None) != (env_manager is None):
+            raise ValueError(
+                "Both 'env' and 'env_manager' must be set together, or both None. "
+                "Your environment configuration is incomplete."
+            )
+
         if check_executable:
             self.check_executable()
 
@@ -93,65 +117,31 @@ class Engine(ABC):
             )
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}(executable='{self.executable}')>"
+        parts = [f"executable='{self.executable}'"]
+        if self.work_dir is not None:
+            parts.append(f"workdir='{self.work_dir}'")
+        if self.env is not None:
+            parts.append(f"env='{self.env}'")
+        if self.env_manager is not None:
+            parts.append(f"env_manager='{self.env_manager}'")
+        return f"<{self.__class__.__name__}({', '.join(parts)})>"
 
-    def prepare(
-        self,
-        work_dir: str | Path,
-        scripts: Script | Sequence[Script],
-        *,
-        auto_save: bool = True,
-    ) -> "Self":
-        """
-        Prepare the engine for execution by setting up the working directory and scripts.
+    def _merged_env(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+        """Merge base env_vars with optional extra vars.
 
         Args:
-            work_dir: Path to the working directory
-            scripts: Single Script object or sequence of Script objects
-            auto_save: Whether to automatically save scripts to the working directory
-                      (default: True)
+            extra: Additional environment variables to merge.
 
         Returns:
-            Self: The engine instance for method chaining
-
-        Example:
-            >>> script = Script.from_text("input", "units real\\natom_style full\\n")
-            >>> engine.prepare("./calc", script)
-            >>> # Or with multiple scripts
-            >>> engine.prepare("./calc", [script1, script2])
+            Merged dict (base vars overridden by extra).
         """
-        self.work_dir = Path(work_dir)
-        self.work_dir.mkdir(parents=True, exist_ok=True)
+        import os
 
-        # Normalize scripts to a list
-        if isinstance(scripts, Script):
-            self.scripts = [scripts]
-        else:
-            self.scripts = list(scripts)
-
-        if not self.scripts:
-            raise ValueError("At least one script is required")
-
-        # Save scripts to the working directory if auto_save is True
-        if auto_save:
-            for script in self.scripts:
-                # Determine filename from script path or name
-                if script.path is not None:
-                    # Use the filename from the script's path
-                    script_path = self.work_dir / script.path.name
-                else:
-                    # Generate filename from script name
-                    # Try to guess extension from language or use default
-                    ext = self._get_default_extension()
-                    script_path = self.work_dir / f"{script.name}{ext}"
-
-                # Save script to working directory
-                script.save(script_path)
-
-        # Set input_script (first script or script with 'input' tag)
-        self.input_script = self._find_input_script()
-
-        return self
+        merged = dict(os.environ)
+        merged.update(self.env_vars)
+        if extra:
+            merged.update(extra)
+        return merged
 
     def _find_input_script(self) -> Script | None:
         """
@@ -178,122 +168,79 @@ class Engine(ABC):
         """
         pass
 
-    def get_script(
-        self, name: str | None = None, tag: str | None = None
-    ) -> Script | None:
-        """
-        Get a script by name or tag.
+    def run(
+        self,
+        scripts: "Script | str | Path | Sequence[Script] | None" = None,
+        *,
+        workdir: str | Path | None = None,
+        capture_output: bool = False,
+        check: bool = True,
+        **kwargs: Any,
+    ) -> subprocess.CompletedProcess:
+        """Execute the engine calculation.
+
+        Accepts scripts as Script objects, string content, Path to a file,
+        or a list of Scripts. If workdir is given, it overrides the default.
 
         Args:
-            name: Name of the script (logical name or filename)
-            tag: Tag to search for
+            scripts: Input script(s) — Script, str, Path, or list[Script].
+            workdir: Override working directory for this run.
+            capture_output: Capture stdout/stderr.
+            check: Raise on non-zero exit code.
+            **kwargs: Additional arguments for subclass run.
 
         Returns:
-            Script object or None if not found
-
-        Example:
-            >>> script = engine.get_script(name="input")
-            >>> script = engine.get_script(tag="input")
-        """
-        if not hasattr(self, "scripts"):
-            return None
-
-        for script in self.scripts:
-            if name is not None:
-                # Match by logical name or filename
-                if script.name == name:
-                    return script
-                if script.path is not None and script.path.name == name:
-                    return script
-
-            if tag is not None:
-                # Match by tag
-                if tag in script.tags:
-                    return script
-
-        return None
-
-    @abstractmethod
-    def run(self, **kwargs: Any) -> subprocess.CompletedProcess:
-        """
-        Execute the engine calculation.
-
-        Args:
-            **kwargs: Additional arguments for the specific engine
-                     (e.g., input_file, output_file, etc.)
-
-        Returns:
-            CompletedProcess object with execution results
+            CompletedProcess with execution results.
 
         Raises:
-            RuntimeError: If engine is not prepared (prepare() not called)
+            ValueError: If no scripts provided and none previously prepared.
         """
-        if not hasattr(self, "work_dir"):
-            raise RuntimeError("Engine not prepared. Call prepare() first.")
+        # Resolve workdir
+        run_dir = Path(workdir) if workdir is not None else self.work_dir
+        if run_dir is None:
+            import tempfile
+
+            run_dir = Path(tempfile.mkdtemp())
+        run_dir.mkdir(parents=True, exist_ok=True)
+        self.work_dir = run_dir
+
+        # Normalize scripts
+        if scripts is not None:
+            if isinstance(scripts, str):
+                scripts = [Script.from_text("input", scripts)]
+            elif isinstance(scripts, Path):
+                scripts = [Script.from_path(scripts)]
+            elif isinstance(scripts, Script):
+                scripts = [scripts]
+            else:
+                scripts = list(scripts)
+
+            if not scripts:
+                raise ValueError("At least one script is required")
+
+            self.scripts = scripts
+        elif not hasattr(self, "scripts") or not self.scripts:
+            raise ValueError("At least one script is required")
+
+        # Save scripts to workdir
+        for script in self.scripts:
+            if script.path is not None:
+                script_path = run_dir / script.path.name
+            else:
+                ext = self._get_default_extension()
+                script_path = run_dir / f"{script.name}{ext}"
+            script.save(script_path)
+
+        self.input_script = self._find_input_script()
+
+        return self._execute(capture_output=capture_output, check=check, **kwargs)
+
+    @abstractmethod
+    def _execute(
+        self,
+        capture_output: bool = False,
+        check: bool = True,
+        **kwargs: Any,
+    ) -> subprocess.CompletedProcess:
+        """Run the engine subprocess. Subclasses implement this."""
         pass
-
-    def clean(self, keep_scripts: bool = True) -> None:
-        """
-        Clean up calculation files.
-
-        Args:
-            keep_scripts: Whether to keep input scripts (default: True)
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return
-
-        if not keep_scripts and hasattr(self, "scripts"):
-            for script in self.scripts:
-                if script.path is not None:
-                    script_path = self.work_dir / script.path.name
-                    if script_path.exists():
-                        script_path.unlink()
-
-    def list_output_files(self) -> list[Path]:
-        """
-        List all output files in the working directory.
-
-        Returns:
-            List of output file paths
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return []
-
-        # Get all script paths to exclude them
-        script_paths = set()
-        if hasattr(self, "scripts"):
-            for script in self.scripts:
-                if script.path is not None:
-                    script_paths.add(self.work_dir / script.path.name)
-
-        # Return all files except scripts
-        return [
-            f for f in self.work_dir.iterdir() if f.is_file() and f not in script_paths
-        ]
-
-    def get_output_file(self, name: str | None = None) -> Path | None:
-        """
-        Get the output file path.
-
-        Args:
-            name: Name of the output file. If None, returns default output file.
-
-        Returns:
-            Path to the output file or None if not found
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return None
-
-        if name is not None:
-            output_path = self.work_dir / name
-            if output_path.exists():
-                return output_path
-            return None
-
-        # Try to find default output file
-        output_files = self.list_output_files()
-        if output_files:
-            # Return the first output file (could be improved with heuristics)
-            return output_files[0]
-
-        return None

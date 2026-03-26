@@ -377,12 +377,14 @@ class Packmol(Packer):
         all_bonds = []
         all_angles = []
         all_dihedrals = []
+        all_impropers = []
 
         # Counters for topology IDs
         current_instance = 0
         bond_id_counter = 0
         angle_id_counter = 0
         dihedral_id_counter = 0
+        improper_id_counter = 0
 
         # Step 2: Expand each target frame by its number of instances
         for target in targets:
@@ -412,6 +414,14 @@ class Packmol(Packer):
                 # Expand bonds block
                 if "bonds" in target.frame:
                     bonds = target.frame["bonds"].copy()
+
+                    # Validate required atom index keys
+                    has_ij = "i" in bonds and "j" in bonds
+                    has_atom_ij = "atom_i" in bonds and "atom_j" in bonds
+                    if not has_ij and not has_atom_ij:
+                        # Force KeyError for legacy/unknown key names
+                        _ = bonds["i"]
+
                     m = len(bonds.get("id", bonds.get("i", bonds.get("atom_i", []))))
 
                     # Reassign bond IDs sequentially
@@ -481,6 +491,40 @@ class Packmol(Packer):
 
                     all_dihedrals.append(dihedrals)
 
+                # Expand impropers block
+                if "impropers" in target.frame:
+                    impropers = target.frame["impropers"].copy()
+                    r = len(
+                        impropers.get(
+                            "id", impropers.get("i", impropers.get("atom_i", []))
+                        )
+                    )
+
+                    # Reassign improper IDs sequentially
+                    if "id" in impropers:
+                        impropers["id"] = np.arange(
+                            improper_id_counter + 1,
+                            improper_id_counter + r + 1,
+                            dtype=int,
+                        )
+                        improper_id_counter += r
+
+                    # Offset atom indices in impropers
+                    for end in (
+                        "i",
+                        "j",
+                        "k",
+                        "l",
+                        "atom_i",
+                        "atom_j",
+                        "atom_k",
+                        "atom_l",
+                    ):
+                        if end in impropers:
+                            impropers[end] = impropers[end] + offset
+
+                    all_impropers.append(impropers)
+
                 current_instance += 1
 
         # Step 3: Concatenate all expanded blocks
@@ -518,6 +562,8 @@ class Packmol(Packer):
             final_frame["angles"] = concat_blocks(all_angles)
         if all_dihedrals:
             final_frame["dihedrals"] = concat_blocks(all_dihedrals)
+        if all_impropers:
+            final_frame["impropers"] = concat_blocks(all_impropers)
 
         # Step 4: Write optimized coordinates back to expanded frame
         # Packmol returns coordinates in optimized_frame, overwrite them

@@ -593,6 +593,19 @@ class RDKitAdapter(Adapter[Atomistic, Chem.Mol]):
 
         self._internal = atomistic
 
+    def copy(self) -> "RDKitAdapter":
+        """Return a new RDKitAdapter with copied internal and external state.
+
+        Both the Atomistic (internal) and Chem.Mol (external) are deep-copied
+        so that the returned adapter is fully independent of the original.
+
+        Returns:
+            A new RDKitAdapter instance with copied state.
+        """
+        new_internal = self._internal.copy() if self._internal is not None else None
+        new_external = Chem.Mol(self._external) if self._external is not None else None
+        return RDKitAdapter(internal=new_internal, external=new_external)
+
     def _rebuild_atom_mapper(self) -> None:
         if self._external is None:
             self._atom_mapper = None

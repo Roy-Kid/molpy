@@ -1,7 +1,6 @@
 """XML force field parser for atomistic force fields."""
 
 import logging
-import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,8 @@ from molpy.core.forcefield import AtomisticForcefield, AtomType
 from molpy.potential.angle import AngleHarmonicStyle
 from molpy.potential.bond import BondHarmonicStyle
 from molpy.potential.dihedral import DihedralOPLSStyle
+from molpy.potential.dihedral.periodic import DihedralPeriodicStyle
+from molpy.potential.improper.periodic import ImproperPeriodicStyle
 from molpy.potential.pair import PairLJ126CoulCutStyle, PairLJ126CoulLongStyle
 
 logger = logging.getLogger(__name__)
@@ -184,6 +185,10 @@ class XMLForceFieldReader:
                 self._parse_angles(child)
             elif tag == "RBTorsionForce":
                 self._parse_dihedrals(child)
+            elif tag == "PeriodicTorsionForce":
+                self._parse_periodic_torsion(child)
+            elif tag == "PeriodicImproperForce":
+                self._parse_periodic_improper(child)
             elif tag == "NonbondedForce":
                 self._parse_nonbonded(child)
             else:
@@ -298,9 +303,9 @@ class XMLForceFieldReader:
         # Case 1: Full wildcard ("*", "*")
         if type_ == "*" and canonical_class == "*":
             if self._any_atomtype is None:
-                assert (
-                    self._ff is not None
-                ), "Force field must be initialized before creating atom types"
+                assert self._ff is not None, (
+                    "Force field must be initialized before creating atom types"
+                )
                 atomstyle = self._ff.def_atomstyle("full")
                 self._any_atomtype = atomstyle.def_type(name=name, **kwargs)
                 # record overrides if present for a specific type (not wildcard)
@@ -314,9 +319,9 @@ class XMLForceFieldReader:
         if type_ != "*" and canonical_class == "*":
             if type_ in self._type_to_atomtype:
                 return self._type_to_atomtype[type_]
-            assert (
-                self._ff is not None
-            ), "Force field must be initialized before creating atom types"
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -330,9 +335,9 @@ class XMLForceFieldReader:
         if type_ == "*" and canonical_class != "*":
             if canonical_class in self._class_to_atomtype:
                 return self._class_to_atomtype[canonical_class]
-            assert (
-                self._ff is not None
-            ), "Force field must be initialized before creating atom types"
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -347,9 +352,9 @@ class XMLForceFieldReader:
         if type_ in self._type_to_atomtype:
             return self._type_to_atomtype[type_]
         # Create new AtomType
-        assert (
-            self._ff is not None
-        ), "Force field must be initialized before creating atom types"
+        assert self._ff is not None, (
+            "Force field must be initialized before creating atom types"
+        )
         atomstyle = self._ff.def_atomstyle("full")
         atomtype = atomstyle.def_type(name=name, **kwargs)
         ov = kwargs.get("overrides")
@@ -553,6 +558,109 @@ class XMLForceFieldReader:
             count += 1
 
         logger.info(f"Parsed {count} dihedral types")
+
+    def _parse_periodic_torsion(self, element: ET.Element) -> None:
+        """
+        Parse PeriodicTorsionForce section (periodic cosine dihedrals).
+
+        Args:
+            element: PeriodicTorsionForce XML element
+        """
+        assert self._ff is not None, "Force field must be initialized before parsing"
+        dihedralstyle = self._ff.def_style(DihedralPeriodicStyle())
+        count = 0
+
+        for dihedral_elem in element:
+            if dihedral_elem.tag != "Proper":
+                continue
+
+            # Get atom type identifiers
+            type1 = dihedral_elem.get("type1", "*")
+            type2 = dihedral_elem.get("type2", "*")
+            type3 = dihedral_elem.get("type3", "*")
+            type4 = dihedral_elem.get("type4", "*")
+            class1 = dihedral_elem.get("class1", "*")
+            class2 = dihedral_elem.get("class2", "*")
+            class3 = dihedral_elem.get("class3", "*")
+            class4 = dihedral_elem.get("class4", "*")
+
+            if type1 is None or type2 is None or type3 is None or type4 is None:
+                logger.warning("Skipping periodic dihedral without type information")
+                continue
+
+            at1 = self._get_or_create_atomtype(type1, class1)
+            at2 = self._get_or_create_atomtype(type2, class2)
+            at3 = self._get_or_create_atomtype(type3, class3)
+            at4 = self._get_or_create_atomtype(type4, class4)
+
+            # Collect all periodic terms (periodicity1/k1/phase1, periodicity2/k2/phase2, ...)
+            params = {}
+            for j in range(1, 10):  # support up to 9 terms
+                pn = dihedral_elem.get(f"periodicity{j}")
+                kn = dihedral_elem.get(f"k{j}")
+                phn = dihedral_elem.get(f"phase{j}")
+                if pn is not None and kn is not None and phn is not None:
+                    params[f"periodicity{j}"] = int(pn)
+                    params[f"k{j}"] = float(kn)
+                    params[f"phase{j}"] = float(phn)
+                else:
+                    break
+
+            dihedralstyle.def_type(at1, at2, at3, at4, **params)
+            count += 1
+
+        logger.info(f"Parsed {count} periodic dihedral types")
+
+    def _parse_periodic_improper(self, element: ET.Element) -> None:
+        """
+        Parse PeriodicImproperForce section.
+
+        Args:
+            element: PeriodicImproperForce XML element
+        """
+        assert self._ff is not None, "Force field must be initialized before parsing"
+        improperstyle = self._ff.def_style(ImproperPeriodicStyle())
+        count = 0
+
+        for imp_elem in element:
+            if imp_elem.tag != "Improper":
+                continue
+
+            type1 = imp_elem.get("type1", "*")
+            type2 = imp_elem.get("type2", "*")
+            type3 = imp_elem.get("type3", "*")
+            type4 = imp_elem.get("type4", "*")
+            class1 = imp_elem.get("class1", "*")
+            class2 = imp_elem.get("class2", "*")
+            class3 = imp_elem.get("class3", "*")
+            class4 = imp_elem.get("class4", "*")
+
+            if type1 is None or type2 is None or type3 is None or type4 is None:
+                logger.warning("Skipping periodic improper without type information")
+                continue
+
+            at1 = self._get_or_create_atomtype(type1, class1)
+            at2 = self._get_or_create_atomtype(type2, class2)
+            at3 = self._get_or_create_atomtype(type3, class3)
+            at4 = self._get_or_create_atomtype(type4, class4)
+
+            # Collect periodic terms
+            params = {}
+            for j in range(1, 10):
+                pn = imp_elem.get(f"periodicity{j}")
+                kn = imp_elem.get(f"k{j}")
+                phn = imp_elem.get(f"phase{j}")
+                if pn is not None and kn is not None and phn is not None:
+                    params[f"periodicity{j}"] = int(pn)
+                    params[f"k{j}"] = float(kn)
+                    params[f"phase{j}"] = float(phn)
+                else:
+                    break
+
+            improperstyle.def_type(at1, at2, at3, at4, **params)
+            count += 1
+
+        logger.info(f"Parsed {count} periodic improper types")
 
     def _parse_nonbonded(self, element: ET.Element) -> None:
         """

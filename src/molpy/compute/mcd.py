@@ -61,13 +61,14 @@ class MCDCompute(Compute["Trajectory", MCDResult]):
         dt: float,
         center_of_mass: dict[int, float] | None = None,
     ):
+        super().__init__(tags=tags, max_dt=max_dt, dt=dt, center_of_mass=center_of_mass)
         self.tags = tags
         self.max_dt = max_dt
         self.dt = dt
         self.center_of_mass = center_of_mass
         self.n_cache = int(max_dt / dt)
 
-    def compute(self, input: "Trajectory") -> MCDResult:
+    def _compute(self, input: "Trajectory") -> MCDResult:
         """Compute MCD from trajectory.
 
         Args:

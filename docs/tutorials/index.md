@@ -1,263 +1,58 @@
-# Tutorials
+# Concepts
 
-Welcome to the MolPy Tutorials! These **hands-on, example-driven guides** help you learn MolPy by doing. Each tutorial is a Jupyter notebook you can run interactively to master specific concepts and workflows.
+MolPy represents a molecular system differently at each stage of work. These pages introduce the core data structures in the order you will encounter them: editable chemistry first, then system snapshots, then periodic geometry, force fields, trajectories, selections, and external tool integration.
 
-## How to Use These Tutorials
+Read them in order if you are new. Jump to a specific page if you already know what you need.
 
-**Learning path:**
 
-* 📘 **Foundational** – Start here if you're new to MolPy
-* 🔧 **Practical** – Learn by running real examples
-* 🎯 **Task-focused** – Each tutorial solves a specific problem
-* 🔗 **Progressive** – Tutorials build on each other
+## How the pieces fit together
 
-**Prerequisites:** Basic Python knowledge and familiarity with molecular modeling concepts.
+The diagram below shows the typical data flow through a MolPy workflow. Each box is a core data structure; each arrow is a transformation step.
 
----
-
-## Getting Started
-
-If you haven't already:
-
-1. 📦 **[Install MolPy](../getting-started/installation.ipynb)** – Set up your environment
-2. 🚀 **[Quickstart Guide](../getting-started/quickstart.ipynb)** – 5-minute introduction
-3. 📚 **[Core Concepts](../getting-started/core-concepts.ipynb)** – Understand the data model
-
----
-
-## Tutorial Categories
-
-### 🏗️ Core Data Structures
-
-Master MolPy's fundamental building blocks before diving into advanced features.
-
-#### [Block](block.ipynb)
-
-**Start here if:** You need to understand MolPy’s columnar table container.
-
-**What you'll learn:**
-```python
-atoms = mp.Block({"id": [1, 2], "x": [0.0, 1.0]})
-atoms["x"]
-atoms[0:1]
+```text
+                    ┌─────────────────────────┐
+  SMILES / file     │  Atomistic              │
+  ────parser────>   │  (editable molecular    │
+                    │   graph: atoms + bonds)  │
+                    └───────────┬─────────────┘
+                                │
+                  typifier + ForceField
+                                │
+                    ┌───────────▼─────────────┐
+                    │  Typed Atomistic         │
+                    │  (atoms carry type,      │
+                    │   charge, ff params)     │
+                    └───────────┬─────────────┘
+                                │
+                          .to_frame()
+                                │
+                    ┌───────────▼─────────────┐
+                    │  Frame                   │
+                    │  (Block tables +         │
+                    │   Box + metadata)        │
+                    └───────────┬─────────────┘
+                                │
+                          io.write_*
+                                │
+                    ┌───────────▼─────────────┐
+                    │  LAMMPS / GROMACS /      │
+                    │  PDB / HDF5 files        │
+                    └─────────────────────────┘
 ```
 
----
-
-#### [Frame](frame.ipynb)
-
-**Start here if:** You need to keep multiple tables (atoms/bonds/…) + metadata together.
-
-**What you'll learn:**
-```python
-frame = mp.Frame(blocks={"atoms": {"x": [0, 1]}})
-frame["atoms"]["x"]
-frame.metadata["timestep"] = 0
-```
-
----
-
-#### Molecular Graph
-
-**Start here if:** You need create or edit molecule.
-
-**What you'll learn:**
-
-```python
-atoms = mp.Atomistic()
-C = atoms.def_atom(symbol="C", xyz=[0, 0, 0])
-O = atoms.def_atom(symbol="O", xyz=[1.2, 0, 0])
-atoms.def_bond(C, O, order=2)
-```
-
-**Note:** See [Parser](../user-guide/01_parsing_chemistry.ipynb) and [Polymer SMILES](../user-guide/03_polymer_smiles.ipynb) user guides for detailed molecular construction.
-
----
-
-#### [Box](box.ipynb)
-
-**Start here if:** You need to define simulation boundaries or work with periodic systems.
-
-**Key concepts:** Cell dimensions, PBC wrapping, lattice vectors
-
-```python
-box = mp.Box.cubic(length=10.0, origin=[0, 0, 0], pbc=[True, True, False])
-```
-
----
-
-#### [Topology](topology.ipynb)
-
-**Start here if:** You're working with abstract molecular graph or graph algorithms.
-
-```
-from igraph import Graph
-topo: Graph = mp.Atomistic().get_topo()
-```
----
-
-#### [Force Field](force-field.ipynb)
-
-**Start here if:** You're manupulating force field parameters
-
-```python
-ff = mp.ForceField()
-atype = ff.def_style(mp.AtomStyle("full"))
-atype.def_type("C", mass=12.01, charge=0.0)
-
-```
-
-#### [Trajectory](trajectory.ipynb)
-
-**Start here if:** You need to analyze simulation results or process large trajectory files.
-
-```python
-traj = mp.Trajectory.read_lammps_trajectory("traj.lammpstrj")
-for frame in traj:
-    print(frame.metadata["temperature"])
-```
-
-### 🛠️ Building & Construction
-
-Learn to construct molecular systems from scratch.
-
-#### Crystal Builder
-**Generate crystal structures and lattices**
-
-- Building crystal unit cells
-- Common lattice types (FCC, BCC, HCP, diamond)
-- Supercell generation
-- Custom lattice parameters
-
-**Start here if:** You're working with crystalline materials or periodic systems.
-
-**Example use cases:**
-- Metal nanoparticles
-- Mineral surfaces
-- Semiconductor structures
-
-**Quick example:**
-```python
-from molpy.builder.crystal import fcc
-crystal = fcc(element="Cu", a=3.61, n_cells=(3, 3, 3))
-```
-
-**Note:** See [Builder](../user-guide/02_polymer_stepwise.ipynb) user guide for detailed construction workflows.
----
-
-### ⚗️ Chemistry & Reactions
-
-Work with chemical structures and transformations.
-
-#### [Selector](selector.ipynb)
-**Select and filter molecular substructures**
-
-- Pattern-based selection (SMARTS)
-- Atom and bond selectors
-- Combining selection criteria
-- Integration with reactions
-
-**Start here if:** You need to identify specific atoms or groups for reactions or analysis.
-
-**Use cases:**
-- Finding reactive sites
-- Selecting functional groups
-- Filtering by properties
-
-**Pattern:**
-```python
-selector = SMARTSSelector("[OH]")  # Find hydroxyl groups
-selected = selector(atomistic)
-```
-
----
-
-### 🔧 Advanced Features
-
-Extend MolPy with custom functionality.
-
-#### [External Tools: Wrappers & Adapters](wrapper-adapter.ipynb)
-
-**Learn MolPy's external integration layers**
-
-- `molpy.wrapper`: subprocess wrappers for external binaries/CLIs
-- `molpy.adapter`: data + file-artifact adapters (no subprocess execution)
-- Optional RDKit in-memory adapter (guarded)
-
-**Start here if:** You want to integrate AmberTools / RDKit-style tooling while keeping MolPy core structures stable.
-
----
-
-## Learning Paths
-
-### Path 1: Complete Beginner
-
-**Goal:** Learn MolPy from scratch
-
-```
-1. Frame & Block -> Understand data structures
-2. Box -> Learn about simulation cells
-3. Topology -> Master molecular connectivity
-4. Force Field -> Prepare for simulation
-```
-
----
-
-### Path 2: Simulation Setup
-**Goal:** Prepare systems for MD simulations
-
-```
-1. Box -> Define simulation boundaries
-2. Crystal Builder OR import structure
-3. Molecular Graph -> Edit molecule manually
-4. Force Field -> Assign types
-5. IO modules -> Export for simulation
-```
-
----
-
-### Path 3: Trajectory Analysis
-**Goal:** Analyze simulation results
-
-```
-1. Frame & Block -> Understand data format
-2. Trajectory -> Learn trajectory handling
-3. Analysis with Compute module
-```
-
----
-
-## Running the Tutorials
-
-## What's Next?
-
-**After completing tutorials:**
-
-1. 📖 **[User Guide](../user-guide/index.md)** – Comprehensive module documentation
-
-   - Deeper coverage of each module
-   - Production workflow patterns
-   - Best practices and optimization tips
-
-2. 🔬 **[API Reference](../api/index.md)** – Complete function documentation
-
-   - Full API specifications
-   - Parameter details
-   - Return value documentation
-
-3. 🛠️ **[Developer Guide](../developer/index.md)** – Contribute to MolPy
-
-   - Development setup
-   - Coding standards
-   - Creating custom modules
-
-## Need Help?
-
-- 💬 **[GitHub Discussions](https://github.com/MolCrafts/molpy/discussions)** – Ask questions
-- 🐛 **[Issues](https://github.com/MolCrafts/molpy/issues)** – Report problems
-- 📧 **Email:** support@molcrafts.org
-- ❓ **[FAQ](../getting-started/faq.md)** – Common questions
-
----
-
-Happy learning! 🧪✨
+- **Atomistic** is where you edit chemistry — add atoms, remove bonds, run reactions, build polymers.
+- **Frame** is where you do numerical work — vectorized distances, file I/O, engine export.
+- **ForceField** is a separate data structure that travels alongside the system — it is not stored inside the molecule.
+- **Box** defines the periodic cell and attaches to a Frame as metadata.
+- **Trajectory** is a time-ordered sequence of Frames.
+
+
+## Pages
+
+- [Atomistic and Topology](01_atomistic_and_topology.md) — editable molecular graph and derived connectivity
+- [Block and Frame](02_block_and_frame.md) — columnar tables and system snapshots
+- [Box and Periodicity](03_box_and_periodicity.md) — simulation cells and minimum-image distances
+- [Force Field](04_force_field.md) — parameter data, potentials, and multi-format export
+- [Trajectory](05_trajectory.md) — time-ordered frame sequences with lazy access
+- [Selector](06_selector.md) — composable atom filters over Block columns
+- [Wrapper and Adapter](07_wrapper_and_adapter.md) — execution boundaries and representation boundaries

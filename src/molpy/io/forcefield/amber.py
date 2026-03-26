@@ -7,6 +7,9 @@ import numpy as np
 from molpy.core.forcefield import AtomisticForcefield
 from molpy.core.frame import Frame
 
+# AMBER stores charges multiplied by 18.2223 (sqrt of 332.0636 kcal*A/mol/e^2).
+CHARGE_CONVERSION_FACTOR = 18.2223
+
 
 class AmberPrmtopReader:
     def __init__(
@@ -14,6 +17,8 @@ class AmberPrmtopReader:
         file: str | Path,
     ):
         self.file = file
+        self.raw_data: dict = {}
+        self.meta: dict = {}
 
     @staticmethod
     def sanitizer(line: str) -> str:

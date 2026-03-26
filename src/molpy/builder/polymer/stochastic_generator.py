@@ -11,7 +11,7 @@ from typing import Sequence
 import numpy as np
 
 from molpy.core.atomistic import Atomistic
-from molpy.builder.polymer.connectors import ReacterConnector
+from molpy.builder.polymer.connectors import Connector
 from molpy.builder.polymer.growth_kernel import GrowthKernel
 from molpy.builder.polymer.port_utils import get_all_port_info, PortInfo
 from molpy.builder.polymer.system import DPDistribution, MassDistribution
@@ -36,7 +36,7 @@ class StochasticChainGenerator:
         self,
         growth_kernel: GrowthKernel,
         monomer_templates: Sequence[MonomerTemplate],
-        connector: ReacterConnector,
+        connector: Connector,
         distribution: DPDistribution | MassDistribution,
         seed_template: MonomerTemplate | None = None,
     ):
@@ -45,7 +45,7 @@ class StochasticChainGenerator:
         Args:
             growth_kernel: GrowthKernel for choosing next monomers
             monomer_templates: Available monomer templates
-            connector: ReacterConnector for applying reactions
+            connector: Connector for applying reactions
             distribution: Distribution for sampling target (DP or mass)
             seed_template: Template for seed monomer (uses first template if None)
         """

@@ -60,8 +60,7 @@ class HDF5TrajectoryReader:
         """
         if h5py is None:
             raise ImportError(
-                "h5py is required for HDF5 support. "
-                "Install it with: pip install h5py"
+                "h5py is required for HDF5 support. Install it with: pip install h5py"
             )
         self._path = Path(path)
         if not self._path.exists():
@@ -244,8 +243,7 @@ class HDF5TrajectoryWriter(TrajectoryWriter):
         """
         if h5py is None:
             raise ImportError(
-                "h5py is required for HDF5 support. "
-                "Install it with: pip install h5py"
+                "h5py is required for HDF5 support. Install it with: pip install h5py"
             )
         self._path = Path(path)
         self._open_kwargs = open_kwargs
