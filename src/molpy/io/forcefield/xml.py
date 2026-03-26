@@ -1,7 +1,6 @@
 """XML force field parser for atomistic force fields."""
 
 import logging
-import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -304,9 +303,9 @@ class XMLForceFieldReader:
         # Case 1: Full wildcard ("*", "*")
         if type_ == "*" and canonical_class == "*":
             if self._any_atomtype is None:
-                assert (
-                    self._ff is not None
-                ), "Force field must be initialized before creating atom types"
+                assert self._ff is not None, (
+                    "Force field must be initialized before creating atom types"
+                )
                 atomstyle = self._ff.def_atomstyle("full")
                 self._any_atomtype = atomstyle.def_type(name=name, **kwargs)
                 # record overrides if present for a specific type (not wildcard)
@@ -320,9 +319,9 @@ class XMLForceFieldReader:
         if type_ != "*" and canonical_class == "*":
             if type_ in self._type_to_atomtype:
                 return self._type_to_atomtype[type_]
-            assert (
-                self._ff is not None
-            ), "Force field must be initialized before creating atom types"
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -336,9 +335,9 @@ class XMLForceFieldReader:
         if type_ == "*" and canonical_class != "*":
             if canonical_class in self._class_to_atomtype:
                 return self._class_to_atomtype[canonical_class]
-            assert (
-                self._ff is not None
-            ), "Force field must be initialized before creating atom types"
+            assert self._ff is not None, (
+                "Force field must be initialized before creating atom types"
+            )
             atomstyle = self._ff.def_atomstyle("full")
             atomtype = atomstyle.def_type(name=name, **kwargs)
             ov = kwargs.get("overrides")
@@ -353,9 +352,9 @@ class XMLForceFieldReader:
         if type_ in self._type_to_atomtype:
             return self._type_to_atomtype[type_]
         # Create new AtomType
-        assert (
-            self._ff is not None
-        ), "Force field must be initialized before creating atom types"
+        assert self._ff is not None, (
+            "Force field must be initialized before creating atom types"
+        )
         atomstyle = self._ff.def_atomstyle("full")
         atomtype = atomstyle.def_type(name=name, **kwargs)
         ov = kwargs.get("overrides")

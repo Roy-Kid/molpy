@@ -128,9 +128,9 @@ class TestIncrementalTypify:
         # All atoms in the product should have 'type' set
         product = result.product_info.product
         for atom in product.atoms:
-            assert (
-                atom.get("type") is not None
-            ), f"Atom {atom} should have 'type' after incremental typification"
+            assert atom.get("type") is not None, (
+                f"Atom {atom} should have 'type' after incremental typification"
+            )
 
     def test_incremental_typify_pair_params_assigned(self):
         """Pair parameters should be assigned to modified atoms after typing."""
@@ -160,18 +160,18 @@ class TestIncrementalTypify:
         )
 
         # Modified atoms (the two site atoms) should have pair params
-        product = result.product_info.product
+        _ = result.product_info.product  # access to verify it exists
         site_L = result.product_info.site_L
         site_R = result.product_info.site_R
 
         assert site_L is not None
         assert site_R is not None
-        assert (
-            site_L.get("pair_params") is not None
-        ), "Left site atom should have pair_params after incremental typification"
-        assert (
-            site_R.get("pair_params") is not None
-        ), "Right site atom should have pair_params after incremental typification"
+        assert site_L.get("pair_params") is not None, (
+            "Left site atom should have pair_params after incremental typification"
+        )
+        assert site_R.get("pair_params") is not None, (
+            "Right site atom should have pair_params after incremental typification"
+        )
 
     def test_incremental_typify_does_not_crash_without_type(self):
         """Even if atom typifier fails to assign type, pair typifier should not crash.

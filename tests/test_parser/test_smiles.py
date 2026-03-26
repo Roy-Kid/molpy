@@ -1448,18 +1448,18 @@ class TestBigSmilesParser:
             pytest.skip("Test case skipped - needs special handling for descriptors")
         ir = parse_bigsmiles(smiles)
         # Use structural comparison to avoid ID mismatches
-        assert self._compare_bigsmiles_structure(
-            ir, expected
-        ), f"Structure mismatch for {smiles}"
+        assert self._compare_bigsmiles_structure(ir, expected), (
+            f"Structure mismatch for {smiles}"
+        )
 
     @pytest.mark.parametrize("bigsmiles,expected", simple_repeat_bigsmiles)
     def test_simple_repeat_units(self, bigsmiles, expected):
         """Test basic {} repeat unit parsing."""
         ir = parse_bigsmiles(bigsmiles)
         # Use structural comparison to avoid ID mismatches
-        assert self._compare_bigsmiles_structure(
-            ir, expected
-        ), f"Structure mismatch for {bigsmiles}"
+        assert self._compare_bigsmiles_structure(ir, expected), (
+            f"Structure mismatch for {bigsmiles}"
+        )
 
     @pytest.mark.parametrize("bigsmiles,expected", stochastic_copolymer_bigsmiles)
     def test_stochastic_copolymer(self, bigsmiles, expected):
@@ -1486,27 +1486,27 @@ class TestBigSmilesParser:
         """Test block copolymer with multiple {} segments."""
         ir = parse_bigsmiles(bigsmiles)
         # Use structural comparison to avoid ID mismatches
-        assert self._compare_bigsmiles_structure(
-            ir, expected
-        ), f"Structure mismatch for {bigsmiles}"
+        assert self._compare_bigsmiles_structure(ir, expected), (
+            f"Structure mismatch for {bigsmiles}"
+        )
 
     @pytest.mark.parametrize("bigsmiles,expected", mixed_bigsmiles)
     def test_mixed_with_smiles(self, bigsmiles, expected):
         """Test BigSMILES mixed with plain SMILES fragments."""
         ir = parse_bigsmiles(bigsmiles)
         # Use structural comparison to avoid ID mismatches
-        assert self._compare_bigsmiles_structure(
-            ir, expected
-        ), f"Structure mismatch for {bigsmiles}"
+        assert self._compare_bigsmiles_structure(ir, expected), (
+            f"Structure mismatch for {bigsmiles}"
+        )
 
     @pytest.mark.parametrize("bigsmiles,expected", indexed_descriptor_bigsmiles)
     def test_indexed_descriptors(self, bigsmiles, expected):
         """Test bond descriptors with indices."""
         ir = parse_bigsmiles(bigsmiles)
         # Use structural comparison to avoid ID mismatches
-        assert self._compare_bigsmiles_structure(
-            ir, expected
-        ), f"Structure mismatch for {bigsmiles}"
+        assert self._compare_bigsmiles_structure(ir, expected), (
+            f"Structure mismatch for {bigsmiles}"
+        )
 
     def _compare_bigsmiles_structure(self, ir1, ir2) -> bool:
         """Compare BigSMILES IR structures ignoring auto-generated IDs and descriptor placement."""

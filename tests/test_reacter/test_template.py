@@ -10,8 +10,6 @@ Tests cover:
 - Error handling
 """
 
-import pytest
-
 from molpy.core.atomistic import Atom, Atomistic, Bond
 from molpy.reacter import (
     form_single_bond,
@@ -87,8 +85,8 @@ class TestTemplateReacter:
         )
 
         # Run reaction with template
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -139,8 +137,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
 
         # Check react_ids are assigned before reaction
         template_reacter._assign_react_ids(struct_L)
@@ -176,8 +174,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -216,8 +214,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L,
             struct_R,
@@ -256,8 +254,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -294,8 +292,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -341,8 +339,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -398,8 +396,8 @@ class TestTemplateReacter:
             radius=1,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result1, template1 = template_reacter_1.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -483,8 +481,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -499,9 +497,9 @@ class TestTemplateReacter:
             ep2_rid = bond.endpoints[1].get("react_id")
             ep1_deleted = ep1_rid in removed_rids
             ep2_deleted = ep2_rid in removed_rids
-            assert not (
-                ep1_deleted != ep2_deleted
-            ), f"Post has bond between deleted and non-deleted atom: {ep1_rid} - {ep2_rid}"
+            assert not (ep1_deleted != ep2_deleted), (
+                f"Post has bond between deleted and non-deleted atom: {ep1_rid} - {ep2_rid}"
+            )
 
     def test_write_template_files(self):
         """Test write_template_files function."""
@@ -532,8 +530,8 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        port_atom_L = find_port_atom(struct_L, "1")
-        port_atom_R = find_port_atom(struct_R, "2")
+        port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
+        port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
         result, template = template_reacter.run_with_template(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
@@ -630,9 +628,9 @@ class TestTemplateReacter:
         # React_ids must be in same order
         pre_rids = [a.get("react_id") for a in pre_atoms]
         post_rids = [a.get("react_id") for a in post_atoms]
-        assert (
-            pre_rids == post_rids
-        ), f"Pre and post atom ordering mismatch! Pre: {pre_rids}, Post: {post_rids}"
+        assert pre_rids == post_rids, (
+            f"Pre and post atom ordering mismatch! Pre: {pre_rids}, Post: {post_rids}"
+        )
 
     def test_template_unified_type_mapping(self):
         """Test that pre and post use same type-to-ID mapping after write.

@@ -5,10 +5,8 @@ to MolPy Atomistic structures and PolymerSpec objects.
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import TYPE_CHECKING
 
 from molpy.core.atomistic import Atom, Atomistic
-from molpy.core.element import Element
 
 from .bigsmiles_ir import (
     BigSmilesMoleculeIR,
@@ -590,9 +588,9 @@ def create_monomer_from_atom_class_ports(ir: SmilesGraphIR) -> Atomistic | None:
         Atomistic structure with ports marked on atoms, or None if no ports found
     """
     # Find atoms with class_ attribute (atom class ports)
-    port_markers: dict[int, SmilesAtomIR] = (
-        {}
-    )  # class_ -> SmilesAtomIR (the [*:n] atom)
+    port_markers: dict[
+        int, SmilesAtomIR
+    ] = {}  # class_ -> SmilesAtomIR (the [*:n] atom)
     port_connections: dict[int, SmilesAtomIR] = {}  # class_ -> connected real atom
 
     for atom_ir in ir.atoms:

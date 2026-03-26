@@ -796,9 +796,9 @@ class TestEndToEndGaffTyping:
         c_types = [a.get("type") for a in result.atoms if a.get("symbol") == "C"]
         # Should have sp2 and sp3 carbons
         assert "c3" in c_types, f"Expected c3 in {c_types}"
-        assert any(
-            t in ("c2", "ce", "cf") for t in c_types
-        ), f"Expected sp2 carbon type in {c_types}"
+        assert any(t in ("c2", "ce", "cf") for t in c_types), (
+            f"Expected sp2 carbon type in {c_types}"
+        )
 
 
 # ===================================================================
