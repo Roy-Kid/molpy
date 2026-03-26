@@ -1,58 +1,88 @@
 """MolPy — Composable molecular modeling in Python."""
 
-# Submodules (explicit re-export for `mp.io`, `mp.parser`, etc.)
-from . import data as data
-from . import io as io
-from . import parser as parser
-from . import potential as potential
-from . import tool as tool
-from . import typifier as typifier
+# Submodules
+from . import data, io, parser, potential, tool, typifier
 
-# Core atomistic
-from .core.atomistic import Angle as Angle
-from .core.atomistic import Atom as Atom
-from .core.atomistic import Atomistic as Atomistic
-from .core.atomistic import Bond as Bond
-from .core.atomistic import Dihedral as Dihedral
-from .core.box import Box as Box
-from .core.cg import Bead as Bead
-from .core.cg import CGBond as CGBond
-from .core.cg import CoarseGrain as CoarseGrain
-from .core.entity import Entity as Entity
-from .core.entity import Link as Link
-from .core.entity import Struct as Struct
-
-# Core forcefield
-from .core.forcefield import AngleStyle as AngleStyle
-from .core.forcefield import AngleType as AngleType
-from .core.forcefield import AtomisticForcefield as AtomisticForcefield
-from .core.forcefield import AtomStyle as AtomStyle
-from .core.forcefield import AtomType as AtomType
-from .core.forcefield import BondStyle as BondStyle
-from .core.forcefield import BondType as BondType
-from .core.forcefield import DihedralStyle as DihedralStyle
-from .core.forcefield import DihedralType as DihedralType
-from .core.forcefield import ForceField as ForceField
-from .core.forcefield import ImproperStyle as ImproperStyle
-from .core.forcefield import ImproperType as ImproperType
-from .core.forcefield import PairStyle as PairStyle
-from .core.forcefield import PairType as PairType
-from .core.forcefield import Parameters as Parameters
-from .core.forcefield import Style as Style
-from .core.forcefield import Type as Type
-from .core.forcefield import TypeBucket as TypeBucket
-
-# Core frame, box, topology, trajectory
-from .core.frame import Block as Block
-from .core.frame import Frame as Frame
-from .core.script import Script as Script
-from .core.script import ScriptLanguage as ScriptLanguage
-from .core.topology import Topology as Topology
-from .core.trajectory import Trajectory as Trajectory
-
-# Potentials
+# Core
+from .core.atomistic import Angle, Atom, Atomistic, Bond, Dihedral
+from .core.box import Box
+from .core.cg import Bead, CGBond, CoarseGrain
+from .core.entity import Entity, Link, Struct
+from .core.forcefield import (
+    AngleStyle,
+    AngleType,
+    AtomisticForcefield,
+    AtomStyle,
+    AtomType,
+    BondStyle,
+    BondType,
+    DihedralStyle,
+    DihedralType,
+    ForceField,
+    ImproperStyle,
+    ImproperType,
+    PairStyle,
+    PairType,
+    Parameters,
+    Style,
+    Type,
+    TypeBucket,
+)
+from .core.frame import Block, Frame
+from .core.script import Script, ScriptLanguage
+from .core.topology import Topology
+from .core.trajectory import Trajectory
 from .potential import *  # noqa: F403
+from .version import release_date, version
 
-# Version
-from .version import release_date as release_date
-from .version import version as version
+__all__ = [
+    # Submodules
+    "data",
+    "io",
+    "parser",
+    "potential",
+    "tool",
+    "typifier",
+    # Core atomistic
+    "Angle",
+    "Atom",
+    "Atomistic",
+    "Bond",
+    "Dihedral",
+    "Box",
+    "Bead",
+    "CGBond",
+    "CoarseGrain",
+    "Entity",
+    "Link",
+    "Struct",
+    # Core forcefield
+    "AngleStyle",
+    "AngleType",
+    "AtomisticForcefield",
+    "AtomStyle",
+    "AtomType",
+    "BondStyle",
+    "BondType",
+    "DihedralStyle",
+    "DihedralType",
+    "ForceField",
+    "ImproperStyle",
+    "ImproperType",
+    "PairStyle",
+    "PairType",
+    "Parameters",
+    "Style",
+    "Type",
+    "TypeBucket",
+    # Core frame/topology/trajectory
+    "Block",
+    "Frame",
+    "Script",
+    "ScriptLanguage",
+    "Topology",
+    "Trajectory",
+    # Version
+    "version",
+    "release_date",
+]
