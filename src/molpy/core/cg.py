@@ -15,15 +15,17 @@ from .entity import (
 
 class Bead(Entity):
     """Coarse-grain bead entity.
-    
+
     A bead can optionally map to an Atomistic structure via the atomistic member.
     Supports arbitrary attributes via dictionary interface.
-    
+
     Attributes:
         atomistic: Optional reference to an Atomistic structure this bead represents
     """
 
-    def __init__(self, data_dict=None, /, atomistic: "Atomistic | None" = None, **attrs: Any):
+    def __init__(
+        self, data_dict=None, /, atomistic: "Atomistic | None" = None, **attrs: Any
+    ):
         # Handle being called with just a dict (for copy compatibility)
         if data_dict is not None and isinstance(data_dict, dict):
             super().__init__(**data_dict)
@@ -38,6 +40,7 @@ class Bead(Entity):
     def __deepcopy__(self, memo):
         """Custom deep copy to handle atomistic member."""
         from copy import deepcopy
+
         # Create new bead with copied data and atomistic reference (not copy)
         new_bead = Bead(atomistic=self.atomistic, **deepcopy(self.data, memo))
         return new_bead
@@ -77,7 +80,7 @@ class CGBond(Link):
 
 class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     """Coarse-grained molecular structure container.
-    
+
     Similar to Atomistic but for coarse-grained representations using Beads and CGBonds.
     Supports bidirectional conversion with Atomistic structures.
     """
@@ -135,7 +138,7 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def def_bead(self, /, atomistic: "Atomistic | None" = None, **attrs: Any) -> Bead:
         """Create a new Bead and add it to the structure.
-        
+
         Args:
             atomistic: Optional Atomistic structure this bead represents
             **attrs: Bead attributes (x, y, z, type, etc.)
@@ -253,7 +256,7 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def __iadd__(self, other: "CoarseGrain") -> "CoarseGrain":
         """Merge another CoarseGrain into this one (in-place).
-        
+
         Example:
             cg1 += cg2  # Merges cg2 into cg1
         """
@@ -262,7 +265,7 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def __add__(self, other: "CoarseGrain") -> "CoarseGrain":
         """Create a new CoarseGrain by merging two structures.
-        
+
         Example:
             cg3 = cg1 + cg2  # Creates new structure
         """
@@ -272,11 +275,11 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def replicate(self, n: int, transform=None) -> "CoarseGrain":
         """Create n copies and merge them into a new system.
-        
+
         Args:
             n: Number of copies to create
             transform: Optional callable(copy, index) -> None to transform each copy
-            
+
         Example:
             # Create 10 copies in a line
             cg_line = cg.replicate(10, lambda mol, i: mol.move([i*5, 0, 0]))
@@ -299,18 +302,18 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     def to_atomistic(self) -> "Atomistic":
         """Convert CoarseGrain structure to Atomistic representation.
-        
+
         Beads with atomistic member are expanded to their full atomistic structure.
         Beads without atomistic mapping create a single atom at the bead position.
         CGBonds are converted to atomistic bonds between representative atoms.
-        
+
         Returns:
             Atomistic structure
         """
         from .atomistic import Atom, Atomistic, Bond
 
         result = Atomistic()
-        
+
         # Map beads to their representative atoms (for bond creation)
         bead_to_atom: dict[Bead, Atom] = {}
 
@@ -322,13 +325,13 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 atoms_list = list(bead.atomistic.atoms)
                 if atoms_list:
                     bead_to_atom[bead] = atoms_list[0]
-                
+
                 # Merge the referenced atomistic structure
                 result.merge(bead.atomistic)
             else:
                 # No atomistic mapping - create single atom at bead position
                 atom_attrs = {}
-                
+
                 # Copy position if available
                 if "x" in bead.data:
                     atom_attrs["x"] = bead.data["x"]
@@ -336,11 +339,11 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                     atom_attrs["y"] = bead.data["y"]
                 if "z" in bead.data:
                     atom_attrs["z"] = bead.data["z"]
-                
+
                 # Copy type as symbol if available
                 if "type" in bead.data:
                     atom_attrs["symbol"] = bead.data["type"]
-                
+
                 # Create atom
                 atom = result.def_atom(**atom_attrs)
                 bead_to_atom[bead] = atom
@@ -349,12 +352,12 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         for cgbond in self.cgbonds:
             ibead = cgbond.ibead
             jbead = cgbond.jbead
-            
+
             # Get representative atoms
             if ibead in bead_to_atom and jbead in bead_to_atom:
                 iatom = bead_to_atom[ibead]
                 jatom = bead_to_atom[jbead]
-                
+
                 # Create bond with attributes from CGBond
                 bond_attrs = dict(cgbond.data)
                 result.def_bond(iatom, jatom, **bond_attrs)
@@ -366,15 +369,15 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         cls, atomistic: "Atomistic", bead_mask: "np.ndarray"
     ) -> "CoarseGrain":
         """Create CoarseGrain structure from Atomistic using a bead mask.
-        
+
         Args:
             atomistic: Atomistic structure to convert
             bead_mask: Numpy array where each element indicates which bead the atom belongs to.
                       Can be boolean (True = bead 0) or integer indices.
-                      
+
         Returns:
             CoarseGrain structure with beads mapped to atomistic substructures
-            
+
         Example:
             >>> atomistic = Atomistic()
             >>> # ... create atoms and bonds ...
@@ -385,25 +388,25 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         import numpy as np
 
         result = cls()
-        
+
         # Get atoms list
         atoms_list = list(atomistic.atoms)
-        
+
         if len(atoms_list) != len(bead_mask):
             raise ValueError(
                 f"Bead mask length ({len(bead_mask)}) must match number of atoms ({len(atoms_list)})"
             )
-        
+
         # Group atoms by bead index
         bead_indices = np.unique(bead_mask)
         bead_to_atoms: dict[int, list] = {int(idx): [] for idx in bead_indices}
-        
+
         for atom, bead_idx in zip(atoms_list, bead_mask):
             bead_to_atoms[int(bead_idx)].append(atom)
-        
+
         # Map bead index to Bead object
         idx_to_bead: dict[int, Bead] = {}
-        
+
         # Create beads from atom groups
         for bead_idx, atom_group in bead_to_atoms.items():
             # Calculate center of mass for bead position
@@ -413,19 +416,22 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 y = atom.get("y", 0.0)
                 z = atom.get("z", 0.0)
                 positions.append([x, y, z])
-            
+
             positions_array = np.array(positions)
             center = positions_array.mean(axis=0)
-            
+
             # Extract subgraph for this bead
             from .atomistic import Atomistic
+
             subgraph, _ = atomistic.extract_subgraph(
                 center_entities=atom_group,
                 radius=0,  # Only include atoms in the group
                 entity_type=type(atom_group[0]),
-                link_type=type(list(atomistic.bonds)[0]) if len(atomistic.bonds) > 0 else None,
+                link_type=(
+                    type(list(atomistic.bonds)[0]) if len(atomistic.bonds) > 0 else None
+                ),
             )
-            
+
             # Create bead with atomistic mapping (reference, not copy)
             bead = result.def_bead(
                 atomistic=subgraph,
@@ -433,38 +439,38 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                 y=float(center[1]),
                 z=float(center[2]),
             )
-            
+
             idx_to_bead[bead_idx] = bead
-        
+
         # Infer CGBonds from atomistic bonds crossing bead boundaries
         bead_pairs: set[tuple[int, int]] = set()
-        
+
         for bond in atomistic.bonds:
             # Find which beads the bond endpoints belong to
             atom_i = bond.itom
             atom_j = bond.jtom
-            
+
             # Find bead indices
             try:
                 idx_i = atoms_list.index(atom_i)
                 idx_j = atoms_list.index(atom_j)
             except ValueError:
                 continue  # Skip if atoms not found
-            
+
             bead_idx_i = int(bead_mask[idx_i])
             bead_idx_j = int(bead_mask[idx_j])
-            
+
             # If atoms belong to different beads, create CGBond
             if bead_idx_i != bead_idx_j:
                 # Ensure consistent ordering to avoid duplicates
                 pair = tuple(sorted([bead_idx_i, bead_idx_j]))
                 bead_pairs.add(pair)
-        
+
         # Create CGBonds
         for bead_idx_i, bead_idx_j in bead_pairs:
             if bead_idx_i in idx_to_bead and bead_idx_j in idx_to_bead:
                 bead_i = idx_to_bead[bead_idx_i]
                 bead_j = idx_to_bead[bead_idx_j]
                 result.def_cgbond(bead_i, bead_j)
-        
+
         return result

@@ -56,8 +56,17 @@ def _build_ethanol():
     # O-H bond
     asm.add_link(Bond(o2, h8))
 
-    return asm, {"c0": c0, "c1": c1, "o2": o2, "h3": h3, "h4": h4,
-                 "h5": h5, "h6": h6, "h7": h7, "h8": h8}
+    return asm, {
+        "c0": c0,
+        "c1": c1,
+        "o2": o2,
+        "h3": h3,
+        "h4": h4,
+        "h5": h5,
+        "h6": h6,
+        "h7": h7,
+        "h8": h8,
+    }
 
 
 def _build_benzene():
@@ -99,55 +108,63 @@ class TestGaffAtomTypifier:
 
     def test_ethanol_carbon_types(self, gaff_atom_typifier):
         """Test that ethanol carbons are typed as c3."""
-        asm, atoms = _build_ethanol()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_ethanol()
+        typed = gaff_atom_typifier.typify(asm)
+        atoms = list(typed.atoms)
 
         # Both carbons should be sp3 -> c3
-        assert atoms["c0"].get("type") == "c3"
-        assert atoms["c1"].get("type") == "c3"
+        assert atoms[0].get("type") == "c3"
+        assert atoms[1].get("type") == "c3"
 
     def test_ethanol_oxygen_type(self, gaff_atom_typifier):
         """Test that ethanol oxygen is typed as oh."""
-        asm, atoms = _build_ethanol()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_ethanol()
+        typed = gaff_atom_typifier.typify(asm)
+        atoms = list(typed.atoms)
 
-        assert atoms["o2"].get("type") == "oh"
+        assert atoms[2].get("type") == "oh"
 
     def test_ethanol_hydroxyl_hydrogen(self, gaff_atom_typifier):
         """Test that hydroxyl hydrogen is typed as ho."""
-        asm, atoms = _build_ethanol()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_ethanol()
+        typed = gaff_atom_typifier.typify(asm)
+        atoms = list(typed.atoms)
 
-        assert atoms["h8"].get("type") == "ho"
+        assert atoms[8].get("type") == "ho"
 
     def test_ethanol_aliphatic_hydrogens(self, gaff_atom_typifier):
         """Test that aliphatic hydrogens are typed as hc or h1."""
-        asm, atoms = _build_ethanol()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_ethanol()
+        typed = gaff_atom_typifier.typify(asm)
+        atoms = list(typed.atoms)
 
         # Methyl H (on C not bonded to electronegative group)
-        h3_type = atoms["h3"].get("type")
+        h3_type = atoms[3].get("type")
         assert h3_type == "hc", f"Expected hc, got {h3_type}"
 
         # H on C bonded to O -> h1 (one electron-withdrawing group)
-        h6_type = atoms["h6"].get("type")
+        h6_type = atoms[6].get("type")
         assert h6_type == "h1", f"Expected h1, got {h6_type}"
 
     def test_benzene_carbon_types(self, gaff_atom_typifier):
         """Test that benzene carbons are typed as ca."""
-        asm, atoms = _build_benzene()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_benzene()
+        typed = gaff_atom_typifier.typify(asm)
 
-        for c in atoms["carbons"]:
-            assert c.get("type") == "ca", f"Expected ca, got {c.get('type')}"
+        carbons = [a for a in typed.atoms if a.get("symbol") == "C"]
+        assert len(carbons) == 6
+        for a in carbons:
+            assert a.get("type") == "ca", f"Expected ca, got {a.get('type')}"
 
     def test_benzene_hydrogen_types(self, gaff_atom_typifier):
         """Test that benzene hydrogens are typed as ha."""
-        asm, atoms = _build_benzene()
-        gaff_atom_typifier.typify(asm)
+        asm, _ = _build_benzene()
+        typed = gaff_atom_typifier.typify(asm)
 
-        for h in atoms["hydrogens"]:
-            assert h.get("type") == "ha", f"Expected ha, got {h.get('type')}"
+        hydrogens = [a for a in typed.atoms if a.get("symbol") == "H"]
+        assert len(hydrogens) == 6
+        for a in hydrogens:
+            assert a.get("type") == "ha", f"Expected ha, got {a.get('type')}"
 
 
 class TestGaffAtomisticTypifier:
@@ -172,11 +189,11 @@ class TestGaffAtomisticTypifier:
             strict_typing=False,
         )
 
-        asm, atoms = _build_ethanol()
-        typifier.typify(asm)
+        asm, _ = _build_ethanol()
+        typed = typifier.typify(asm)
 
         # Check that bonds have types assigned
-        typed_bonds = [b for b in asm.bonds if b.data.get("type") is not None]
+        typed_bonds = [b for b in typed.bonds if b.data.get("type") is not None]
         assert len(typed_bonds) > 0, "Expected some bonds to be typed"
 
     def test_ethanol_full_pipeline(self, gaff_ff):
@@ -185,12 +202,12 @@ class TestGaffAtomisticTypifier:
 
         typifier = GaffAtomisticTypifier(gaff_ff, strict_typing=False)
 
-        asm, atoms = _build_ethanol()
+        asm, _ = _build_ethanol()
         asm.get_topo(gen_angle=True, gen_dihe=True)
-        typifier.typify(asm)
+        typed = typifier.typify(asm)
 
         # All atoms should have types
-        for atom in asm.atoms:
+        for atom in typed.atoms:
             assert atom.get("type") is not None, f"Atom {atom.get('symbol')} not typed"
 
 

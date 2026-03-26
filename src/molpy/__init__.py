@@ -5,7 +5,7 @@ unit tests that target the new core architecture.
 """
 
 # Submodules - Import these AFTER core classes to avoid circular imports
-from . import data, io, parser, potential, typifier
+from . import data, io, parser, potential, tool, typifier
 from .core.atomistic import Angle, Atom, Atomistic, Bond, Dihedral
 from .core.box import Box
 from .core.cg import Bead, CGBond, CoarseGrain

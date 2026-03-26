@@ -13,9 +13,9 @@ from .base import DataReader
 # ---------------------------------------------------------------------
 def _eat_section(lines: list[str]):
     """
-    Consume enough lines to collect *n_values* 12-column floats.
+    Consume enough lines to collect 12-column floats from AMBER format.
     """
-    data = [float(x) for line in lines for x in line.split()]
+    data = [float(x) for line in lines for x in line.strip().split() if x]
     return np.asarray(data).reshape(-1, 3)
 
 
@@ -40,42 +40,56 @@ class AmberInpcrdReader(DataReader):
     def read(self, frame: Frame | None = None) -> Frame:
         frame = frame or Frame()
 
-        raw_lines = self.read_lines()  # stripped, non-blank
+        raw_lines = self.read_lines()
         if len(raw_lines) < 2:
             raise ValueError("inpcrd too short")
 
-        title = raw_lines[0]
-        header_tokens = raw_lines[1].split()
+        title = raw_lines[0].strip()
+        header_tokens = raw_lines[1].strip().split()
         n_atoms = int(header_tokens[0])
         time = float(header_tokens[1]) if len(header_tokens) > 1 else None
 
         # ---------- coordinates ----------------------------------------
+        # AMBER inpcrd format: 6 values per line, each 12 chars wide
+        # Number of coordinate lines = ceil(n_atoms * 3 / 6)
+        n_coord_lines = (n_atoms * 3 + 5) // 6
 
-        cursor = int(n_atoms / 2) + 2
+        if len(raw_lines) < 2 + n_coord_lines:
+            raise ValueError(
+                f"Not enough lines for {n_atoms} atoms: "
+                f"need {n_coord_lines} coordinate lines, "
+                f"got {len(raw_lines) - 2}"
+            )
+
+        cursor = 2 + n_coord_lines
         coords = _eat_section(raw_lines[2:cursor])
 
         # ---------- velocities (optional) ------------------------------
+        # Per AMBER spec, velocities only appear in restart files (those
+        # with a timestamp on the header line).
         velocity_vals = None
-        if cursor < len(raw_lines):
-            maybe_vels = _eat_section(raw_lines[cursor : cursor + int(n_atoms / 2)])
-            # Heuristic: if the number of lines consumed equals coord section,
-            # we assume velocities exist.
-            velocity_vals = maybe_vels.reshape(n_atoms, 3)
-            cursor += int(n_atoms / 2)
+        if time is not None:
+            non_blank_remaining = sum(1 for line in raw_lines[cursor:] if line.strip())
+            if non_blank_remaining >= n_coord_lines:
+                maybe_vels = _eat_section(raw_lines[cursor : cursor + n_coord_lines])
+                if maybe_vels.size == n_atoms * 3:
+                    velocity_vals = maybe_vels.reshape(n_atoms, 3)
+                    cursor += n_coord_lines
 
         # ---------- box (optional) -------------------------------------
         box = Box()
         if cursor < len(raw_lines):
-            box_floats = [float(x) for x in raw_lines[cursor].split()]
+            box_floats = [float(x) for x in raw_lines[cursor].strip().split() if x]
             if len(box_floats) >= 3:
                 box = Box(matrix=np.diag(box_floats[:3]))
 
         # ---------- populate frame -------------------------------------
         # If a matching atoms block exists, only replace coordinates
         if "atoms" in frame:
-            assert frame["atoms"].nrows == n_atoms, ValueError(
-                f"Frame atoms block has {frame['atoms'].nrows} rows, expected {n_atoms}"
-            )
+            if frame["atoms"].nrows != n_atoms:
+                raise ValueError(
+                    f"atoms block has {frame['atoms'].nrows} rows, but inpcrd has {n_atoms}"
+                )
             # Store coordinates as separate x, y, z fields
             frame["atoms"]["x"] = coords[:, 0]
             frame["atoms"]["y"] = coords[:, 1]

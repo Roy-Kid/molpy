@@ -12,12 +12,12 @@ Public API:
 Example usage:
     >>> from molpy.builder.ambertools import AmberPolymerBuilder
     >>> from molpy.io import read_pdb
-    >>> 
+    >>>
     >>> # Load monomer and mark ports
     >>> eo_monomer = read_pdb("PEO_initial.pdb")
     >>> eo_monomer.atoms[0]["port"] = "<"  # Head port
     >>> eo_monomer.atoms[6]["port"] = ">"  # Tail port
-    >>> 
+    >>>
     >>> # Build polymer
     >>> builder = AmberPolymerBuilder(library={"EO": eo_monomer})
     >>> result = builder.build("{[#EO]|10}")

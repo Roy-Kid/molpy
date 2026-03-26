@@ -61,12 +61,7 @@ class MCDCompute(Compute["Trajectory", MCDResult]):
         dt: float,
         center_of_mass: dict[int, float] | None = None,
     ):
-        super().__init__(
-            tags=tags,
-            max_dt=max_dt,
-            dt=dt,
-            center_of_mass=center_of_mass
-        )
+        super().__init__(tags=tags, max_dt=max_dt, dt=dt, center_of_mass=center_of_mass)
         self.tags = tags
         self.max_dt = max_dt
         self.dt = dt

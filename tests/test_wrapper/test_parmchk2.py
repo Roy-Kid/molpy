@@ -39,7 +39,15 @@ def test_parmchk2_wrapper_run_raw(tmp_path: Path):
 
         mock_run.assert_called_once()
         call_args = mock_run.call_args[0][0]
-        assert call_args == ["parmchk2", "-i", "lig.mol2", "-f", "mol2", "-o", "lig.frcmod"]
+        assert call_args == [
+            "parmchk2",
+            "-i",
+            "lig.mol2",
+            "-f",
+            "mol2",
+            "-o",
+            "lig.frcmod",
+        ]
 
 
 def test_parmchk2_wrapper_generate_parameters(tmp_path: Path):
@@ -63,8 +71,12 @@ def test_parmchk2_wrapper_generate_parameters(tmp_path: Path):
         call_args = mock_run.call_args[0][0]
         assert call_args == [
             "parmchk2",
-            "-i", "tfsi_gaff2.mol2",
-            "-f", "mol2",
-            "-o", "tfsi.frcmod",
-            "-p", "2",
+            "-i",
+            "tfsi_gaff2.mol2",
+            "-f",
+            "mol2",
+            "-o",
+            "tfsi.frcmod",
+            "-p",
+            "2",
         ]

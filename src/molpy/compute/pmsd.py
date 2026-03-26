@@ -63,10 +63,7 @@ class PMSDCompute(Compute["Trajectory", PMSDResult]):
         dt: float,
     ):
         super().__init__(
-            cation_type=cation_type,
-            anion_type=anion_type,
-            max_dt=max_dt,
-            dt=dt
+            cation_type=cation_type, anion_type=anion_type, max_dt=max_dt, dt=dt
         )
         self.cation_type = cation_type
         self.anion_type = anion_type

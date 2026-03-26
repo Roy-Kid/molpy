@@ -10,10 +10,10 @@ from typing import Any
 @dataclass
 class AmberBuildResult:
     """Result of AmberPolymerBuilder.build().
-    
+
     This result contains the built polymer structure and force field parameters,
     along with paths to intermediate files for debugging.
-    
+
     Attributes:
         frame: The polymer as a Frame object (coordinates + topology).
         forcefield: The ForceField with all parameters.
@@ -23,7 +23,7 @@ class AmberBuildResult:
         monomer_count: Total number of monomers in the polymer.
         cgsmiles: The CGSmiles string used to build the polymer.
     """
-    
+
     frame: Any  # Frame (avoid circular import)
     forcefield: Any  # ForceField (avoid circular import)
     prmtop_path: Path

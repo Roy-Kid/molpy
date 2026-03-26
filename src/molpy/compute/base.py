@@ -48,7 +48,7 @@ class Compute[InT, OutT](ABC):
         >>> compute = MyCompute(param1="value", param2=42)
         >>> result = compute(frame)  # Calls __call__, which calls _compute()
         >>> config = compute.dump()  # {"param1": "value", "param2": 42}
-        >>> 
+        >>>
         >>> # Use in molexp workflow
         >>> result_dict = compute.execute(input=frame)  # {"result": MyResult(...)}
     """
@@ -59,7 +59,7 @@ class Compute[InT, OutT](ABC):
 
     def __init__(self, **config_kwargs: Any):
         """Initialize compute with configuration parameters.
-        
+
         Args:
             **config_kwargs: Configuration parameters stored for serialization
         """
@@ -84,33 +84,33 @@ class Compute[InT, OutT](ABC):
 
     def execute(self, ctx: Any | None = None, **inputs: Any) -> dict[str, Any]:
         """Execute as a workflow task (molexp-compatible API).
-        
+
         This method adapts the Compute interface to work with molexp workflows.
         Subclasses can override to customize input/output mapping.
-        
+
         Args:
             ctx: Optional runtime context
             **inputs: Named input values
-            
+
         Returns:
             Dictionary with output_key -> result mapping
-            
+
         Raises:
             ValueError: If required input is missing
         """
         input_value = inputs.get(self.input_key)
         if input_value is None:
             raise ValueError(f"Missing required input: {self.input_key}")
-        
+
         result = self(input_value)  # Calls __call__ -> before/_compute/after
         return {self.output_key: result}
-    
+
     # Alias for API consistency with molexp.Task
     compute = execute
 
     def dump(self) -> dict[str, Any]:
         """Serialize configuration to dictionary.
-        
+
         Returns:
             Configuration parameters as dict
         """

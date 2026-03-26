@@ -278,8 +278,8 @@ class SmartsTransformer(Transformer):
                 else:
                     bond_char = token.value
 
-        # For now, ignore negation in the IR (branch bonds rarely need this detail)
-        # TODO: Store negation flag in SmartsBondIR for future use
+        if has_negation:
+            return f"!{bond_char}"
         return bond_char
 
     def matches_string(self, children: list) -> SmartsIR:
@@ -324,7 +324,9 @@ class SmartsTransformer(Transformer):
         if first_token and first_token.type == "CHARGE_SIGN":
             # Find the integer value (if any)
             num = next((c for c in children if isinstance(c, int)), 1)
-            return AtomPrimitiveIR(type="charge", value=num if first_token.value == "+" else -num)
+            return AtomPrimitiveIR(
+                type="charge", value=num if first_token.value == "+" else -num
+            )
 
         # Filter out operator tokens
         filtered = [
@@ -332,7 +334,24 @@ class SmartsTransformer(Transformer):
             for c in children
             if not (
                 isinstance(c, Token)
-                and c.value in {"#", "X", "x", "r", "R", "H", "h", "D", "v", "a", "A", "$(", ")", "$", "("}
+                and c.value
+                in {
+                    "#",
+                    "X",
+                    "x",
+                    "r",
+                    "R",
+                    "H",
+                    "h",
+                    "D",
+                    "v",
+                    "a",
+                    "A",
+                    "$(",
+                    ")",
+                    "$",
+                    "(",
+                }
             )
         ]
 
@@ -452,7 +471,9 @@ class SmartsTransformer(Transformer):
             if isinstance(c, AtomPrimitiveIR) and c.type == "symbol":
                 symbol_child = c
         if isotope_val is not None and symbol_child is not None:
-            return AtomPrimitiveIR(type="isotope", value=(isotope_val, symbol_child.value))
+            return AtomPrimitiveIR(
+                type="isotope", value=(isotope_val, symbol_child.value)
+            )
         # Fallback
         if symbol_child is not None:
             return symbol_child
@@ -611,11 +632,11 @@ class SmartsTransformer(Transformer):
             for c in children
             if not (isinstance(c, Token) and c.type in {"LPAR", "RPAR"})
         ]
-        
+
         # Check if first item is a bond type (string)
         bond_type = None
         branch_ir = None
-        
+
         if filtered:
             if isinstance(filtered[0], str):
                 # First item is bond type
@@ -625,10 +646,10 @@ class SmartsTransformer(Transformer):
             elif isinstance(filtered[0], SmartsIR):
                 # No bond type, just branch IR
                 branch_ir = filtered[0]
-        
+
         if branch_ir is None:
             branch_ir = SmartsIR()
-            
+
         return ("branch", branch_ir, bond_type)
 
     def _string(self, children: list) -> SmartsIR:
@@ -700,12 +721,12 @@ class SmartsTransformer(Transformer):
                     if active_atom is not None:
                         # Connect branch to current active atom
                         head_atom = branch_ir.atoms[0]
-                        bond_type = pending_bond_type if pending_bond_type else (branch_bond_type or "implicit")
-                        ir.bonds.append(
-                            SmartsBondIR(
-                                active_atom, head_atom, bond_type
-                            )
+                        bond_type = (
+                            pending_bond_type
+                            if pending_bond_type
+                            else (branch_bond_type or "implicit")
                         )
+                        ir.bonds.append(SmartsBondIR(active_atom, head_atom, bond_type))
                         pending_bond_type = None
                     # Add all branch atoms and bonds
                     ir.atoms.extend(branch_ir.atoms)
@@ -720,8 +741,12 @@ class SmartsTransformer(Transformer):
                         active_atom = item.atoms[-1]
                 else:
                     if active_atom is not None and item.atoms:
-                        bond_type = pending_bond_type if pending_bond_type else "implicit"
-                        ir.bonds.append(SmartsBondIR(active_atom, item.atoms[0], bond_type))
+                        bond_type = (
+                            pending_bond_type if pending_bond_type else "implicit"
+                        )
+                        ir.bonds.append(
+                            SmartsBondIR(active_atom, item.atoms[0], bond_type)
+                        )
                         pending_bond_type = None
                     ir.atoms.extend(item.atoms)
                     ir.bonds.extend(item.bonds)

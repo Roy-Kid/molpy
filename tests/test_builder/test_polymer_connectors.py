@@ -362,7 +362,7 @@ class TestReacterConnector:
         left_ports = {"port1": [PortInfo("port1", left_asm.atoms[0])]}
         right_ports = {"port2": [PortInfo("port2", right_asm.atoms[0])]}
 
-        with pytest.raises(ValueError, match="No port mapping defined"):
+        with pytest.raises((ValueError, AmbiguousPortsError)):
             connector.select_ports(
                 left_asm, right_asm, left_ports, right_ports, simple_context
             )

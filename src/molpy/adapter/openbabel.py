@@ -17,6 +17,7 @@ from .base import Adapter
 
 try:
     import openbabel as ob
+
     _HAS_OPENBABEL = True
 except ImportError:
     _HAS_OPENBABEL = False
@@ -124,7 +125,9 @@ class OpenBabelAdapter(Adapter[Atomistic, "ob.OBMol"]):
 
         # Set up force field
         if not ff.Setup(mol):
-            raise RuntimeError(f"Failed to set up GAFF force field: {ff.GetDescription()}")
+            raise RuntimeError(
+                f"Failed to set up GAFF force field: {ff.GetDescription()}"
+            )
 
         # Extract assigned types
         types: dict[int, str] = {}
@@ -179,12 +182,16 @@ class OpenBabelAdapter(Adapter[Atomistic, "ob.OBMol"]):
                 else:
                     comparison["disagreement"] += 1
 
-            comparison["details"].append({
-                "index": idx,
-                "symbol": sym,
-                "molpy": mp_type or "???",
-                "openbabel": ob_type,
-                "match": mp_type == ob_type if (mp_type and ob_type != "???") else None,
-            })
+            comparison["details"].append(
+                {
+                    "index": idx,
+                    "symbol": sym,
+                    "molpy": mp_type or "???",
+                    "openbabel": ob_type,
+                    "match": (
+                        mp_type == ob_type if (mp_type and ob_type != "???") else None
+                    ),
+                }
+            )
 
         return comparison

@@ -86,6 +86,16 @@ class ProductInfo:
     anchor_L: Atom | None = None
     anchor_R: Atom | None = None
 
+    @property
+    def site_L(self) -> Atom | None:
+        """Alias for anchor_L (the left reaction site atom)."""
+        return self.anchor_L
+
+    @property
+    def site_R(self) -> Atom | None:
+        """Alias for anchor_R (the right reaction site atom)."""
+        return self.anchor_R
+
 
 @dataclass
 class TopologyChanges:
@@ -592,8 +602,20 @@ class Reacter:
                 if "type" in atom.data:
                     del atom.data["type"]
 
-            # Re-type all atoms (graph matching needs full structure)
-            typifier.atom_typifier.typify(assembly)
+            # Re-type all atoms (graph matching needs full structure).
+            # atom_typifier.typify() may return a NEW Atomistic copy with
+            # types assigned (immutable pattern), so we must propagate the
+            # type assignments back to the original assembly atoms.
+            typed_struct = typifier.atom_typifier.typify(assembly)
+            if typed_struct is not assembly:
+                # Propagate type assignments from the returned copy back
+                # to the original assembly atoms by positional correspondence.
+                orig_atoms = list(assembly.atoms)
+                typed_atoms = list(typed_struct.atoms)
+                for orig, typed in zip(orig_atoms, typed_atoms):
+                    t = typed.data.get("type")
+                    if t is not None:
+                        orig.data["type"] = t
 
         # Step 2: Update pair types (charge, sigma, epsilon) for modified atoms
         if hasattr(typifier, "pair_typifier") and typifier.pair_typifier:
@@ -601,6 +623,10 @@ class Reacter:
 
             for atom in modified_atoms:
                 if isinstance(atom, Atom):
+                    # Guard: skip atoms that still lack a 'type' attribute
+                    # (e.g. when atom typifier pattern matching failed).
+                    if atom.get("type") is None:
+                        continue
                     typifier.pair_typifier.typify(atom)
 
         # Step 3: Type new bonds

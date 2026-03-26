@@ -197,32 +197,30 @@
   border-radius: 2px;
 }
 
-/* ===== Features Grid with Glassmorphism ===== */
+/* ===== Features Grid — borderless cards ===== */
 .home-page .grid.cards {
   margin: 3rem 0;
   gap: 1.5rem;
 }
 
 .home-page .grid.cards>li {
-  background: var(--molpy-glass-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--molpy-glass-border);
-  border-radius: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px var(--molpy-shadow-light);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: background 0.25s ease;
+  box-shadow: none;
 }
 
 .home-page .grid.cards>li:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 40px var(--molpy-shadow-medium);
-  border-color: var(--md-primary-fg-color--light);
+  background: var(--molpy-glass-bg);
 }
 
 .home-page .grid.cards>li>hr {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   border: none;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--molpy-gradient-end), transparent);
+  height: 1px;
+  background: var(--molpy-glass-border);
 }
 
 /* Icon animation */
@@ -434,6 +432,141 @@ html {
     gap: 1.25rem;
   }
 }
+
+/* ===== Full-Width Feature Rows ===== */
+.home-page .feature-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 2rem 0;
+}
+
+.home-page .feature-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  text-decoration: none !important;
+  color: var(--md-typeset-color) !important;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.home-page .feature-row:hover {
+  background: var(--molpy-glass-bg);
+}
+
+.home-page .feature-icon {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  width: 2.5rem;
+  text-align: center;
+  color: var(--md-primary-fg-color);
+}
+
+.home-page .feature-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-page .feature-body strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 0.2rem;
+  -webkit-text-fill-color: initial !important;
+  background: none !important;
+}
+
+.home-page .feature-body {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.home-page .feature-arrow {
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+  color: var(--md-primary-fg-color);
+}
+
+.home-page .feature-row:hover .feature-arrow {
+  opacity: 0.6;
+  transform: translateX(0);
+}
+
+@media screen and (max-width: 44.984375em) {
+  .home-page .feature-row {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .home-page .feature-icon {
+    font-size: 1.25rem;
+    width: 2rem;
+  }
+}
+
+/* ===== Hero Code Block ===== */
+.home-page .hero-code {
+  max-width: 780px;
+  margin: 0 auto;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.home-page .hero-code p {
+  text-align: center;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  margin-bottom: 1.5rem;
+}
+
+.home-page .hero-code p:last-child {
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+
+.home-page .hero-code .highlight {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px var(--molpy-shadow-medium);
+  border: 1px solid var(--molpy-glass-border);
+}
+
+/* ===== Card Icon Colors ===== */
+.home-page .grid.cards .twemoji svg,
+.home-page .grid.cards .md-icon svg {
+  fill: var(--md-primary-fg-color);
+}
+
+.home-page .grid.cards .lg.middle {
+  font-size: 1.5rem;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
+
+/* ===== Card Link Arrows ===== */
+.home-page .grid.cards a[href] {
+  font-weight: 500;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.home-page .grid.cards li:hover a[href] {
+  opacity: 1;
+}
+
+/* ===== Staggered Card Animations ===== */
+.home-page .grid.cards > li:nth-child(1) { animation: fadeInUp 0.6s ease-out 0.1s both; }
+.home-page .grid.cards > li:nth-child(2) { animation: fadeInUp 0.6s ease-out 0.2s both; }
+.home-page .grid.cards > li:nth-child(3) { animation: fadeInUp 0.6s ease-out 0.3s both; }
+.home-page .grid.cards > li:nth-child(4) { animation: fadeInUp 0.6s ease-out 0.4s both; }
 
 /* ===== Accessibility ===== */
 @media (prefers-reduced-motion: reduce) {

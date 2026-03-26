@@ -630,10 +630,9 @@ class TestTemplateReacter:
         # React_ids must be in same order
         pre_rids = [a.get("react_id") for a in pre_atoms]
         post_rids = [a.get("react_id") for a in post_atoms]
-        assert pre_rids == post_rids, (
-            f"Pre and post atom ordering mismatch! "
-            f"Pre: {pre_rids}, Post: {post_rids}"
-        )
+        assert (
+            pre_rids == post_rids
+        ), f"Pre and post atom ordering mismatch! Pre: {pre_rids}, Post: {post_rids}"
 
     def test_template_unified_type_mapping(self):
         """Test that pre and post use same type-to-ID mapping after write.

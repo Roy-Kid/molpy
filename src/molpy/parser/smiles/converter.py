@@ -109,7 +109,7 @@ def bigsmilesir_to_monomer(ir: BigSmilesMoleculeIR) -> Atomistic:
         )
 
     raise ValueError(
-        "BigSmilesMoleculeIR contains no repeat units. " "Use {[<]...[>]} format."
+        "BigSmilesMoleculeIR contains no repeat units. Use {[<]...[>]} format."
     )
 
 
@@ -289,6 +289,10 @@ def create_monomer_from_repeat_unit(
         # SmilesAtomIR has 'element' but not 'symbol', so copy element to symbol
         if atom_data.get("element") and not atom_data.get("symbol"):
             atom_data["symbol"] = atom_data["element"]
+        # Promote chiral from extras to top-level for preservation
+        extras = atom_data.get("extras", {})
+        if "chiral" in extras:
+            atom_data["chiral"] = extras["chiral"]
         struct.def_atom(**atom_data)
 
     # Add bonds
@@ -312,7 +316,11 @@ def create_monomer_from_repeat_unit(
             if bond_key not in bonds_added:
                 bond_order = bond_ir.order
                 bond_kind = _convert_bond_order_to_kind(bond_order)
-                struct.def_bond(atoms[i], atoms[j], order=bond_order, kind=bond_kind)
+                # Preserve stereo information from bond IR
+                bond_kwargs = dict(order=bond_order, kind=bond_kind)
+                if hasattr(bond_ir, "stereo") and bond_ir.stereo is not None:
+                    bond_kwargs["stereo"] = bond_ir.stereo
+                struct.def_bond(atoms[i], atoms[j], **bond_kwargs)
                 bonds_added.add(bond_key)
 
     # Set ports based on descriptors using anchor_atom
@@ -414,7 +422,6 @@ def create_monomer_from_unit(
 
     # Add atoms
     for atom_ir in unit.atoms:
-
         struct.def_atom(**asdict(atom_ir))
 
     # Add bonds
@@ -522,6 +529,10 @@ def smilesir_to_atomistic(ir: SmilesGraphIR) -> Atomistic:
         # SmilesAtomIR has 'element' but not 'symbol', so copy element to symbol
         if atom_data.get("element") and not atom_data.get("symbol"):
             atom_data["symbol"] = atom_data["element"]
+        # Promote chiral from extras to top-level for preservation
+        extras = atom_data.get("extras", {})
+        if "chiral" in extras:
+            atom_data["chiral"] = extras["chiral"]
         struct.def_atom(**atom_data)
 
     # Add bonds using index-based mapping
@@ -547,8 +558,14 @@ def smilesir_to_atomistic(ir: SmilesGraphIR) -> Atomistic:
                 bond_order = bond_ir.order
                 # Convert bond order to kind (same pattern as create_monomer_from_unit)
                 kind_map = {1: "-", 2: "=", 3: "#", 1.5: ":"}
-                bond_kind = kind_map.get(float(bond_order) if bond_order != "ar" else 1.5, "-")
-                struct.def_bond(atoms[i], atoms[j], order=bond_order, kind=bond_kind)
+                bond_kind = kind_map.get(
+                    float(bond_order) if bond_order != "ar" else 1.5, "-"
+                )
+                # Preserve stereo information from bond IR
+                bond_kwargs = dict(order=bond_order, kind=bond_kind)
+                if bond_ir.stereo is not None:
+                    bond_kwargs["stereo"] = bond_ir.stereo
+                struct.def_bond(atoms[i], atoms[j], **bond_kwargs)
                 bonds_added.add(bond_key)
 
     return struct
@@ -619,7 +636,6 @@ def create_monomer_from_atom_class_ports(ir: SmilesGraphIR) -> Atomistic | None:
 
     # Add real atoms and store references immediately
     for atom_ir in real_atoms:
-
         atom = struct.def_atom(**asdict(atom_ir))
         atomir_to_atom[id(atom_ir)] = atom
 

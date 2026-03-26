@@ -75,7 +75,15 @@ from .selectors import (
     # Utilities
     find_port_atom,
     find_port_atom_by_node,
+    # High-level convenience selectors
+    Selector,
+    select_self,
+    select_hydrogens,
+    select_neighbor,
 )
+
+# Alias for backward compatibility
+find_port = find_port_atom
 from .topology_detector import TopologyDetector
 from .transformers import (
     break_bond,
@@ -127,4 +135,10 @@ __all__ = [
     "select_hydroxyl_h_only",
     "select_none",
     "select_one_hydrogen",
+    # High-level convenience selectors
+    "Selector",
+    "select_self",
+    "select_hydrogens",
+    "select_neighbor",
+    "find_port",
 ]

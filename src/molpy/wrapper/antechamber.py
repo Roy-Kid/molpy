@@ -34,11 +34,11 @@ class AntechamberWrapper(Wrapper):
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Execute antechamber with raw arguments.
-        
+
         Args:
             args: Command-line arguments (without 'antechamber').
             input_text: Text to send to stdin.
-            
+
         Returns:
             The completed process result.
         """
@@ -57,10 +57,10 @@ class AntechamberWrapper(Wrapper):
         formal_charges: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         """Perform atom type assignment and charge calculation.
-        
+
         This is the primary workflow for preparing ligands with antechamber:
         assigning GAFF atom types and computing partial charges.
-        
+
         Args:
             input_file: Input structure file.
             output_file: Output structure file (with assigned atom types and charges).
@@ -71,23 +71,30 @@ class AntechamberWrapper(Wrapper):
             atom_type: Atom type scheme (gaff, gaff2, amber, sybyl).
             net_charge: Net charge of the molecule.
             formal_charges: If True, use formal charges instead of computing them.
-            
+
         Returns:
             The completed process result.
         """
         args = [
-            "-i", str(input_file),
-            "-fi", input_format,
-            "-o", str(output_file),
-            "-fo", output_format,
-            "-c", charge_method,
-            "-at", atom_type,
-            "-nc", str(net_charge),
+            "-i",
+            str(input_file),
+            "-fi",
+            input_format,
+            "-o",
+            str(output_file),
+            "-fo",
+            output_format,
+            "-c",
+            charge_method,
+            "-at",
+            atom_type,
+            "-nc",
+            str(net_charge),
         ]
-        
+
         if formal_charges:
             args.extend(["-cf", "y"])
-        
+
         return self.run_raw(args=args)
 
 
@@ -151,4 +158,3 @@ def read_antechamber_output(path: Path) -> Frame:
         return read_mol2(path)
 
     raise ValueError(f"Unsupported antechamber output format: {path}")
-

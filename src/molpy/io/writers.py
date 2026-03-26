@@ -300,3 +300,17 @@ def write_lammps_system(workdir: PathLike, frame: Any, forcefield: Any) -> None:
         dihedral_types=dihedral_types,
         improper_types=improper_types,
     )
+
+
+def write_top(file: PathLike, frame: Any) -> None:
+    """
+    Write a Frame object to a GROMACS topology file.
+
+    Args:
+        file: Output file path
+        frame: Frame object to write
+    """
+    from .data.top import TopWriter
+
+    writer = TopWriter(Path(file))
+    writer.write(frame)

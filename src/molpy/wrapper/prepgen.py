@@ -27,11 +27,11 @@ class Parmchk2Wrapper(Wrapper):
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Execute parmchk2 with raw arguments.
-        
+
         Args:
             args: Command-line arguments (without 'parmchk2').
             input_text: Text to send to stdin.
-            
+
         Returns:
             The completed process result.
         """
@@ -46,38 +46,42 @@ class Parmchk2Wrapper(Wrapper):
         parameter_level: Literal[1, 2] = 2,
     ) -> subprocess.CompletedProcess[str]:
         """Check and generate missing force field parameters.
-        
+
         This is the primary workflow: read atom types and bonds from antechamber
         output, check against force field parameters, and generate missing ones.
-        
+
         Args:
             input_file: Input structure file (mol2 or ac format, typically from antechamber).
             output_file: Output AMBER parameter file (frcmod format).
             input_format: Input file format (mol2, ac, mol, pdb).
-            parameter_level: 
+            parameter_level:
                 1 = only missing parameters (conservative)
                 2 = all parameters (recommended, default)
-            
+
         Returns:
             The completed process result.
         """
         args = [
-            "-i", str(input_file),
-            "-f", input_format,
-            "-o", str(output_file),
-            "-p", str(parameter_level),
+            "-i",
+            str(input_file),
+            "-f",
+            input_format,
+            "-o",
+            str(output_file),
+            "-p",
+            str(parameter_level),
         ]
-        
+
         return self.run_raw(args=args)
 
 
 @dataclass
 class PrepgenWrapper(Wrapper):
     """Wrapper for the 'prepgen' CLI.
-    
+
     Prepgen generates AMBER residue templates (.prepi files) with connection
     points defined by control files specifying HEAD_NAME, TAIL_NAME, etc.
-    
+
     Example:
         >>> wrapper = PrepgenWrapper(name="prepgen", workdir=Path("./work"))
         >>> wrapper.generate_residue(
@@ -97,11 +101,11 @@ class PrepgenWrapper(Wrapper):
         input_text: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Execute prepgen with raw arguments.
-        
+
         Args:
             args: Command-line arguments (without 'prepgen').
             input_text: Text to send to stdin.
-            
+
         Returns:
             The completed process result.
         """
@@ -117,17 +121,17 @@ class PrepgenWrapper(Wrapper):
         output_format: Literal["prepi", "prepc"] = "prepi",
     ) -> subprocess.CompletedProcess[str]:
         """Generate a residue template with connection points.
-        
+
         Args:
             input_file: Input structure file (.ac format from antechamber).
             output_file: Output residue template file (.prepi).
             control_file: Control file specifying HEAD_NAME, TAIL_NAME, OMIT_NAME.
             residue_name: Name for the residue (max 4 chars recommended).
             output_format: Output format (prepi or prepc).
-            
+
         Returns:
             The completed process result.
-            
+
         Example control file content:
             HEAD_NAME C1
             TAIL_NAME O5
@@ -138,13 +142,18 @@ class PrepgenWrapper(Wrapper):
             CHARGE 0
         """
         args = [
-            "-i", str(input_file),
-            "-o", str(output_file),
-            "-f", output_format,
-            "-m", str(control_file),
-            "-rn", residue_name,
+            "-i",
+            str(input_file),
+            "-o",
+            str(output_file),
+            "-f",
+            output_format,
+            "-m",
+            str(control_file),
+            "-rn",
+            residue_name,
         ]
-        
+
         return self.run_raw(args=args)
 
 
@@ -160,7 +169,7 @@ def write_prepgen_control_file(
     charge: int = 0,
 ) -> None:
     """Write a prepgen control file for residue template generation.
-    
+
     Args:
         path: Output path for the control file.
         variant: Type of residue variant:
@@ -173,10 +182,10 @@ def write_prepgen_control_file(
         tail_type: Atom type for POST_TAIL_TYPE (e.g., "os").
         omit_names: Atom names to omit (leaving groups).
         charge: Net charge of the residue (default 0).
-        
+
     Raises:
         ValueError: If required atom names are missing for the variant.
-        
+
     Example:
         >>> write_prepgen_control_file(
         ...     Path("mol.chain"),
@@ -189,7 +198,7 @@ def write_prepgen_control_file(
         ... )
     """
     lines: list[str] = []
-    
+
     if variant == "chain":
         if head_name is None or tail_name is None:
             raise ValueError("chain variant requires both head_name and tail_name")
@@ -199,7 +208,7 @@ def write_prepgen_control_file(
             lines.append(f"PRE_HEAD_TYPE {head_type}")
         if tail_type:
             lines.append(f"POST_TAIL_TYPE {tail_type}")
-            
+
     elif variant == "head":
         # Head of chain: only TAIL connection point (connects to next monomer)
         if tail_name is None:
@@ -207,7 +216,7 @@ def write_prepgen_control_file(
         lines.append(f"TAIL_NAME {tail_name}")
         if tail_type:
             lines.append(f"POST_TAIL_TYPE {tail_type}")
-            
+
     elif variant == "tail":
         # Tail of chain: only HEAD connection point (connects to previous monomer)
         if head_name is None:
@@ -215,13 +224,12 @@ def write_prepgen_control_file(
         lines.append(f"HEAD_NAME {head_name}")
         if head_type:
             lines.append(f"PRE_HEAD_TYPE {head_type}")
-    
+
     # Add OMIT_NAME entries for leaving groups
     if omit_names:
         for name in omit_names:
             lines.append(f"OMIT_NAME {name}")
-    
-    lines.append(f"CHARGE {charge}")
-    
-    path.write_text("\n".join(lines) + "\n")
 
+    lines.append(f"CHARGE {charge}")
+
+    path.write_text("\n".join(lines) + "\n")

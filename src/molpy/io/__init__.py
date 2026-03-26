@@ -90,6 +90,9 @@ from .readers import (
     read_xyz,
     read_xyz_trajectory,
 )
+
+# Convenience alias: read_amber(prmtop, inpcrd=None, frame=None)
+read_amber = read_amber_prmtop
 from .trajectory.base import BaseTrajectoryReader, FrameLocation, TrajectoryWriter
 
 # 3. Trajectory Readers and Writers
@@ -106,6 +109,7 @@ from .writers import (
     write_lammps_system,
     write_lammps_trajectory,
     write_pdb,
+    write_top,
     write_xsf,
     write_xyz_trajectory,
 )
@@ -117,6 +121,7 @@ __all__ = [
     # Core types
     "PathLike",
     # Factory functions - Readers
+    "read_amber",
     "read_amber_ac",
     "read_amber_inpcrd",
     "read_amber_prmtop",
@@ -144,6 +149,7 @@ __all__ = [
     "write_lammps_system",
     "write_lammps_trajectory",
     "write_pdb",
+    "write_top",
     "write_xsf",
     "write_xyz_trajectory",
     # Utility functions

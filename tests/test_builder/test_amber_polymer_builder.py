@@ -24,7 +24,7 @@ class TestAmberPolymerBuilderConfig:
     def test_default_values(self):
         """Test default configuration values."""
         config = AmberPolymerBuilderConfig()
-        
+
         assert config.force_field == "gaff2"
         assert config.charge_method == "bcc"
         assert config.work_dir == Path("amber_work")
@@ -38,7 +38,7 @@ class TestAmberPolymerBuilderConfig:
             work_dir=tmp_path / "custom_work",
             keep_intermediates=False,
         )
-        
+
         assert config.force_field == "gaff"
         assert config.charge_method == "gas"
         assert config.work_dir == tmp_path / "custom_work"
@@ -59,7 +59,7 @@ class TestAmberBuildResult:
             monomer_count=10,
             cgsmiles="{[#EO]|10}",
         )
-        
+
         assert result.monomer_count == 10
         assert result.cgsmiles == "{[#EO]|10}"
         assert result.pdb_path == tmp_path / "polymer.pdb"
@@ -71,7 +71,7 @@ class TestAmberPolymerBuilderValidation:
     def test_empty_library(self):
         """Test that empty library raises error on build."""
         builder = AmberPolymerBuilder(library={})
-        
+
         with pytest.raises(ValueError, match="Labels .* not found in library"):
             builder.build("{[#EO]|5}")
 
@@ -86,9 +86,9 @@ class TestAmberPolymerBuilderValidation:
         mock_atom_tail.get.side_effect = lambda k: ">" if k == "port" else None
         mock_atom_tail.__getitem__ = lambda self, k: ">" if k == "port" else None
         mock_monomer.atoms = [mock_atom_head, mock_atom_tail]
-        
+
         builder = AmberPolymerBuilder(library={"PS": mock_monomer})
-        
+
         with pytest.raises(ValueError, match="Labels .* not found in library"):
             builder.build("{[#EO]|5}")  # EO not in library
 
@@ -98,9 +98,9 @@ class TestAmberPolymerBuilderValidation:
         mock_atom = MagicMock()
         mock_atom.get.return_value = None  # No port marker
         mock_monomer.atoms = [mock_atom]
-        
+
         builder = AmberPolymerBuilder(library={"EO": mock_monomer})
-        
+
         with pytest.raises(ValueError, match="must have port annotations"):
             builder.build("{[#EO]|5}")
 
@@ -111,19 +111,23 @@ class TestAmberPolymerBuilderSequence:
     def _create_mock_builder_with_prepared_monomers(self, labels: list[str]):
         """Create a builder with mock prepared monomers."""
         from molpy.builder.ambertools.amber_builder import _PreparedMonomer
-        
+
         mock_monomer = MagicMock()
         mock_head = MagicMock()
         mock_head.get.side_effect = lambda k: "<" if k == "port" else None
-        mock_head.__getitem__ = lambda self, k: "<" if k == "port" else "HA" if k == "name" else None
+        mock_head.__getitem__ = lambda self, k: (
+            "<" if k == "port" else "HA" if k == "name" else None
+        )
         mock_tail = MagicMock()
         mock_tail.get.side_effect = lambda k: ">" if k == "port" else None
-        mock_tail.__getitem__ = lambda self, k: ">" if k == "port" else "HT" if k == "name" else None
+        mock_tail.__getitem__ = lambda self, k: (
+            ">" if k == "port" else "HT" if k == "name" else None
+        )
         mock_monomer.atoms = [mock_head, mock_tail]
-        
+
         library = {label: mock_monomer for label in labels}
         builder = AmberPolymerBuilder(library=library)
-        
+
         # Mock prepared monomers
         for label in labels:
             builder._prepared_monomers[label] = _PreparedMonomer(
@@ -136,41 +140,41 @@ class TestAmberPolymerBuilderSequence:
                 chain_resname=label[:3].upper(),
                 tail_resname=f"T{label[:2].upper()}",
             )
-        
+
         return builder
 
     def test_single_monomer_sequence(self):
         """Test sequence for single monomer."""
         from molpy.parser.smiles import parse_cgsmiles
-        
+
         builder = self._create_mock_builder_with_prepared_monomers(["EO"])
         ir = parse_cgsmiles("{[#EO]}")
-        
+
         sequence = builder._build_sequence(ir.base_graph)
-        
+
         # Single monomer uses chain variant
         assert sequence == "EO"
 
     def test_repeat_monomer_sequence(self):
         """Test sequence for repeated monomer ({[#EO]|3})."""
         from molpy.parser.smiles import parse_cgsmiles
-        
+
         builder = self._create_mock_builder_with_prepared_monomers(["EO"])
         ir = parse_cgsmiles("{[#EO]|3}")
-        
+
         sequence = builder._build_sequence(ir.base_graph)
-        
+
         # First=HEAD, middle=CHAIN, last=TAIL
         assert sequence == "HEO EO TEO"
 
     def test_five_monomer_sequence(self):
         """Test sequence for 5 repeated monomers."""
         from molpy.parser.smiles import parse_cgsmiles
-        
+
         builder = self._create_mock_builder_with_prepared_monomers(["EO"])
         ir = parse_cgsmiles("{[#EO]|5}")
-        
+
         sequence = builder._build_sequence(ir.base_graph)
-        
+
         # First=HEAD, middle 3=CHAIN, last=TAIL
         assert sequence == "HEO EO EO EO TEO"

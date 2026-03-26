@@ -28,21 +28,19 @@ class TLeapWrapper(Wrapper):
         script_name: str = "tleap.in",
     ) -> subprocess.CompletedProcess[str]:
         """Execute tleap from a script text.
-        
+
         Args:
             script_text: The tleap script content.
             script_name: Name of the script file to create (in workdir).
-            
+
         Returns:
             The completed process result.
-            
+
         Raises:
             ValueError: If no workdir is set.
         """
         if self.workdir is None:
-            raise ValueError(
-                "TLeapWrapper requires a working directory. Set workdir."
-            )
+            raise ValueError("TLeapWrapper requires a working directory. Set workdir.")
 
         self.workdir.mkdir(parents=True, exist_ok=True)
         script_path = self.workdir / script_name
@@ -56,13 +54,12 @@ def read_tleap_outputs(
     prmtop_path: Path, inpcrd_path: Path
 ) -> tuple[Frame, ForceField]:
     """Read tleap output files (prmtop and inpcrd) into Frame and ForceField.
-    
+
     Args:
         prmtop_path: Path to the AMBER topology file (.prmtop).
         inpcrd_path: Path to the AMBER coordinate file (.inpcrd).
-        
+
     Returns:
         Tuple of (Frame, ForceField) objects.
     """
     return read_amber_prmtop(prmtop_path, inpcrd_path)
-

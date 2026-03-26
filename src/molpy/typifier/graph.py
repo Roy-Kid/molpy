@@ -311,13 +311,18 @@ class SMARTSGraph(Graph):
             pat_bt = pattern_edge["bond_type"]
             host_order = host_edge.attributes().get("order", 1)
             host_aromatic = host_edge.attributes().get("is_aromatic", False)
+            host_in_ring = host_edge.attributes().get("is_in_ring", False)
 
             if pat_bt == "~":
                 # Any bond
                 return True
             elif pat_bt == "implicit":
                 # Implicit bond: single or aromatic
-                return (host_order == 1 and not host_aromatic) or host_aromatic or host_order == ":"
+                return (
+                    (host_order == 1 and not host_aromatic)
+                    or host_aromatic
+                    or host_order == ":"
+                )
             elif pat_bt == "-":
                 # Explicit single bond (not aromatic)
                 return host_order == 1 and not host_aromatic
@@ -327,6 +332,27 @@ class SMARTSGraph(Graph):
                 return host_order == 3
             elif pat_bt == ":":
                 return host_aromatic or host_order == ":"
+            elif pat_bt == "@":
+                # Ring bond: must be in a ring
+                return host_in_ring
+            elif pat_bt == "!:":
+                # Negated aromatic bond: not aromatic
+                return not host_aromatic and host_order != ":"
+            elif isinstance(pat_bt, str) and pat_bt.startswith("!"):
+                # Generic negated bond type
+                negated = pat_bt[1:]
+                if negated == ":":
+                    return not host_aromatic and host_order != ":"
+                elif negated == "-":
+                    return not (host_order == 1 and not host_aromatic)
+                elif negated == "=":
+                    return host_order != 2
+                elif negated == "#":
+                    return host_order != 3
+                elif negated == "@":
+                    return not host_in_ring
+                else:
+                    return True
             else:
                 # Unknown bond type: match anything
                 return True
@@ -394,8 +420,7 @@ class SMARTSGraph(Graph):
                     # Must match both element and aromaticity
                     is_aromatic = atom.attributes().get("is_aromatic", False)
                     return (
-                        atomic_num == Element(symbol_val.upper()).number
-                        and is_aromatic
+                        atomic_num == Element(symbol_val.upper()).number and is_aromatic
                     )
                 return atomic_num == Element(symbol_val).number
         elif atom_primitive.type == "wildcard":

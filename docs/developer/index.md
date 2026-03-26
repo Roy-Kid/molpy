@@ -1,71 +1,38 @@
 # Developer Guide
 
-Welcome to the MolPy Developer Guide! This section provides comprehensive information for contributors and developers who want to extend, modify, or contribute to MolPy.
+This guide is for contributors and library developers. It covers conventions, extension patterns, and internal architecture.
 
-## Quick Start
+## Part 1: Conventions
 
-New to contributing? Start here:
+How the project works day-to-day.
 
-1. **[Contributing Guide](contributing.md)** - Learn how to contribute to MolPy
-2. **[Development Setup](development-setup.md)** - Set up your development environment
-3. **[Coding Style](coding-style.md)** - Follow MolPy's coding standards
-4. **[Testing](testing.md)** - Write and run tests
+- [Development Setup](development-setup.md) — clone, install, run tests
+- [Contributing](contributing.md) — workflow, PR checklist
+- [Coding Style](coding-style.md) — naming, formatting, immutability rules
+- [Testing](testing.md) — pytest conventions, markers, coverage
+- [Release Process](release-process.md) — versioning, tagging, CI
 
-## Architecture & Design
+## Part 2: Extending the Tool Layer
 
-Understand MolPy's internal architecture and design patterns:
+How to add new capabilities using MolPy's established extension points. These patterns have stable interfaces and clear contracts — you implement a subclass or register a handler.
 
-- **[Architecture Overview](architecture.md)** - Core design principles and package structure
-- **[Wrapper & Adapter Patterns](wrapper_adapter_layers.ipynb)** - Design patterns with examples
+- [Adding a Tool or Compute Operation](extending-tools.md) — `Tool`, `Compute`, custom recipes
+- [Adding an I/O Format](extending-io.md) — readers, writers, force field formatters
+- [Adding a Wrapper or Adapter](extending-integration.md) — external CLI tools, in-memory bridges
 
-## Development Workflow
+## Part 3: Extending Core Structures
 
-### Setting Up
+How to extend MolPy's foundational data model. These changes are deeper and require understanding the type bucket system, the force field hierarchy, and the potential dispatch chain.
 
-Get your development environment ready:
+- [Extending the Data Model](extending-core.md) — new Entity/Link types, custom Struct subclasses
+- [Extending the Force Field](extending-forcefield.md) — custom Style, Type, Potential, and formatter registration
 
-- **[Development Setup](development-setup.md)** - Detailed setup instructions for all platforms
-- **[Tools](tools.md)** - Development tools and their configurations
+## Integrations
 
-### Writing Code
+- [MCP for LLM Agents](../user-guide/mcp.md) — exposing MolPy's source to LLM agents via Model Context Protocol
 
-Follow these guidelines when writing code:
 
-- **[Coding Style](coding-style.md)** - Style guide and best practices
-- **[Testing](testing.md)** - Testing guidelines and examples
-- **[Architecture](architecture.md)** - Understanding the codebase structure
+## Support
 
-### Contributing
-
-Ready to submit your changes?
-
-- **[Contributing Guide](contributing.md)** - Contribution workflow and guidelines
-- **[Release Process](release-process.md)** - How releases are made
-
-## Core Principles
-
-MolPy is built on these principles:
-
-- **Predictable** - Clear data model with minimal surprises
-- **Well-tested** - Every feature backed by comprehensive tests
-- **Documented** - User-facing features have docs and examples
-- **Type-safe** - Full type hints throughout the codebase
-- **Composable** - Small, focused components that work together
-
-## Getting Help
-
-Need assistance?
-
-- **[GitHub Issues](https://github.com/MolCrafts/molpy/issues)** - Report bugs or request features
-- **[GitHub Discussions](https://github.com/MolCrafts/molpy/discussions)** - Ask questions and discuss ideas
-- **[Documentation](../index.md)** - Browse the full documentation
-
-## Recognition
-
-We value all contributions! Contributors are recognized in:
-
-- Project README
-- Release notes
-- Documentation credits
-
-Thank you for contributing to MolPy! 🎉
+- Issues: <https://github.com/MolCrafts/molpy/issues>
+- Discussions: <https://github.com/MolCrafts/molpy/discussions>

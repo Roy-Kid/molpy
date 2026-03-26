@@ -211,9 +211,9 @@ class CovalentSeparator:
         reverse_key = (right_symbol, left_symbol)
 
         if bond_key in self.bond_lengths:
-            bond_length = self.bond_lengths[bond_key] / 2
+            bond_length = self.bond_lengths[bond_key]
         elif reverse_key in self.bond_lengths:
-            bond_length = self.bond_lengths[reverse_key] / 2
+            bond_length = self.bond_lengths[reverse_key]
         else:
             # Default: C-C bond length
             bond_length = 1.54

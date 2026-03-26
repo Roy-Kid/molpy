@@ -460,13 +460,12 @@ class ReacterConnector(Connector):
         left_type = ctx.get("left_label", "")
         right_type = ctx.get("right_label", "")
 
-        # Look up explicit mapping
+        # Look up explicit mapping, or fall back to auto-detection
         key = (left_type, right_type)
         if key not in self.port_map:
-            raise ValueError(
-                f"No port mapping defined for ({left_type}, {right_type}). "
-                f"Available mappings: {list(self.port_map.keys())}"
-            )
+            # Auto-detect: try AutoConnector heuristics
+            auto = AutoConnector()
+            return auto.select_ports(left, right, left_ports, right_ports, ctx)
         port_L, port_R = self.port_map[key]
 
         # Validate ports exist

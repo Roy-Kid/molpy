@@ -68,7 +68,7 @@ def frame_to_h5_group(
     """
     if h5py is None:
         raise ImportError(
-            "h5py is required for HDF5 support. " "Install it with: pip install h5py"
+            "h5py is required for HDF5 support. Install it with: pip install h5py"
         )
 
     if not frame._blocks:
@@ -151,7 +151,7 @@ def h5_group_to_frame(h5_group: "h5py.Group", frame: Frame | None = None) -> Fra
     """
     if h5py is None:
         raise ImportError(
-            "h5py is required for HDF5 support. " "Install it with: pip install h5py"
+            "h5py is required for HDF5 support. Install it with: pip install h5py"
         )
 
     frame = frame or Frame()
@@ -402,8 +402,7 @@ class HDF5Reader:
         """
         if h5py is None:
             raise ImportError(
-                "h5py is required for HDF5 support. "
-                "Install it with: pip install h5py"
+                "h5py is required for HDF5 support. Install it with: pip install h5py"
             )
         self._path = Path(path)
         self._open_kwargs = open_kwargs
@@ -464,8 +463,7 @@ class HDF5Writer:
         """
         if h5py is None:
             raise ImportError(
-                "h5py is required for HDF5 support. "
-                "Install it with: pip install h5py"
+                "h5py is required for HDF5 support. Install it with: pip install h5py"
             )
         self._path = Path(path)
         self._open_kwargs = open_kwargs
