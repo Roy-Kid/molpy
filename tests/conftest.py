@@ -18,13 +18,17 @@ def find_test_data() -> Path:
         subprocess.run(
             ["git", "pull", "--ff-only"],
             cwd=_DEFAULT_DIR,
+            check=True,
         )
     else:
         _DEFAULT_DIR.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             ["git", "clone", "--depth", "1", _REPO_URL, str(_DEFAULT_DIR)],
             cwd=_DEFAULT_DIR.parent,
+            check=True,
         )
+    if not _DEFAULT_DIR.exists():
+        pytest.skip("Failed to clone tests-data repository")
     return _DEFAULT_DIR
 
 
