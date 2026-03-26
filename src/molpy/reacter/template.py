@@ -434,7 +434,7 @@ def write_template_files(
     Args:
         base_path: Base path for files (e.g., "rxn1" -> rxn1_pre.mol, rxn1_post.mol, rxn1.map)
         template: TemplateResult from TemplateReacter
-        typifier: Optional typifier to ensure types are set
+        typifier (TypifierBase | None): Optional typifier to ensure types are set.
     """
     pre_path = Path(f"{base_path}_pre.mol")
     post_path = Path(f"{base_path}_post.mol")

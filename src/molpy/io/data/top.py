@@ -35,7 +35,7 @@ class TopReader(DataReader):
 
         Args:
             file: Path to GROMACS .top file
-            **open_kwargs: Additional arguments passed to file open
+            **open_kwargs (Any): Additional arguments passed to file open.
         """
         super().__init__(file, **open_kwargs)
         self._file = Path(file)

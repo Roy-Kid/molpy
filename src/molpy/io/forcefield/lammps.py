@@ -598,7 +598,7 @@ class TypeFilter:
         """Check if a type should be included.
 
         Args:
-            type_obj: Type object to check
+            type_obj (Type): Type object to check.
 
         Returns:
             True if type should be included, False otherwise

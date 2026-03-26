@@ -48,7 +48,7 @@ class DihedralPeriodicStyle(DihedralStyle):
             ktom: Third atom type
             ltom: Fourth atom type
             name: Optional name (defaults to itom-jtom-ktom-ltom)
-            **kwargs: Periodic parameters (periodicity1, k1, phase1, ...)
+            **kwargs (Any): Periodic parameters (periodicity1, k1, phase1, ...).
 
         Returns:
             DihedralPeriodicType instance

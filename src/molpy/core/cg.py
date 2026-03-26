@@ -280,8 +280,8 @@ class CoarseGrain(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         """Create n copies and merge them into a new system.
 
         Args:
-            n: Number of copies to create
-            transform: Optional callable(copy, index) -> None to transform each copy
+            n: Number of copies to create.
+            transform (Callable | None): Optional callable(copy, index) -> None to transform each copy.
 
         Example:
             # Create 10 copies in a line

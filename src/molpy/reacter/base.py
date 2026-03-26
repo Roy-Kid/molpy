@@ -23,37 +23,25 @@ Port atoms are SMILES-marked connection sites (e.g. $, *, <, >) stored on
 atoms via the "port" / "ports" attributes. An *anchor* is the actual atom
 that participates in bond formation.
 
-Args:
-    assembly: The Atomistic structure to select from
-    port_atom: The port atom entity (SMILES-marked atom)
-
-Returns:
-    Atom: The anchor atom where the new bond should be formed
+The callable receives an ``Atomistic`` structure and a port ``Atom``,
+and returns the anchor ``Atom`` where the new bond should be formed.
 """
 
 LeavingSelector = Callable[[Atomistic, Atom], list[Atom]]
 """
 Select leaving group atoms given an **anchor atom**.
 
-Args:
-    assembly: The Atomistic structure containing the atoms
-    anchor_atom: The anchor atom entity (actual reaction site)
-
-Returns:
-    List of atom entities to be removed
+The callable receives an ``Atomistic`` structure and an anchor ``Atom``,
+and returns a ``list[Atom]`` of entities to be removed.
 """
 
 BondFormer = Callable[[Atomistic, Atom, Atom], Bond | None]
 """
 Create or modify bonds between two **anchor atoms** in an assembly.
 
-Args:
-    assembly: The atomistic assembly to modify
-    i: First anchor atom
-    j: Second anchor atom
-
-Side effects:
-    Adds or updates bonds in assembly.links
+The callable receives an ``Atomistic`` assembly and two anchor ``Atom``
+instances (*i* and *j*), forms or updates bonds, and returns the new
+``Bond`` or ``None``. As a side effect it modifies ``assembly.links``.
 """
 
 

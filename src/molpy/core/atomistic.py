@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import Any, Iterable, TYPE_CHECKING
 
@@ -185,7 +187,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         called automatically with the same keyword arguments.
 
         Args:
-            **props: Arbitrary properties stored on the structure (e.g.,
+            **props (Any): Arbitrary properties stored on the structure (e.g.,
                 ``name="water"``, ``charge=0.0``).
         """
         super().__init__(**props)
@@ -251,12 +253,12 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         return [str(a.get("symbol", "")) for a in atoms]
 
     @property
-    def xyz(self):
+    def xyz(self) -> np.ndarray:
         """
         Get atomic positions as numpy array.
 
         Returns:
-            Nx3 array of atomic coordinates, or list of lists if numpy not available
+            np.ndarray: Nx3 array of atomic coordinates, or list of lists if numpy not available.
         """
         atoms = list(self.atoms)
         positions = []
@@ -874,7 +876,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
         Args:
             n: Number of copies to create.
-            transform: Optional callable ``(copy: Atomistic, index: int) -> None``
+            transform (Callable | None): Optional callable ``(copy: Atomistic, index: int) -> None``
                 applied to each copy before merging. The callable receives
                 the deep-copied replica and its zero-based index.
 
@@ -906,7 +908,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         gen_angle: bool = False,
         gen_dihe: bool = False,
         clear_existing: bool = False,
-    ):
+    ) -> "Topology":
         """Generate topology (angles and dihedrals) from bonds.
 
         Args:
@@ -918,7 +920,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
                           If False, only add angles/dihedrals that don't already exist.
 
         Returns:
-            Topology object
+            Topology: Topology object with generated angles and dihedrals.
         """
         # Use the generic ConnectivityMixin.get_topo method
         topo = super().get_topo(entity_type=entity_type, link_type=link_type)
@@ -998,10 +1000,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         as a LAMMPS data file.
 
         Args:
-            atom_fields: List of atom fields to extract. If None, extracts all fields.
-            bond_fields: List of bond fields to extract. If None, extracts all fields.
-            angle_fields: List of angle fields to extract. If None, extracts all fields.
-            dihedral_fields: List of dihedral fields to extract. If None, extracts all fields.
+            atom_fields (list[str] | None): List of atom fields to extract. If None, extracts all fields.
 
         Returns:
             Frame with atoms, bonds, angles, and dihedrals

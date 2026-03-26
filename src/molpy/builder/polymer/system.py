@@ -653,8 +653,8 @@ class FlorySchulzPolydisperse(DPDistribution):
         Initialize Flory-Schulz DP distribution.
 
         Args:
-            p: Success probability (0 < p < 1), related to extent of reaction
-            random_seed: Random seed for reproducibility (optional)
+            a (float): Success probability (0 < a < 1), related to extent of reaction.
+            random_seed (int | None): Random seed for reproducibility (optional).
         """
         if not (0 < a < 1):
             raise ValueError(f"a must be in (0, 1), got {a}")

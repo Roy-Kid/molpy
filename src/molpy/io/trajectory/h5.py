@@ -57,8 +57,8 @@ class HDF5TrajectoryReader:
         """Initialize HDF5 trajectory reader.
 
         Args:
-            path: Path to HDF5 trajectory file
-            **open_kwargs: Additional arguments passed to h5py.File
+            path: Path to HDF5 trajectory file.
+            **open_kwargs (Any): Additional arguments passed to h5py.File.
         """
         if h5py is None:
             raise ImportError(
@@ -241,7 +241,7 @@ class HDF5TrajectoryWriter(TrajectoryWriter):
             compression: Compression algorithm (None, 'gzip', 'lzf', 'szip').
                 Defaults to 'gzip'.
             compression_opts: Compression level (for gzip: 0-9). Defaults to 4.
-            **open_kwargs: Additional arguments passed to h5py.File
+            **open_kwargs (Any): Additional arguments passed to h5py.File.
         """
         if h5py is None:
             raise ImportError(

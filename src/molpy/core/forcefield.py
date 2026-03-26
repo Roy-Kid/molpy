@@ -559,11 +559,11 @@ class ForceField:
                 self.styles.add(other_style)
         return self
 
-    def to_potentials(self):
+    def to_potentials(self) -> "Potentials":
         """Create Potential instances from all styles in ForceField.
 
         Returns:
-            Potentials collection containing all created potential instances
+            Potentials: Collection containing all created potential instances.
 
         Note:
             Only Styles that support to_potential() method will be converted (e.g. BondStyle, AngleStyle, PairStyle)
@@ -900,15 +900,14 @@ class AtomStyle(Style):
     """
 
     def def_type(self, name: str, **kwargs: Any) -> AtomType:
-        """Define atom type
+        """Define atom type.
 
         Args:
-            type_: Specific type identifier (e.g. opls_135)
-            class_: Class identifier (e.g. CT)
-            **kwargs: Other parameters (element, mass, etc.)
+            name (str): Name for the atom type.
+            **kwargs (Any): Other parameters (element, mass, etc.).
 
         Returns:
-            Created AtomType instance
+            AtomType: Created AtomType instance.
         """
         at = AtomType(name=name, **kwargs)
         self.types.add(at)
@@ -940,12 +939,12 @@ class BondStyle(Style):
         self.types.add(bt)
         return bt
 
-    def to_potential(self):
+    def to_potential(self) -> "Potential":
         """Create corresponding Potential instance from BondStyle.
 
         Returns:
-            Potential instance that accepts string type labels (from Frame).
-            The potential internally uses dictionaries to map type names to parameters.
+            Potential: Potential instance that accepts string type labels (from Frame).
+                The potential internally uses dictionaries to map type names to parameters.
 
         Raises:
             ValueError: If corresponding Potential class not found or missing required parameters
@@ -1021,12 +1020,12 @@ class AngleStyle(Style):
         self.types.add(at)
         return at
 
-    def to_potential(self):
+    def to_potential(self) -> "Potential":
         """Create corresponding Potential instance from AngleStyle.
 
         Returns:
-            Potential instance that accepts string type labels (from Frame).
-            The potential internally uses TypeIndexedArray to map type names to parameters.
+            Potential: Potential instance that accepts string type labels (from Frame).
+                The potential internally uses TypeIndexedArray to map type names to parameters.
 
         Raises:
             ValueError: If corresponding Potential class not found or missing required parameters
@@ -1172,11 +1171,11 @@ class PairStyle(Style):
         self.types.add(pt)
         return pt
 
-    def to_potential(self):
+    def to_potential(self) -> "Potential":
         """Create corresponding Potential instance from PairStyle.
 
         Returns:
-            Potential instance containing all PairType parameters
+            Potential: Potential instance containing all PairType parameters.
 
         Raises:
             ValueError: If corresponding Potential class not found or missing required parameters

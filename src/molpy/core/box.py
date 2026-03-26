@@ -787,7 +787,7 @@ class Box(PeriodicBoundary):
             raise ValueError("Invalid box matrix")
 
     @classmethod
-    def from_lengths_angles(cls, lengths: ArrayLike, angles: ArrayLike):
+    def from_lengths_angles(cls, lengths: ArrayLike, angles: ArrayLike) -> "Box":
         """
         Get box matrix from lengths and angles
 
@@ -796,7 +796,7 @@ class Box(PeriodicBoundary):
             angles (np.ndarray): angles between box edges in degree
 
         Returns:
-            np.ndarray: box matrix
+            Box: Box instance constructed from lengths and angles.
         """
         return cls(cls.calc_matrix_from_lengths_angles(lengths, angles))
 

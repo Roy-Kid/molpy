@@ -430,7 +430,7 @@ def select_hydrogens(n: int | None = None) -> Callable[[Atomistic, Atom], list[A
 
     Args:
         n: Number of hydrogens to select.
-           ``None`` means all hydrogens bonded to the site.
+            ``None`` means all hydrogens bonded to the site.
 
     Returns:
         A leaving selector ``(struct, site) -> list[Atom]``
