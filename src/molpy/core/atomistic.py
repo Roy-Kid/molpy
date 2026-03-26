@@ -30,7 +30,27 @@ class Atom(Entity):
 
 
 class Bond(Link):
+    """Covalent bond connecting two atoms.
+
+    A Bond holds ordered references to exactly two Atom endpoints and optional
+    key-value attributes (e.g., bond order, force-field type).
+
+    Related symbols:
+        Atom, Angle, Dihedral, Atomistic.def_bond
+    """
+
     def __init__(self, a: Atom, b: Atom, /, **attrs: Any):
+        """Create a bond between two atoms.
+
+        Args:
+            a: First atom endpoint.
+            b: Second atom endpoint.
+            **attrs: Arbitrary bond attributes (e.g., ``type="C-C"``,
+                ``order=2``).
+
+        Raises:
+            AssertionError: If either argument is not an Atom instance.
+        """
         assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
         assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
         super().__init__([a, b], **attrs)
@@ -40,15 +60,37 @@ class Bond(Link):
 
     @property
     def itom(self) -> Atom:
+        """First atom endpoint of the bond."""
         return self.endpoints[0]
 
     @property
     def jtom(self) -> Atom:
+        """Second atom endpoint of the bond."""
         return self.endpoints[1]
 
 
 class Angle(Link):
+    """Valence angle formed by three atoms (i--j--k).
+
+    The central atom ``jtom`` is the vertex of the angle. Angle values are
+    measured in radians by convention throughout MolPy.
+
+    Related symbols:
+        Atom, Bond, Dihedral, Atomistic.def_angle
+    """
+
     def __init__(self, a: Atom, b: Atom, c: Atom, /, **attrs: Any):
+        """Create an angle between three atoms.
+
+        Args:
+            a: First atom (one arm of the angle).
+            b: Central/vertex atom.
+            c: Third atom (other arm of the angle).
+            **attrs: Arbitrary angle attributes (e.g., ``type="C-C-C"``).
+
+        Raises:
+            AssertionError: If any argument is not an Atom instance.
+        """
         assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
         assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
         assert isinstance(c, Atom), f"atom c must be an Atom instance, got {type(c)}"
@@ -59,14 +101,17 @@ class Angle(Link):
 
     @property
     def itom(self) -> Atom:
+        """First atom endpoint of the angle."""
         return self.endpoints[0]
 
     @property
     def jtom(self) -> Atom:
+        """Central (vertex) atom of the angle."""
         return self.endpoints[1]
 
     @property
     def ktom(self) -> Atom:
+        """Third atom endpoint of the angle."""
         return self.endpoints[2]
 
 
@@ -74,6 +119,18 @@ class Dihedral(Link):
     """Dihedral (torsion) angle between four atoms"""
 
     def __init__(self, a: Atom, b: Atom, c: Atom, d: Atom, /, **attrs: Any):
+        """Create a dihedral angle between four atoms.
+
+        Args:
+            a: First atom.
+            b: Second atom (part of the central bond).
+            c: Third atom (part of the central bond).
+            d: Fourth atom.
+            **attrs: Arbitrary dihedral attributes (e.g., ``type="C-C-C-C"``).
+
+        Raises:
+            AssertionError: If any argument is not an Atom instance.
+        """
         assert isinstance(a, Atom), f"atom a must be an Atom instance, got {type(a)}"
         assert isinstance(b, Atom), f"atom b must be an Atom instance, got {type(b)}"
         assert isinstance(c, Atom), f"atom c must be an Atom instance, got {type(c)}"
@@ -85,23 +142,52 @@ class Dihedral(Link):
 
     @property
     def itom(self) -> Atom:
+        """First atom endpoint of the dihedral."""
         return self.endpoints[0]
 
     @property
     def jtom(self) -> Atom:
+        """Second atom (part of the central bond)."""
         return self.endpoints[1]
 
     @property
     def ktom(self) -> Atom:
+        """Third atom (part of the central bond)."""
         return self.endpoints[2]
 
     @property
     def ltom(self) -> Atom:
+        """Fourth atom endpoint of the dihedral."""
         return self.endpoints[3]
 
 
 class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
+    """All-atom molecular structure with full topological information.
+
+    Atomistic is the primary container for molecular systems in MolPy. It
+    manages collections of atoms, bonds, angles, and dihedrals through
+    typed buckets, and provides factory methods for creating and adding
+    topology elements.
+
+    Supports spatial operations (move, rotate, scale, align), system
+    composition via ``+`` / ``+=``, and conversion to tabular Frame format
+    for I/O.
+
+    Related symbols:
+        Atom, Bond, Angle, Dihedral, Struct, Frame
+    """
+
     def __init__(self, **props) -> None:
+        """Initialize an empty atomistic structure.
+
+        Registers buckets for Atom, Bond, Angle, and Dihedral types.
+        If the concrete subclass defines a ``__post_init__`` method, it is
+        called automatically with the same keyword arguments.
+
+        Args:
+            **props: Arbitrary properties stored on the structure (e.g.,
+                ``name="water"``, ``charge=0.0``).
+        """
         super().__init__(**props)
         # Call __post_init__ if it exists (for template pattern)
         if hasattr(self, "__post_init__"):
@@ -119,22 +205,48 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
 
     @property
     def atoms(self) -> Entities[Atom]:
+        """All atoms in this structure.
+
+        Returns:
+            Entities[Atom]: Column-accessible list of Atom objects.
+        """
         return self.entities[Atom]
 
     @property
     def bonds(self) -> Entities[Bond]:  # type: ignore[type-var]
+        """All bonds in this structure.
+
+        Returns:
+            Entities[Bond]: Column-accessible list of Bond objects.
+        """
         return self.links[Bond]  # type: ignore[return-value]
 
     @property
     def angles(self) -> Entities[Angle]:  # type: ignore[type-var]
+        """All angles in this structure.
+
+        Returns:
+            Entities[Angle]: Column-accessible list of Angle objects.
+        """
         return self.links[Angle]  # type: ignore[return-value]
 
     @property
     def dihedrals(self) -> Entities[Dihedral]:  # type: ignore[type-var]
+        """All dihedrals in this structure.
+
+        Returns:
+            Entities[Dihedral]: Column-accessible list of Dihedral objects.
+        """
         return self.links[Dihedral]  # type: ignore[return-value]
 
     @property
     def symbols(self) -> list[str]:
+        """Element symbols for every atom in insertion order.
+
+        Returns:
+            list[str]: List of element symbol strings (e.g., ``["C", "H", "H"]``).
+                Atoms without a ``"symbol"`` key produce an empty string.
+        """
         atoms = list(self.atoms)
         return [str(a.get("symbol", "")) for a in atoms]
 
@@ -209,7 +321,24 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     def def_atom(self, **attrs: Any) -> Atom:
         """Create a new Atom and add it to the structure.
 
-        If 'xyz' is provided, it will be converted to separate x, y, z fields.
+        If an ``xyz`` key is provided, it is expanded into separate ``x``,
+        ``y``, ``z`` float fields on the created atom.
+
+        Args:
+            **attrs: Atom attributes. Common keys include ``symbol`` (str),
+                ``type`` (str), ``charge`` (float, elementary charge units),
+                ``mass`` (float, g/mol), and ``xyz`` (sequence of 3 floats
+                in angstroms).
+
+        Returns:
+            Atom: The newly created and registered atom.
+
+        Preferred for:
+            Building structures atom-by-atom. Use ``add_atom`` instead when
+            the Atom object already exists.
+
+        Related symbols:
+            Atom, def_atoms, add_atom
         """
         # Convert xyz to x, y, z if provided
         if "xyz" in attrs:
@@ -223,13 +352,38 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         return atom
 
     def def_bond(self, a: Atom, b: Atom, /, **attrs: Any) -> Bond:
-        """Create a new Bond between two atoms and add it to the structure."""
+        """Create a new Bond between two atoms and add it to the structure.
+
+        Args:
+            a: First atom endpoint.
+            b: Second atom endpoint.
+            **attrs: Bond attributes (e.g., ``type="C-C"``, ``order=1``).
+
+        Returns:
+            Bond: The newly created and registered bond.
+
+        Related symbols:
+            Bond, def_bonds, add_bond
+        """
         bond = Bond(a, b, **attrs)
         self.links.add(bond)
         return bond
 
     def def_angle(self, a: Atom, b: Atom, c: Atom, /, **attrs: Any) -> Angle:
-        """Create a new Angle between three atoms and add it to the structure."""
+        """Create a new Angle between three atoms and add it to the structure.
+
+        Args:
+            a: First atom (one arm of the angle).
+            b: Central/vertex atom.
+            c: Third atom (other arm of the angle).
+            **attrs: Angle attributes (e.g., ``type="C-C-C"``).
+
+        Returns:
+            Angle: The newly created and registered angle.
+
+        Related symbols:
+            Angle, def_angles, add_angle
+        """
         angle = Angle(a, b, c, **attrs)
         self.links.add(angle)
         return angle
@@ -237,7 +391,21 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     def def_dihedral(
         self, a: Atom, b: Atom, c: Atom, d: Atom, /, **attrs: Any
     ) -> Dihedral:
-        """Create a new Dihedral between four atoms and add it to the structure."""
+        """Create a new Dihedral between four atoms and add it to the structure.
+
+        Args:
+            a: First atom.
+            b: Second atom (part of the central bond).
+            c: Third atom (part of the central bond).
+            d: Fourth atom.
+            **attrs: Dihedral attributes (e.g., ``type="C-C-C-C"``).
+
+        Returns:
+            Dihedral: The newly created and registered dihedral.
+
+        Related symbols:
+            Dihedral, def_dihedrals, add_dihedral
+        """
         dihedral = Dihedral(a, b, c, d, **attrs)
         self.links.add(dihedral)
         return dihedral
@@ -328,29 +496,84 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     # ========== Add Methods (add_*: add existing entities) ==========
 
     def add_atom(self, atom: Atom, /) -> Atom:
-        """Add an existing Atom object to the structure."""
+        """Add an existing Atom object to the structure.
+
+        Args:
+            atom: Atom instance to register.
+
+        Returns:
+            Atom: The same atom passed in (for chaining convenience).
+
+        Preferred for:
+            Re-using an Atom created elsewhere. Use ``def_atom`` to create
+            and add in one step.
+
+        Related symbols:
+            Atom, def_atom, add_atoms
+        """
         self.entities.add(atom)
         return atom
 
     def add_bond(self, bond: Bond, /) -> Bond:
-        """Add an existing Bond object to the structure."""
+        """Add an existing Bond object to the structure.
+
+        Args:
+            bond: Bond instance to register.
+
+        Returns:
+            Bond: The same bond passed in.
+
+        Related symbols:
+            Bond, def_bond, add_bonds
+        """
         self.links.add(bond)
         return bond
 
     def add_angle(self, angle: Angle, /) -> Angle:
-        """Add an existing Angle object to the structure."""
+        """Add an existing Angle object to the structure.
+
+        Args:
+            angle: Angle instance to register.
+
+        Returns:
+            Angle: The same angle passed in.
+
+        Related symbols:
+            Angle, def_angle, add_angles
+        """
         self.links.add(angle)
         return angle
 
     def add_dihedral(self, dihedral: Dihedral, /) -> Dihedral:
-        """Add an existing Dihedral object to the structure."""
+        """Add an existing Dihedral object to the structure.
+
+        Args:
+            dihedral: Dihedral instance to register.
+
+        Returns:
+            Dihedral: The same dihedral passed in.
+
+        Related symbols:
+            Dihedral, def_dihedral, add_dihedrals
+        """
         self.links.add(dihedral)
         return dihedral
 
     # ========== Batch Factory Methods (def_*s: create and add multiple) ==========
 
     def def_atoms(self, atoms_data: list[dict[str, Any]], /) -> list[Atom]:
-        """Create multiple Atoms from a list of attribute dictionaries."""
+        """Create multiple Atoms from a list of attribute dictionaries.
+
+        Args:
+            atoms_data: Each dict is passed as ``**attrs`` to ``def_atom``.
+                See ``def_atom`` for supported keys.
+
+        Returns:
+            list[Atom]: Newly created atoms in the same order as input.
+
+        Related symbols:
+            def_atom, add_atoms
+        """
         atoms = []
         for attrs in atoms_data:
             atom = self.def_atom(**attrs)
@@ -360,7 +583,18 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     def def_bonds(
         self, bonds_data: list[tuple[Atom, Atom] | tuple[Atom, Atom, dict[str, Any]]], /
     ) -> list[Bond]:
-        """Create multiple Bonds from a list of (itom, jtom) or (itom, jtom, attrs) tuples."""
+        """Create multiple Bonds from a list of atom-pair tuples.
+
+        Args:
+            bonds_data: Each element is ``(itom, jtom)`` or
+                ``(itom, jtom, attrs_dict)``.
+
+        Returns:
+            list[Bond]: Newly created bonds in the same order as input.
+
+        Related symbols:
+            def_bond, add_bonds
+        """
         bonds = []
         for bond_spec in bonds_data:
             if len(bond_spec) == 2:
@@ -379,7 +613,18 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         ],
         /,
     ) -> list[Angle]:
-        """Create multiple Angles from a list of (itom, jtom, ktom) or (itom, jtom, ktom, attrs) tuples."""
+        """Create multiple Angles from a list of atom-triple tuples.
+
+        Args:
+            angles_data: Each element is ``(itom, jtom, ktom)`` or
+                ``(itom, jtom, ktom, attrs_dict)``.
+
+        Returns:
+            list[Angle]: Newly created angles in the same order as input.
+
+        Related symbols:
+            def_angle, add_angles
+        """
         angles = []
         for angle_spec in angles_data:
             if len(angle_spec) == 3:
@@ -399,7 +644,18 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         ],
         /,
     ) -> list[Dihedral]:
-        """Create multiple Dihedrals from a list of (itom, jtom, ktom, ltom) or (itom, jtom, ktom, ltom, attrs) tuples."""
+        """Create multiple Dihedrals from a list of atom-quadruple tuples.
+
+        Args:
+            dihedrals_data: Each element is ``(itom, jtom, ktom, ltom)`` or
+                ``(itom, jtom, ktom, ltom, attrs_dict)``.
+
+        Returns:
+            list[Dihedral]: Newly created dihedrals in the same order as input.
+
+        Related symbols:
+            def_dihedral, add_dihedrals
+        """
         dihedrals = []
         for dihe_spec in dihedrals_data:
             if len(dihe_spec) == 4:
@@ -414,25 +670,65 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     # ========== Batch Add Methods (add_*s: add multiple existing entities) ==========
 
     def add_atoms(self, atoms: list[Atom], /) -> list[Atom]:
-        """Add multiple existing Atom objects to the structure."""
+        """Add multiple existing Atom objects to the structure.
+
+        Args:
+            atoms: Atom instances to register.
+
+        Returns:
+            list[Atom]: The same list passed in.
+
+        Related symbols:
+            add_atom, def_atoms
+        """
         for atom in atoms:
             self.entities.add(atom)
         return atoms
 
     def add_bonds(self, bonds: list[Bond], /) -> list[Bond]:
-        """Add multiple existing Bond objects to the structure."""
+        """Add multiple existing Bond objects to the structure.
+
+        Args:
+            bonds: Bond instances to register.
+
+        Returns:
+            list[Bond]: The same list passed in.
+
+        Related symbols:
+            add_bond, def_bonds
+        """
         for bond in bonds:
             self.links.add(bond)
         return bonds
 
     def add_angles(self, angles: list[Angle], /) -> list[Angle]:
-        """Add multiple existing Angle objects to the structure."""
+        """Add multiple existing Angle objects to the structure.
+
+        Args:
+            angles: Angle instances to register.
+
+        Returns:
+            list[Angle]: The same list passed in.
+
+        Related symbols:
+            add_angle, def_angles
+        """
         for angle in angles:
             self.links.add(angle)
         return angles
 
     def add_dihedrals(self, dihedrals: list[Dihedral], /) -> list[Dihedral]:
-        """Add multiple existing Dihedral objects to the structure."""
+        """Add multiple existing Dihedral objects to the structure.
+
+        Args:
+            dihedrals: Dihedral instances to register.
+
+        Returns:
+            list[Dihedral]: The same list passed in.
+
+        Related symbols:
+            add_dihedral, def_dihedrals
+        """
         for dihedral in dihedrals:
             self.links.add(dihedral)
         return dihedrals
@@ -442,7 +738,19 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
     def move(
         self, delta: list[float], *, entity_type: type[Entity] = Atom
     ) -> "Atomistic":
-        """Move all entities by delta. Returns self for chaining."""
+        """Translate all atoms by a displacement vector.
+
+        This is an in-place operation that returns ``self`` for method
+        chaining.
+
+        Args:
+            delta: Translation vector ``[dx, dy, dz]`` in angstroms.
+            entity_type: Entity type to translate (default: Atom).
+
+        Returns:
+            Atomistic: ``self``, for chaining (e.g.,
+                ``mol.move([1, 0, 0]).rotate(...)``).
+        """
         super().move(delta, entity_type=entity_type)
         return self
 
@@ -454,7 +762,22 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         *,
         entity_type: type[Entity] = Atom,
     ) -> "Atomistic":
-        """Rotate entities around axis. Returns self for chaining."""
+        """Rotate all atoms around an axis using the Rodrigues formula.
+
+        This is an in-place operation that returns ``self`` for method
+        chaining.
+
+        Args:
+            axis: Rotation axis ``[ax, ay, az]`` (will be normalised
+                internally).
+            angle: Rotation angle in radians.
+            about: Point ``[x, y, z]`` in angstroms to rotate around.
+                Defaults to the origin ``[0, 0, 0]``.
+            entity_type: Entity type to rotate (default: Atom).
+
+        Returns:
+            Atomistic: ``self``, for chaining.
+        """
         super().rotate(axis, angle, about=about, entity_type=entity_type)
         return self
 
@@ -465,7 +788,20 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         *,
         entity_type: type[Entity] = Atom,
     ) -> "Atomistic":
-        """Scale entities by factor. Returns self for chaining."""
+        """Scale all atom positions by a uniform factor.
+
+        This is an in-place operation that returns ``self`` for method
+        chaining.
+
+        Args:
+            factor: Multiplicative scale factor (dimensionless).
+            about: Center of scaling ``[x, y, z]`` in angstroms.
+                Defaults to the origin ``[0, 0, 0]``.
+            entity_type: Entity type to scale (default: Atom).
+
+        Returns:
+            Atomistic: ``self``, for chaining.
+        """
         super().scale(factor, about=about, entity_type=entity_type)
         return self
 
@@ -479,7 +815,27 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         flip: bool = False,
         entity_type: type[Entity] = Atom,
     ) -> "Atomistic":
-        """Align entities. Returns self for chaining."""
+        """Align this structure so that atom ``a`` coincides with atom ``b``.
+
+        When direction vectors ``a_dir`` and ``b_dir`` are given, the
+        structure is first rotated to align the two directions, then
+        translated so that ``a`` lands on ``b``.
+
+        This is an in-place operation that returns ``self`` for method
+        chaining.
+
+        Args:
+            a: Source reference atom (in this structure).
+            b: Target reference atom (position to align to) with
+                coordinates in angstroms.
+            a_dir: Direction vector at ``a`` (will be normalised).
+            b_dir: Direction vector at ``b`` (will be normalised).
+            flip: If True, reverse ``b_dir`` before alignment.
+            entity_type: Entity type to transform (default: Atom).
+
+        Returns:
+            Atomistic: ``self``, for chaining.
+        """
         super().align(
             a, b, a_dir=a_dir, b_dir=b_dir, flip=flip, entity_type=entity_type
         )
@@ -511,19 +867,23 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         return result
 
     def replicate(self, n: int, transform=None) -> "Atomistic":
-        """
-        Create n copies and merge them into a new system.
+        """Create n copies and merge them into a new system.
+
+        Each copy is independently deep-copied from ``self``, optionally
+        transformed, then merged into a single new Atomistic structure.
 
         Args:
-            n: Number of copies to create
-            transform: Optional callable(copy, index) -> None to transform each copy
+            n: Number of copies to create.
+            transform: Optional callable ``(copy: Atomistic, index: int) -> None``
+                applied to each copy before merging. The callable receives
+                the deep-copied replica and its zero-based index.
+
+        Returns:
+            Atomistic: A new structure containing all replicas merged together.
 
         Example:
-            # Create 10 waters in a line
-            waters = Water().replicate(10, lambda mol, i: mol.move([i*5, 0, 0]))
-
-            # Create 3x3 grid
-            grid = Methane().replicate(9, lambda mol, i: mol.move([i%3*5, i//3*5, 0]))
+            >>> waters = Water().replicate(10, lambda mol, i: mol.move([i*5, 0, 0]))
+            >>> grid = Methane().replicate(9, lambda mol, i: mol.move([i%3*5, i//3*5, 0]))
         """
         result = type(self)()  # Empty system of same type
 
@@ -536,6 +896,7 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         return result
 
     def __len__(self) -> int:
+        """Return the number of atoms in the structure."""
         return len(self.atoms)
 
     def get_topo(
