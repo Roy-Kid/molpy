@@ -15,7 +15,7 @@ Core Concepts:
 Example Usage:
 --------------
 ```python
-from molpy.reacter import Reacter, select_port, select_one_hydrogen, form_single_bond
+from molpy.reacter import Reacter, select_port, select_one_hydrogen, form_single_bond  # noqa: F401
 
 # Define a C-C coupling reaction
 cc_coupling = Reacter(
@@ -48,7 +48,7 @@ Design Goals:
 - Auditable: all changes recorded in ReactionResult.notes
 """
 
-from .base import (
+from .base import (  # noqa: F401
     ProductInfo,
     ReactantInfo,
     Reacter,
@@ -56,9 +56,13 @@ from .base import (
     ReactionResult,
     TopologyChanges,
 )
-from .connector import MonomerLinker
-from .template import TemplateReacter, TemplateResult, write_template_files
-from .selectors import (
+from .connector import MonomerLinker  # noqa: F401
+from .template import (
+    TemplateReacter,
+    TemplateResult,
+    write_template_files,
+)  # noqa: F401
+from .selectors import (  # noqa: F401
     # Anchor selectors (transform port_atom to anchor atom)
     select_port,
     select_c_neighbor,
@@ -84,8 +88,8 @@ from .selectors import (
 
 # Alias for backward compatibility
 find_port = find_port_atom
-from .topology_detector import TopologyDetector
-from .transformers import (
+from .topology_detector import TopologyDetector  # noqa: F401
+from .transformers import (  # noqa: F401
     break_bond,
     create_bond_former,
     form_aromatic_bond,
@@ -94,7 +98,7 @@ from .transformers import (
     form_triple_bond,
     skip_bond_formation,
 )
-from .utils import create_atom_mapping, find_neighbors
+from .utils import create_atom_mapping, find_neighbors  # noqa: F401
 
 __all__ = [
     # Core classes

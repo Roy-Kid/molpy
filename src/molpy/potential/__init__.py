@@ -10,8 +10,8 @@ call potential functions with the extracted data.
 """
 
 # Import all potential implementations to register them
-from . import angle, bond, pair
-from .angle import *
-from .base import Potential, Potentials
-from .bond import *
-from .pair import *
+from . import angle, bond, pair  # noqa: F401
+from .angle import *  # noqa: F401
+from .base import Potential, Potentials  # noqa: F401
+from .bond import *  # noqa: F401
+from .pair import *  # noqa: F401
