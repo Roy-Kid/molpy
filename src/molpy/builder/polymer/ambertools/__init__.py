@@ -10,7 +10,7 @@ Public API:
     - AmberBuildResult: Result dataclass containing Frame, ForceField, and paths
 
 Example usage:
-    >>> from molpy.builder.ambertools import AmberPolymerBuilder
+    >>> from molpy.builder.polymer.ambertools import AmberPolymerBuilder
     >>> from molpy.io import read_pdb
     >>>
     >>> # Load monomer and mark ports

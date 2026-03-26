@@ -5,7 +5,7 @@ favour of the new declarative API documented in
 ``notebooks/reacter_polymerbuilder_integration.ipynb``.
 """
 
-from .ambertools import AmberPolymerBuilder, AmberPolymerBuilderConfig
+from .polymer.ambertools import AmberPolymerBuilder, AmberPolymerBuilderConfig
 from .crystal import BlockRegion, CrystalBuilder, Lattice, Region, Site
 from .polymer import *
 

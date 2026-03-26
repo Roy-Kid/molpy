@@ -16,14 +16,14 @@ from molpy.core.atomistic import Atomistic
 from molpy.core.frame import Frame
 from molpy.io.readers import read_amber_prmtop, read_pdb
 from molpy.parser.smiles import parse_cgsmiles
-from molpy.builder.polymer.amber_leap import generate_leap_script
+from .amber_leap import generate_leap_script
 
 from .amber_utils import configure_amber_wrappers
-from .core import PolymerBuildResult, TypifierProtocol
-from .residue_manager import ResidueManager
+from molpy.builder.polymer.core import PolymerBuildResult, TypifierProtocol
+from molpy.builder.polymer.residue_manager import ResidueManager
 
 if TYPE_CHECKING:
-    from .connectors import AmberConnector
+    from molpy.builder.polymer.connectors import Connector
 
 logger = logging.getLogger(__name__)
 

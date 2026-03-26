@@ -367,7 +367,7 @@ class BuildPolymerAmber(Tool):
         """
         from pathlib import Path
 
-        from molpy.builder.ambertools import (
+        from molpy.builder.polymer.ambertools import (
             AmberPolymerBuilder,
             AmberPolymerBuilderConfig,
         )
@@ -647,7 +647,7 @@ def _build_amber(
     amber_config: Any,
 ) -> Any:
     """Build polymer using the AmberTools backend."""
-    from molpy.builder.ambertools import (
+    from molpy.builder.polymer.ambertools import (
         AmberPolymerBuilder,
         AmberPolymerBuilderConfig,
     )

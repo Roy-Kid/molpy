@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from molpy.builder.ambertools import (
+from molpy.builder.polymer.ambertools import (
     AmberBuildResult,
     AmberPolymerBuilder,
     AmberPolymerBuilderConfig,
@@ -110,7 +110,7 @@ class TestAmberPolymerBuilderSequence:
 
     def _create_mock_builder_with_prepared_monomers(self, labels: list[str]):
         """Create a builder with mock prepared monomers."""
-        from molpy.builder.ambertools.amber_builder import _PreparedMonomer
+        from molpy.builder.polymer.ambertools.amber_builder import _PreparedMonomer
 
         mock_monomer = MagicMock()
         mock_head = MagicMock()

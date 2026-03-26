@@ -1,6 +1,6 @@
 """Tests for CGSmiles sequence extraction in polymer Amber builder."""
 
-from molpy.builder.polymer.amber import AmberPolymerBuilder
+from molpy.builder.polymer.ambertools.polymer_amber import AmberPolymerBuilder
 
 
 def _builder_without_init() -> AmberPolymerBuilder:

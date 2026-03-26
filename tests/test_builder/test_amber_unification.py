@@ -21,7 +21,7 @@ from molpy.core.atomistic import Atom, Atomistic, Bond
 
 class TestAmberPolymerBuilderConfig:
     def test_default_no_preset(self):
-        from molpy.builder.ambertools import AmberPolymerBuilderConfig
+        from molpy.builder.polymer.ambertools import AmberPolymerBuilderConfig
 
         config = AmberPolymerBuilderConfig()
         assert config.reaction_preset is None
@@ -29,13 +29,13 @@ class TestAmberPolymerBuilderConfig:
         assert config.charge_method == "bcc"
 
     def test_with_preset(self):
-        from molpy.builder.ambertools import AmberPolymerBuilderConfig
+        from molpy.builder.polymer.ambertools import AmberPolymerBuilderConfig
 
         config = AmberPolymerBuilderConfig(reaction_preset="dehydration")
         assert config.reaction_preset == "dehydration"
 
     def test_with_condensation_preset(self):
-        from molpy.builder.ambertools import AmberPolymerBuilderConfig
+        from molpy.builder.polymer.ambertools import AmberPolymerBuilderConfig
 
         config = AmberPolymerBuilderConfig(reaction_preset="condensation")
         assert config.reaction_preset == "condensation"
@@ -70,7 +70,7 @@ def _make_test_monomer() -> Atomistic:
 class TestAmberBuilderPortUtilities:
     def test_validate_ir_uses_port_utils(self):
         """AmberPolymerBuilder._validate_ir should use get_all_ports."""
-        from molpy.builder.ambertools import AmberPolymerBuilder
+        from molpy.builder.polymer.ambertools import AmberPolymerBuilder
         from molpy.parser.smiles import parse_cgsmiles
 
         monomer = _make_test_monomer()
@@ -82,7 +82,7 @@ class TestAmberBuilderPortUtilities:
 
     def test_validate_ir_missing_port_raises(self):
         """Should raise if monomer lacks port annotations."""
-        from molpy.builder.ambertools import AmberPolymerBuilder
+        from molpy.builder.polymer.ambertools import AmberPolymerBuilder
         from molpy.parser.smiles import parse_cgsmiles
 
         # Monomer without ports
@@ -102,7 +102,7 @@ class TestAmberBuilderPortUtilities:
 class TestAmberBuilderLeavingGroups:
     def test_omit_hydrogens_fallback(self):
         """Without preset, auto-detects H atoms as leaving groups."""
-        from molpy.builder.ambertools.amber_builder import (
+        from molpy.builder.polymer.ambertools.amber_builder import (
             AmberPolymerBuilder,
             AmberPolymerBuilderConfig,
         )
@@ -121,7 +121,7 @@ class TestAmberBuilderLeavingGroups:
 
     def test_omit_from_preset(self):
         """With preset, uses preset leaving selectors."""
-        from molpy.builder.ambertools.amber_builder import (
+        from molpy.builder.polymer.ambertools.amber_builder import (
             AmberPolymerBuilder,
             AmberPolymerBuilderConfig,
         )
@@ -137,7 +137,7 @@ class TestAmberBuilderLeavingGroups:
 
     def test_omit_no_port_returns_empty(self):
         """If port atom not found, return empty list."""
-        from molpy.builder.ambertools.amber_builder import AmberPolymerBuilder
+        from molpy.builder.polymer.ambertools.amber_builder import AmberPolymerBuilder
 
         monomer = Atomistic()
         monomer.add_entity(Atom(symbol="C", element="C", name="C1"))
