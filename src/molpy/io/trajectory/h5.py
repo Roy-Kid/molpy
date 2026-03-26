@@ -19,6 +19,8 @@ HDF5 Trajectory Structure:
 └── metadata/               # Optional trajectory-level metadata
 """
 
+from __future__ import annotations
+
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
