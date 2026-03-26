@@ -1,7 +1,5 @@
 """Tests for AMBER prmtop file reading."""
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 
@@ -11,15 +9,15 @@ from molpy.io.forcefield.amber import AmberPrmtopReader, CHARGE_CONVERSION_FACTO
 
 
 @pytest.fixture
-def litfsi_prmtop():
+def litfsi_prmtop(TEST_DATA_DIR):
     """Path to LiTFSI test prmtop file."""
-    return Path(__file__).parent.parent / "tests-data" / "prmtop" / "LiTFSI.prmtop"
+    return TEST_DATA_DIR / "prmtop" / "LiTFSI.prmtop"
 
 
 @pytest.fixture
-def litfsi_inpcrd():
+def litfsi_inpcrd(TEST_DATA_DIR):
     """Path to LiTFSI test inpcrd file."""
-    return Path(__file__).parent.parent / "tests-data" / "inpcrd" / "LiTFSI.inpcrd"
+    return TEST_DATA_DIR / "inpcrd" / "LiTFSI.inpcrd"
 
 
 def test_prmtop_file_exists(litfsi_prmtop):
