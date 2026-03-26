@@ -173,11 +173,11 @@ class TestStalenessDetection:
 
     def test_stale_after_content_change(self, tmp_path):
         content_a = "A" * 100
-        content_b = "B" * 100  # same length, different content
+        content_b = "B" * 200  # different length -> size_bytes mismatch
         traj = self._write_traj(tmp_path / "traj.dump", content_a)
         idx = build_index("test", [traj], [FrameEntry(0, 0, 100, 0)])
 
-        # Write same-length different content
+        # Write different-length content so size_bytes detects staleness
         traj.write_text(content_b)
         assert not is_index_fresh(idx, [traj])
 
