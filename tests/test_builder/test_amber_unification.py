@@ -215,9 +215,9 @@ class TestAmberExports:
         assert AmberPolymerBuilder is not None
         assert AmberPolymerBuilderConfig is not None
 
-    def test_polymer_init_exports_tool(self):
-        """builder/polymer should export BuildPolymerAmber."""
-        from molpy.builder.polymer import BuildPolymerAmber
+    def test_tool_exports_amber(self):
+        """molpy.tool should export BuildPolymerAmber."""
+        from molpy.tool import BuildPolymerAmber
 
         assert BuildPolymerAmber is not None
 

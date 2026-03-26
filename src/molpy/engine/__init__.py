@@ -21,7 +21,7 @@ Example:
     >>>
     >>> # Create engine and prepare
     >>> engine = LAMMPSEngine(executable="lmp")
-    >>> engine.prepare(work_dir="./calc", scripts=script)
+    >>> engine.run(script, workdir="./calc", check=False)
     >>>
     >>> # Run calculation
     >>> result = engine.run()

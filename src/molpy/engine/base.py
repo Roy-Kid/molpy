@@ -49,7 +49,7 @@ class Engine(ABC):
         >>>
         >>> # Create engine and prepare
         >>> engine = LAMMPSEngine(executable="lmp")
-        >>> engine.prepare(work_dir="./calc", scripts=[script])
+        >>> engine.run(script, workdir="./calc", check=False)
         >>>
         >>> # Run calculation
         >>> result = engine.run()
@@ -143,64 +143,6 @@ class Engine(ABC):
             merged.update(extra)
         return merged
 
-    def prepare(
-        self,
-        work_dir: str | Path,
-        scripts: Script | Sequence[Script],
-        *,
-        auto_save: bool = True,
-    ) -> "Self":
-        """
-        Prepare the engine for execution by setting up the working directory and scripts.
-
-        Args:
-            work_dir: Path to the working directory
-            scripts: Single Script object or sequence of Script objects
-            auto_save: Whether to automatically save scripts to the working directory
-                      (default: True)
-
-        Returns:
-            Self: The engine instance for method chaining
-
-        Example:
-            >>> script = Script.from_text("input", "units real\\natom_style full\\n")
-            >>> engine.prepare("./calc", script)
-            >>> # Or with multiple scripts
-            >>> engine.prepare("./calc", [script1, script2])
-        """
-        self.work_dir = Path(work_dir)
-        self.work_dir.mkdir(parents=True, exist_ok=True)
-
-        # Normalize scripts to a list
-        if isinstance(scripts, Script):
-            self.scripts = [scripts]
-        else:
-            self.scripts = list(scripts)
-
-        if not self.scripts:
-            raise ValueError("At least one script is required")
-
-        # Save scripts to the working directory if auto_save is True
-        if auto_save:
-            for script in self.scripts:
-                # Determine filename from script path or name
-                if script.path is not None:
-                    # Use the filename from the script's path
-                    script_path = self.work_dir / script.path.name
-                else:
-                    # Generate filename from script name
-                    # Try to guess extension from language or use default
-                    ext = self._get_default_extension()
-                    script_path = self.work_dir / f"{script.name}{ext}"
-
-                # Save script to working directory
-                script.save(script_path)
-
-        # Set input_script (first script or script with 'input' tag)
-        self.input_script = self._find_input_script()
-
-        return self
-
     def _find_input_script(self) -> Script | None:
         """
         Find the primary input script.
@@ -225,41 +167,6 @@ class Engine(ABC):
             Default file extension (e.g., '.inp', '.lmp')
         """
         pass
-
-    def get_script(
-        self, name: str | None = None, tag: str | None = None
-    ) -> Script | None:
-        """
-        Get a script by name or tag.
-
-        Args:
-            name: Name of the script (logical name or filename)
-            tag: Tag to search for
-
-        Returns:
-            Script object or None if not found
-
-        Example:
-            >>> script = engine.get_script(name="input")
-            >>> script = engine.get_script(tag="input")
-        """
-        if not hasattr(self, "scripts"):
-            return None
-
-        for script in self.scripts:
-            if name is not None:
-                # Match by logical name or filename
-                if script.name == name:
-                    return script
-                if script.path is not None and script.path.name == name:
-                    return script
-
-            if tag is not None:
-                # Match by tag
-                if tag in script.tags:
-                    return script
-
-        return None
 
     def run(
         self,
@@ -337,69 +244,3 @@ class Engine(ABC):
     ) -> subprocess.CompletedProcess:
         """Run the engine subprocess. Subclasses implement this."""
         pass
-
-    def clean(self, keep_scripts: bool = True) -> None:
-        """
-        Clean up calculation files.
-
-        Args:
-            keep_scripts: Whether to keep input scripts (default: True)
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return
-
-        if not keep_scripts and hasattr(self, "scripts"):
-            for script in self.scripts:
-                if script.path is not None:
-                    script_path = self.work_dir / script.path.name
-                    if script_path.exists():
-                        script_path.unlink()
-
-    def list_output_files(self) -> list[Path]:
-        """
-        List all output files in the working directory.
-
-        Returns:
-            List of output file paths
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return []
-
-        # Get all script paths to exclude them
-        script_paths = set()
-        if hasattr(self, "scripts"):
-            for script in self.scripts:
-                if script.path is not None:
-                    script_paths.add(self.work_dir / script.path.name)
-
-        # Return all files except scripts
-        return [
-            f for f in self.work_dir.iterdir() if f.is_file() and f not in script_paths
-        ]
-
-    def get_output_file(self, name: str | None = None) -> Path | None:
-        """
-        Get the output file path.
-
-        Args:
-            name: Name of the output file. If None, returns default output file.
-
-        Returns:
-            Path to the output file or None if not found
-        """
-        if not hasattr(self, "work_dir") or not self.work_dir.exists():
-            return None
-
-        if name is not None:
-            output_path = self.work_dir / name
-            if output_path.exists():
-                return output_path
-            return None
-
-        # Try to find default output file
-        output_files = self.list_output_files()
-        if output_files:
-            # Return the first output file (could be improved with heuristics)
-            return output_files[0]
-
-        return None

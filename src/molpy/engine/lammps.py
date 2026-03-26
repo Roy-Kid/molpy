@@ -30,7 +30,7 @@ class LAMMPSEngine(Engine):
         >>>
         >>> # Create engine and prepare
         >>> engine = LAMMPSEngine(executable="lmp")
-        >>> engine.prepare(work_dir="./calc", scripts=script)
+        >>> engine.run(script, workdir="./calc", check=False)
         >>>
         >>> # Run calculation
         >>> result = engine.run()
@@ -68,15 +68,3 @@ class LAMMPSEngine(Engine):
             check=check,
             env=self._merged_env(),
         )
-
-    def get_log_file(self) -> Path | None:
-        """
-        Get the LAMMPS log file path.
-
-        Returns:
-            Path to the log file or None if not found
-        """
-        log_path = self.work_dir / "log.lammps"
-        if log_path.exists():
-            return log_path
-        return None

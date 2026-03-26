@@ -229,10 +229,10 @@ class TestNewEngineInterface:
         assert "conda" in repr_str
 
 
-class TestRemovedLegacyInterface:
-    """Ensure deprecated engine staging API is removed."""
+class TestLegacyInterfaceRemoved:
+    """Ensure old staging API is removed."""
 
-    def test_prepare_interface_exists_for_backward_compat(self):
-        """Engine.prepare() still exists for backward compatibility."""
+    def test_prepare_removed(self):
+        """Engine.prepare() no longer exists."""
         engine = LAMMPSEngine(executable="lmp", check_executable=False)
-        assert hasattr(engine, "prepare")
+        assert not hasattr(engine, "prepare")

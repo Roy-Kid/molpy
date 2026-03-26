@@ -30,7 +30,7 @@ class CP2KEngine(Engine):
         >>>
         >>> # Create engine and prepare
         >>> engine = CP2KEngine(executable="cp2k.psmp")
-        >>> engine.prepare(work_dir="./calc", scripts=script)
+        >>> engine.run(script, workdir="./calc", check=False)
         >>>
         >>> # Run calculation
         >>> result = engine.run()
@@ -68,21 +68,3 @@ class CP2KEngine(Engine):
             check=check,
             env=self._merged_env(),
         )
-
-    def get_output_file(self, name: str | None = None) -> Path | None:
-        """
-        Get the CP2K output file path.
-
-        Args:
-            name: Name of the output file. If None, uses default "cp2k.out".
-
-        Returns:
-            Path to the output file or None if not found
-        """
-        if name is None:
-            name = "cp2k.out"
-
-        output_path = self.work_dir / name
-        if output_path.exists():
-            return output_path
-        return None
