@@ -39,7 +39,26 @@ from .types import (
     StochasticChain,
 )
 
+# Re-export tools from molpy.tool.polymer for backward compatibility
+from molpy.tool.polymer import (
+    BuildPolymer,
+    BuildPolymerAmber,
+    BuildSystem,
+    PlanSystem,
+    PrepareMonomer,
+    polymer,
+    polymer_system,
+)
+
 __all__ = [
+    # Tools (from molpy.tool.polymer)
+    "BuildPolymer",
+    "BuildPolymerAmber",
+    "BuildSystem",
+    "PlanSystem",
+    "PrepareMonomer",
+    "polymer",
+    "polymer_system",
     # Connectors
     "AutoConnector",
     "BondKind",

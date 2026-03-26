@@ -47,63 +47,27 @@ class CP2KEngine(Engine):
         """Get default file extension for CP2K input files."""
         return ".inp"
 
-    def run(
+    def _execute(
         self,
-        input_file: str | Path | None = None,
-        output_file: str | Path | None = None,
+        capture_output: bool = False,
+        check: bool = True,
         **kwargs: Any,
     ) -> subprocess.CompletedProcess:
-        """
-        Execute CP2K calculation.
+        """Execute CP2K calculation."""
+        if self.input_script is None or self.input_script.path is None:
+            raise RuntimeError("No input script found.")
 
-        Args:
-            input_file: Name of the input file. If None, uses the input script
-                       from prepare() (default: None)
-            output_file: Name of the output file. If None, uses default "cp2k.out"
-                        (default: None)
-            **kwargs: Additional arguments passed to subprocess.run
-                     (e.g., capture_output, text, check, etc.)
+        input_file = self.input_script.path.name
+        command = [self.executable, "-i", input_file, "-o", "cp2k.out"]
 
-        Returns:
-            CompletedProcess object with execution results
-
-        Raises:
-            RuntimeError: If engine is not prepared (prepare() not called)
-        """
-        if not hasattr(self, "work_dir"):
-            raise RuntimeError("Engine not prepared. Call prepare() first.")
-
-        # Use input script from prepare() if not specified
-        if input_file is None:
-            if (
-                not hasattr(self, "input_script")
-                or self.input_script is None
-                or self.input_script.path is None
-            ):
-                raise RuntimeError(
-                    "No input file specified and no input script found. "
-                    "Either specify input_file or ensure prepare() was called with a script."
-                )
-            input_file = self.input_script.path.name
-        else:
-            input_file = Path(input_file).name
-
-        # Default output file name
-        output_file = "cp2k.out" if output_file is None else Path(output_file).name
-
-        # Build command
-        command = [self.executable, "-i", str(input_file), "-o", str(output_file)]
-
-        # Default subprocess arguments
-        run_kwargs = {
-            "cwd": self.work_dir,
-            "capture_output": True,
-            "text": True,
-            "check": False,
-        }
-        run_kwargs.update(kwargs)
-
-        return subprocess.run(command, **run_kwargs)
+        return subprocess.run(
+            command,
+            cwd=self.work_dir,
+            capture_output=capture_output,
+            text=True,
+            check=check,
+            env=self._merged_env(),
+        )
 
     def get_output_file(self, name: str | None = None) -> Path | None:
         """

@@ -32,6 +32,8 @@ class AmberPolymerBuilderConfig:
         keep_intermediates: Whether to keep intermediate files after build.
         env: Conda environment name or path for AmberTools (e.g., "AmberTools25").
         env_manager: Environment manager type ("conda" for conda environments).
+        reaction_preset: Named reaction preset for leaving group detection.
+            When None, hydrogen atoms bonded to port atoms are auto-detected.
     """
 
     force_field: Literal["gaff", "gaff2"] = "gaff2"
@@ -40,6 +42,7 @@ class AmberPolymerBuilderConfig:
     keep_intermediates: bool = True
     env: str | Path | None = None
     env_manager: str | None = None
+    reaction_preset: str | None = None
 
 
 class AmberPolymerBuilder:
@@ -329,13 +332,13 @@ class AmberPolymerBuilder:
         omit = []
         port_atom = None
         for atom in monomer.atoms:
-            if atom["port"] == port:
+            if atom.get("port") == port:
                 port_atom = atom
                 break
 
         # Find atoms bonded to port atom that are hydrogens (leaving group)
         for bond in monomer.bonds:
-            atom_i, atom_j = bond.atoms
+            atom_i, atom_j = bond.itom, bond.jtom
 
             if atom_i == port_atom and atom_j["element"] == "H":
                 omit.append(atom_j["name"])

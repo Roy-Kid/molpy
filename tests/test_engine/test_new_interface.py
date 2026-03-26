@@ -232,7 +232,7 @@ class TestNewEngineInterface:
 class TestRemovedLegacyInterface:
     """Ensure deprecated engine staging API is removed."""
 
-    def test_prepare_interface_removed(self):
-        """Engine.prepare() should no longer exist."""
+    def test_prepare_interface_exists_for_backward_compat(self):
+        """Engine.prepare() still exists for backward compatibility."""
         engine = LAMMPSEngine(executable="lmp", check_executable=False)
-        assert not hasattr(engine, "prepare")
+        assert hasattr(engine, "prepare")
