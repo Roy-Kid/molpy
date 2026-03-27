@@ -56,7 +56,6 @@ from .base import (
     ReactionResult,
     TopologyChanges,
 )
-from .connector import MonomerLinker
 from .bond_react import (
     BondReactReacter,
     BondReactResult,
@@ -102,7 +101,6 @@ from .utils import create_atom_mapping, find_neighbors
 
 __all__ = [
     # Core classes
-    "MonomerLinker",
     "ProductInfo",
     "ReactantInfo",
     "ReactionMetadata",

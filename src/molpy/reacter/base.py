@@ -140,7 +140,7 @@ class Reacter:
     original structures remain unchanged.
 
     **Port Selection Philosophy:**
-    Reacter does NOT handle port selection. The caller (e.g., MonomerLinker)
+    Reacter does NOT handle port selection. The caller
     must explicitly specify which ports to connect via port_L and port_R.
     Ports are marked directly on atoms using the "port" or "ports" attribute.
     This makes the reaction execution deterministic and explicit.
