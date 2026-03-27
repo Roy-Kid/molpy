@@ -431,13 +431,25 @@ class ForceFieldAtomTypifier(TypifierBase["Atomistic"]):
             new_struct.add_entity(new_atom)
             old_to_new[id(atom)] = new_atom
 
-        # Copy bonds and other links
+        # Copy bonds
         for bond in struct.bonds:
             new_itom = old_to_new.get(id(bond.itom))
             new_jtom = old_to_new.get(id(bond.jtom))
             if new_itom is not None and new_jtom is not None:
                 new_bond = Bond(new_itom, new_jtom, **dict(bond.data))
                 new_struct.add_link(new_bond)
+
+        # Copy angles
+        for angle in struct.angles:
+            new_eps = tuple(old_to_new.get(id(ep)) for ep in angle.endpoints)
+            if all(ep is not None for ep in new_eps):
+                new_struct.add_link(Angle(*new_eps, **dict(angle.data)))
+
+        # Copy dihedrals
+        for dihedral in struct.dihedrals:
+            new_eps = tuple(old_to_new.get(id(ep)) for ep in dihedral.endpoints)
+            if all(ep is not None for ep in new_eps):
+                new_struct.add_link(Dihedral(*new_eps, **dict(dihedral.data)))
 
         if self.strict:
             untyped_atoms = [

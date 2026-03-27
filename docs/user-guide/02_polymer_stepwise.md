@@ -246,6 +246,7 @@ import numpy as np
 output_dir = Path("02_output")
 output_dir.mkdir(exist_ok=True)
 
+result.polymer.get_topo(gen_angle=True, gen_dihe=True)
 typed_polymer = typifier.typify(result.polymer)
 frame = typed_polymer.to_frame()
 atoms = frame["atoms"]
