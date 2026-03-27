@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Unit tests for TemplateReacter class.
+"""Unit tests for BondReactReacter class.
 
 Tests cover:
-- TemplateReacter initialization (with Reacter constructor parameters)
+- BondReactReacter initialization (with Reacter constructor parameters)
 - run_with_template() method
 - react_id assignment
 - Pre/post template consistency
-- TemplateResult structure
+- BondReactTemplate structure
 - Error handling
 """
 
@@ -18,15 +18,15 @@ from molpy.reacter import (
     select_one_hydrogen,
 )
 from molpy.reacter.selectors import find_port_atom
-from molpy.reacter.template import TemplateReacter, TemplateResult, write_template_files
+from molpy.reacter.bond_react import BondReactReacter, BondReactResult, BondReactTemplate
 
 
-class TestTemplateReacter:
-    """Test TemplateReacter class."""
+class TestBondReactReacter:
+    """Test BondReactReacter class."""
 
-    def test_template_reacter_initialization(self):
-        """Test TemplateReacter initialization with Reacter constructor parameters."""
-        template_reacter = TemplateReacter(
+    def test_bond_react_reacter_initialization(self):
+        """Test BondReactReacter initialization with Reacter constructor parameters."""
+        bond_react_reacter = BondReactReacter(
             name="test_reaction",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -36,15 +36,14 @@ class TestTemplateReacter:
             radius=4,
         )
 
-        # Check internal reacter is created
-        assert template_reacter.reacter is not None
-        assert template_reacter.reacter.name == "test_reaction"
-        assert template_reacter.radius == 4
-        assert template_reacter._react_id_counter == 0
+        # BondReactReacter IS a Reacter
+        assert bond_react_reacter.name == "test_reaction"
+        assert bond_react_reacter.radius == 4
+        assert bond_react_reacter._react_id_counter == 0
 
-    def test_template_reacter_default_radius(self):
-        """Test TemplateReacter with default radius."""
-        template_reacter = TemplateReacter(
+    def test_bond_react_reacter_default_radius(self):
+        """Test BondReactReacter with default radius."""
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -53,7 +52,7 @@ class TestTemplateReacter:
             bond_former=form_single_bond,
         )
 
-        assert template_reacter.radius == 4  # default
+        assert bond_react_reacter.radius == 4  # default
 
     def test_run_with_template_basic(self):
         """Test basic run_with_template() execution."""
@@ -73,8 +72,8 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        # Create TemplateReacter
-        template_reacter = TemplateReacter(
+        # Create BondReactReacter
+        bond_react_reacter = BondReactReacter(
             name="C-C_coupling",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -87,21 +86,22 @@ class TestTemplateReacter:
         # Run reaction with template
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Validate ReactionResult
         assert result is not None
         assert isinstance(result.product_info.product, Atomistic)
         assert len(list(result.product_info.product.atoms)) == 2  # 2 C atoms
 
-        # Validate TemplateResult
-        assert isinstance(template, TemplateResult)
+        # Validate BondReactTemplate
+        assert isinstance(template, BondReactTemplate)
         assert template.pre is not None
         assert template.post is not None
-        assert len(template.init_atoms) == 2  # Two port atoms
-        assert len(template.removed_atoms) == 2  # Two H atoms removed
+        assert len(template.initiator_atoms) == 2  # Two port atoms
+        assert len(template.deleted_atoms) == 2  # Two H atoms removed
 
         # Check pre and post have same atoms (by react_id)
         pre_rids = {a["react_id"] for a in template.pre.atoms}
@@ -128,7 +128,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -141,8 +141,8 @@ class TestTemplateReacter:
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
 
         # Check react_ids are assigned before reaction
-        template_reacter._assign_react_ids(struct_L)
-        template_reacter._assign_react_ids(struct_R)
+        bond_react_reacter._assign_react_ids(struct_L)
+        bond_react_reacter._assign_react_ids(struct_R)
 
         assert "react_id" in c_L.data
         assert "react_id" in h_L.data
@@ -165,7 +165,7 @@ class TestTemplateReacter:
         struct_R.add_entity(c_R)
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="addition",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -176,12 +176,13 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # No atoms removed
-        assert len(template.removed_atoms) == 0
+        assert len(template.deleted_atoms) == 0
         assert len(list(result.product_info.product.atoms)) == 2
 
         # Pre and post should have same atoms
@@ -205,7 +206,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -216,13 +217,14 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L,
             struct_R,
             port_atom_L=port_atom_L,
             port_atom_R=port_atom_R,
             compute_topology=False,
         )
+        template = result.template
 
         # Should still work
         assert result is not None
@@ -245,7 +247,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -256,13 +258,14 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Check init_atoms
-        assert len(template.init_atoms) == 2
-        init_rids = {a["react_id"] for a in template.init_atoms}
+        assert len(template.initiator_atoms) == 2
+        init_rids = {a["react_id"] for a in template.initiator_atoms}
         assert port_atom_L["react_id"] in init_rids
         assert port_atom_R["react_id"] in init_rids
 
@@ -283,7 +286,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -294,13 +297,14 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Check removed atoms
-        assert len(template.removed_atoms) == 2
-        removed_rids = {a["react_id"] for a in template.removed_atoms}
+        assert len(template.deleted_atoms) == 2
+        removed_rids = {a["react_id"] for a in template.deleted_atoms}
 
         # Removed atoms should be in pre but not in product
         pre_rids = {a["react_id"] for a in template.pre.atoms}
@@ -330,7 +334,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -341,9 +345,10 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Check mappings exist
         assert template.pre_react_id_to_atom is not None
@@ -386,7 +391,7 @@ class TestTemplateReacter:
         c_R["port"] = "2"
 
         # Test with radius=1 (smaller subgraph)
-        template_reacter_1 = TemplateReacter(
+        bond_react_reacter_1 = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -398,12 +403,13 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result1, template1 = template_reacter_1.run_with_template(
+        result1 = bond_react_reacter_1.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template1 = result1.template
 
         # Test with radius=3 (larger subgraph)
-        template_reacter_3 = TemplateReacter(
+        bond_react_reacter_3 = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -419,9 +425,10 @@ class TestTemplateReacter:
         port_atom_L2 = find_port_atom(struct_L2, "1")
         port_atom_R2 = find_port_atom(struct_R2, "2")
 
-        result2, template2 = template_reacter_3.run_with_template(
+        result2 = bond_react_reacter_3.run(
             struct_L2, struct_R2, port_atom_L=port_atom_L2, port_atom_R=port_atom_R2
         )
+        template2 = result2.template
 
         # Larger radius should include more atoms (or same)
         assert len(list(template2.pre.atoms)) >= len(list(template1.pre.atoms))
@@ -433,7 +440,7 @@ class TestTemplateReacter:
         c2 = Atom(symbol="C")
         struct.add_entity(c1, c2)
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -446,7 +453,7 @@ class TestTemplateReacter:
         c1["react_id"] = 100
 
         # Assign react_ids
-        template_reacter._assign_react_ids(struct)
+        bond_react_reacter._assign_react_ids(struct)
 
         # First atom should keep its react_id
         assert c1["react_id"] == 100
@@ -472,7 +479,7 @@ class TestTemplateReacter:
         struct_R.get_topo(gen_angle=True, gen_dihe=True)
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -483,15 +490,16 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Pre should have topology
         assert len(list(template.pre.bonds)) > 0
 
         # Post should not have bonds between deleted and non-deleted atoms
-        removed_rids = {a["react_id"] for a in template.removed_atoms}
+        removed_rids = {a["react_id"] for a in template.deleted_atoms}
         for bond in template.post.bonds:
             ep1_rid = bond.endpoints[0].get("react_id")
             ep2_rid = bond.endpoints[1].get("react_id")
@@ -501,9 +509,9 @@ class TestTemplateReacter:
                 f"Post has bond between deleted and non-deleted atom: {ep1_rid} - {ep2_rid}"
             )
 
-    def test_write_template_files(self):
-        """Test write_template_files function."""
-        from molpy.reacter.template import write_template_files
+    def test_BondReactTemplate_write(self):
+        """Test BondReactTemplate_write function."""
+        # write is now a method on BondReactTemplate
         from pathlib import Path
         import tempfile
 
@@ -521,7 +529,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c_R, h_R))
         c_R["port"] = "2"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -532,9 +540,10 @@ class TestTemplateReacter:
 
         port_atom_L = find_port_atom(struct_L, "1")  # noqa: F841
         port_atom_R = find_port_atom(struct_R, "2")  # noqa: F841
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_atom_L=port_atom_L, port_atom_R=port_atom_R
         )
+        template = result.template
 
         # Add dummy types for testing (normally done by typifier)
         for atom in template.pre.atoms:
@@ -553,7 +562,7 @@ class TestTemplateReacter:
         # Write to temporary directory
         with tempfile.TemporaryDirectory() as tmpdir:
             base_path = Path(tmpdir) / "test_rxn"
-            write_template_files(base_path, template, typifier=None)
+            template.write(base_path, typifier=None)
 
             # Check files exist
             pre_mol = Path(f"{base_path}_pre.mol")
@@ -604,7 +613,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c4, h6))
         c3["port"] = "<"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test_ordering",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -616,9 +625,10 @@ class TestTemplateReacter:
 
         port_L = find_port_atom(struct_L, ">")
         port_R = find_port_atom(struct_R, "<")
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_L, port_R
         )
+        template = result.template
 
         # Pre and post must have same number of atoms
         pre_atoms = list(template.pre.atoms)
@@ -655,7 +665,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c3, c4, type="bond_X"))
         c3["port"] = "<"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test_types",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -667,9 +677,10 @@ class TestTemplateReacter:
 
         port_L = find_port_atom(struct_L, ">")
         port_R = find_port_atom(struct_R, "<")
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_L, port_R
         )
+        template = result.template
 
         # Add types for testing
         for atom in template.pre.atoms:
@@ -699,7 +710,7 @@ class TestTemplateReacter:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             base_path = Path(tmpdir) / "test_types"
-            write_template_files(base_path, template, typifier=None)
+            template.write(base_path, typifier=None)
 
             # Read back pre and post mol files
             pre_mol = Path(f"{base_path}_pre.mol")
@@ -763,7 +774,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c4, h2))
         c4["port"] = "<"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test_edge",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -775,9 +786,10 @@ class TestTemplateReacter:
 
         port_L = find_port_atom(struct_L, ">")
         port_R = find_port_atom(struct_R, "<")
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_L, port_R
         )
+        template = result.template
 
         # Get edge atom react_ids
         edge_rids = {a.get("react_id") for a in template.edge_atoms}
@@ -818,7 +830,7 @@ class TestTemplateReacter:
         struct_R.add_link(Bond(c4, h2))
         c4["port"] = "<"
 
-        template_reacter = TemplateReacter(
+        bond_react_reacter = BondReactReacter(
             name="test_coords",
             anchor_selector_left=select_port,
             anchor_selector_right=select_port,
@@ -830,9 +842,10 @@ class TestTemplateReacter:
 
         port_L = find_port_atom(struct_L, ">")
         port_R = find_port_atom(struct_R, "<")
-        result, template = template_reacter.run_with_template(
+        result = bond_react_reacter.run(
             struct_L, struct_R, port_L, port_R
         )
+        template = result.template
 
         # Build coord lookup by react_id
         pre_coords = {}

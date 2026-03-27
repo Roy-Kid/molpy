@@ -57,10 +57,10 @@ from .base import (
     TopologyChanges,
 )
 from .connector import MonomerLinker
-from .template import (
-    TemplateReacter,
-    TemplateResult,
-    write_template_files,
+from .bond_react import (
+    BondReactReacter,
+    BondReactResult,
+    BondReactTemplate,
 )
 from .selectors import (
     # Anchor selectors (transform port_atom to anchor atom)
@@ -108,11 +108,11 @@ __all__ = [
     "ReactionMetadata",
     "ReactionResult",
     "Reacter",
-    "TemplateReacter",
-    "TemplateResult",
+    "BondReactReacter",
+    "BondReactResult",
+    "BondReactTemplate",
     "TopologyChanges",
     "TopologyDetector",
-    "write_template_files",
     # Transformers (Bond Formers)
     "break_bond",
     "create_bond_former",
