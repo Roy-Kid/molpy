@@ -101,7 +101,7 @@ class TestAmberPolymerBuilderValidation:
 
         builder = AmberPolymerBuilder(library={"EO": mock_monomer})
 
-        with pytest.raises(ValueError, match="must have port annotations"):
+        with pytest.raises(ValueError, match="has no port annotations"):
             builder.build("{[#EO]|5}")
 
 

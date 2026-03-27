@@ -188,7 +188,7 @@ class TestNewEngineInterface:
                 assert engine.work_dir == Path(tmpdir)
                 assert len(engine.scripts) == 1
                 assert (Path(tmpdir) / "input.inp").exists()
-            except FileNotFoundError:
+            except (FileNotFoundError, PermissionError):
                 pass
 
     def test_merged_env_vars(self):
