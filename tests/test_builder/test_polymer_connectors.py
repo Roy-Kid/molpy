@@ -7,7 +7,7 @@ from molpy.builder.polymer.connectors import Connector, ConnectorContext
 from molpy.builder.polymer.errors import AmbiguousPortsError
 from molpy.core.atomistic import Atom
 from molpy.reacter import Reacter
-from molpy.reacter.transformers import form_single_bond
+from molpy.reacter.utils import form_single_bond
 
 
 def _make_reacter():

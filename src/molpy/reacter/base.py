@@ -5,44 +5,14 @@ This module defines the base Reacter class and ProductSet dataclass,
 providing the foundation for SMIRKS-style reaction semantics.
 """
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from molpy.core.atomistic import Angle, Atom, Atomistic, Bond, Dihedral
 from molpy.core.entity import Entity
 from molpy.reacter.topology_detector import TopologyDetector
+from molpy.reacter.utils import AnchorSelector, BondFormer, LeavingSelector
 from molpy.typifier.atomistic import TypifierBase
-
-# Callable type signatures for reaction components
-AnchorSelector = Callable[[Atomistic, Atom], Atom]
-"""
-Select **anchor atom** given a **port atom**.
-
-Port atoms are SMILES-marked connection sites (e.g. $, *, <, >) stored on
-atoms via the "port" / "ports" attributes. An *anchor* is the actual atom
-that participates in bond formation.
-
-The callable receives an ``Atomistic`` structure and a port ``Atom``,
-and returns the anchor ``Atom`` where the new bond should be formed.
-"""
-
-LeavingSelector = Callable[[Atomistic, Atom], list[Atom]]
-"""
-Select leaving group atoms given an **anchor atom**.
-
-The callable receives an ``Atomistic`` structure and an anchor ``Atom``,
-and returns a ``list[Atom]`` of entities to be removed.
-"""
-
-BondFormer = Callable[[Atomistic, Atom, Atom], Bond | None]
-"""
-Create or modify bonds between two **anchor atoms** in an assembly.
-
-The callable receives an ``Atomistic`` assembly and two anchor ``Atom``
-instances (*i* and *j*), forms or updates bonds, and returns the new
-``Bond`` or ``None``. As a side effect it modifies ``assembly.links``.
-"""
 
 
 @dataclass

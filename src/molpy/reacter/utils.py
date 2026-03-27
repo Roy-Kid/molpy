@@ -1,12 +1,25 @@
 """
-Utility functions for assembly manipulation in reactions.
-
-This module provides helper functions for finding neighbors
-and other common operations needed for reactions.
+Utility functions and type aliases for reactions.
 """
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import cast
 
 from molpy.core.atomistic import Atom, Atomistic, Bond
 from molpy.core.entity import Entity
+
+# ── Type aliases for reaction components ─────────────────────────
+
+AnchorSelector = Callable[[Atomistic, Atom], Atom]
+"""Select anchor atom given a port atom."""
+
+LeavingSelector = Callable[[Atomistic, Atom], list[Atom]]
+"""Select leaving group atoms given an anchor atom."""
+
+BondFormer = Callable[[Atomistic, Atom, Atom], Bond | None]
+"""Create or modify bonds between two anchor atoms in an assembly."""
 
 
 def find_neighbors(
@@ -201,3 +214,94 @@ def create_atom_mapping(pre_atoms: list, post_atoms: list) -> dict[int, int]:
                     break
 
     return mapping
+
+
+# ===================================================================
+#               Bond formers (moved from transformers.py)
+# ===================================================================
+
+
+def form_single_bond(assembly: Atomistic, i: Entity, j: Entity) -> Bond | None:
+    """Create a single bond between two atoms."""
+    if i is j:
+        return None
+    existing = get_bond_between(assembly, i, j)
+    if existing is not None:
+        existing["order"] = 1
+        existing["kind"] = "-"
+        return existing
+    bond = Bond(cast(Atom, i), cast(Atom, j), order=1, kind="-")
+    assembly.add_link(bond, include_endpoints=False)
+    return bond
+
+
+def form_double_bond(assembly: Atomistic, i: Entity, j: Entity) -> Bond | None:
+    """Create a double bond between two atoms."""
+    existing = get_bond_between(assembly, i, j)
+    if existing is not None:
+        existing["order"] = 2
+        existing["kind"] = "="
+        return existing
+    bond = Bond(cast(Atom, i), cast(Atom, j), order=2, kind="=")
+    assembly.add_link(bond, include_endpoints=False)
+    return bond
+
+
+def form_triple_bond(assembly: Atomistic, i: Entity, j: Entity) -> Bond | None:
+    """Create a triple bond between two atoms."""
+    existing = get_bond_between(assembly, i, j)
+    if existing is not None:
+        existing["order"] = 3
+        existing["kind"] = "#"
+        return existing
+    bond = Bond(cast(Atom, i), cast(Atom, j), order=3, kind="#")
+    assembly.add_link(bond, include_endpoints=False)
+    return bond
+
+
+def form_aromatic_bond(assembly: Atomistic, i: Entity, j: Entity) -> Bond | None:
+    """Create an aromatic bond between two atoms."""
+    existing = get_bond_between(assembly, i, j)
+    if existing is not None:
+        existing["order"] = 1.5
+        existing["kind"] = ":"
+        existing["aromatic"] = True
+        return existing
+    bond = Bond(cast(Atom, i), cast(Atom, j), order=1.5, kind=":", aromatic=True)
+    assembly.add_link(bond, include_endpoints=False)
+    return bond
+
+
+def create_bond_former(order: int) -> BondFormer:
+    """Factory function to create bond former with specific order."""
+    kind_map = {1: "-", 2: "=", 3: "#", 1.5: ":"}
+    kind = kind_map.get(order, "-")
+
+    def bond_former(assembly: Atomistic, i: Entity, j: Entity) -> Bond | None:
+        existing = get_bond_between(assembly, i, j)
+        if existing is not None:
+            existing["order"] = order
+            existing["kind"] = kind
+            if order == 1.5:
+                existing["aromatic"] = True
+            return existing
+        attrs = {"order": order, "kind": kind}
+        if order == 1.5:
+            attrs["aromatic"] = True
+        bond = Bond(cast(Atom, i), cast(Atom, j), **attrs)
+        assembly.add_link(bond, include_endpoints=False)
+        return bond
+
+    return bond_former
+
+
+def skip_bond_formation(assembly: Atomistic, i: Entity, j: Entity) -> None:
+    """Do not create any bond. For reactions that only remove atoms."""
+    return None
+
+
+def break_bond(assembly: Atomistic, i: Entity, j: Entity) -> None:
+    """Remove existing bond between two atoms."""
+    existing = get_bond_between(assembly, i, j)
+    if existing is not None:
+        assembly.remove_link(existing)

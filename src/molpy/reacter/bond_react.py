@@ -19,13 +19,8 @@ import numpy as np
 import molpy as mp
 from molpy.core.atomistic import Atom, Atomistic, Bond
 from molpy.core.entity import Entity
-from molpy.reacter.base import (
-    AnchorSelector,
-    BondFormer,
-    LeavingSelector,
-    Reacter,
-    ReactionResult,
-)
+from molpy.reacter.base import Reacter, ReactionResult
+from molpy.reacter.utils import AnchorSelector, BondFormer, LeavingSelector
 
 if TYPE_CHECKING:
     from molpy.typifier.atomistic import TypifierBase

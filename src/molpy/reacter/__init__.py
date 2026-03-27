@@ -88,16 +88,17 @@ from .selectors import (
 # Alias for backward compatibility
 find_port = find_port_atom
 from .topology_detector import TopologyDetector
-from .transformers import (
+from .utils import (
     break_bond,
+    create_atom_mapping,
     create_bond_former,
+    find_neighbors,
     form_aromatic_bond,
     form_double_bond,
     form_single_bond,
     form_triple_bond,
     skip_bond_formation,
 )
-from .utils import create_atom_mapping, find_neighbors
 
 __all__ = [
     # Core classes
