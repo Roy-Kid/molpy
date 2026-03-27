@@ -574,7 +574,7 @@ class Frame:
 
         >>> frame = Frame(blocks={
         ...     "atoms": {"id": [1, 2, 3], "type": ["C", "H", "H"]},
-        ...     "bonds": {"i": [0, 0], "j": [1, 2]}
+        ...     "bonds": {"atomi": [0, 0], "atomj": [1, 2]}
         ... })
         >>> list(frame._blocks)
         ['atoms', 'bonds']
@@ -603,12 +603,12 @@ class Frame:
 
         >>> frame = Frame(blocks={
         ...     "atoms": {"id": [1, 2], "mass": [12.0, 1.0]},
-        ...     "bonds": {"i": [0], "j": [1]}
+        ...     "bonds": {"atomi": [0], "atomj": [1]}
         ... })
         >>> for block_name in frame._blocks:
         ...     print(f"{block_name}: {list(frame[block_name].keys())}")
         atoms: ['id', 'mass']
-        bonds: ['i', 'j']
+        bonds: ['atomi', 'atomj']
     """
 
     def __init__(
@@ -721,7 +721,7 @@ class Frame:
         Examples:
             >>> frame = Frame()
             >>> frame["atoms"] = Block({"x": [1, 2, 3]})
-            >>> frame["bonds"] = {"i": [0, 1], "j": [1, 2]}  # Auto-converted
+            >>> frame["bonds"] = {"atomi": [0, 1], "atomj": [1, 2]}  # Auto-converted
             >>> isinstance(frame["bonds"], Block)
             True
         """
@@ -774,9 +774,9 @@ class Frame:
             `frame._blocks.keys()`.
 
         Examples:
-            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"i": [0]}})
+            >>> frame = Frame(blocks={"atoms": {"x": [1]}, "bonds": {"atomi": [0]}})
             >>> [b for b in frame.blocks]
-            [Block(x: shape=(1,), i: shape=(1,))]
+            [Block(x: shape=(1,), atomi: shape=(1,))]
         """
         return iter(self._blocks.values())
 

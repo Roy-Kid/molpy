@@ -105,7 +105,7 @@ from molpy.reacter import (
     select_hydrogens, select_neighbor, select_self,
 )
 from molpy.core.atomistic import Atom, Atomistic
-from molpy.typifier import OplsTypifier
+from molpy.typifier import OplsAtomisticTypifier
 
 def select_hydroxyl_group(struct: Atomistic, site: Atom) -> list[Atom]:
     """Remove the -OH leaving group. Same as in the stepwise guide."""
@@ -119,8 +119,8 @@ def select_hydroxyl_group(struct: Atomistic, site: Atom) -> list[Atom]:
 
 rxn = Reacter(
     name="dehydration",
-    site_selector_left=select_neighbor("C"),
-    site_selector_right=select_self,
+    anchor_selector_left=select_neighbor("C"),
+    anchor_selector_right=select_self,
     leaving_selector_left=select_hydroxyl_group,
     leaving_selector_right=select_hydrogens(1),
     bond_former=form_single_bond,
@@ -130,7 +130,7 @@ eo_template = mp.parser.parse_monomer("{[][<]OCCO[>][]}")
 eo_template = mp.tool.generate_3d(eo_template, add_hydrogens=True, optimize=True)
 eo_template.get_topo(gen_angle=True, gen_dihe=True)
 
-connector = Connector(rules={("EO", "EO"): (">", "<")}, reacter=rxn)
+connector = Connector(port_map={("EO", "EO"): (">", "<")}, reacter=rxn)
 placer = Placer(separator=CovalentSeparator(buffer=-0.1), orienter=LinearOrienter())
 builder = PolymerBuilder(library={"EO": eo_template}, connector=connector, placer=placer)
 
@@ -156,10 +156,9 @@ Assign force field types, then pack chains into a periodic box with Packmol.
 
 ```python
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typifier = OplsTypifier(ff, strict_typing=False)
+typifier = OplsAtomisticTypifier(ff, strict_typing=False)
 
-for chain in atomistic_chains:
-    typifier.typify(chain)
+atomistic_chains = [typifier.typify(chain) for chain in atomistic_chains]
 
 # Compute box size
 total_mw = sum(
@@ -173,7 +172,7 @@ box_length = volume ** (1/3)
 from pathlib import Path
 from molpy.pack import InsideBoxConstraint, Molpack
 
-packer = Molpack(workdir=Path("polydisperse_output/packmol"))
+packer = Molpack(workdir=Path("05_output/packmol"))
 constraint = InsideBoxConstraint(
     length=np.array([box_length] * 3),
     origin=np.zeros(3),
@@ -197,7 +196,7 @@ if "q" not in atoms:
 if "mol" not in atoms:
     atoms["mol"] = np.ones(atoms.nrows, dtype=int)
 
-mp.io.write_lammps_system("polydisperse_output/lammps", packed, ff)
+mp.io.write_lammps_system("05_output/lammps", packed, ff)
 ```
 
 

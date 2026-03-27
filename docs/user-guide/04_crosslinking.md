@@ -26,10 +26,10 @@ We use two monomers: EO2 (linear, two `$` ports) and EO3 (branched, three `$` po
 ```python
 import molpy as mp
 from molpy.core.atomistic import Atom, Atomistic
-from molpy.typifier import OplsTypifier
+from molpy.typifier import OplsAtomisticTypifier
 
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typifier = OplsTypifier(ff, strict_typing=False)
+typifier = OplsAtomisticTypifier(ff, strict_typing=False)
 
 def build_monomer(bigsmiles):
     monomer = mp.parser.parse_monomer(bigsmiles)
@@ -65,7 +65,7 @@ from molpy.reacter import (
 )
 from molpy.reacter.template import TemplateReacter
 
-output_dir = Path("crosslinking_output")
+output_dir = Path("04_output")
 output_dir.mkdir(exist_ok=True)
 
 def select_hydroxyl_group(struct: Atomistic, site: Atom) -> list[Atom]:
@@ -80,8 +80,8 @@ def select_hydroxyl_group(struct: Atomistic, site: Atom) -> list[Atom]:
 
 template_reacter = TemplateReacter(
     name="rxn1",
-    site_selector_left=select_neighbor("C"),
-    site_selector_right=select_self,
+    anchor_selector_left=select_neighbor("C"),
+    anchor_selector_right=select_self,
     leaving_selector_left=select_hydroxyl_group,
     leaving_selector_right=select_hydrogens(1),
     bond_former=form_single_bond,
@@ -91,7 +91,7 @@ template_reacter = TemplateReacter(
 # Use EO2+EO2 as representative pair
 left = eo2.copy()
 right = eo2.copy()
-_result, template = template_reacter.run(
+_result, template = template_reacter.run_with_template(
     left=left, right=right,
     port_atom_L=find_port(left, "$"),
     port_atom_R=find_port(right, "$"),

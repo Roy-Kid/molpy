@@ -65,23 +65,23 @@ class AmberPrmtopReader:
         bonds = {
             "type_id": [],
             "type": [],
-            "i": [],
-            "j": [],
+            "atomi": [],
+            "atomj": [],
         }
         angles = {
             "type_id": [],
             "type": [],
-            "i": [],
-            "j": [],
-            "k": [],
+            "atomi": [],
+            "atomj": [],
+            "atomk": [],
         }
         dihedrals = {
             "type_id": [],
             "type": [],
-            "i": [],
-            "j": [],
-            "k": [],
-            "l": [],
+            "atomi": [],
+            "atomj": [],
+            "atomk": [],
+            "atoml": [],
         }
 
         for key, value in self.raw_data.items():
@@ -166,8 +166,8 @@ class AmberPrmtopReader:
                     parms=[f, r_min],
                 )  # if multiply by 2
             bonds["type_id"].append(bond_type)
-            bonds["i"].append(i - 1)
-            bonds["j"].append(j - 1)
+            bonds["atomi"].append(i - 1)
+            bonds["atomj"].append(j - 1)
             bonds["type"].append(bond_name)
         bonds["id"] = np.arange(meta["n_bonds"], dtype=int) + 1
 
@@ -193,9 +193,9 @@ class AmberPrmtopReader:
                 )
 
             angles["type_id"].append(angle_type)
-            angles["i"].append(i - 1)
-            angles["j"].append(j - 1)
-            angles["k"].append(k - 1)
+            angles["atomi"].append(i - 1)
+            angles["atomj"].append(j - 1)
+            angles["atomk"].append(k - 1)
             angles["type"].append(angle_name)
 
         angles["id"] = np.arange(meta["n_angles"], dtype=int) + 1
@@ -233,10 +233,10 @@ class AmberPrmtopReader:
                     parms=[f, periodicity, int(phase), 0.5],
                 )
             dihedrals["type_id"].append(dihe_type)
-            dihedrals["i"].append(i - 1)
-            dihedrals["j"].append(j - 1)
-            dihedrals["k"].append(k - 1)
-            dihedrals["l"].append(l - 1)
+            dihedrals["atomi"].append(i - 1)
+            dihedrals["atomj"].append(j - 1)
+            dihedrals["atomk"].append(k - 1)
+            dihedrals["atoml"].append(l - 1)
             dihedrals["type"].append(dihe_name)
         dihedrals["id"] = np.arange(meta["n_dihedrals"], dtype=int) + 1
 
@@ -342,9 +342,9 @@ class AmberPrmtopReader:
             np.arange(len(segment_lengths - 1)), segment_lengths
         )
 
-        # get bond mask: if both i and j in atom_mask, then bond is intra-residue and equal to atom mask in corresponding index, else inter-residue and -1
-        bond_i = bonds["i"]
-        bond_j = bonds["j"]
+        # get bond mask: if both atomi and atomj in atom_mask, then bond is intra-residue and equal to atom mask in corresponding index, else inter-residue and -1
+        bond_i = bonds["atomi"]
+        bond_j = bonds["atomj"]
         bond_residue_mask = np.zeros(len(bond_i), dtype=int)
         for residue in np.unique(atom_residue_mask):
             atom_mask = atom_residue_mask == residue  # atoms' id in residue
@@ -355,9 +355,9 @@ class AmberPrmtopReader:
         atoms["residue"] = atom_residue_mask
         bonds["residue"] = bond_residue_mask
 
-        angle_i = angles["i"]
-        angle_j = angles["j"]
-        angle_k = angles["k"]
+        angle_i = angles["atomi"]
+        angle_j = angles["atomj"]
+        angle_k = angles["atomk"]
         angle_residue_mask = np.where(
             np.isin(angle_i, atom_residue_mask)
             & np.isin(angle_j, atom_residue_mask)

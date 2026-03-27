@@ -13,7 +13,7 @@ A molecular structure has atoms and bonds, but a simulation needs *types* — id
 
 **A Typifier examines the chemical environment of each atom via SMARTS pattern matching and assigns the corresponding force field type.**
 
-MolPy's `OplsTypifier` handles the full assignment in one call: atom types first, then pair parameters, then bond/angle/dihedral types derived from the atom type assignments.
+MolPy's `OplsAtomisticTypifier` handles the full assignment in one call: atom types first, then pair parameters, then bond/angle/dihedral types derived from the atom type assignments.
 
 
 ## A complete example: typing ethanol
@@ -22,7 +22,7 @@ The workflow is always the same: build the structure, load a force field, create
 
 ```python
 import molpy as mp
-from molpy.typifier import OplsTypifier
+from molpy.typifier import OplsAtomisticTypifier
 
 # 1. Build the structure
 mol = mp.parser.parse_molecule("CCO")
@@ -37,7 +37,7 @@ print(f"angles: {len(mol.angles)}, dihedrals: {len(mol.dihedrals)}")
 # 2. Load force field and typify
 # "oplsaa.xml" is bundled with MolPy — no separate download needed
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typifier = OplsTypifier(ff, strict_typing=True)
+typifier = OplsAtomisticTypifier(ff, strict_typing=True)
 
 typed_mol = typifier.typify(mol)
 ```
@@ -119,13 +119,13 @@ The force field writer needs the set of types used in the structure.
 
 ```python
 from pathlib import Path
-import tempfile
 
 # Collect types
 atom_types = {str(t) for t in frame["atoms"]["type"] if t}
 bond_types = {str(t) for t in frame["bonds"]["type"] if t} if "bonds" in frame else set()
 
-outdir = Path(tempfile.mkdtemp())
+outdir = Path("06_output")
+outdir.mkdir(exist_ok=True)
 
 LAMMPSForceFieldWriter(outdir / "ethanol.ff").write(
     ff, atom_types=atom_types, bond_types=bond_types,

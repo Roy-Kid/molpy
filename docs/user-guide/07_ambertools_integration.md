@@ -51,7 +51,7 @@ from molpy.tool import Generate3D
 from molpy.io.writers import write_pdb
 from molpy.wrapper import AntechamberWrapper, Parmchk2Wrapper, TLeapWrapper
 
-output_dir = Path("peo_litfsi_demo")
+output_dir = Path("07_output")
 ions_dir = output_dir / "ions"
 ions_dir.mkdir(parents=True, exist_ok=True)
 
@@ -134,7 +134,7 @@ me_right = make_cap("{[]C[>][]}")
 `AmberPolymerBuilder` wraps the monomer library, connector rules, and Amber tool chain (prepgen + tleap) into one builder that produces fully parameterized chains.
 
 ```python
-from molpy.builder.ambertools import AmberPolymerBuilder, AmberPolymerBuilderConfig
+from molpy.builder.polymer.ambertools import AmberPolymerBuilder, AmberPolymerBuilderConfig
 
 config = AmberPolymerBuilderConfig(
     force_field="gaff2",

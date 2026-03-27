@@ -19,7 +19,7 @@ Each page documents one MolPy package. Symbols are auto-generated from source do
 | Generate `fix bond/react` templates | `TemplateReacter` | [Reacter](reacter.md) |
 | Assemble polymer chains from CGSmiles | `PolymerBuilder`, `Connector`, `Placer` | [Builder](builder.md) |
 | Pack molecules into a periodic box | `Molpack`, `InsideBoxConstraint` | [Pack](pack.md) |
-| Assign force field types via SMARTS matching | `OplsTypifier`, `GaffTypifier` | [Typifier](typifier.md) |
+| Assign force field types via SMARTS matching | `OplsAtomisticTypifier`, `GaffTypifier` | [Typifier](typifier.md) |
 | Compute bond/angle/pair energies and forces | `BondHarmonic`, `LJ126` | [Potential](potential.md) |
 | Read / write molecular files (PDB, LAMMPS, GRO, ...) | `read_pdb`, `write_lammps_data`, `read_xml_forcefield` | [I/O](io.md) |
 | Bridge to RDKit or OpenBabel objects | `RDKitAdapter`, `OpenBabelAdapter` | [Adapter](adapter.md) |

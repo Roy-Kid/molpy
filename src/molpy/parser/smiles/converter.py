@@ -349,10 +349,6 @@ def create_monomer_from_repeat_unit(
 
         port_name = descriptor_to_port_name(descriptor)
         atom["port"] = port_name
-        atom["port_role"] = "terminal"
-        atom["port_bond_kind"] = "-"
-        atom["port_compat"] = set()
-        atom["port_priority"] = 0
 
     return struct
 

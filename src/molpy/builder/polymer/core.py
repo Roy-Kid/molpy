@@ -210,6 +210,10 @@ class PolymerBuilder:
 
         polymer, history = self._build_from_graph(ir.base_graph)
 
+        from .port_utils import cleanup_build_markers
+
+        cleanup_build_markers(polymer)
+
         return PolymerBuildResult(
             polymer=polymer,
             connection_history=history,
@@ -380,26 +384,15 @@ class PolymerBuilder:
             self.connector.select_ports(left, right, left_ports, right_ports, ctx)
         )
 
-        left_port = left_ports[left_port_name][left_port_idx]
-        right_port = right_ports[right_port_name][right_port_idx]
+        left_port_atom = left_ports[left_port_name][left_port_idx]
+        right_port_atom = right_ports[right_port_name][right_port_idx]
 
         if self.placer is not None:
-            self.placer.place_monomer(left, right, left_port, right_port)
+            self.placer.place_monomer(left, right, left_port_atom, right_port_atom)
 
-        # Save port targets for transfer after reaction
-        left_port_targets: dict[str, list[Atom]] = {
-            name: [port.target for port in port_list]
-            for name, port_list in left_ports.items()
-        }
-        right_port_targets: dict[str, list[Atom]] = {
-            name: [port.target for port in port_list]
-            for name, port_list in right_ports.items()
-        }
-
-        from molpy.reacter.selectors import find_port
-
-        left_port_atom = find_port(left, left_port_name, node_id=left_node_id)
-        right_port_atom = find_port(right, right_port_name, node_id=right_node_id)
+        # Save port atoms for transfer after reaction
+        left_port_targets: dict[str, list[Atom]] = dict(left_ports)
+        right_port_targets: dict[str, list[Atom]] = dict(right_ports)
 
         connection_result = self.connector.connect(
             left,
@@ -428,7 +421,7 @@ class PolymerBuilder:
             left_node_id,
             right_node_id,
         )
-        self._preserve_node_ids(product, entity_map)
+        self._preserve_node_ids(product, entity_map, (left_node_id, right_node_id))
         self._cleanup_stale_ports(product)
 
         return product
@@ -479,8 +472,13 @@ class PolymerBuilder:
         self,
         product: Atomistic,
         entity_map: dict[Atom, Atom],
+        connected_node_ids: tuple[int, int],
     ) -> None:
-        """Preserve node IDs and ports from original atoms through entity map."""
+        """Preserve node IDs and ports from original atoms through entity map.
+
+        Ports for the two connected nodes are NOT restored here — they were
+        already handled (with consumed-port filtering) by _transfer_unused_ports.
+        """
         reverse_map: dict[Atom, Atom] = {v: k for k, v in entity_map.items()}
 
         for atom in product.atoms:
@@ -494,6 +492,8 @@ class PolymerBuilder:
 
             original_port = original_atom.get("port")
             if original_port and atom.get("port") is None:
+                if original_node_id in connected_node_ids:
+                    continue
                 atom["port"] = original_port
 
     def _cleanup_stale_ports(self, product: Atomistic) -> None:

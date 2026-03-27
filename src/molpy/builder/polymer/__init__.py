@@ -10,6 +10,7 @@ from .connectors import (
     ConnectorContext,
 )
 from .growth_kernel import GrowthKernel, ProbabilityTableKernel
+from .placer import CovalentSeparator, LinearOrienter, Placer, VdWSeparator
 from .polymer_builder import PolymerBuilder
 from .sequence_generator import SequenceGenerator, WeightedSequenceGenerator
 from .system import (
@@ -36,6 +37,11 @@ __all__ = [
     # Connector
     "Connector",
     "ConnectorContext",
+    # Placer
+    "CovalentSeparator",
+    "LinearOrienter",
+    "Placer",
+    "VdWSeparator",
     # CGSmiles Builder
     "PolymerBuilder",
     # Sequence Generators

@@ -140,22 +140,20 @@ class AmberPolymerBuilder:
                 f"Available labels: {available}"
             )
 
-        # Validate port annotations on each monomer
+        # Validate port annotations on each monomer.
+        # Interior monomers need both '<' (head) and '>' (tail).
+        # End-group / cap monomers need at least one port.
         for label, monomer in self.library.items():
-            head_port = None
-            tail_port = None
+            ports_found = set()
             for atom in monomer.atoms:
                 port = atom.get("port")
-                if port == "<":
-                    head_port = atom
-                elif port == ">":
-                    tail_port = atom
+                if port in ("<", ">"):
+                    ports_found.add(port)
 
-            if head_port is None or tail_port is None:
+            if not ports_found:
                 raise ValueError(
-                    f"Monomer '{label}' must have port annotations: "
-                    f"port='<' for head, port='>' for tail. "
-                    f"Found: head={head_port is not None}, tail={tail_port is not None}"
+                    f"Monomer '{label}' has no port annotations. "
+                    "At least one port='<' or port='>' is required."
                 )
 
     def _prepare_monomers(self, graph: CGSmilesGraphIR) -> None:
@@ -250,40 +248,15 @@ class AmberPolymerBuilder:
                 output_file=frcmod_file,
             )
 
-            # Step 4: Generate prepgen control files and run prepgen
-            # HEAD variant (chain start): only TAIL connection active
-            head_ctrl = monomer_dir / f"{label}.head"
-            head_prepi = monomer_dir / f"H{label}.prepi"
-            write_prepgen_control_file(
-                head_ctrl,
-                variant="head",
-                head_name=None,  # No HEAD connection for chain start
-                tail_name=tail_atom_name,
-                omit_names=self._get_omit_names(monomer, "<"),
-            )
+            # Step 4: Generate prepgen control files and run prepgen.
+            # Which variants to generate depends on the ports present:
+            #   both < and > : full monomer → HEAD, CHAIN, TAIL
+            #   only <       : left cap    → HEAD only (no TAIL connection)
+            #   only >       : right cap   → TAIL only (no HEAD connection)
+            is_full = head_atom_name is not None and tail_atom_name is not None
+            is_left_cap = head_atom_name is not None and tail_atom_name is None
+            is_right_cap = head_atom_name is None and tail_atom_name is not None
 
-            # CHAIN variant (middle): both connections
-            chain_ctrl = monomer_dir / f"{label}.chain"
-            chain_prepi = monomer_dir / f"{label}.prepi"
-            write_prepgen_control_file(
-                chain_ctrl,
-                variant="chain",
-                head_name=head_atom_name,
-                tail_name=tail_atom_name,
-            )
-
-            # TAIL variant (chain end): only HEAD connection active
-            tail_ctrl = monomer_dir / f"{label}.tail"
-            tail_prepi = monomer_dir / f"T{label}.prepi"
-            write_prepgen_control_file(
-                tail_ctrl,
-                variant="tail",
-                head_name=head_atom_name,
-                tail_name=None,  # No TAIL connection for chain end
-                omit_names=self._get_omit_names(monomer, ">"),
-            )
-
-            # Run prepgen for each variant
             prepgen = PrepgenWrapper(
                 name="prepgen",
                 workdir=monomer_dir,
@@ -291,26 +264,62 @@ class AmberPolymerBuilder:
                 env_manager=self.config.env_manager,
             )
 
-            prepgen.generate_residue(
-                input_file=ac_file,
-                output_file=head_prepi,
-                control_file=head_ctrl,
-                residue_name=f"H{label[:2].upper()}",
-            )
+            head_prepi = None
+            chain_prepi = None
+            tail_prepi = None
 
-            prepgen.generate_residue(
-                input_file=ac_file,
-                output_file=chain_prepi,
-                control_file=chain_ctrl,
-                residue_name=label[:3].upper(),
-            )
+            if is_full or is_left_cap:
+                # HEAD variant: start of chain, only TAIL connection active
+                head_ctrl = monomer_dir / f"{label}.head"
+                head_prepi = monomer_dir / f"H{label}.prepi"
+                write_prepgen_control_file(
+                    head_ctrl,
+                    variant="head",
+                    head_name=None,
+                    tail_name=tail_atom_name,
+                    omit_names=self._get_omit_names(monomer, "<") if is_full else [],
+                )
+                prepgen.generate_residue(
+                    input_file=ac_file,
+                    output_file=head_prepi,
+                    control_file=head_ctrl,
+                    residue_name=f"H{label[:2].upper()}",
+                )
 
-            prepgen.generate_residue(
-                input_file=ac_file,
-                output_file=tail_prepi,
-                control_file=tail_ctrl,
-                residue_name=f"T{label[:2].upper()}",
-            )
+            if is_full:
+                # CHAIN variant: middle, both connections
+                chain_ctrl = monomer_dir / f"{label}.chain"
+                chain_prepi = monomer_dir / f"{label}.prepi"
+                write_prepgen_control_file(
+                    chain_ctrl,
+                    variant="chain",
+                    head_name=head_atom_name,
+                    tail_name=tail_atom_name,
+                )
+                prepgen.generate_residue(
+                    input_file=ac_file,
+                    output_file=chain_prepi,
+                    control_file=chain_ctrl,
+                    residue_name=label[:3].upper(),
+                )
+
+            if is_full or is_right_cap:
+                # TAIL variant: end of chain, only HEAD connection active
+                tail_ctrl = monomer_dir / f"{label}.tail"
+                tail_prepi = monomer_dir / f"T{label}.prepi"
+                write_prepgen_control_file(
+                    tail_ctrl,
+                    variant="tail",
+                    head_name=head_atom_name,
+                    tail_name=None,
+                    omit_names=self._get_omit_names(monomer, ">") if is_full else [],
+                )
+                prepgen.generate_residue(
+                    input_file=ac_file,
+                    output_file=tail_prepi,
+                    control_file=tail_ctrl,
+                    residue_name=f"T{label[:2].upper()}",
+                )
 
             # Store prepared monomer info
             self._prepared_monomers[label] = _PreparedMonomer(
@@ -319,9 +328,9 @@ class AmberPolymerBuilder:
                 head_prepi=head_prepi,
                 chain_prepi=chain_prepi,
                 tail_prepi=tail_prepi,
-                head_resname=f"H{label[:2].upper()}",
-                chain_resname=label[:3].upper(),
-                tail_resname=f"T{label[:2].upper()}",
+                head_resname=f"H{label[:2].upper()}" if head_prepi else None,
+                chain_resname=label[:3].upper() if chain_prepi else None,
+                tail_resname=f"T{label[:2].upper()}" if tail_prepi else None,
             )
 
     def _get_omit_names(self, monomer: Atomistic, port: str) -> list[str]:
@@ -379,9 +388,12 @@ class AmberPolymerBuilder:
         for label in sorted(used_labels):
             prep = self._prepared_monomers[label]
             script_lines.append(f"loadamberparams {prep.frcmod_file}")
-            script_lines.append(f"loadamberprep {prep.head_prepi}")
-            script_lines.append(f"loadamberprep {prep.chain_prepi}")
-            script_lines.append(f"loadamberprep {prep.tail_prepi}")
+            if prep.head_prepi is not None:
+                script_lines.append(f"loadamberprep {prep.head_prepi}")
+            if prep.chain_prepi is not None:
+                script_lines.append(f"loadamberprep {prep.chain_prepi}")
+            if prep.tail_prepi is not None:
+                script_lines.append(f"loadamberprep {prep.tail_prepi}")
         script_lines.append("")
 
         # Build sequence
@@ -429,10 +441,12 @@ class AmberPolymerBuilder:
     def _build_sequence(self, graph: CGSmilesGraphIR) -> str:
         """Build tleap sequence from CGSmiles graph.
 
-        Assigns HEAD/CHAIN/TAIL variants based on position:
-        - First node: HEAD variant
-        - Middle nodes: CHAIN variant
-        - Last node: TAIL variant
+        Variant assignment:
+        - Cap with only ``<`` → always uses HEAD variant
+        - Cap with only ``>`` → always uses TAIL variant
+        - Full monomer at first position → HEAD variant
+        - Full monomer at last position → TAIL variant
+        - Full monomer in middle → CHAIN variant
         """
         nodes = graph.nodes
         n = len(nodes)
@@ -444,17 +458,27 @@ class AmberPolymerBuilder:
         for i, node in enumerate(nodes):
             prep = self._prepared_monomers[node.label]
 
+            # Cap monomers (only one variant available)
+            if prep.chain_prepi is None:
+                # This is a cap — use whichever variant was generated
+                if prep.head_resname is not None:
+                    residue_names.append(prep.head_resname)
+                elif prep.tail_resname is not None:
+                    residue_names.append(prep.tail_resname)
+                else:
+                    raise ValueError(
+                        f"Cap monomer '{node.label}' has no residue variant"
+                    )
+                continue
+
+            # Full monomers — position-based variant
             if n == 1:
-                # Single monomer - use chain (or could use head)
                 residue_names.append(prep.chain_resname)
             elif i == 0:
-                # First monomer: HEAD variant
                 residue_names.append(prep.head_resname)
             elif i == n - 1:
-                # Last monomer: TAIL variant
                 residue_names.append(prep.tail_resname)
             else:
-                # Middle: CHAIN variant
                 residue_names.append(prep.chain_resname)
 
         return " ".join(residue_names)
@@ -466,9 +490,9 @@ class _PreparedMonomer:
 
     label: str
     frcmod_file: Path
-    head_prepi: Path
-    chain_prepi: Path
-    tail_prepi: Path
-    head_resname: str
-    chain_resname: str
-    tail_resname: str
+    head_prepi: Path | None
+    chain_prepi: Path | None
+    tail_prepi: Path | None
+    head_resname: str | None
+    chain_resname: str | None
+    tail_resname: str | None

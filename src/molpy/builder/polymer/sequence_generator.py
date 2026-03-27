@@ -10,8 +10,9 @@ The SequenceGenerator is the bottom layer in the three-layer architecture:
 - SequenceGenerator (bottom, monomer level)
 """
 
-from random import Random
 from typing import Protocol
+
+import numpy as np
 
 
 class SequenceGenerator(Protocol):
@@ -29,7 +30,7 @@ class SequenceGenerator(Protocol):
     def generate_sequence(
         self,
         dp: int,
-        rng: Random,
+        rng: np.random.Generator,
     ) -> list[str]:
         """
         Generate a monomer sequence of specified degree of polymerization.
@@ -122,7 +123,7 @@ class WeightedSequenceGenerator:
     def generate_sequence(
         self,
         dp: int,
-        rng: Random,
+        rng: np.random.Generator,
     ) -> list[str]:
         """
         Generate a sequence of specified degree of polymerization.
@@ -134,13 +135,10 @@ class WeightedSequenceGenerator:
         Returns:
             list of monomer identifiers (strings)
         """
-        # Use rng.choices for weighted random selection
-        sequence = rng.choices(
-            self.monomer_ids,
-            weights=[self.monomer_weights[mid] for mid in self.monomer_ids],
-            k=dp,
-        )
-        return sequence
+        weights = np.array([self.monomer_weights[mid] for mid in self.monomer_ids])
+        probs = weights / weights.sum()
+        indices = rng.choice(len(self.monomer_ids), size=dp, p=probs)
+        return [self.monomer_ids[i] for i in indices]
 
     def expected_composition(self) -> dict[str, float]:
         """

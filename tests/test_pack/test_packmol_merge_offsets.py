@@ -44,16 +44,16 @@ def test_build_final_frame_offsets_cumulative_with_atomi_keys() -> None:
             "bonds": Block(
                 {
                     "id": np.array([1], dtype=int),
-                    "i": np.array([0], dtype=int),
-                    "j": np.array([1], dtype=int),
+                    "atomi": np.array([0], dtype=int),
+                    "atomj": np.array([1], dtype=int),
                 }
             ),
             "angles": Block(
                 {
                     "id": np.array([1], dtype=int),
-                    "i": np.array([0], dtype=int),
-                    "j": np.array([1], dtype=int),
-                    "k": np.array([2], dtype=int),
+                    "atomi": np.array([0], dtype=int),
+                    "atomj": np.array([1], dtype=int),
+                    "atomk": np.array([2], dtype=int),
                 }
             ),
         }
@@ -71,8 +71,8 @@ def test_build_final_frame_offsets_cumulative_with_atomi_keys() -> None:
             "bonds": Block(
                 {
                     "id": np.array([1], dtype=int),
-                    "i": np.array([0], dtype=int),
-                    "j": np.array([1], dtype=int),
+                    "atomi": np.array([0], dtype=int),
+                    "atomj": np.array([1], dtype=int),
                 }
             ),
         }
@@ -95,13 +95,23 @@ def test_build_final_frame_offsets_cumulative_with_atomi_keys() -> None:
     )
 
     # bonds: A(0-1), A(3-4), B(6-7)
-    np.testing.assert_array_equal(result["bonds"]["i"], np.array([0, 3, 6], dtype=int))
-    np.testing.assert_array_equal(result["bonds"]["j"], np.array([1, 4, 7], dtype=int))
+    np.testing.assert_array_equal(
+        result["bonds"]["atomi"], np.array([0, 3, 6], dtype=int)
+    )
+    np.testing.assert_array_equal(
+        result["bonds"]["atomj"], np.array([1, 4, 7], dtype=int)
+    )
 
     # angles only from A instances: (0,1,2), (3,4,5)
-    np.testing.assert_array_equal(result["angles"]["i"], np.array([0, 3], dtype=int))
-    np.testing.assert_array_equal(result["angles"]["j"], np.array([1, 4], dtype=int))
-    np.testing.assert_array_equal(result["angles"]["k"], np.array([2, 5], dtype=int))
+    np.testing.assert_array_equal(
+        result["angles"]["atomi"], np.array([0, 3], dtype=int)
+    )
+    np.testing.assert_array_equal(
+        result["angles"]["atomj"], np.array([1, 4], dtype=int)
+    )
+    np.testing.assert_array_equal(
+        result["angles"]["atomk"], np.array([2, 5], dtype=int)
+    )
 
 
 def test_build_final_frame_offsets_impropers_with_unified_keys() -> None:
@@ -118,10 +128,10 @@ def test_build_final_frame_offsets_impropers_with_unified_keys() -> None:
             "impropers": Block(
                 {
                     "id": np.array([1], dtype=int),
-                    "i": np.array([0], dtype=int),
-                    "j": np.array([1], dtype=int),
-                    "k": np.array([2], dtype=int),
-                    "l": np.array([3], dtype=int),
+                    "atomi": np.array([0], dtype=int),
+                    "atomj": np.array([1], dtype=int),
+                    "atomk": np.array([2], dtype=int),
+                    "atoml": np.array([3], dtype=int),
                 }
             ),
         }
@@ -133,12 +143,16 @@ def test_build_final_frame_offsets_impropers_with_unified_keys() -> None:
         optimized_frame=optimized,
     )
 
-    np.testing.assert_array_equal(result["impropers"]["i"], np.array([0, 4], dtype=int))
-    np.testing.assert_array_equal(result["impropers"]["l"], np.array([3, 7], dtype=int))
+    np.testing.assert_array_equal(
+        result["impropers"]["atomi"], np.array([0, 4], dtype=int)
+    )
+    np.testing.assert_array_equal(
+        result["impropers"]["atoml"], np.array([3, 7], dtype=int)
+    )
 
 
 def test_build_final_frame_rejects_legacy_topology_keys() -> None:
-    """Legacy atomi/atomj keys are no longer accepted."""
+    """Legacy i/j keys (without 'atom' prefix) are no longer accepted."""
     legacy = Frame(
         {
             "atoms": Block(
@@ -152,8 +166,8 @@ def test_build_final_frame_rejects_legacy_topology_keys() -> None:
             "bonds": Block(
                 {
                     "id": np.array([1], dtype=int),
-                    "atomi": np.array([0], dtype=int),
-                    "atomj": np.array([1], dtype=int),
+                    "i": np.array([0], dtype=int),
+                    "j": np.array([1], dtype=int),
                 }
             ),
         }

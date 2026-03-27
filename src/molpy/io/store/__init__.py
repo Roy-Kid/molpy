@@ -228,7 +228,7 @@ class MolStore:
                 tg = fg.create_group(topo_name)
                 for key, arr in frame[topo_name]._vars.items():
                     data = np.asarray(arr)
-                    if key in ("i", "j", "k", "l"):
+                    if key in ("atomi", "atomj", "atomk", "atoml"):
                         data = data.astype(np.uint32)
                     tg.write_array(key, data)
 

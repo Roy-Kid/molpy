@@ -32,8 +32,8 @@ from molpy.reacter import (
 
 rxn = Reacter(
     name="dehydration",
-    site_selector_left=select_neighbor("C"),
-    site_selector_right=select_self,
+    anchor_selector_left=select_neighbor("C"),
+    anchor_selector_right=select_self,
     leaving_selector_left=my_leaving_selector,
     leaving_selector_right=select_hydrogens(1),
     bond_former=form_single_bond,

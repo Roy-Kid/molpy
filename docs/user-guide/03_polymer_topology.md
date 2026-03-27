@@ -46,10 +46,10 @@ Every label in the CGSmiles expression must have a corresponding template in the
 
 ```python
 import molpy as mp
-from molpy.typifier import OplsTypifier
+from molpy.typifier import OplsAtomisticTypifier
 
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typifier = OplsTypifier(ff, strict_typing=True)
+typifier = OplsAtomisticTypifier(ff, strict_typing=True)
 
 BIGSMILES = {
     "EO2": "{[][$]OCCO[$][]}",
@@ -107,15 +107,15 @@ def select_one_hydrogen(struct: Atomistic, site: Atom) -> list[Atom]:
 
 rxn = Reacter(
     name="dehydration",
-    site_selector_left=select_neighbor("C"),
-    site_selector_right=select_self,
+    anchor_selector_left=select_neighbor("C"),
+    anchor_selector_right=select_self,
     leaving_selector_left=select_hydroxyl_group,
     leaving_selector_right=select_one_hydrogen,
     bond_former=form_single_bond,
 )
 
 rules = {(l, r): ("$", "$") for l in library for r in library}
-connector = Connector(rules=rules, reacter=rxn)
+connector = Connector(port_map=rules, reacter=rxn)
 placer = Placer(
     separator=CovalentSeparator(buffer=-0.1),
     orienter=LinearOrienter(),
@@ -148,18 +148,22 @@ Each product can be exported using the same pattern.
 
 ```python
 import numpy as np
+from pathlib import Path
 from molpy.io.writers import write_lammps_data
+
+output_dir = Path("03_output")
+output_dir.mkdir(exist_ok=True)
 
 for name, expr in expressions.items():
     result = builder.build(expr)
-    polymer = result.polymer
-    frame = polymer.to_frame()
+    typed_polymer = typifier.typify(result.polymer)
+    frame = typed_polymer.to_frame()
     atoms = frame["atoms"]
     if "q" not in atoms:
         atoms["q"] = np.zeros(atoms.nrows, dtype=float)
     if "mol" not in atoms:
         atoms["mol"] = np.ones(atoms.nrows, dtype=int)
-    write_lammps_data(f"{name}.data", frame)
+    write_lammps_data(output_dir / f"{name}.data", frame)
 ```
 
 

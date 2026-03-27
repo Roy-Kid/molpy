@@ -14,7 +14,6 @@ The data flow is:
 from __future__ import annotations
 import math
 from dataclasses import dataclass
-from random import Random
 from typing import Protocol, runtime_checkable
 
 import numpy as np
@@ -161,12 +160,12 @@ class PolydisperseChainGenerator:
             raise ValueError("distribution must be provided")
         self.distribution = distribution
 
-    def sample_dp(self, rng: Random) -> int:
+    def sample_dp(self, rng: np.random.Generator) -> int:
         """
         Sample a degree of polymerization from the distribution.
 
         Args:
-            rng: Random number generator
+            rng: np.random.Generator number generator
 
         Returns:
             Degree of polymerization (>= 1)
@@ -174,29 +173,25 @@ class PolydisperseChainGenerator:
         if self.distribution is None:
             raise ValueError("distribution must be set")
 
-        # Convert Random to numpy Generator
-        seed = rng.randint(0, 2**31 - 1)
-        np_rng = np.random.Generator(np.random.PCG64(seed))
-
         # Determine what capabilities the distribution actually provides
         has_sample_dp = callable(getattr(self.distribution, "sample_dp", None))
         has_sample_mass = callable(getattr(self.distribution, "sample_mass", None))
 
         # DP-based distributions may only be used via sample_dp
         if has_sample_dp and not has_sample_mass:
-            return self.distribution.sample_dp(np_rng)
+            return self.distribution.sample_dp(rng)
         # Mass-distributions are not valid for DP sampling; caller should use sample_mass path.
         raise TypeError(
             f"Distribution {type(self.distribution).__name__} does not support 'sample_dp'. "
             "Use mass-based sampling via 'sample_mass' and the corresponding build_chain logic."
         )
 
-    def sample_mass(self, rng: Random) -> float:
+    def sample_mass(self, rng: np.random.Generator) -> float:
         """
         Sample a target chain mass from a mass-based distribution.
 
         Args:
-            rng: Random number generator
+            rng: np.random.Generator number generator
 
         Returns:
             Target chain mass in g/mol (>= 0)
@@ -211,17 +206,15 @@ class PolydisperseChainGenerator:
                 "Use DP-based sampling via 'sample_dp' instead."
             )
 
-        seed = rng.randint(0, 2**31 - 1)
-        np_rng = np.random.Generator(np.random.PCG64(seed))
-        target_mass = float(self.distribution.sample_mass(np_rng))
+        target_mass = float(self.distribution.sample_mass(rng))
         return max(0.0, target_mass)
 
-    def build_chain(self, rng: Random) -> Chain:
+    def build_chain(self, rng: np.random.Generator) -> Chain:
         """
         Sample DP, generate monomer sequence, and compute mass.
 
         Args:
-            rng: Random number generator
+            rng: np.random.Generator number generator
 
         Returns:
             Chain object with dp, monomers, and mass
@@ -784,13 +777,13 @@ class SystemPlanner:
         self.max_chains = max_chains
         self.enable_trimming = enable_trimming
 
-    def plan_system(self, rng: Random) -> SystemPlan:
+    def plan_system(self, rng: np.random.Generator) -> SystemPlan:
         """
         Repeatedly ask chain_generator for new chains until accumulated mass
         reaches target_total_mass within max_rel_error.
 
         Args:
-            rng: Random number generator
+            rng: np.random.Generator number generator
 
         Returns:
             SystemPlan with all chains and total mass
@@ -831,7 +824,7 @@ class SystemPlanner:
         self,
         chain: Chain,
         remaining_mass: float,
-        rng: Random,
+        rng: np.random.Generator,
     ) -> Chain | None:
         """
         Optional trimming logic: reduce chain.dp, regenerate sequence,
@@ -842,7 +835,7 @@ class SystemPlanner:
         Args:
             chain: Original chain that would exceed the target
             remaining_mass: Remaining mass needed to reach target
-            rng: Random number generator
+            rng: np.random.Generator number generator
 
         Returns:
             Trimmed chain, or None if trimming is not possible

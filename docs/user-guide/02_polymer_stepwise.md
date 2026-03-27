@@ -52,7 +52,7 @@ from molpy.reacter import (
     Reacter, find_neighbors, find_port,
     form_single_bond, select_hydrogens, select_neighbor, select_self,
 )
-from molpy.typifier import OplsTypifier
+from molpy.typifier import OplsAtomisticTypifier
 
 MONOMER_BIGSMILES = "{[][<]OCCOCCOCCO[>][]}"
 
@@ -82,15 +82,15 @@ def select_hydroxyl_group(struct: Atomistic, reaction_site: Atom) -> list[Atom]:
 
 rxn = Reacter(
     name="dehydration",
-    site_selector_left=select_neighbor("C"),
-    site_selector_right=select_self,
+    anchor_selector_left=select_neighbor("C"),
+    anchor_selector_right=select_self,
     leaving_selector_left=select_hydroxyl_group,
     leaving_selector_right=select_hydrogens(1),
     bond_former=form_single_bond,
 )
 
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typifier = OplsTypifier(ff, strict_typing=True)
+typifier = OplsAtomisticTypifier(ff, strict_typing=True)
 ```
 
 Every selector follows the same signature: `(struct: Atomistic, atom: Atom) -> list[Atom]`. Site selectors must return exactly one atom; leaving selectors return zero or more atoms to remove.
@@ -181,7 +181,7 @@ The builder encodes the same decisions as reusable policies, so you don't repeat
 
 | Manual step | Builder policy |
 |-------------|---------------|
-| `find_port(chain, ">")` + `find_port(unit, "<")` | `Connector(rules={("EO","EO"): (">","<")})` |
+| `find_port(chain, ">")` + `find_port(unit, "<")` | `Connector(port_map={("EO","EO"): (">","<")})` |
 | `unit.move([10*i, 0, 0])` | `Placer(separator=..., orienter=...)` |
 | The `for` loop itself | `builder.build("{[#EO]|5}")` parses CGSmiles and traverses |
 
@@ -194,7 +194,7 @@ from molpy.builder.polymer import (
 eo_template = make_eo_monomer()
 
 connector = Connector(
-    rules={("EO", "EO"): (">", "<")},
+    port_map={("EO", "EO"): (">", "<")},
     reacter=rxn,
 )
 placer = Placer(
@@ -233,6 +233,34 @@ print(f"tool 5-mer: {len(chain.atoms)} atoms")
 ```
 
 All three paths produce the same result — a 5-unit PEO chain with identical chemistry. The difference is how much control you retain over each step.
+
+
+## Export
+
+Save the typed polymer from the builder path to LAMMPS files:
+
+```python
+from pathlib import Path
+import numpy as np
+from molpy.io.data.lammps import LammpsDataWriter
+from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
+
+output_dir = Path("02_output")
+output_dir.mkdir(exist_ok=True)
+
+typed_polymer = typifier.typify(result.polymer)
+frame = typed_polymer.to_frame()
+atoms = frame["atoms"]
+if "q" not in atoms:
+    atoms["q"] = np.zeros(atoms.nrows, dtype=float)
+if "mol" not in atoms:
+    atoms["mol"] = np.ones(atoms.nrows, dtype=int)
+
+LammpsDataWriter(output_dir / "peo5.data", atom_style="full").write(frame)
+LAMMPSForceFieldWriter(output_dir / "peo5.ff").write(ff)
+
+print(f"exported to {output_dir}")
+```
 
 
 ## Troubleshooting

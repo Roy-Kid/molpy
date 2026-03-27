@@ -194,19 +194,19 @@ def test_prmtop_read_bonds(litfsi_prmtop):
     frame, ff = reader.read(frame)
 
     bonds = frame["bonds"]
-    assert "i" in bonds
-    assert "j" in bonds
+    assert "atomi" in bonds
+    assert "atomj" in bonds
     assert "type" in bonds
     assert "type_id" in bonds
     assert "id" in bonds
 
     n_bonds = frame.metadata["n_bonds"]
-    assert len(bonds["i"]) == n_bonds
-    assert len(bonds["j"]) == n_bonds
+    assert len(bonds["atomi"]) == n_bonds
+    assert len(bonds["atomj"]) == n_bonds
 
     # Bond indices should be valid (0-indexed, less than n_atoms)
-    assert all(0 <= i < 16 for i in bonds["i"])
-    assert all(0 <= j < 16 for j in bonds["j"])
+    assert all(0 <= i < 16 for i in bonds["atomi"])
+    assert all(0 <= j < 16 for j in bonds["atomj"])
 
 
 def test_prmtop_read_angles(litfsi_prmtop):
@@ -216,22 +216,22 @@ def test_prmtop_read_angles(litfsi_prmtop):
     frame, ff = reader.read(frame)
 
     angles = frame["angles"]
-    assert "i" in angles
-    assert "j" in angles
-    assert "k" in angles
+    assert "atomi" in angles
+    assert "atomj" in angles
+    assert "atomk" in angles
     assert "type" in angles
     assert "type_id" in angles
     assert "id" in angles
 
     n_angles = frame.metadata["n_angles"]
-    assert len(angles["i"]) == n_angles
-    assert len(angles["j"]) == n_angles
-    assert len(angles["k"]) == n_angles
+    assert len(angles["atomi"]) == n_angles
+    assert len(angles["atomj"]) == n_angles
+    assert len(angles["atomk"]) == n_angles
 
     # Angle indices should be valid
-    assert all(0 <= i < 16 for i in angles["i"])
-    assert all(0 <= j < 16 for j in angles["j"])
-    assert all(0 <= k < 16 for k in angles["k"])
+    assert all(0 <= i < 16 for i in angles["atomi"])
+    assert all(0 <= j < 16 for j in angles["atomj"])
+    assert all(0 <= k < 16 for k in angles["atomk"])
 
 
 def test_prmtop_read_dihedrals(litfsi_prmtop):
@@ -241,25 +241,25 @@ def test_prmtop_read_dihedrals(litfsi_prmtop):
     frame, ff = reader.read(frame)
 
     dihedrals = frame["dihedrals"]
-    assert "i" in dihedrals
-    assert "j" in dihedrals
-    assert "k" in dihedrals
-    assert "l" in dihedrals
+    assert "atomi" in dihedrals
+    assert "atomj" in dihedrals
+    assert "atomk" in dihedrals
+    assert "atoml" in dihedrals
     assert "type" in dihedrals
     assert "type_id" in dihedrals
     assert "id" in dihedrals
 
     n_dihedrals = frame.metadata["n_dihedrals"]
-    assert len(dihedrals["i"]) == n_dihedrals
-    assert len(dihedrals["j"]) == n_dihedrals
-    assert len(dihedrals["k"]) == n_dihedrals
-    assert len(dihedrals["l"]) == n_dihedrals
+    assert len(dihedrals["atomi"]) == n_dihedrals
+    assert len(dihedrals["atomj"]) == n_dihedrals
+    assert len(dihedrals["atomk"]) == n_dihedrals
+    assert len(dihedrals["atoml"]) == n_dihedrals
 
     # Dihedral indices should be valid
-    assert all(0 <= i < 16 for i in dihedrals["i"])
-    assert all(0 <= j < 16 for j in dihedrals["j"])
-    assert all(0 <= k < 16 for k in dihedrals["k"])
-    assert all(0 <= l < 16 for l in dihedrals["l"])
+    assert all(0 <= i < 16 for i in dihedrals["atomi"])
+    assert all(0 <= j < 16 for j in dihedrals["atomj"])
+    assert all(0 <= k < 16 for k in dihedrals["atomk"])
+    assert all(0 <= l < 16 for l in dihedrals["atoml"])
 
 
 def test_prmtop_read_residues(litfsi_prmtop):

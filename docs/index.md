@@ -39,7 +39,7 @@ mol.get_topo(gen_angle=True, gen_dihe=True)
 
 # inspectable force field (OPLS-AA ships with MolPy)
 ff = mp.io.read_xml_forcefield("oplsaa.xml")
-typed = mp.typifier.OplsTypifier(ff).typify(mol)
+typed = mp.typifier.OplsAtomisticTypifier(ff).typify(mol)
 
 # portable export
 mp.io.write_lammps_system("output/", typed.to_frame(), ff)

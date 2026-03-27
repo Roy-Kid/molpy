@@ -214,7 +214,7 @@ class PlanSystem(Tool):
             Dict with ``"chains"`` (list of chain dicts), ``"total_mass"``,
             and ``"target_mass"``.
         """
-        from random import Random
+        import numpy as np
 
         from molpy.builder.polymer.distributions import create_polydisperse_from_ir
         from molpy.builder.polymer.sequences import WeightedSequenceGenerator
@@ -242,7 +242,7 @@ class PlanSystem(Tool):
             max_rel_error=max_rel_error,
         )
 
-        rng = Random(self.random_seed)
+        rng = np.random.default_rng(self.random_seed)
         plan = planner.plan_system(rng)
 
         return {

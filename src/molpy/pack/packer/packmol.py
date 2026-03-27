@@ -415,14 +415,14 @@ class Packmol(Packer):
                 if "bonds" in target.frame:
                     bonds = target.frame["bonds"].copy()
 
-                    # Validate required atom index keys
-                    has_ij = "i" in bonds and "j" in bonds
-                    has_atom_ij = "atom_i" in bonds and "atom_j" in bonds
-                    if not has_ij and not has_atom_ij:
-                        # Force KeyError for legacy/unknown key names
-                        _ = bonds["i"]
+                    # Validate required atom index keys (standard: atomi/atomj)
+                    if "atomi" not in bonds or "atomj" not in bonds:
+                        raise KeyError(
+                            "Bond block must contain 'atomi' and 'atomj' columns. "
+                            f"Got: {list(bonds.keys())}"
+                        )
 
-                    m = len(bonds.get("id", bonds.get("i", bonds.get("atom_i", []))))
+                    m = len(bonds.get("id", bonds["atomi"]))
 
                     # Reassign bond IDs sequentially
                     if "id" in bonds:
@@ -432,16 +432,15 @@ class Packmol(Packer):
                         bond_id_counter += m
 
                     # Offset atom indices in bonds
-                    for end in ("i", "j", "atom_i", "atom_j"):
-                        if end in bonds:
-                            bonds[end] = bonds[end] + offset
+                    for end in ("atomi", "atomj"):
+                        bonds[end] = bonds[end] + offset
 
                     all_bonds.append(bonds)
 
                 # Expand angles block
                 if "angles" in target.frame:
                     angles = target.frame["angles"].copy()
-                    p = len(angles.get("id", angles.get("i", angles.get("atom_i", []))))
+                    p = len(angles.get("id", angles["atomi"]))
 
                     # Reassign angle IDs sequentially
                     if "id" in angles:
@@ -451,20 +450,15 @@ class Packmol(Packer):
                         angle_id_counter += p
 
                     # Offset atom indices in angles
-                    for end in ("i", "j", "k", "atom_i", "atom_j", "atom_k"):
-                        if end in angles:
-                            angles[end] = angles[end] + offset
+                    for end in ("atomi", "atomj", "atomk"):
+                        angles[end] = angles[end] + offset
 
                     all_angles.append(angles)
 
                 # Expand dihedrals block
                 if "dihedrals" in target.frame:
                     dihedrals = target.frame["dihedrals"].copy()
-                    q = len(
-                        dihedrals.get(
-                            "id", dihedrals.get("i", dihedrals.get("atom_i", []))
-                        )
-                    )
+                    q = len(dihedrals.get("id", dihedrals["atomi"]))
 
                     # Reassign dihedral IDs sequentially
                     if "id" in dihedrals:
@@ -476,29 +470,15 @@ class Packmol(Packer):
                         dihedral_id_counter += q
 
                     # Offset atom indices in dihedrals
-                    for end in (
-                        "i",
-                        "j",
-                        "k",
-                        "l",
-                        "atom_i",
-                        "atom_j",
-                        "atom_k",
-                        "atom_l",
-                    ):
-                        if end in dihedrals:
-                            dihedrals[end] = dihedrals[end] + offset
+                    for end in ("atomi", "atomj", "atomk", "atoml"):
+                        dihedrals[end] = dihedrals[end] + offset
 
                     all_dihedrals.append(dihedrals)
 
                 # Expand impropers block
                 if "impropers" in target.frame:
                     impropers = target.frame["impropers"].copy()
-                    r = len(
-                        impropers.get(
-                            "id", impropers.get("i", impropers.get("atom_i", []))
-                        )
-                    )
+                    r = len(impropers.get("id", impropers["atomi"]))
 
                     # Reassign improper IDs sequentially
                     if "id" in impropers:
@@ -510,18 +490,8 @@ class Packmol(Packer):
                         improper_id_counter += r
 
                     # Offset atom indices in impropers
-                    for end in (
-                        "i",
-                        "j",
-                        "k",
-                        "l",
-                        "atom_i",
-                        "atom_j",
-                        "atom_k",
-                        "atom_l",
-                    ):
-                        if end in impropers:
-                            impropers[end] = impropers[end] + offset
+                    for end in ("atomi", "atomj", "atomk", "atoml"):
+                        impropers[end] = impropers[end] + offset
 
                     all_impropers.append(impropers)
 
