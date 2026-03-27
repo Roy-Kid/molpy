@@ -93,8 +93,8 @@ class TestBondReactReacter:
 
         # Validate ReactionResult
         assert result is not None
-        assert isinstance(result.product_info.product, Atomistic)
-        assert len(list(result.product_info.product.atoms)) == 2  # 2 C atoms
+        assert isinstance(result.product, Atomistic)
+        assert len(list(result.product.atoms)) == 2  # 2 C atoms
 
         # Validate BondReactTemplate
         assert isinstance(template, BondReactTemplate)
@@ -183,7 +183,7 @@ class TestBondReactReacter:
 
         # No atoms removed
         assert len(template.deleted_atoms) == 0
-        assert len(list(result.product_info.product.atoms)) == 2
+        assert len(list(result.product.atoms)) == 2
 
         # Pre and post should have same atoms
         pre_rids = {a["react_id"] for a in template.pre.atoms}
@@ -229,7 +229,7 @@ class TestBondReactReacter:
         # Should still work
         assert result is not None
         assert template is not None
-        assert len(list(result.product_info.product.atoms)) == 2
+        assert len(list(result.product.atoms)) == 2
 
     def test_run_with_template_init_atoms(self):
         """Test that init_atoms (port atoms) are correctly identified."""
@@ -308,7 +308,7 @@ class TestBondReactReacter:
 
         # Removed atoms should be in pre but not in product
         pre_rids = {a["react_id"] for a in template.pre.atoms}
-        product_rids = {a["react_id"] for a in result.product_info.product.atoms}
+        product_rids = {a["react_id"] for a in result.product.atoms}
 
         # All removed atoms should be in pre
         assert removed_rids.issubset(pre_rids)

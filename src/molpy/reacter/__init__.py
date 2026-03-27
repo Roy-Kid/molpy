@@ -49,12 +49,8 @@ Design Goals:
 """
 
 from .base import (
-    ProductInfo,
-    ReactantInfo,
     Reacter,
-    ReactionMetadata,
     ReactionResult,
-    TopologyChanges,
 )
 from .bond_react import (
     BondReactReacter,
@@ -102,15 +98,11 @@ from .utils import (
 
 __all__ = [
     # Core classes
-    "ProductInfo",
-    "ReactantInfo",
-    "ReactionMetadata",
     "ReactionResult",
     "Reacter",
     "BondReactReacter",
     "BondReactResult",
     "BondReactTemplate",
-    "TopologyChanges",
     "TopologyDetector",
     # Transformers (Bond Formers)
     "break_bond",

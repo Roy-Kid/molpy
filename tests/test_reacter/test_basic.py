@@ -182,19 +182,19 @@ def test_simple_cc_coupling():
 
     # Check product
     assert isinstance(result, ReactionResult)
-    assert isinstance(result.product_info.product, Atomistic)
+    assert isinstance(result.product, Atomistic)
 
     # Should have 2 C + 0 H (both removed)
-    atoms = list(result.product_info.product.atoms)
+    atoms = list(result.product.atoms)
     assert len(atoms) == 2
 
     # Should have 1 C-C bond
-    bonds = list(result.product_info.product.bonds)
+    bonds = list(result.product.bonds)
     assert len(bonds) == 1
 
     # Check result attributes
-    assert len(result.topology_changes.removed_atoms) == 2
-    assert result.metadata.reaction_name == "C-C_coupling"
+    assert len(result.removed_atoms) == 2
+    assert result.reaction_name == "C-C_coupling"
 
 
 def test_asymmetric_reaction():
@@ -238,10 +238,10 @@ def test_asymmetric_reaction():
     )
 
     # Should remove 3 H total
-    assert len(result.topology_changes.removed_atoms) == 3
+    assert len(result.removed_atoms) == 3
 
     # Check bond order
-    bonds = list(result.product_info.product.bonds)
+    bonds = list(result.product.bonds)
     assert len(bonds) == 1
     assert bonds[0].get("order") == 2
 
@@ -281,13 +281,13 @@ def test_addition_reaction():
     )
 
     # No atoms removed
-    assert len(result.topology_changes.removed_atoms) == 0
+    assert len(result.removed_atoms) == 0
 
     # 2 atoms total
-    assert len(list(result.product_info.product.atoms)) == 2
+    assert len(list(result.product.atoms)) == 2
 
     # 1 bond
-    assert len(list(result.product_info.product.bonds)) == 1
+    assert len(list(result.product.bonds)) == 1
 
 
 if __name__ == "__main__":

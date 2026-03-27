@@ -16,49 +16,24 @@ from molpy.typifier.atomistic import TypifierBase
 
 
 @dataclass
-class ReactantInfo:
-    """Information about the reactants in a reaction.
+class ReactionResult:
+    """Result of a reaction execution.
 
-    Ports vs anchors:
-    - **Ports** are SMILES-marked connection atoms (e.g. $, *, <, >)
-    - **Anchors** are the actual atoms where bonds are formed
-
-    This dataclass tracks the merged reactants and the original **port atoms**
-    on each side before the reaction is executed.
+    Flat structure containing the product, reactant snapshot, topology
+    changes, and bookkeeping fields.
     """
 
-    merged_reactants: Atomistic
-    port_atom_L: Entity | None = None
-    port_atom_R: Entity | None = None
-
-
-@dataclass
-class ProductInfo:
-    """Information about the reaction product.
-
-    This captures the final product structure and the **anchor atoms**
-    where the new bond was formed.
-    """
-
+    # Product
     product: Atomistic
     anchor_L: Atom | None = None
     anchor_R: Atom | None = None
 
-    @property
-    def site_L(self) -> Atom | None:
-        """Alias for anchor_L (the left reaction site atom)."""
-        return self.anchor_L
+    # Reactant snapshot (before reaction, includes removed atoms)
+    reactants: Atomistic | None = None
+    port_atom_L: Entity | None = None
+    port_atom_R: Entity | None = None
 
-    @property
-    def site_R(self) -> Atom | None:
-        """Alias for anchor_R (the right reaction site atom)."""
-        return self.anchor_R
-
-
-@dataclass
-class TopologyChanges:
-    """Topology changes resulting from the reaction."""
-
+    # Topology changes
     new_bonds: list[Any] = field(default_factory=list)
     new_angles: list[Angle] = field(default_factory=list)
     new_dihedrals: list[Dihedral] = field(default_factory=list)
@@ -67,34 +42,11 @@ class TopologyChanges:
     removed_atoms: list[Atom] = field(default_factory=list)
     modified_atoms: set[Atom] = field(default_factory=set)
 
-
-@dataclass
-class ReactionMetadata:
-    """Metadata about the reaction."""
-
-    reaction_name: str
+    # Bookkeeping
+    reaction_name: str = ""
     requires_retype: bool = False
     entity_maps: list[dict[Entity, Entity]] = field(default_factory=list)
     intermediates: list[dict] = field(default_factory=list)
-
-
-@dataclass
-class ReactionResult:
-    """
-    Container for reaction products and metadata with organized structure.
-
-    This class organizes reaction information into logical groups:
-
-    - ``reactant_info``: Information about the reactants and their **port atoms**
-    - ``product_info``: Information about the product and the **anchor atoms**
-    - ``topology_changes``: All topology changes (bonds, angles, dihedrals)
-    - ``metadata``: Reaction metadata (name, retyping info, etc.)
-    """
-
-    reactant_info: ReactantInfo
-    product_info: ProductInfo
-    topology_changes: TopologyChanges
-    metadata: ReactionMetadata
 
 
 class Reacter:
@@ -490,16 +442,13 @@ class Reacter:
         requires_retype = bool(new_bond or removed_atoms)
 
         # Step 8: Build result structure
-        # Use merged reactants saved BEFORE reaction (with all atoms including removed_atoms)
-        reactant_info = ReactantInfo(
-            merged_reactants=merged_reactants_before_reaction,
+        result = ReactionResult(
+            product=merged,
+            anchor_L=anchor_L,
+            anchor_R=anchor_R,
+            reactants=merged_reactants_before_reaction,
             port_atom_L=port_atom_L,
             port_atom_R=port_atom_R,
-        )
-
-        product_info = ProductInfo(product=merged, anchor_L=anchor_L, anchor_R=anchor_R)
-
-        topology_changes = TopologyChanges(
             new_bonds=[new_bond] if new_bond else [],
             new_angles=new_angles,
             new_dihedrals=new_dihedrals,
@@ -507,20 +456,10 @@ class Reacter:
             removed_dihedrals=removed_dihedrals,
             removed_atoms=removed_atoms,
             modified_atoms=({anchor_L, anchor_R} if anchor_L and anchor_R else set()),
-        )
-
-        metadata = ReactionMetadata(
             reaction_name=self.name,
             requires_retype=requires_retype,
             entity_maps=[final_entity_map],
             intermediates=intermediates,
-        )
-
-        result = ReactionResult(
-            reactant_info=reactant_info,
-            product_info=product_info,
-            topology_changes=topology_changes,
-            metadata=metadata,
         )
 
         # Step 9: Perform incremental typification if requested
@@ -548,10 +487,10 @@ class Reacter:
             reaction_result: Result from the reaction containing exact topology changes
             typifier: OPLS typifier for assigning types
         """
-        modified_atoms = reaction_result.topology_changes.modified_atoms
-        new_bonds = reaction_result.topology_changes.new_bonds
-        new_angles = reaction_result.topology_changes.new_angles
-        new_dihedrals = reaction_result.topology_changes.new_dihedrals
+        modified_atoms = reaction_result.modified_atoms
+        new_bonds = reaction_result.new_bonds
+        new_angles = reaction_result.new_angles
+        new_dihedrals = reaction_result.new_dihedrals
 
         # Step 1: Re-type modified atoms (port atoms where bonds were formed)
         if hasattr(typifier, "atom_typifier") and typifier.atom_typifier:

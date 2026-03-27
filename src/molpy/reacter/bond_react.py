@@ -10,7 +10,7 @@ See: https://docs.lammps.org/fix_bond_react.html
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import TYPE_CHECKING, List
 
@@ -254,18 +254,15 @@ class BondReactReacter(Reacter):
             typifier=typifier,
         )
 
-        # 3. Wrap as BondReactResult with template
+        # 3. Generate template and wrap as BondReactResult
         template = self._generate_template(
             base_result, port_atom_L, port_atom_R, typifier
         )
 
-        return BondReactResult(
-            reactant_info=base_result.reactant_info,
-            product_info=base_result.product_info,
-            topology_changes=base_result.topology_changes,
-            metadata=base_result.metadata,
-            template=template,
-        )
+        # Copy all base result fields into BondReactResult
+        result_dict = {f.name: getattr(base_result, f.name)
+                       for f in fields(base_result)}
+        return BondReactResult(**result_dict, template=template)
 
     # ── private helpers ──────────────────────────────────────────
 
@@ -282,9 +279,9 @@ class BondReactReacter(Reacter):
         port_atom_R: Entity,
         typifier: TypifierBase | None = None,
     ) -> BondReactTemplate:
-        reactants = result.reactant_info.merged_reactants
-        product = result.product_info.product
-        removed_atoms = result.topology_changes.removed_atoms
+        reactants = result.reactants
+        product = result.product
+        removed_atoms = result.removed_atoms
 
         port_L_rid = port_atom_L["react_id"]
         port_R_rid = port_atom_R["react_id"]

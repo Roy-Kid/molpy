@@ -160,14 +160,14 @@ class Connector:
             port_L=port_atom_L.get("port", "unknown"),
             port_R=port_atom_R.get("port", "unknown"),
             reaction_name=reacter.name,
-            formed_bonds=product_set.topology_changes.new_bonds,
-            new_angles=product_set.topology_changes.new_angles,
-            new_dihedrals=product_set.topology_changes.new_dihedrals,
-            modified_atoms=product_set.topology_changes.modified_atoms,
-            requires_retype=product_set.metadata.requires_retype,
-            entity_maps=product_set.metadata.entity_maps,
+            formed_bonds=product_set.new_bonds,
+            new_angles=product_set.new_angles,
+            new_dihedrals=product_set.new_dihedrals,
+            modified_atoms=product_set.modified_atoms,
+            requires_retype=product_set.requires_retype,
+            entity_maps=product_set.entity_maps,
         )
 
         return ConnectionResult(
-            product=product_set.product_info.product, metadata=metadata
+            product=product_set.product, metadata=metadata
         )
