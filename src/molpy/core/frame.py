@@ -294,6 +294,20 @@ class Block(MutableMapping[str, np.ndarray]):
         """Shallow copy (arrays are **not** copied)."""
         return Block(self._vars.copy())  # type: ignore[arg-type]
 
+    def rename(self, old_key: str, new_key: str) -> None:
+        """Rename a column key in-place.
+
+        Args:
+            old_key: Existing column name.
+            new_key: New column name.
+
+        Raises:
+            KeyError: If *old_key* does not exist.
+        """
+        if old_key not in self._vars:
+            raise KeyError(f"Column '{old_key}' not found in Block")
+        self._vars[new_key] = self._vars.pop(old_key)
+
     def _sort(self, key: str, *, reverse: bool = False) -> dict[str, NDArray[Any]]:
         """Sort variables by a specific key and return sorted data.
 
@@ -624,10 +638,13 @@ class Frame:
                 a Block. Defaults to None.
             **props (Any): Arbitrary keyword arguments stored in metadata.
         """
+        from molpy.core.box import Box
+
         # guarantee a root block even if none supplied
         self._blocks: dict[str, Block] = {}
         if blocks is not None:
             self._blocks = self._validate_and_convert_blocks(blocks)
+        self.box: Box | None = None
         self.metadata: dict[str, Any] = props
 
     def _validate_and_convert_blocks(
@@ -849,7 +866,8 @@ class Frame:
         new_blocks = {name: block.copy() for name, block in self._blocks.items()}
         # Create new frame
         new_frame = Frame(blocks=new_blocks)
-        # Copy metadata (shallow copy of dict)
+        # Copy box and metadata
+        new_frame.box = self.box
         new_frame.metadata = self.metadata.copy()
         return new_frame
 

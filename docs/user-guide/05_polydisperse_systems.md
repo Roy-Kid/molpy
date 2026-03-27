@@ -181,7 +181,7 @@ for chain in atomistic_chains:
     packer.add_target(chain.to_frame(), number=1, constraint=constraint)
 
 packed = packer.optimize(max_steps=10000, seed=42)
-packed.metadata["box"] = mp.Box.cubic(length=box_length)
+packed.box = mp.Box.cubic(length=box_length)
 
 print(f"packed: {packed['atoms'].nrows} atoms, box: {box_length:.1f} A")
 ```
@@ -191,10 +191,8 @@ print(f"packed: {packed['atoms'].nrows} atoms, box: {box_length:.1f} A")
 
 ```python
 atoms = packed["atoms"]
-if "q" not in atoms:
-    atoms["q"] = np.zeros(atoms.nrows, dtype=float) if "charge" not in atoms else atoms["charge"]
-if "mol" not in atoms:
-    atoms["mol"] = np.ones(atoms.nrows, dtype=int)
+if "mol_id" not in atoms:
+    atoms["mol_id"] = np.ones(atoms.nrows, dtype=int)
 
 mp.io.write_lammps_system("05_output/lammps", packed, ff)
 ```

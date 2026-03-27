@@ -96,7 +96,7 @@ class AmberPrmtopReader:
                     atoms["name"] = self._read_atom_name(value)
 
                 case "CHARGE":
-                    atoms["q"] = self.read_section(value, float)
+                    atoms["charge"] = self.read_section(value, float)
 
                 case "ATOMIC_NUMBER":
                     atoms["atomic_number"] = self.read_section(value, int)
@@ -136,7 +136,7 @@ class AmberPrmtopReader:
 
         # def forcefield
         atoms["id"] = np.arange(meta["n_atoms"], dtype=int) + 1
-        atoms["q"] = np.array(atoms["q"]) / 18.2223
+        atoms["charge"] = np.array(atoms["charge"]) / 18.2223
         ff = AtomisticForcefield()
         ff.units = "real"
         atomstyle = ff.def_atomstyle("full")

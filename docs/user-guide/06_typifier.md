@@ -101,39 +101,25 @@ A typed structure is ready for simulation export. Convert to a `Frame`, attach a
 
 ```python
 import numpy as np
-from molpy.io.data.lammps import LammpsDataWriter
-from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
-
-frame = typed_mol.to_frame()
-frame.metadata["box"] = mp.Box.cubic(30.0)
-
-# Ensure required fields
-atoms = frame["atoms"]
-if "q" not in atoms and "charge" in atoms:
-    atoms["q"] = atoms["charge"]
-if "mol" not in atoms:
-    atoms["mol"] = np.ones(atoms.nrows, dtype=int)
-```
-
-The force field writer needs the set of types used in the structure.
-
-```python
 from pathlib import Path
 
-# Collect types
-atom_types = {str(t) for t in frame["atoms"]["type"] if t}
-bond_types = {str(t) for t in frame["bonds"]["type"] if t} if "bonds" in frame else set()
+frame = typed_mol.to_frame()
+frame.box = mp.Box.cubic(30.0)
+
+# mol_id is not set by typifier — add it for LAMMPS full atom style
+atoms = frame["atoms"]
+if "mol_id" not in atoms:
+    atoms["mol_id"] = np.ones(atoms.nrows, dtype=int)
 
 outdir = Path("06_output")
 outdir.mkdir(exist_ok=True)
 
-LAMMPSForceFieldWriter(outdir / "ethanol.ff").write(
-    ff, atom_types=atom_types, bond_types=bond_types,
-)
-LammpsDataWriter(outdir / "ethanol.data", atom_style="full").write(frame)
+mp.io.write_lammps_system(outdir / "ethanol", frame, ff)
 
 print(f"exported to {outdir}")
 ```
+
+The `write_lammps_system` convenience function automatically filters the force field to only include types present in the frame, and translates canonical field names (`charge`, `mol_id`) to LAMMPS-specific names (`q`, `mol`) via the formatter system.
 
 
 ## Incremental re-typification at polymer junctions

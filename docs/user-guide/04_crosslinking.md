@@ -134,7 +134,7 @@ packer.add_target(eo2_frame, number=n_eo2, constraint=constraint)
 packer.add_target(eo3_frame, number=n_eo3, constraint=constraint)
 
 packed = packer.optimize(max_steps=10000, seed=42)
-packed.metadata["box"] = mp.Box.cubic(length=box_length)
+packed.box = mp.Box.cubic(length=box_length)
 
 print(f"packed atoms: {packed['atoms'].nrows}")
 print(f"box length: {box_length:.1f} A")

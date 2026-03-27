@@ -32,9 +32,9 @@ class TestXSFCore:
         assert frame["atoms"]["atomic_number"][1] == 8  # Oxygen
 
         # Check box
-        assert frame.metadata["box"].style == mp.Box.Style.ORTHOGONAL
+        assert frame.box.style == mp.Box.Style.ORTHOGONAL
         np.testing.assert_array_almost_equal(
-            frame.metadata["box"].matrix, np.diag([3.0, 3.0, 3.0])
+            frame.box.matrix, np.diag([3.0, 3.0, 3.0])
         )
 
     def test_read_molecule_structure(self, tmp_path):
@@ -51,7 +51,7 @@ class TestXSFCore:
         assert all(an == 1 for an in frame["atoms"]["atomic_number"])
 
         # Should have a free box for molecule (non-periodic)
-        assert frame.metadata["box"].style == mp.Box.Style.FREE
+        assert frame.box.style == mp.Box.Style.FREE
 
     def test_write_crystal_structure(self, tmp_path):
         """Test writing a crystal structure."""
@@ -69,7 +69,7 @@ class TestXSFCore:
         )
 
         box = mp.Box(matrix=np.diag([3.0, 3.0, 3.0]))
-        frame.metadata["box"] = box
+        frame.box = box
 
         # Write to file
         tmp_file = tmp_path / "test.xsf"
@@ -83,9 +83,9 @@ class TestXSFCore:
         np.testing.assert_array_equal(frame2["atoms"]["atomic_number"], [1, 8])
 
         # Check box
-        assert frame2.metadata["box"].style == mp.Box.Style.ORTHOGONAL
+        assert frame2.box.style == mp.Box.Style.ORTHOGONAL
         np.testing.assert_array_almost_equal(
-            frame2.metadata["box"].matrix, np.diag([3.0, 3.0, 3.0])
+            frame2.box.matrix, np.diag([3.0, 3.0, 3.0])
         )
 
     def test_write_molecule_structure(self, tmp_path):
@@ -105,7 +105,7 @@ class TestXSFCore:
 
         # Create with free box
         box = mp.Box()  # Free box
-        frame.metadata["box"] = box
+        frame.box = box
 
         # Write to file
         tmp_file = tmp_path / "test.xsf"
@@ -119,7 +119,7 @@ class TestXSFCore:
         assert all(an == 1 for an in frame2["atoms"]["atomic_number"])
 
         # Should have free box
-        assert frame2.metadata["box"].style == mp.Box.Style.FREE
+        assert frame2.box.style == mp.Box.Style.FREE
 
     def test_roundtrip_consistency(self, tmp_path):
         """Test that write->read maintains data consistency."""
@@ -145,7 +145,7 @@ class TestXSFCore:
         )
 
         box = mp.Box(matrix=[[5.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 5.0]])
-        frame.metadata["box"] = box
+        frame.box = box
 
         # Write and read back
         tmp_file = tmp_path / "test.xsf"
@@ -165,7 +165,7 @@ class TestXSFCore:
         )
         np.testing.assert_array_almost_equal(coords1, coords2)
         np.testing.assert_array_almost_equal(
-            frame.metadata["box"].matrix, frame2.metadata["box"].matrix
+            frame.box.matrix, frame2.box.matrix
         )
 
     def test_error_handling(self, tmp_path):

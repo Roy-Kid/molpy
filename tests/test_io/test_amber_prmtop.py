@@ -121,9 +121,9 @@ def test_prmtop_read_charges(litfsi_prmtop):
     frame, ff = reader.read(frame)
 
     atoms = frame["atoms"]
-    assert "q" in atoms
+    assert "charge" in atoms
 
-    charges = atoms["q"]
+    charges = atoms["charge"]
     assert len(charges) == 16
 
     # Charges should be converted by dividing by CHARGE_CONVERSION_FACTOR

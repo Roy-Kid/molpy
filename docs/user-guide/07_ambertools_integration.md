@@ -190,7 +190,7 @@ packer.add_target(li_frame, number=10, constraint=constraint)
 packer.add_target(tfsi_frame, number=10, constraint=constraint)
 
 system = packer.optimize(max_steps=20000, seed=12345)
-system.metadata["box"] = mp.Box.cubic(box_size)
+system.box = mp.Box.cubic(box_size)
 ```
 
 

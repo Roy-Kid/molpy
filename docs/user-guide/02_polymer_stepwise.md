@@ -242,8 +242,6 @@ Save the typed polymer from the builder path to LAMMPS files:
 ```python
 from pathlib import Path
 import numpy as np
-from molpy.io.data.lammps import LammpsDataWriter
-from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
 
 output_dir = Path("02_output")
 output_dir.mkdir(exist_ok=True)
@@ -251,13 +249,15 @@ output_dir.mkdir(exist_ok=True)
 typed_polymer = typifier.typify(result.polymer)
 frame = typed_polymer.to_frame()
 atoms = frame["atoms"]
-if "q" not in atoms:
-    atoms["q"] = np.zeros(atoms.nrows, dtype=float)
-if "mol" not in atoms:
-    atoms["mol"] = np.ones(atoms.nrows, dtype=int)
+if "mol_id" not in atoms:
+    atoms["mol_id"] = np.ones(atoms.nrows, dtype=int)
 
-LammpsDataWriter(output_dir / "peo5.data", atom_style="full").write(frame)
-LAMMPSForceFieldWriter(output_dir / "peo5.ff").write(ff)
+coords = np.column_stack([atoms["x"], atoms["y"], atoms["z"]])
+lo = coords.min(axis=0) - 5.0
+hi = coords.max(axis=0) + 5.0
+frame.box = mp.Box(matrix=hi - lo, origin=lo)
+
+mp.io.write_lammps_system(output_dir / "peo5", frame, ff)
 
 print(f"exported to {output_dir}")
 ```

@@ -149,7 +149,6 @@ Each product can be exported using the same pattern.
 ```python
 import numpy as np
 from pathlib import Path
-from molpy.io.writers import write_lammps_data
 
 output_dir = Path("03_output")
 output_dir.mkdir(exist_ok=True)
@@ -159,11 +158,15 @@ for name, expr in expressions.items():
     typed_polymer = typifier.typify(result.polymer)
     frame = typed_polymer.to_frame()
     atoms = frame["atoms"]
-    if "q" not in atoms:
-        atoms["q"] = np.zeros(atoms.nrows, dtype=float)
-    if "mol" not in atoms:
-        atoms["mol"] = np.ones(atoms.nrows, dtype=int)
-    write_lammps_data(output_dir / f"{name}.data", frame)
+    if "mol_id" not in atoms:
+        atoms["mol_id"] = np.ones(atoms.nrows, dtype=int)
+
+    coords = np.column_stack([atoms["x"], atoms["y"], atoms["z"]])
+    lo = coords.min(axis=0) - 5.0
+    hi = coords.max(axis=0) + 5.0
+    frame.box = mp.Box(matrix=hi - lo, origin=lo)
+
+    mp.io.write_lammps_system(output_dir / name, frame, ff)
 ```
 
 

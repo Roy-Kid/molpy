@@ -14,6 +14,8 @@ from molpy import (
     PairStyle,
     Style,
 )
+from molpy.core.fields import ForceFieldFormatter
+from molpy.io.data.lammps import LammpsFieldFormatter
 from molpy.potential.angle import AngleHarmonicStyle
 from molpy.potential.bond import BondHarmonicStyle
 from molpy.potential.dihedral import DihedralOPLSStyle
@@ -736,20 +738,27 @@ def _format_generic_pair(typ) -> list[float]:
     return result
 
 
-# Parameter formatters registry: maps Style class to formatter function
-_PARAM_FORMATTERS: dict[type, callable] = {
-    # Specialized styles
-    BondHarmonicStyle: _format_bond_harmonic,
-    AngleHarmonicStyle: _format_angle_harmonic,
-    DihedralOPLSStyle: _format_dihedral_opls,
-    PairLJ126CoulCutStyle: _format_pair_lj,
-    PairLJ126CoulLongStyle: _format_pair_lj,
-    # Generic styles (fallback)
-    BondStyle: _format_generic_bond,
-    AngleStyle: _format_generic_angle,
-    DihedralStyle: _format_generic_dihedral,
-    PairStyle: _format_generic_pair,
-}
+class LammpsForceFieldFormatter(LammpsFieldFormatter, ForceFieldFormatter):
+    """LAMMPS force-field formatter.
+
+    Inherits LAMMPS field-name mapping (``q`` ↔ ``charge``, ``mol`` ↔ ``mol_id``)
+    from :class:`LammpsFieldFormatter` and adds parameter formatters for
+    serializing Style/Type objects to LAMMPS coefficient lines.
+    """
+
+    _param_formatters = {
+        # Specialized styles
+        BondHarmonicStyle: _format_bond_harmonic,
+        AngleHarmonicStyle: _format_angle_harmonic,
+        DihedralOPLSStyle: _format_dihedral_opls,
+        PairLJ126CoulCutStyle: _format_pair_lj,
+        PairLJ126CoulLongStyle: _format_pair_lj,
+        # Generic styles (fallback)
+        BondStyle: _format_generic_bond,
+        AngleStyle: _format_generic_angle,
+        DihedralStyle: _format_generic_dihedral,
+        PairStyle: _format_generic_pair,
+    }
 
 
 # ===================================================================
@@ -766,6 +775,8 @@ class LAMMPSForceFieldWriter:
     - Type filtering
     - Specialized Style and Type classes
     """
+
+    _formatter = LammpsForceFieldFormatter()
 
     def __init__(self, fpath: str | Path | TextIO, precision: int = 6):
         """
@@ -789,34 +800,9 @@ class LAMMPSForceFieldWriter:
     def _get_type_params(self, typ, style) -> list[float]:
         """Extract parameters from a Type object for LAMMPS coefficients.
 
-        Args:
-            typ: Type object (BondType, AngleType, etc.)
-            style: Style object that contains this type
-
-        Returns:
-            List of parameters in LAMMPS format
-
-        Raises:
-            ValueError: If no formatter is found and parameters cannot be extracted
+        Delegates to :meth:`LammpsForceFieldFormatter.format_params`.
         """
-        style_class = type(style)
-
-        # Try registered formatter first
-        if style_class in _PARAM_FORMATTERS:
-            formatter = _PARAM_FORMATTERS[style_class]
-            try:
-                return formatter(typ)
-            except (KeyError, TypeError) as e:
-                raise ValueError(
-                    f"Failed to format parameters for {style_class.__name__} "
-                    f"with type {type(typ).__name__}: {e}"
-                ) from e
-
-        # No formatter found - this is an error for specialized styles
-        raise ValueError(
-            f"No parameter formatter registered for style class {style_class.__name__}. "
-            f"Available formatters: {list(_PARAM_FORMATTERS.keys())}"
-        )
+        return self._formatter.format_params(typ, style)
 
     def _get_coeff_id(self, typ, style_type: str) -> str:
         """Get coefficient identifier for a type.
