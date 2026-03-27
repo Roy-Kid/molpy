@@ -108,41 +108,7 @@ class PositionMissingError(GeometryError):
     pass
 
 
-# ============================================================================
-# Type Definitions
-# ============================================================================
-
-
-@dataclass
-class ConnectionMetadata:
-    """Metadata about a single monomer connection step."""
-
-    port_L: str
-    port_R: str
-    reaction_name: str
-    formed_bonds: list[Any] = field(default_factory=list)
-    new_angles: list[Any] = field(default_factory=list)
-    new_dihedrals: list[Any] = field(default_factory=list)
-    modified_atoms: set[Atom] = field(default_factory=set)
-    requires_retype: bool = False
-    entity_maps: list[dict[Atom, Atom]] = field(default_factory=list)
-
-
-@dataclass
-class ConnectionResult:
-    """Result of connecting two monomers."""
-
-    product: Atomistic
-    metadata: ConnectionMetadata
-
-
-@dataclass
-class PolymerBuildResult:
-    """Result of building a polymer."""
-
-    polymer: Atomistic
-    connection_history: list[ConnectionMetadata] = field(default_factory=list)
-    total_steps: int = 0
+from .types import ConnectionMetadata, ConnectionResult, PolymerBuildResult  # noqa: E402
 
 
 # ============================================================================
