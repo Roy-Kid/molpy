@@ -108,7 +108,8 @@ class PositionMissingError(GeometryError):
     pass
 
 
-from .types import ConnectionMetadata, ConnectionResult, PolymerBuildResult  # noqa: E402
+from molpy.reacter.base import ReactionResult
+from .polymer_builder import PolymerBuildResult
 
 
 # ============================================================================
@@ -206,7 +207,7 @@ class PolymerBuilder:
 
     def _build_from_graph(
         self, graph: CGSmilesGraphIR
-    ) -> tuple[Atomistic, list[ConnectionMetadata]]:
+    ) -> tuple[Atomistic, list[ReactionResult]]:
         """Build polymer from CGSmiles graph using iterative DFS traversal."""
         if not graph.nodes:
             raise ValueError("Cannot build from empty graph")
@@ -218,7 +219,7 @@ class PolymerBuilder:
         for node in graph.nodes:
             monomers[node.id] = self._create_monomer(node)
 
-        connection_history: list[ConnectionMetadata] = []
+        connection_history: list[ReactionResult] = []
         visited_edges: set[tuple[int, int]] = set()
 
         # Iterative DFS using explicit stack
@@ -321,7 +322,7 @@ class PolymerBuilder:
         left_node_id: int,
         right_node_id: int,
         bond_order: int,
-        connection_history: list[ConnectionMetadata],
+        connection_history: list[ReactionResult],
     ) -> Atomistic:
         """Connect two monomers using node IDs for precise port location."""
         from .connectors import ConnectorContext
@@ -371,10 +372,9 @@ class PolymerBuilder:
         )
 
         product = connection_result.product
-        metadata = connection_result.metadata
-        connection_history.append(metadata)
+        connection_history.append(connection_result)
 
-        entity_map = self._build_entity_map(metadata)
+        entity_map = self._build_entity_map(connection_result)
         self._transfer_unused_ports(
             product,
             entity_map,
@@ -392,11 +392,11 @@ class PolymerBuilder:
 
         return product
 
-    def _build_entity_map(self, metadata: ConnectionMetadata) -> dict[Atom, Atom]:
-        """Build combined entity map from reaction metadata."""
+    def _build_entity_map(self, result: ReactionResult) -> dict[Atom, Atom]:
+        """Build combined entity map from reaction result."""
         entity_map: dict[Atom, Atom] = {}
-        if metadata.entity_maps:
-            for emap in metadata.entity_maps:
+        if result.entity_maps:
+            for emap in result.entity_maps:
                 entity_map.update(emap)
         return entity_map
 

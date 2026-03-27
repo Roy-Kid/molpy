@@ -23,12 +23,10 @@ from .system import (
     SystemPlanner,
     UniformPolydisperse,
 )
-from .types import (
-    ConnectionMetadata,
-    ConnectionResult,
+from .polymer_builder import PolymerBuildResult
+from .stochastic import (
     MonomerPlacement,
     MonomerTemplate,
-    PolymerBuildResult,
     PortDescriptor,
     StochasticChain,
 )
@@ -57,8 +55,6 @@ __all__ = [
     "SystemPlanner",
     "UniformPolydisperse",
     # Types
-    "ConnectionMetadata",
-    "ConnectionResult",
     "PolymerBuildResult",
     # G-BigSMILES Stochastic Growth Types
     "MonomerTemplate",

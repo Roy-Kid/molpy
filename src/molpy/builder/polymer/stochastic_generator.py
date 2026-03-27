@@ -15,7 +15,7 @@ from molpy.builder.polymer.connectors import Connector
 from molpy.builder.polymer.growth_kernel import GrowthKernel
 from molpy.builder.polymer.port_utils import get_all_ports
 from molpy.builder.polymer.system import DPDistribution, MassDistribution
-from molpy.builder.polymer.types import MonomerTemplate, StochasticChain
+from molpy.builder.polymer.stochastic import MonomerTemplate, StochasticChain
 
 
 class StochasticChainGenerator:

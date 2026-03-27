@@ -10,7 +10,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from molpy.core.atomistic import Atom, Atomistic
-from molpy.builder.polymer.types import MonomerPlacement, MonomerTemplate
+from molpy.builder.polymer.stochastic import MonomerPlacement, MonomerTemplate
 
 
 class GrowthKernel(Protocol):

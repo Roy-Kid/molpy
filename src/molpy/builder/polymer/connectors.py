@@ -15,7 +15,6 @@ from molpy.typifier.atomistic import TypifierBase
 
 from .errors import AmbiguousPortsError
 from .port_utils import port_role, ports_compatible
-from .types import ConnectionMetadata, ConnectionResult
 
 
 class ConnectorContext(dict[str, Any]):
@@ -139,13 +138,13 @@ class Connector:
         port_atom_L: Entity,
         port_atom_R: Entity,
         typifier: TypifierBase | None = None,
-    ) -> ConnectionResult:
+    ) -> "ReactionResult":
         """Execute the chemical reaction between two structures."""
         from molpy.reacter.base import ReactionResult
 
         reacter = self.get_reacter(left_type, right_type)
 
-        product_set: ReactionResult = reacter.run(
+        result: ReactionResult = reacter.run(
             left,
             right,
             port_atom_L=port_atom_L,
@@ -154,20 +153,5 @@ class Connector:
             typifier=typifier,
         )
 
-        self._history.append(product_set)
-
-        metadata = ConnectionMetadata(
-            port_L=port_atom_L.get("port", "unknown"),
-            port_R=port_atom_R.get("port", "unknown"),
-            reaction_name=reacter.name,
-            formed_bonds=product_set.new_bonds,
-            new_angles=product_set.new_angles,
-            new_dihedrals=product_set.new_dihedrals,
-            modified_atoms=product_set.modified_atoms,
-            requires_retype=product_set.requires_retype,
-            entity_maps=product_set.entity_maps,
-        )
-
-        return ConnectionResult(
-            product=product_set.product, metadata=metadata
-        )
+        self._history.append(result)
+        return result

@@ -7,6 +7,8 @@ topologies (linear, branched, cyclic) directly from CGSmiles strings.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 from collections.abc import Mapping
 
 from molpy.core.atomistic import Atomistic
@@ -22,7 +24,16 @@ from .connectors import ConnectorContext, Connector
 from .errors import NoCompatiblePortsError, SequenceError
 from .placer import Placer
 from .port_utils import get_ports_on_node
-from .types import ConnectionMetadata, PolymerBuildResult
+from molpy.reacter.base import ReactionResult
+
+
+@dataclass
+class PolymerBuildResult:
+    """Result of building a polymer."""
+
+    polymer: Atomistic
+    connection_history: list[ReactionResult] = field(default_factory=list)
+    total_steps: int = 0
 
 
 class PolymerBuilder:
@@ -117,7 +128,7 @@ class PolymerBuilder:
 
     def _build_from_graph(
         self, graph: CGSmilesGraphIR
-    ) -> tuple[Atomistic, list[ConnectionMetadata]]:
+    ) -> tuple[Atomistic, list[ReactionResult]]:
         """
         Build polymer from CGSmiles graph using DFS traversal with node tracking.
 
@@ -140,7 +151,7 @@ class PolymerBuilder:
             monomers[node.id] = self._create_monomer(node)
 
         # Track connection state
-        connection_history: list[ConnectionMetadata] = []
+        connection_history: list[ReactionResult] = []
         visited_edges: set[tuple[int, int]] = set()
 
         # Start DFS from first node
@@ -209,7 +220,7 @@ class PolymerBuilder:
         adjacency: dict[int, list[tuple[int, int]]],
         monomers: dict[int, Atomistic],
         visited_edges: set[tuple[int, int]],
-        connection_history: list[ConnectionMetadata],
+        connection_history: list[ReactionResult],
     ) -> None:
         """DFS traversal to connect all neighbors using node-based port lookup.
 
@@ -315,7 +326,7 @@ class PolymerBuilder:
         left_node_id: int,
         right_node_id: int,
         bond_order: int,
-        connection_history: list[ConnectionMetadata],
+        connection_history: list[ReactionResult],
     ) -> Atomistic:
         """Connect two monomers using node IDs for precise port location.
 
@@ -395,15 +406,14 @@ class PolymerBuilder:
         )
 
         product = connection_result.product
-        metadata = connection_result.metadata
-        connection_history.append(metadata)
+        connection_history.append(connection_result)
 
         # Build entity map (original atom → product atom)
         from molpy.core.atomistic import Atom
 
         entity_map: dict[Atom, Atom] = {}
-        if metadata.entity_maps:
-            for emap in metadata.entity_maps:
+        if connection_result.entity_maps:
+            for emap in connection_result.entity_maps:
                 entity_map.update(emap)
 
         atoms_in_product = set(product.atoms)

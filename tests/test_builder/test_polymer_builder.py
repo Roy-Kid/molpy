@@ -291,10 +291,10 @@ class TestPolymerBuilder:
         result = builder.build("{[#A][#A]}")
 
         assert len(result.connection_history) == 1
-        metadata = result.connection_history[0]
-        assert hasattr(metadata, "port_L")
-        assert hasattr(metadata, "port_R")
-        assert hasattr(metadata, "reaction_name")
+        rxn_result = result.connection_history[0]
+        assert hasattr(rxn_result, "product")
+        assert hasattr(rxn_result, "reaction_name")
+        assert rxn_result.reaction_name == "test"
 
 
 if __name__ == "__main__":
