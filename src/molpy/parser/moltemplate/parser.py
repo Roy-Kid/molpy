@@ -179,6 +179,27 @@ class MolTemplateParser:
                 stmt, i = self._parse_import(source, i + 6, end)
                 statements.append(stmt)
                 continue
+            # Silently skip directives we don't yet model:
+            #   create_var {...}, delete_var, replace, category
+            # Consumes either a `{...}` block or a single line.
+            skipped = False
+            for kw in ("create_var", "delete_var", "replace", "category"):
+                if source.startswith(kw, i) and _is_word_boundary(
+                    source, i, i + len(kw)
+                ):
+                    j = i + len(kw)
+                    while j < end and source[j].isspace() and source[j] != "\n":
+                        j += 1
+                    if j < end and source[j] == "{":
+                        _, j = _extract_block_body(source, j)
+                    else:
+                        nl = source.find("\n", j)
+                        j = end if nl == -1 else nl + 1
+                    i = j
+                    skipped = True
+                    break
+            if skipped:
+                continue
             # write(...) { ... }
             if source.startswith("write_once", i) and _is_word_boundary(source, i, i + 10):
                 stmt, i = self._parse_write(source, i + 10, end, once=True)
@@ -189,14 +210,21 @@ class MolTemplateParser:
                 statements.append(stmt)
                 continue
             # instance = new ClassName
-            # Look ahead: IDENT '=' 'new' ...
-            m = re.match(r"([A-Za-z_][\w:$@]*)\s*=\s*new\b", source[i:end])
+            # Instance name may contain array-element subscripts `[N]`, e.g.
+            # `monomers[0]`, and slashes for scoped names.
+            m = re.match(
+                r"([A-Za-z0-9_][\w:$@/]*(?:\[\s*\d+\s*\])?)\s*=\s*new\b",
+                source[i:end],
+            )
             if m:
                 stmt, i = self._parse_new(source, i, end)
                 statements.append(stmt)
                 continue
             # class definition: IDENT (inherits ...)? { ... }
-            m = re.match(r"([A-Za-z_][\w]*)\s*(?:inherits\b([^{]*))?\s*\{", source[i:end])
+            m = re.match(
+                r"([A-Za-z0-9_][\w]*)\s*(?:inherits\b([^{]*))?\s*\{",
+                source[i:end],
+            )
             if m and source[i + m.end() - 1] == "{":
                 stmt, i = self._parse_class(source, i, end)
                 statements.append(stmt)
@@ -207,16 +235,24 @@ class MolTemplateParser:
         return statements
 
     def _parse_import(self, source: str, i: int, end: int) -> tuple[ImportStmt, int]:
-        # Expect: whitespace then "path"
-        while i < end and source[i].isspace():
+        # Expect: whitespace then "path" or unquoted path-until-newline.
+        while i < end and source[i].isspace() and source[i] != "\n":
             i += 1
-        if i >= end or source[i] != '"':
-            raise SyntaxError(f"import: expected quoted path near offset {i}")
-        close = source.find('"', i + 1)
-        if close == -1:
-            raise SyntaxError("import: unterminated string")
-        path = source[i + 1:close]
-        return ImportStmt(path=path), close + 1
+        if i >= end:
+            raise SyntaxError("import: missing path")
+        if source[i] in ('"', "'"):
+            q = source[i]
+            close = source.find(q, i + 1)
+            if close == -1:
+                raise SyntaxError("import: unterminated string")
+            return ImportStmt(path=source[i + 1:close]), close + 1
+        # Unquoted form: read until newline/semicolon/whitespace-terminator.
+        m = re.match(r"\S+", source[i:end])
+        if m is None:
+            raise SyntaxError(
+                f"import: expected path near offset {i}"
+            )
+        return ImportStmt(path=m.group().rstrip(";")), i + m.end()
 
     def _parse_write(
         self, source: str, i: int, end: int, *, once: bool
@@ -259,8 +295,11 @@ class MolTemplateParser:
         return WriteBlock(section=section, body_lines=body), end_idx
 
     def _parse_new(self, source: str, i: int, end: int) -> tuple[NewStmt, int]:
+        # Try the standard form first: inst = new [N]? ClassName
+        # (instance name may have [k] subscript, e.g. `monomers[0]`)
         m = re.match(
-            r"([A-Za-z_][\w:$@]*)\s*=\s*new\s*(?:\[\s*(\d+)\s*\])?\s*([A-Za-z_][\w]*)",
+            r"([A-Za-z0-9_][\w:$@/]*(?:\[\s*\d+\s*\])?)\s*=\s*new\s*"
+            r"(?:\[\s*(\d+)\s*\])?\s*([A-Za-z0-9_][\w]*)",
             source[i:end],
         )
         if m is None:
@@ -269,6 +308,31 @@ class MolTemplateParser:
         count = int(m.group(2)) if m.group(2) else 1
         cls_name = m.group(3)
         cursor = i + m.end()
+        # Special case: `new random(...)` — treat as no-op (return empty NewStmt)
+        # with an explicit marker so downstream can warn; we consume the `(...)`.
+        if cls_name == "random":
+            # Find matching ')' respecting simple parenthesis depth
+            k = cursor
+            while k < end and source[k].isspace():
+                k += 1
+            if k < end and source[k] == "(":
+                depth = 1
+                k += 1
+                while k < end and depth > 0:
+                    ch = source[k]
+                    if ch == "(":
+                        depth += 1
+                    elif ch == ")":
+                        depth -= 1
+                        if depth == 0:
+                            k += 1
+                            break
+                    k += 1
+                cursor = k
+            return NewStmt(
+                instance_name=instance, class_name="random",
+                count=count, transforms=[], arrays=[],
+            ), cursor
         transforms: list[Transform] = []
         arrays: list[ArrayDim] = []
         while cursor < end:
@@ -332,7 +396,7 @@ class MolTemplateParser:
 
     def _parse_class(self, source: str, i: int, end: int) -> tuple[ClassDef, int]:
         m = re.match(
-            r"([A-Za-z_][\w]*)\s*(?:inherits\s+([^{]+))?\s*\{",
+            r"([A-Za-z0-9_][\w]*)\s*(?:inherits\s+([^{]+))?\s*\{",
             source[i:end],
         )
         if m is None:
@@ -390,7 +454,23 @@ def parse_string(source: str) -> Document:
     return MolTemplateParser().parse(source)
 
 
+# Cache keyed by (resolved path, mtime-ns, size). Keeps hot-reload safe while
+# giving O(1) reuse across repeat imports of the same file (e.g. every
+# example importing oplsaa.lt).
+_PARSE_CACHE: dict[tuple[str, int, int], Document] = {}
+
+
 def parse_file(path: str | Path) -> Document:
-    """Parse a ``.lt`` file from disk."""
-    text = Path(path).read_text()
-    return parse_string(text)
+    """Parse a ``.lt`` file from disk (memoised by mtime+size)."""
+    p = Path(path).resolve()
+    try:
+        st = p.stat()
+        key = (str(p), st.st_mtime_ns, st.st_size)
+    except OSError:
+        key = None
+    if key is not None and key in _PARSE_CACHE:
+        return _PARSE_CACHE[key]
+    doc = parse_string(p.read_text())
+    if key is not None:
+        _PARSE_CACHE[key] = doc
+    return doc
