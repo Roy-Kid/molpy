@@ -585,6 +585,113 @@ class Atomistic(Struct, MembershipMixin, SpatialMixin, ConnectivityMixin):
         """
         self.remove_link(*bonds)
 
+    def del_angle(self, *angles: Angle) -> None:
+        """Remove angles from the structure.
+
+        Args:
+            *angles: Angle instances to remove.
+
+        Related symbols:
+            def_angle, add_angle, remove_link
+        """
+        self.remove_link(*angles)
+
+    def del_dihedral(self, *dihedrals: Dihedral) -> None:
+        """Remove dihedrals from the structure.
+
+        Args:
+            *dihedrals: Dihedral instances to remove.
+
+        Related symbols:
+            def_dihedral, add_dihedral, remove_link
+        """
+        self.remove_link(*dihedrals)
+
+    # ========== Property / Type / Selection Editing ==========
+
+    def rename_type(
+        self, old: str, new: str, *, kind: type = Atom
+    ) -> int:
+        """Rename all entities/links of ``kind`` whose ``type`` attribute equals ``old``.
+
+        Args:
+            old: Existing type name.
+            new: Replacement type name.
+            kind: Entity or Link class to target (default: ``Atom``). Pass
+                ``Bond``, ``Angle``, ``Dihedral`` to rename those link types.
+
+        Returns:
+            Number of entities/links whose type was renamed.
+        """
+        count = 0
+        if issubclass(kind, Link):
+            items = self.links.bucket(kind)
+        else:
+            items = self.entities.bucket(kind)
+        for item in items:
+            if item.get("type") == old:
+                item["type"] = new
+                count += 1
+        return count
+
+    def set_property(
+        self,
+        selector,
+        key: str,
+        value: Any,
+        *,
+        kind: type = Atom,
+    ) -> int:
+        """Set a property on every atom (or link) matching ``selector``.
+
+        Args:
+            selector: Callable ``(atom) -> bool`` used to pick targets.
+            key: Property key to assign.
+            value: Value to store.
+            kind: Entity or Link class to iterate (default: ``Atom``).
+
+        Returns:
+            Number of items updated.
+        """
+        if not callable(selector):
+            raise TypeError(
+                "selector must be a callable (a, ...) -> bool; "
+                "SMARTS-string selectors are not yet supported"
+            )
+        if issubclass(kind, Link):
+            items = self.links.bucket(kind)
+        else:
+            items = self.entities.bucket(kind)
+        count = 0
+        for item in items:
+            if selector(item):
+                item[key] = value
+                count += 1
+        return count
+
+    def select(self, predicate) -> "Atomistic":
+        """Return a new Atomistic containing atoms matching ``predicate``.
+
+        All bonds/angles/dihedrals whose endpoints are fully contained in the
+        selection are carried over (deep-copied).
+
+        Args:
+            predicate: Callable ``(atom) -> bool``.
+
+        Returns:
+            New Atomistic with the selected atoms and their induced topology.
+        """
+        if not callable(predicate):
+            raise TypeError(
+                "predicate must be a callable (atom) -> bool; "
+                "SMARTS-string predicates are not yet supported"
+            )
+        selected = [a for a in self.atoms if predicate(a)]
+        sub, _ = self.extract_subgraph(
+            selected, radius=0, entity_type=Atom, link_type=Link
+        )
+        return sub  # type: ignore[return-value]
+
     # ========== Batch Factory Methods (def_*s: create and add multiple) ==========
 
     def def_atoms(self, atoms_data: list[dict[str, Any]], /) -> list[Atom]:
