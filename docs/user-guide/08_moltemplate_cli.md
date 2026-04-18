@@ -63,21 +63,54 @@ molpy moltemplate convert SRC.lt DST.xml
 
 ## Supported moltemplate features
 
+Tested against real examples in the
+[`moltemplate/examples`](https://github.com/jewettaij/moltemplate/tree/master/examples)
+directory. Coverage is intentionally incremental — the table below tracks
+what has been validated on upstream fixtures versus what silently degrades.
+
 | Feature                                              | Status |
 |------------------------------------------------------|--------|
 | `ClassName { ... }`, nested classes                  | ✔      |
 | `inherits Parent1, Parent2`                          | ✔      |
 | `import "file.lt"` (recursive)                       | ✔      |
 | `write("...")`, `write_once("...")`                  | ✔      |
+| `write('...')` single-quoted section names           | ✔      |
+| Section names containing `(...)`                     | ✔      |
 | `Data Masses`, `Data Charges`, `In Charges`          | ✔      |
 | `In Settings` coeff lines (pair/bond/angle/…)        | ✔      |
 | `Data Atoms`, `Data Bonds`, `Data Angles`            | ✔      |
 | `Data Dihedrals`, `Data Impropers`                   | ✔      |
 | `inst = new Cls`                                     | ✔      |
 | `.move(x,y,z)`, `.rot(θ,ax,ay,az)`, `.scale(s)`      | ✔      |
-| `.rotvv(v1,v2)`                                      | partial (axis-chain only) |
-| `Data Bonds By Type` auto-bond rules                 | planned |
-| `[N]` array replication                              | planned |
+| `new Cls [N].move(dx,dy,dz)` 1-D array               | ✔      |
+| `new Cls [N].move(...) [M].move(...) [K].move(...)` (3-D array) | ✔      |
+| `.rotvv(v1,v2)`                                      | partial (parsed but unused) |
+| `$atom:submol/atom` scoped references                | ✘ (bonds to sub-instance atoms not resolved) |
+| `Data Bond List` (no `@bond:T` column)               | ✘ (lines retained but bonds not created) |
+| `Bonds/Angles/Dihedrals/Impropers By Type`           | ✘ (rules retained but not auto-applied) |
+| `create_var`, `replace`, `category`                  | ✘ (silently ignored) |
+| Wildcard `@atom:*` in coeff lines                    | ✘ (treated as literal atom name) |
+| oplsaa.lt (full ~10k line file)                      | parses; FF load OK; bond/angle/dihedral types may be synthetic-named |
+
+### Honest caveat
+
+`tip3p_2004_oplsaa.lt` + `oplsaa2024.lt` (the real moltemplate OPLS file, ~10k
+lines) parse end-to-end and produce a ForceField with thousands of
+`AtomType` entries. However, the **bond/angle/dihedral types generated from
+`In Settings` coeff lines currently use synthetic atom-type names** (e.g.
+`{bondName}_i`, `{bondName}_j`) rather than cross-referencing the real atom
+types from the same file. That's adequate for round-tripping the FF to XML
+and for emitting LAMMPS inputs, but will not match OpenMM/GROMACS's
+atom-type-based lookup until a second pass is added to resolve
+`Bonds/Angles/Dihedrals By Type` rules.
+
+### Verifying your own `.lt` file
+
+```bash
+molpy moltemplate parse my_system.lt         # IR summary
+molpy moltemplate info my_system.lt          # atom/bond counts after expansion
+molpy moltemplate run my_system.lt --emit lammps --out-dir out/
+```
 
 ## Python API
 

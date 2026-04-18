@@ -19,13 +19,38 @@ class Transform:
 
 
 @dataclass
+class ArrayDim:
+    """One dimension of the ``new Cls [N].move(dx, dy, dz)`` array form.
+
+    ``count`` is N (number of copies along this dimension); ``transform`` is
+    applied repeatedly — copy ``k`` is shifted by ``k * args`` of the
+    transform. If ``transform`` is ``None`` the copies are placed at the
+    same position (rare but legal per moltemplate).
+    """
+
+    count: int
+    transform: Transform | None = None
+
+
+@dataclass
 class NewStmt:
-    """``inst = new ClassName[.move(...)...]`` — molecule instantiation."""
+    """``inst = new ClassName[.move(...)...]`` — molecule instantiation.
+
+    Supports post-class multi-dimensional arrays, e.g.::
+
+        m = new Butane [12].move(0, 0, 5.2) [12].move(0, 5.2, 0) [6].move(10.4, 0, 0)
+
+    which produces ``12 * 12 * 6 = 864`` copies on a regular grid.
+    ``transforms`` is the per-instance transform chain applied *before*
+    array expansion. ``arrays`` is the list of dimensions (empty when no
+    ``[N]`` form was written).
+    """
 
     instance_name: str
     class_name: str
-    count: int = 1  # for array form: inst = new [N] ClassName
+    count: int = 1  # legacy single-count form: `new [N] Cls`
     transforms: list[Transform] = field(default_factory=list)
+    arrays: list[ArrayDim] = field(default_factory=list)
 
 
 @dataclass

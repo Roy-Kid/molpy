@@ -15,6 +15,7 @@ import re
 from pathlib import Path
 
 from .ir import (
+    ArrayDim,
     ClassDef,
     Document,
     ImportStmt,
@@ -220,20 +221,33 @@ class MolTemplateParser:
     def _parse_write(
         self, source: str, i: int, end: int, *, once: bool
     ) -> tuple[WriteBlock | WriteOnceBlock, int]:
-        # Expect: '(' "section" ')' '{' ... '}'
+        # Expect: '(' "section name (may contain parens)" ')' '{' ... '}'
         while i < end and source[i].isspace():
             i += 1
         if source[i] != "(":
             raise SyntaxError(f"write: expected '(' at offset {i}")
-        close_paren = source.find(")", i)
-        if close_paren == -1:
-            raise SyntaxError("write: unterminated '('")
-        inner = source[i + 1:close_paren].strip()
-        # Strip surrounding quotes
-        if inner.startswith('"') and inner.endswith('"'):
-            section = inner[1:-1]
+        # Skip the opening '('
+        k = i + 1
+        # Skip leading whitespace
+        while k < end and source[k].isspace():
+            k += 1
+        if k < end and source[k] in ('"', "'"):
+            # Quoted section: find closing quote, then the matching ')'
+            quote = source[k]
+            close_q = source.find(quote, k + 1)
+            if close_q == -1:
+                raise SyntaxError("write: unterminated quoted section name")
+            section = source[k + 1:close_q]
+            # Now find the next ')' after the closing quote
+            close_paren = source.find(")", close_q + 1)
+            if close_paren == -1:
+                raise SyntaxError("write: unterminated '('")
         else:
-            section = inner
+            # Unquoted: find next ')' at paren-depth 0
+            close_paren = source.find(")", k)
+            if close_paren == -1:
+                raise SyntaxError("write: unterminated '('")
+            section = source[k:close_paren].strip()
         j = close_paren + 1
         while j < end and source[j].isspace():
             j += 1
@@ -256,34 +270,64 @@ class MolTemplateParser:
         cls_name = m.group(3)
         cursor = i + m.end()
         transforms: list[Transform] = []
+        arrays: list[ArrayDim] = []
         while cursor < end:
-            # skip whitespace
+            # skip whitespace (incl. newlines — chains may wrap)
             k = cursor
             while k < end and source[k].isspace():
                 k += 1
-            if k >= end or source[k] != ".":
+            if k >= end:
                 break
-            tm = re.match(
-                r"\.\s*([A-Za-z_][\w]*)\s*\(\s*([^)]*)\)",
-                source[k:end],
-            )
-            if tm is None:
-                break
-            op = tm.group(1)
-            args_str = tm.group(2).strip()
-            args: list[float] = []
-            if args_str:
-                for part in args_str.split(","):
-                    part = part.strip()
-                    if part:
-                        args.append(float(part))
-            transforms.append(Transform(op=op, args=args))
-            cursor = k + tm.end()
+            c = source[k]
+            # Post-class array dimension: [N] or [N].move(...)
+            if c == "[":
+                am = re.match(
+                    r"\[\s*(\d+)\s*\]\s*(?:\.\s*([A-Za-z_][\w]*)\s*\(\s*([^)]*)\)\s*)?",
+                    source[k:end],
+                )
+                if am is None:
+                    break
+                n = int(am.group(1))
+                tr: Transform | None = None
+                if am.group(2) is not None:
+                    op = am.group(2)
+                    args_str = (am.group(3) or "").strip()
+                    args: list[float] = []
+                    if args_str:
+                        for part in args_str.split(","):
+                            part = part.strip()
+                            if part:
+                                args.append(float(part))
+                    tr = Transform(op=op, args=args)
+                arrays.append(ArrayDim(count=n, transform=tr))
+                cursor = k + am.end()
+                continue
+            # Per-instance transform chain: .move(...) / .rot(...) / etc.
+            if c == ".":
+                tm = re.match(
+                    r"\.\s*([A-Za-z_][\w]*)\s*\(\s*([^)]*)\)",
+                    source[k:end],
+                )
+                if tm is None:
+                    break
+                op = tm.group(1)
+                args_str = tm.group(2).strip()
+                args = []
+                if args_str:
+                    for part in args_str.split(","):
+                        part = part.strip()
+                        if part:
+                            args.append(float(part))
+                transforms.append(Transform(op=op, args=args))
+                cursor = k + tm.end()
+                continue
+            break
         return NewStmt(
             instance_name=instance,
             class_name=cls_name,
             count=count,
             transforms=transforms,
+            arrays=arrays,
         ), cursor
 
     def _parse_class(self, source: str, i: int, end: int) -> tuple[ClassDef, int]:

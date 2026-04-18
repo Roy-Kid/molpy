@@ -34,6 +34,7 @@ from molpy.core.forcefield import (
 )
 
 from .ir import (
+    ArrayDim,
     ClassDef,
     Document,
     ImportStmt,
@@ -615,9 +616,45 @@ def build_system(
     for stmt in doc.statements:
         if isinstance(stmt, NewStmt):
             cls_stmts = class_body(stmt.class_name)
-            for k in range(stmt.count):
-                tmpl = _build_template(cls_stmts)
-                for t in stmt.transforms:
-                    _apply_transform(tmpl, t)
-                system += tmpl
+            base_count = max(stmt.count, 1)
+            # Enumerate all grid positions in row-major order across
+            # stmt.arrays (each dim contributes a multiplier and a
+            # per-step transform applied k times).
+            grid = _enumerate_array_positions(stmt.arrays)
+            for _ in range(base_count):
+                for offsets in grid:
+                    tmpl = _build_template(cls_stmts)
+                    for t in stmt.transforms:
+                        _apply_transform(tmpl, t)
+                    for offset in offsets:
+                        _apply_transform(tmpl, offset)
+                    system += tmpl
     return system, ff
+
+
+def _enumerate_array_positions(
+    arrays: list[ArrayDim],
+) -> list[list[Transform]]:
+    """Enumerate every grid cell as a list-of-transforms.
+
+    For ``[N1].move(dx1) [N2].move(dx2)`` returns N1 * N2 lists; cell
+    ``(k1, k2)`` is ``[Transform("move", k1*dx1), Transform("move", k2*dx2)]``.
+    If ``arrays`` is empty, returns a single empty list (one copy, no shift).
+    """
+    if not arrays:
+        return [[]]
+    cells: list[list[Transform]] = [[]]
+    for dim in arrays:
+        new_cells: list[list[Transform]] = []
+        for cell in cells:
+            for k in range(dim.count):
+                if dim.transform is None or k == 0:
+                    new_cells.append(cell + [])
+                else:
+                    scaled = Transform(
+                        op=dim.transform.op,
+                        args=[a * k for a in dim.transform.args],
+                    )
+                    new_cells.append(cell + [scaled])
+        cells = new_cells
+    return cells
