@@ -21,28 +21,36 @@ dipole series before delegating to `molrs.dielectric`.
 
 ---
 
-## The running example
+## The object: a polar electrolyte
 
-| Quantity | Value |
-|---|---|
-| Solvent | 852 SPC water molecules (each O, H, H point charges) |
-| Ions | 16 Na⁺ + 16 Cl⁻ (32 charge carriers, ≈ 1 mol/L) |
-| Atoms | 852×3 + 32 = 2588 |
-| Ensemble | NVT (canonical) |
-| Temperature | 298.15 K |
-| Cell | cubic, $L \approx 2.996$ nm, $V \approx 2.69\times10^4$ Å³ |
-| Length / step | 20 ns, 1 fs timestep |
-| Output | positions **and** velocities every 10 fs |
-| Charges | water O = −0.82 e, H = +0.41 e; Na = +1 e, Cl = −1 e |
+The method below applies to any polar fluid, but it helps to anchor it on a
+concrete **object** rather than a particular simulation: roughly 1 mol/L NaCl in
+**SPC/E** water — a few hundred water molecules plus a few tens of Na⁺/Cl⁻ in a
+cubic NVT cell at room temperature.
 
-Two properties of this system drive every methodological choice below:
+| Property of the object | Value | Why it matters to the calculation |
+|---|---|---|
+| Solvent | **SPC/E** water — O = −0.8476 e, H = +0.4238 e | the per-molecule charges set $\mathbf{M}$, and the spectrum scales as charge² |
+| Ions | Na⁺ (+1 e), Cl⁻ (−1 e), ≈ 1 mol/L | add a **conductive** channel on top of solvent rotation |
+| Ensemble / T | NVT, ≈ 298 K | equilibrium fluctuations — the FDT (§1.3) applies |
 
-1. **It has both orientational polarization (water rotation) and translational
-   current (ion diffusion).** These must be treated *separately* — feeding the
-   whole-system dipole into a static-permittivity formula yields a nonsensical
+Two *physical* features of this object — not of any particular run — drive every
+methodological choice below:
+
+1. **Two polarization mechanisms coexist**: orientational (water rotation, a
+   *bounded* dipole $\mathbf{M}_D$) and translational (ion diffusion, a
+   *conductive* current). They must be treated **separately** — feeding the
+   whole-system dipole into the static-permittivity formula yields a nonsensical
    $\varepsilon \approx 7000$ (see [§5](#5-the-electrolyte-step-decompose-the-dipole)).
-2. **It stores velocities**, so both the dipole-autocorrelation route and the
-   current-autocorrelation route are available and can cross-check each other.
+2. **The current route needs velocities or a fine output stride.** If per-frame
+   velocities are stored, the dipole-ACF route and the current-ACF route can be
+   computed and cross-checked; otherwise the current is the finite-difference
+   $\dot{\mathbf{M}}$, which only resolves frequencies below its sampling Nyquist
+   (§6.5).
+
+The specific cell size, trajectory length, and output stride are *experimental
+details of one run*, not part of the method — they enter only as the numbers
+$V$, $N_\text{frames}$, and $\mathrm{d}t$ you pass to the kernels.
 
 ---
 
@@ -60,8 +68,10 @@ $$
 
 A larger relative permittivity $\varepsilon$ means the medium is more easily
 polarized and screens fields more strongly. Real water has $\varepsilon \approx
-78$; the SPC model used here gives $\varepsilon \approx 54$ — **a known feature
-of the SPC force field, not an error.**
+78$; the **SPC/E** model used here reproduces $\varepsilon \approx 71$, and adding
+≈ 1 mol/L NaCl lowers it further (the **dielectric decrement** — ions order the
+surrounding water and remove it from the orientational response). Both effects are
+**physical**, not numerical errors.
 
 ### 1.2 Why a *spectrum* — frequency dependence
 
@@ -132,9 +142,10 @@ shorter than half a box). MolPy performs this with
 `Box.delta(p1, p2, minimum_image=True)`.
 
 !!! warning
-    This is valid only if the per-frame displacement is $< L/2$. At 10 fs per
-    frame an atom moves a fraction of an Å, far below $L/2 \approx 15$ Å — safe.
-    This is one reason the trajectory is written densely.
+    This is valid only if the per-frame displacement is $< L/2$. With a
+    sufficiently fine output stride an atom moves a fraction of an Å between
+    frames — far below $L/2$ — so the unwrapping is unambiguous. A coarse stride
+    can break it; this is one reason trajectories for spectra are written densely.
 
 ---
 
@@ -157,7 +168,7 @@ $$
 Term by term:
 
 - $\varepsilon_\infty$ — high-frequency (electronic) permittivity. Use **1** for
-  non-polarizable force fields like SPC; 1.5–2.5 for polarizable water.
+  non-polarizable force fields like SPC/E; 1.5–2.5 for polarizable water.
 - $\langle|\mathbf{M}-\langle\mathbf{M}\rangle|^2\rangle$ — the **variance** of
   the total dipole, in $(e\cdot\text{Å})^2$. Bigger fluctuations → larger
   permittivity. This *is* the FDT: large fluctuation = strong response.
@@ -402,9 +413,9 @@ Trade-offs:
 - **Larger `max_lag`** → finer $\Delta\omega$ (better low-frequency resolution),
   but noisier tail. Rule of thumb: `max_lag` $\le$ one quarter of the frame count.
 - **Smaller $\Delta t$** (denser output) → higher Nyquist → access to
-  higher-frequency features (e.g. the librational resonance at tens of rad/ps).
-  This is why the example writes a frame every **10 fs**. For static $\varepsilon$
-  and slow relaxation you may subsample (e.g. every 200 frames = 2 ps) to save
+  higher-frequency features (e.g. the librational resonance at tens of rad/ps),
+  which is why spectra are written with a fine stride (order ~10 fs). For static
+  $\varepsilon$ and slow relaxation you may subsample (e.g. to ~2 ps) to save
   memory.
 
 ---
@@ -511,10 +522,10 @@ the physics still runs in `molrs`.
 from molpy.compute import DielectricSusceptibility
 
 dc = DielectricSusceptibility(
-    dt=0.01,                  # ps between kept frames (10 fs here)
+    dt=0.01,                  # ps between kept frames
     temperature=298.15,       # K
     max_correlation_time=2000,# frames (sets the resolution; keep <= n_frames/4)
-    epsilon_inf=1.0,          # non-polarizable SPC water
+    epsilon_inf=1.0,          # non-polarizable water (SPC/E)
     window_type="cosine_sq",
     routes=["einstein-helfand", "green-kubo"],
 )
@@ -597,10 +608,11 @@ $$
   fallback. `DebyeFit.epsilon(omega)` evaluates the fitted model. SciPy is only
   needed for the broadened/skewed fits below.
 
-!!! example "Running example"
-    The water ($\mathbf{M}_D$) loss peak gives $\tau \approx 6.5$ ps (with clean
-    10 fs data; coarse 2 ps sampling underestimates it to ≈ 4.7 ps), consistent
-    with the known SPC relaxation time.
+!!! note "What to expect"
+    The water ($\mathbf{M}_D$) loss peak sits near $\tau \approx 6$–$8$ ps for
+    SPC/E at room temperature. The fitted value is sensitive to sampling: a fine
+    stride recovers it cleanly, while coarse (~2 ps) sampling biases it low —
+    a resolution effect, not a physical shift.
 
 ### 10.2 Non-Debye: Cole–Cole / Cole–Davidson / Havriliak–Negami
 
@@ -631,8 +643,8 @@ $$
 
 The **librational (hindered-rotation) resonance** at tens of rad·ps⁻¹ is a true
 *resonant absorption* (a damped harmonic oscillator), not a monotonic
-relaxation; fit it with a Lorentzian / DHO line shape. Resolving it requires the
-dense 10 fs sampling (high Nyquist).
+relaxation; fit it with a Lorentzian / DHO line shape. Resolving it requires a
+dense output stride (high Nyquist).
 
 ### 10.4 The conductivity contribution (electrolytes)
 
@@ -661,10 +673,10 @@ sensitivity (§7.2).
 
 | Quantity | Source | Physical meaning | Example value |
 |---|---|---|---|
-| $\varepsilon(0)$ | $\mathbf{M}_D$ fluctuation, Neumann | static permittivity / screening | ≈ 54 (SPC; low is normal) |
-| $\varepsilon'(\omega)$ | EH spectrum, real | energy storage; $\varepsilon(0)$→$\varepsilon_\infty$ | 54 → 1 |
+| $\varepsilon(0)$ | $\mathbf{M}_D$ fluctuation, Neumann | static permittivity / screening | ≈ 71 (SPC/E water; lower with added salt — decrement) |
+| $\varepsilon'(\omega)$ | EH spectrum, real | energy storage; $\varepsilon(0)$→$\varepsilon_\infty$ | $\varepsilon(0)$ → 1 |
 | $\varepsilon''(\omega)$ | EH spectrum, imag | loss / absorption; relaxation peak | peak at $\omega\approx1/\tau$ |
-| $\tau$ | loss-peak $1/\omega_\text{peak}$ or HN fit | dipole relaxation time | ≈ 6.5 ps |
+| $\tau$ | loss-peak $1/\omega_\text{peak}$ or HN fit | dipole relaxation time | ≈ 6–8 ps |
 | librational peak | high-$\omega$ spectrum (dense sampling) | hindered-rotation resonance | tens of rad/ps |
 | $\sigma$ | $\mathbf{M}_J$ MSD slope, Einstein–Helfand | DC ionic conductivity | ≈ 6 S/m (range 6–8.5) |
 
