@@ -482,27 +482,44 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             StringIO(csv_string), delimiter=" ", skipinitialspace=True
         )
 
-        # Add mass information. atom_style="body" already carries per-atom
-        # mass in the atoms section; do not overwrite it from the (absent)
-        # Masses section. Other styles look mass up by atom type, falling
-        # back to 1.0 when the file has no Masses section.
-        if block.nrows > 0 and "mass" not in block:
-            mass_values = []
-            for type_str in block["type"]:
-                mass_values.append(masses.get(str(type_str), 1.0))
-            block["mass"] = np.array(mass_values)
+        # Add mass information. atom_style="body" already carries per-atom mass
+        # in the atoms section; do not overwrite it from the (absent) Masses
+        # section. Other styles look mass up by atom type. This used to fall
+        # back to `masses.get(type, 1.0)`, so a frame could carry an invented
+        # mass while looking complete — corrupting every dynamics and every
+        # mass-weighted quantity derived from it. There is no default mass:
+        #
+        #   no Masses section at all -> no `mass` column (a LAMMPS data file
+        #       may legitimately leave mass to the input script; an absent
+        #       optional column is the honest representation of "not stated")
+        #   Masses present but missing a type -> the file is internally
+        #       inconsistent, so fail loudly
+        if block.nrows > 0 and "mass" not in block and masses:
+            unknown = sorted({str(t) for t in block["type"] if str(t) not in masses})
+            if unknown:
+                raise ValueError(
+                    f"LAMMPS data file {self._path.name!r} has a Masses section "
+                    f"with no entry for atom type(s) {unknown}. Every type used "
+                    f"in Atoms must appear in Masses; molpy will not substitute "
+                    f"a default mass."
+                )
+            block["mass"] = np.array([masses[str(t)] for t in block["type"]])
 
-            # Convert numeric types back to string types using type labels
-            if type_labels:
-                converted_types = []
-                for type_id in block["type"]:
-                    try:
-                        type_id_int = int(type_id)
-                        converted_type = type_labels.get(type_id_int, str(type_id))
-                        converted_types.append(converted_type)
-                    except (ValueError, TypeError):
-                        converted_types.append(str(type_id))
-                block["type"] = np.array(converted_types)
+        # Convert numeric types back to string type labels. This was nested
+        # inside the mass branch above, so a file that supplied its own `mass`
+        # column (atom_style="body") — or, now, one with no Masses section —
+        # silently kept numeric types. Label resolution has nothing to do with
+        # mass; it runs whenever labels were parsed.
+        if block.nrows > 0 and type_labels:
+            converted_types = []
+            for type_id in block["type"]:
+                try:
+                    type_id_int = int(type_id)
+                    converted_type = type_labels.get(type_id_int, str(type_id))
+                    converted_types.append(converted_type)
+                except (ValueError, TypeError):
+                    converted_types.append(str(type_id))
+            block["type"] = np.array(converted_types)
 
         return block
 

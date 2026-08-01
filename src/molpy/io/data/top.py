@@ -17,6 +17,37 @@ from molrs import Element
 from .base import DataReader, DataWriter, PathLike
 
 
+class TopFormatError(Exception):
+    """A ``.top`` file is structurally parseable but semantically invalid.
+
+    Deliberately **not** a :class:`ValueError`: the per-line parsers treat
+    ``ValueError`` as "this line is not a record, skip it", so a malformed
+    *record* raised as ``ValueError`` would be silently dropped instead of
+    reported.
+    """
+
+
+def _to_row_index(field: str) -> int:
+    """Convert a GROMACS 1-based atom serial to a 0-based ``atoms`` row index.
+
+    GROMACS numbers atoms from 1; canonical endpoint columns (``atomi``,
+    ``atomj``, …) are 0-based row indices into the ``atoms`` block. Storing the
+    file value unchanged shifts every endpoint by one and makes the last atom
+    index out of range — a corruption that is invisible unless a topology
+    happens to reference the final atom.
+
+    Raises:
+        TopFormatError: If *field* is not a positive integer, i.e. not a valid
+            GROMACS serial. Never silently clamps or wraps to a negative index.
+    """
+    serial = int(field)
+    if serial < 1:
+        raise TopFormatError(
+            f"GROMACS atom serial must be >= 1 (1-based), got {serial}"
+        )
+    return serial - 1
+
+
 class TopReader(DataReader):
     """Read GROMACS topology files and create Frame objects.
 
@@ -183,8 +214,8 @@ class TopReader(DataReader):
 
         try:
             return {
-                "atomi": int(parts[0]),
-                "atomj": int(parts[1]),
+                "atomi": _to_row_index(parts[0]),
+                "atomj": _to_row_index(parts[1]),
                 "type": int(parts[2]),
             }
         except (ValueError, IndexError):
@@ -213,8 +244,8 @@ class TopReader(DataReader):
 
         try:
             return {
-                "atomi": int(parts[0]),
-                "atomj": int(parts[1]),
+                "atomi": _to_row_index(parts[0]),
+                "atomj": _to_row_index(parts[1]),
                 "type": int(parts[2]),
             }
         except (ValueError, IndexError):
@@ -243,9 +274,9 @@ class TopReader(DataReader):
 
         try:
             return {
-                "atomi": int(parts[0]),
-                "atomj": int(parts[1]),
-                "atomk": int(parts[2]),
+                "atomi": _to_row_index(parts[0]),
+                "atomj": _to_row_index(parts[1]),
+                "atomk": _to_row_index(parts[2]),
                 "type": int(parts[3]),
             }
         except (ValueError, IndexError):
@@ -274,10 +305,10 @@ class TopReader(DataReader):
 
         try:
             return {
-                "atomi": int(parts[0]),
-                "atomj": int(parts[1]),
-                "atomk": int(parts[2]),
-                "atoml": int(parts[3]),
+                "atomi": _to_row_index(parts[0]),
+                "atomj": _to_row_index(parts[1]),
+                "atomk": _to_row_index(parts[2]),
+                "atoml": _to_row_index(parts[3]),
                 "type": int(parts[4]),
             }
         except (ValueError, IndexError):
@@ -463,19 +494,35 @@ class TopWriter(DataWriter):
         # [ atoms ]
         if "atoms" in frame:
             atoms = frame["atoms"]
+            # Force-field data must come from the frame. Fabricating a type
+            # ("X"), a charge (0.0) or a mass (0.0) produces a topology that
+            # loads and runs while being physically meaningless — strictly
+            # worse than refusing to write it.
+            missing = [c for c in ("type", "charge", "mass") if c not in atoms]
+            if missing:
+                raise ValueError(
+                    f"Cannot write {self._file.name}: the 'atoms' block is missing "
+                    f"required column(s) {missing}. GROMACS [ atoms ] records carry "
+                    f"force-field data that molpy will not invent; typify or assign "
+                    f"these columns before writing."
+                )
             lines.append("[ atoms ]")
             lines.append(";  nr  type  resnr  residu  atom  cgnr  charge  mass")
             n_atoms = atoms.nrows
             for i in range(n_atoms):
                 row = atoms[i]
+                atype = str(row["type"])
+                charge = float(row["charge"])
+                mass = float(row["mass"])
+                # Positional/structural serials, not measurements: GROMACS
+                # defines `nr` and `cgnr` as 1-based ordinals, and a single
+                # [ moleculetype ] block is one residue by construction. These
+                # are format conventions, so deriving them is not fabrication.
                 aid = int(row.get("id", i + 1))
-                atype = str(row.get("type", "X"))
                 resnr = int(row.get("resnr", 1))
                 residu = str(row.get("residu", mol_name))
                 name = str(row.get("name", atype))
                 cgnr = int(row.get("cgnr", i + 1))
-                charge = float(row.get("charge", 0.0))
-                mass = float(row.get("mass", 0.0))
                 lines.append(
                     f"  {aid}  {atype}  {resnr}  {residu}  {name}  "
                     f"{cgnr}  {charge:.4f}  {mass:.3f}"
@@ -494,7 +541,13 @@ class TopWriter(DataWriter):
             lines.append(f"; {header}")
             for i in range(block.nrows):
                 row = block[i]
-                vals = "  ".join(str(int(row[c])) for c in columns)
+                # Endpoints are 0-based row indices in the frame; GROMACS
+                # serials are 1-based. Mirror of `_to_row_index` on read.
+                vals = "  ".join(str(int(row[c]) + 1) for c in columns)
+                # `funct` is the GROMACS interaction-function selector, not a
+                # molpy field. Frames from other formats carry no equivalent,
+                # so 1 (the GROMACS default) is retained here rather than
+                # refusing to write. Revisited when `type`/`type_id` split.
                 funct = int(row.get("type", 1))
                 lines.append(f"  {vals}  {funct}")
             lines.append("")

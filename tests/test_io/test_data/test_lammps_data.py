@@ -498,6 +498,38 @@ class TestErrorHandling:
         assert frame.box is not None
         np.testing.assert_array_almost_equal(frame.box.lengths, [25.0, 30.0, 35.0])
 
+    def test_missing_mass_entry_raises(self, tmp_path):
+        """An atom type absent from Masses is an error, not a 1.0.
+
+        The reader used to fall back to ``masses.get(type, 1.0)``. The frame
+        then looked complete while carrying an invented mass, which silently
+        corrupts every dynamics and every mass-weighted quantity derived
+        from it.
+        """
+        content = """# LAMMPS data file
+2 atoms
+2 atom types
+
+0.0 10.0 xlo xhi
+0.0 10.0 ylo yhi
+0.0 10.0 zlo zhi
+
+Masses
+
+1 12.011
+
+Atoms
+
+1 1 0.0 0.0 0.0
+2 2 1.0 0.0 0.0
+"""
+        tmp_file = tmp_path / "missing_mass.data"
+        tmp_file.write_text(content)
+
+        reader = LammpsDataReader(tmp_file, atom_style="atomic")
+        with pytest.raises(ValueError, match="Masses"):
+            reader.read()
+
     def test_malformed_header(self, tmp_path):
         """Test reading file with malformed header."""
         malformed_content = """# LAMMPS data file

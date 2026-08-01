@@ -55,8 +55,10 @@ class GroReader(DataReader):
         molpy_frame = frames[0]  # already a canonical rich Frame from molrs.io
 
         atoms = molpy_frame["atoms"]
-        if "number" not in atoms and "id" in atoms:
-            atoms["number"] = atoms["id"].astype(np.int64, copy=False)
+        # NOTE: this reader used to set ``atoms["number"] = atoms["id"]``, i.e.
+        # it wrote the atom *serial* into the atomic-*number* column. A GRO file
+        # carries no element information, so there is nothing to derive an
+        # atomic number from — the column is simply absent.
         if "xyz" not in atoms and "x" in atoms and "y" in atoms and "z" in atoms:
             atoms["xyz"] = np.column_stack([atoms["x"], atoms["y"], atoms["z"]])
         return molpy_frame

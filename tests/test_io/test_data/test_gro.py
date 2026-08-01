@@ -11,6 +11,24 @@ import molpy as mp
 class TestGMXGroReader:
     """Basic GRO reading tests."""
 
+    def test_atomic_number_is_not_the_atom_serial(self, TEST_DATA_DIR):
+        """A GRO file carries no element data, so it yields no atomic numbers.
+
+        The reader used to do ``atoms["number"] = atoms["id"]``, writing the
+        atom *serial* into the atomic-*number* column. Every consumer treating
+        `number` as Z then read 1, 2, 3, … as hydrogen, helium, lithium.
+        """
+        fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
+        if not fpath.exists():
+            pytest.skip("gro test data not available")
+        atoms = mp.io.read_gro(fpath, frame=molrs.Frame())["atoms"]
+
+        if "number" not in atoms:
+            return  # nothing claimed, nothing to be wrong
+        assert not np.array_equal(
+            np.asarray(atoms["number"]), np.asarray(atoms["id"])
+        ), "'number' is a copy of 'id' — atom serials mislabelled as atomic numbers"
+
     def test_gro(self, TEST_DATA_DIR):
         fpath = TEST_DATA_DIR / "gro/cod_4020641.gro"
         if not fpath.exists():
@@ -26,7 +44,6 @@ class TestGMXGroReader:
         assert str(first_atom["res_id"]) == "1"
         assert str(first_atom["res_name"]) == "LIG"
         assert str(first_atom["name"]) == "S"
-        assert int(first_atom["number"]) == 1
         xyz = np.asarray(first_atom["xyz"])
         expected_xyz = np.array([0.310, 0.862, 1.316])
         np.testing.assert_allclose(xyz, expected_xyz, rtol=1e-3)
@@ -78,7 +95,6 @@ class TestGROReaderComprehensive:
         assert "res_id" in atoms
         assert "res_name" in atoms
         assert "name" in atoms
-        assert "number" in atoms
         assert "xyz" in atoms
 
         # Check first atom data
@@ -86,7 +102,6 @@ class TestGROReaderComprehensive:
         assert "res_id" in first_atom
         assert "res_name" in first_atom
         assert "name" in first_atom
-        assert "number" in first_atom
 
         # Check coordinates
         xyz = np.asarray(first_atom["xyz"])
