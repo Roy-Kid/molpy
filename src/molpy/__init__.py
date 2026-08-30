@@ -182,6 +182,13 @@ from .conformer import Conformer
 # going through the top-level ``molrs.Frame`` re-export alias chain.
 from molrs.frame import Block, Frame  # noqa: E402
 
+# One record of trajectory-like data: an ordered sequence of frames sharing one
+# identity (a single geometry is a length-1 collection; a scan or relaxation is
+# longer). Downstream consumers (molnex, molhub) import this alias from here.
+from collections.abc import Sequence as _Sequence  # noqa: E402
+
+FrameCollection = _Sequence[Frame]
+
 from molrs import (  # noqa: E402
     BlockDtypeError,
     Cuboid,
@@ -410,6 +417,7 @@ __all__ = [
     "Block",
     "FRAME_SCHEMA_VERSION",
     "Frame",
+    "FrameCollection",
     "MetaValue",
     "Quantity",
     "Unit",
