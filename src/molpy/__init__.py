@@ -186,8 +186,12 @@ from molrs.frame import Block, Frame  # noqa: E402
 # identity (a single geometry is a length-1 collection; a scan or relaxation is
 # longer). Downstream consumers (molnex, molhub) import this alias from here.
 from collections.abc import Sequence as _Sequence  # noqa: E402
+from typing import TypeAlias as _TypeAlias  # noqa: E402
 
-FrameCollection = _Sequence[Frame]
+# Explicit TypeAlias: with the module-level lazy ``__getattr__`` present, a
+# bare implicit alias falls through to it in some checkers (ty resolved the
+# name as ModuleType); the declared spelling pins it as a type alias.
+FrameCollection: _TypeAlias = _Sequence[Frame]
 
 from molrs import (  # noqa: E402
     BlockDtypeError,
