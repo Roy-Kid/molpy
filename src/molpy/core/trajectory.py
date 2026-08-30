@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
+from pathlib import Path
 from typing import Any, overload
 
 import molrs
@@ -76,6 +77,37 @@ class Trajectory(molrs.Trajectory):
     def topology(self) -> Any | None:
         """The topology object associated with this trajectory (or None)."""
         return self._topology
+
+    @classmethod
+    def read(cls, path: str | Path) -> "Trajectory":
+        """Refuse store I/O; use :mod:`molpy.io.mrec`.
+
+        Args:
+            path: Ignored. Present so the call matches a former store door.
+
+        Raises:
+            TypeError: Always. Scientific-record I/O lives on
+                :mod:`molpy.io.mrec`.
+        """
+        raise TypeError(
+            f"{cls.__qualname__}.read({path!r}) is not a store door; "
+            "use molpy.io.mrec.read_record or molpy.io.mrec.TrajectoryReader"
+        )
+
+    def write(self, path: str | Path) -> None:
+        """Refuse store I/O; use :mod:`molpy.io.mrec`.
+
+        Args:
+            path: Ignored. Present so the call matches a former store door.
+
+        Raises:
+            TypeError: Always. Scientific-record I/O lives on
+                :mod:`molpy.io.mrec`.
+        """
+        raise TypeError(
+            f"{type(self).__qualname__}.write({path!r}) is not a store door; "
+            "use molpy.io.mrec.write_trajectory"
+        )
 
     @overload
     def __getitem__(self, key: int) -> Frame: ...

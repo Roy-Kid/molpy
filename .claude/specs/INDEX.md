@@ -2,6 +2,7 @@
 
 ## Active
 
+
 | Slug | Status |
 |---|---|
 | [lammps-ff-p0-single-boundary](lammps-ff-p0-single-boundary.md) | **done** (implemented) — single boundary + Frame sovereignty + `map_type` + data_coeffs R/W |

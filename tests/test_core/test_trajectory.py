@@ -1,5 +1,7 @@
 """Tests for the trajectory module (molrs-backed eager container + splitters)."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -222,3 +224,21 @@ class TestIntegration:
         first_segment = segments[0]
         assert len(list(first_segment)) == 3
         assert all(seg._topology is topology for seg in segments)
+
+
+class TestTrajectoryReadWriteFailLoud:
+    """Store doors on Trajectory fail loud and name molpy.io.mrec."""
+
+    def test_read_fails_loud_naming_mrec(self, tmp_path: Path) -> None:
+        traj = Trajectory([_make_frame()])
+        path = tmp_path / "traj.mrec"
+        with pytest.raises((TypeError, RuntimeError), match="molpy.io.mrec"):
+            traj.read(str(path))
+        assert not path.exists()
+
+    def test_write_fails_loud_naming_mrec(self, tmp_path: Path) -> None:
+        traj = Trajectory([_make_frame()])
+        path = tmp_path / "traj.mrec"
+        with pytest.raises((TypeError, RuntimeError), match="molpy.io.mrec"):
+            traj.write(str(path))
+        assert not path.exists()

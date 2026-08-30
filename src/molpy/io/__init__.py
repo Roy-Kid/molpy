@@ -131,9 +131,13 @@ from .writers import (
 # 6. Utility functions (shallowest level)
 read_txt = np.loadtxt
 
+# 7. Scientific-record I/O (submodule; names stay off this package root)
+from . import mrec
+
 __all__ = [
     # Core types
     "PathLike",
+    "mrec",
     # Factory functions - Readers
     "read_amber",
     "read_amber_ac",
