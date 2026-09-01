@@ -91,7 +91,7 @@ class Trajectory(molrs.Trajectory):
         """
         raise TypeError(
             f"{cls.__qualname__}.read({path!r}) is not a store door; "
-            "use molpy.io.mrec.read_record or molpy.io.mrec.TrajectoryReader"
+            "use molpy.io.mrec.read_trajectory or molpy.io.mrec.TrajectoryReader"
         )
 
     def write(self, path: str | Path) -> None:
@@ -131,7 +131,7 @@ class Trajectory(molrs.Trajectory):
             return type(self)(self.frames[key], self._topology)
         if key < 0:
             key += len(self)
-        return Frame.from_dict(super().__getitem__(key))
+        return Frame(super().__getitem__(key))
 
     def map(self, func: Callable[[Frame], Frame]) -> "Trajectory":
         """Apply ``func`` to every frame, returning a new trajectory.

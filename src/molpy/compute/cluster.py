@@ -1,8 +1,8 @@
 """Distance-based clustering — molrs-backed.
 
-``Cluster`` takes (frames, nlists) and returns one ``ClusterResult`` per
-frame. ``ClusterCenters`` takes (frames, clusters) and returns the
-geometric centers per cluster.
+``Cluster`` takes (frames, nlists) or (frames, keys=...) and returns one
+``ClusterResult`` per frame. ``ClusterCenters`` takes (frames, clusters)
+and returns the geometric centers per cluster.
 
 Both wrappers take two data inputs — mirroring the ``RDF`` pattern.
 
@@ -34,7 +34,15 @@ class Cluster(Compute):
         super().__init__(min_cluster_size=min_cluster_size)
         self._impl = _MolrsCluster(min_cluster_size)
 
-    def __call__(self, frames, neighbors):
+    def __call__(self, frames, neighbors=None, keys=None):
+        """Cluster by neighbor connectivity, or by membership ``keys``.
+
+        ``keys`` is one non-negative integer per atom (e.g. ``mol_id``).
+        When set, ``neighbors`` is ignored and grouping is purely by key —
+        the path for per-molecule properties such as chain Rg.
+        """
+        if keys is not None:
+            return self._impl.compute(frames, keys=keys)
         return self._impl.compute(frames, neighbors)
 
 

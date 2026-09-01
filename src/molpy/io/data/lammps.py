@@ -468,32 +468,9 @@ class LammpsDataWriter(DataWriter):
 
 def _type_ids_from_frame(frame: Frame) -> dict[str, int]:
     """Build ForceField type-name → id map from Frame ``type`` / ``type_id``."""
-    out: dict[str, int] = {}
-    for block_name in ("atoms", "bonds", "angles", "dihedrals", "impropers"):
-        if block_name not in frame:
-            continue
-        block = frame[block_name]
-        if block.nrows == 0:
-            continue
-        if "type" in block and "type_id" in block:
-            types = np.asarray(block["type"]).astype(str)
-            tids = np.asarray(block["type_id"]).astype(int)
-            for name, tid in zip(types, tids, strict=False):
-                out[str(name)] = int(tid)
-        elif "type" in block:
-            types = [str(t) for t in np.asarray(block["type"])]
-            if types and all(_is_int_type_token(t) for t in types):
-                for t in types:
-                    out[t] = int(t)
-            else:
-                ordered = _sorted_type_names(set(types))
-                for i, name in enumerate(ordered, 1):
-                    out[name] = i
-        elif "type_id" in block:
-            # Numeric-only body: id strings as names for integer FF types.
-            for tid in np.unique(np.asarray(block["type_id"]).astype(int)):
-                out[str(int(tid))] = int(tid)
-    return out
+    import molrs.io
+
+    return {k: int(v) for k, v in molrs.io.lammps_type_ids_from_frame(frame).items()}
 
 
 def write_lammps_data_coeffs(

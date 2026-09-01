@@ -48,6 +48,7 @@ def write_lammps_forcefield(
     *,
     precision: int = 6,
     skip_pair_style: bool = False,
+    skip_units: bool = False,
     units: str = "real",
     atom_types: set[str] | None = None,
     bond_types: set[str] | None = None,
@@ -62,6 +63,8 @@ def write_lammps_forcefield(
         forcefield: Force field in molrs store units.
         precision: Decimal places for floating coefficients.
         skip_pair_style: Omit the ``pair_style`` line when True.
+        skip_units: Omit the ``units`` line when True (include after the input
+            script already set ``units``).
         units: LAMMPS ``units`` style for the file (``real``, ``metal``, ``lj``).
         atom_types: Optional pair atom-type whitelist.
         bond_types, angle_types, dihedral_types, improper_types: Bonded whitelists.
@@ -73,6 +76,7 @@ def write_lammps_forcefield(
         forcefield,
         precision=precision,
         skip_pair_style=skip_pair_style,
+        skip_units=skip_units,
         units=units,
         atom_types=atom_types,
         bond_types=bond_types,

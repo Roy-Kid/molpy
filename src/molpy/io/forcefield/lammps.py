@@ -65,6 +65,7 @@ class LAMMPSForceFieldWriter:
         dihedral_types: set[str] | None = None,
         improper_types: set[str] | None = None,
         skip_pair_style: bool = False,
+        skip_units: bool = False,
         units: str | None = None,
     ) -> None:
         """Write ``forcefield`` (molrs store units) as a LAMMPS include.
@@ -77,6 +78,7 @@ class LAMMPSForceFieldWriter:
             dihedral_types: Optional dihedral type-name whitelist.
             improper_types: Optional improper type-name whitelist.
             skip_pair_style: If True, omit the ``pair_style`` line.
+            skip_units: If True, omit the ``units`` line.
             units: Override constructor ``units`` for this write.
         """
         import molrs
@@ -84,6 +86,7 @@ class LAMMPSForceFieldWriter:
         kwargs = dict(
             precision=self.precision,
             skip_pair_style=skip_pair_style,
+            skip_units=skip_units,
             units=units if units is not None else self.units,
             atom_types=atom_types,
             bond_types=bond_types,

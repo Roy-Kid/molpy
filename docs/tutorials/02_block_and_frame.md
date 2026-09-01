@@ -195,13 +195,13 @@ print(frame2.box.lengths) # [20. 20. 20.]
 
 ## Serialization round-trips through dictionaries
 
-Both `Block` and `Frame` support `to_dict()` and `from_dict()` for JSON-friendly serialization. This is the stable way to persist or transmit system state without tying yourself to a specific file format.
+`Block.from_dict` rebuilds a table from `to_dict()`. A Frame payload is the constructor arguments: `blocks` and `meta`.
 
 ```python
 payload = frame.to_dict()
 print(sorted(payload.keys())) # ['blocks', 'meta']
 
-restored = mp.Frame.from_dict(payload)
+restored = mp.Frame(payload["blocks"], meta=payload["meta"])
 print(sorted(restored.to_dict()["blocks"].keys())) # ['atoms', 'bonds']
 ```
 

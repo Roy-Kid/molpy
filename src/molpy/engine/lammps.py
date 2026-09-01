@@ -468,6 +468,6 @@ def _splice_coords(original: Frame, relaxed: Frame) -> Frame:
         sel = list(np.argsort(rid, kind="stable"))
 
     atoms["x"], atoms["y"], atoms["z"] = rx[sel], ry[sel], rz[sel]
-    new = molrs.Frame.from_dict(data)
+    new = molrs.Frame(data["blocks"], meta=data["meta"])
     new.box = original.box
     return new

@@ -658,7 +658,7 @@ class TestFrame:
 
     def test_to_from_dict_roundtrip(self, simple_frame):
         dct = simple_frame.to_dict()
-        restored = Frame.from_dict(dct)
+        restored = Frame(dct["blocks"], meta=dct["meta"])
         for g in restored._blocks:
             for v in restored[g].keys():
                 assert np.array_equal(restored[g][v], simple_frame[g][v])

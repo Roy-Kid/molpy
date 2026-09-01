@@ -567,7 +567,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
 
         # ``molrs.Atomistic.to_frame`` yields the bare pyo3 frame; upgrade it to
         # the rich ``Frame`` (metadata, box, rich Blocks) callers expect.
-        frame = Frame.from_dict(molrs.Atomistic.to_frame(self))
+        frame = Frame(molrs.Atomistic.to_frame(self))
         if atom_fields is not None and "atoms" in frame:
             keep = set(atom_fields)
             atoms = frame["atoms"]

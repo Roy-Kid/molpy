@@ -404,7 +404,7 @@ def test_adapter_fallback():
 
 - **Owned by molrs, re-exported on molpy**: `molpy.Frame is molrs.Frame` (identity). Import from `molpy` / `import molpy as mp` — never from `molrs` in user code. Molpy has no `core.frame` module and no subclass, alias, `.to_molrs()` / `_inner` / `_source` bridge. `molcrafts-molrs` is a hard runtime dependency.
 - `Block`: **numpy-only** typed columns (float / int / bool / str) in the Rust Store, exposed as zero-copy numpy views. There is **no Python-side object-column overflow** — a non-representable column (object / None / ragged) is rejected fail-fast at write (`molrs.BlockDtypeError` / `TypeError`).
-- `Frame`: container of named Blocks + exact-dtype `meta` + `box`. Built from a molrs world via the world's native `to_frame()`; `Frame.from_dict` accepts exactly `{"blocks": ..., "meta": ...}`.
+- `Frame`: container of named Blocks + exact-dtype `meta` + `box`. Built from a molrs world via the world's native `to_frame()`, or with `Frame(blocks, meta=...)`.
 - `Trajectory`: Sequence of Frames
 
 ### `Element` (molrs-backed, molpy facade)

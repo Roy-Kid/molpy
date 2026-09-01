@@ -42,7 +42,7 @@ The `atoms` namespace contains per-atom properties, including atomic numbers, po
 |-------|------|-------------|
 | `id` | int array | Atom IDs (1-indexed, optional) |
 | `mol_id` | int array | Molecule IDs (1-indexed, optional) |
-| `number` | int array | Atomic numbers (optional) |
+| `atomic_number` | int array | Atomic numbers (optional) |
 | `element` | string array | Element symbols (optional) |
 | `type` | int or string array | Atom types (optional) |
 | `mass` | float array | Atomic masses in amu (optional) |

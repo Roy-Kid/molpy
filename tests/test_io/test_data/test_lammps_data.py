@@ -917,6 +917,87 @@ def test_write_lammps_data_requires_type_columns(tmp_path):
         LammpsDataWriter(tmp_path / "bad.data").write(frame)
 
 
+def test_write_collapses_reverse_angle_type_labels(tmp_path):
+    """``h1-c3-c3`` and ``c3-c3-h1`` are one LAMMPS angle type."""
+    import numpy as np
+    import molrs.io
+
+    frame = molrs.Frame()
+    frame["atoms"] = molrs.Block(
+        {
+            "type": np.array(["c3", "c3", "h1"]),
+            "x": np.array([0.0, 1.0, 2.0]),
+            "y": np.zeros(3),
+            "z": np.zeros(3),
+            "mass": np.array([12.0, 12.0, 1.0]),
+        }
+    )
+    frame["angles"] = molrs.Block(
+        {
+            "type": np.array(["c3-c3-h1", "h1-c3-c3"]),
+            "atomi": np.array([0, 2], dtype=np.uint32),
+            "atomj": np.array([1, 1], dtype=np.uint32),
+            "atomk": np.array([2, 0], dtype=np.uint32),
+        }
+    )
+    frame.box = mp.Box([5.0, 5.0, 5.0])
+    path = tmp_path / "rev.data"
+    LammpsDataWriter(path).write(frame)
+    text = path.read_text()
+    assert "1 angle types" in text
+    assert "c3-c3-h1" in text
+    assert "h1-c3-c3" not in text
+    ids = molrs.io.lammps_type_ids_from_frame(frame)
+    assert ids["c3-c3-h1"] == ids["h1-c3-c3"]
+
+
+def test_write_lammps_data_coeffs_collapses_reverse_dihedrals(tmp_path):
+    """Frame-derived ids + reverse FF names → one Dihedral Coeffs row per id."""
+    import numpy as np
+    import molrs.io
+    from molpy.io.data.lammps import write_lammps_data_coeffs
+
+    ff = molrs.ff.read_lammps_forcefield_str(
+        """\
+pair_style lj/cut 10.0
+pair_coeff c3 c3 0.107800 3.397710
+pair_coeff os os 0.170000 3.000000
+pair_coeff h1 h1 0.016000 2.471000
+
+dihedral_style fourier
+dihedral_coeff h1-c3-c3-os 2 0.250000 1 0.000000 0.000000 3 0.000000
+dihedral_coeff os-c3-c3-h1 2 0.250000 1 0.000000 0.000000 3 0.000000
+"""
+    )
+    frame = molrs.Frame()
+    frame["atoms"] = molrs.Block(
+        {
+            "type": np.array(["h1", "c3", "c3", "os"]),
+            "x": np.array([0.0, 1.0, 2.0, 3.0]),
+            "y": np.zeros(4),
+            "z": np.zeros(4),
+            "mass": np.array([1.0, 12.0, 12.0, 16.0]),
+        }
+    )
+    frame["dihedrals"] = molrs.Block(
+        {
+            "type": np.array(["h1-c3-c3-os", "os-c3-c3-h1"]),
+            "atomi": np.array([0, 3], dtype=np.uint32),
+            "atomj": np.array([1, 2], dtype=np.uint32),
+            "atomk": np.array([2, 1], dtype=np.uint32),
+            "atoml": np.array([3, 0], dtype=np.uint32),
+        }
+    )
+    frame.box = mp.Box([10.0, 10.0, 10.0])
+    path = tmp_path / "rev.data"
+    LammpsDataWriter(path).write(frame)
+    write_lammps_data_coeffs(path, frame, ff)
+    text = path.read_text()
+    assert "1 dihedral types" in text
+    ids = [int(row[0]) for row in _section_rows(text, "Dihedral Coeffs")]
+    assert ids == [1], text
+
+
 def test_write_lammps_data_coeffs_unknown_label_raises(tmp_path):
     """Non-integer FF type names without Frame map fail-fast."""
     import numpy as np

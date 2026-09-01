@@ -22,6 +22,6 @@ class TestMolrsPin:
         major, minor, *_ = installed.split(".")
         assert (major, minor) == ("0", "14")
 
-    def test_record_is_the_public_name(self) -> None:
-        assert hasattr(molrs, "Record")
+    def test_record_is_not_a_public_type(self) -> None:
+        assert not hasattr(molrs, "Record")
         assert not hasattr(molrs, "MolRec")

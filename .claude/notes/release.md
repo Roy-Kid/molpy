@@ -23,5 +23,5 @@ Tracks molrs 0.13.2 (`>=0.13.2,<0.14`).
 Tracks molrs 0.14.0 (`>=0.14.0,<0.15`).
 
 - Pin and runtime check on the 0.14 minor line.
-- Public record type is `molpy.Record` (molrs identity re-export; was `MolRec`).
+- No public `molpy.Record`. Scientific-record I/O is `molpy.io.mrec.write_frame` / `write_system` / `write_trajectory`; schema checks bind `molrs::io::mrec::schema`.
 - Identity columns are `uint64` (`molrs.types.Idx`); numpy widths are preserved.

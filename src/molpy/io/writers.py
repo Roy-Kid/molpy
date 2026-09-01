@@ -204,6 +204,7 @@ def write_lammps_forcefield(
     forcefield: Any,
     precision: int = 6,
     skip_pair_style: bool = False,
+    skip_units: bool = False,
     frame: Any = None,
     *,
     units: str = "real",
@@ -218,6 +219,8 @@ def write_lammps_forcefield(
         skip_pair_style: If True, omit the ``pair_style`` line so the calling
             LAMMPS input script can set it independently (e.g. to switch between
             ``lj/cut/coul/cut`` for minimisation and ``lj/cut/coul/long`` for MD).
+        skip_units: If True, omit the ``units`` line so the include can follow
+            ``units`` already set in the input script.
         frame: When given, restrict emitted coeffs to the types the frame
             actually uses — so a force field carrying extra types (e.g. cap
             artifacts from region parameterisation) does not emit a coeff for a
@@ -229,7 +232,9 @@ def write_lammps_forcefield(
 
     writer = LAMMPSForceFieldWriter(Path(file), precision=precision, units=units)
     used = _frame_used_types(frame) if frame is not None else {}
-    writer.write(forcefield, skip_pair_style=skip_pair_style, **used)
+    writer.write(
+        forcefield, skip_pair_style=skip_pair_style, skip_units=skip_units, **used
+    )
 
 
 # =============================================================================

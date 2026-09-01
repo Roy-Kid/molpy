@@ -331,7 +331,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
         from molrs import Frame
 
         # Upgrade the bare pyo3 frame to the rich ``Frame`` callers expect.
-        frame = Frame.from_dict(molrs.CoarseGrain.to_frame(self))
+        frame = Frame(molrs.CoarseGrain.to_frame(self))
         if bead_fields is not None and "beads" in frame:
             keep = set(bead_fields)
             beads = frame["beads"]
