@@ -128,12 +128,16 @@ Parse a SMILES string, assign OPLS-AA types, and write LAMMPS input files:
 ```python
 import molpy as mp
 
-mol   = mp.Atomistic.from_smiles("CCO")          # ethanol from SMILES
-ff    = mp.io.read_xml_forcefield(mp.data.get_forcefield_path("oplsaa.xml"))  # bundled OPLS-AA
-typed = mp.typifier.OplsAtomisticTypifier(ff).typify(mol)
+mol       = mp.SmilesIR("CCO").to_atomistic()     # ethanol from SMILES
+mol3d, _  = mp.Conformer(seed=42).generate(mol)   # 3D coordinates
 
-mp.io.write_lammps_system("output/", typed.to_frame(), ff)
-# → output/system.data  output/system.in
+typifier  = mp.typifier.OPLSAATypifier(           # bundled OPLS-AA
+    mp.data.get_forcefield_path("oplsaa.xml")
+)
+typed     = typifier.typify(mol3d)
+
+mp.io.write_lammps_system("output/", typed.to_frame(), typifier.forcefield())
+# → output/system.data  output/system.ff
 ```
 
 More workflows — packed solvent boxes, virtual-site models, polymer chains and

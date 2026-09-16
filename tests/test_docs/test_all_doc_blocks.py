@@ -1,7 +1,7 @@
-"""Every ``python`` block in ``docs/`` must execute — except declared skips.
+"""Every ``python`` block in ``docs/`` and ``README.md`` must execute.
 
 The gate is positional, not sampled: it walks *every* markdown file under
-``docs/``, executes each page's blocks in document order in one namespace —
+``docs/`` plus the repo README, executes each page's blocks in document order in one namespace —
 which is how a reader consumes them — and fails on any page that raises. A
 page a reader can copy top to bottom is the contract.
 
@@ -50,7 +50,17 @@ def _is_docs_skip(block: str) -> bool:
 
 
 def _doc_pages() -> list[Path]:
-    return sorted(p for p in DOCS.rglob("*.md") if _python_blocks(p))
+    """Every page a reader copies from — ``docs/`` plus the repo README.
+
+    The README is in the list because it is the first page anyone runs and the
+    only one that used to sit outside this gate; its quick start had drifted
+    off the API by three names before it was added here.
+    """
+    pages = [p for p in DOCS.rglob("*.md") if _python_blocks(p)]
+    readme = REPO_ROOT / "README.md"
+    if _python_blocks(readme):
+        pages.append(readme)
+    return sorted(pages)
 
 
 #: Doc snippets that import a local helper (``eo_kit``) are written to be run
@@ -116,8 +126,8 @@ class TestEveryDocBlockExecutes:
         assert not _is_docs_skip("# not a skip directive\n")
 
     @pytest.mark.parametrize(
-        "page", [p.relative_to(DOCS).as_posix() for p in _doc_pages()]
+        "page", [p.relative_to(REPO_ROOT).as_posix() for p in _doc_pages()]
     )
     def test_page_blocks_execute(self, page: str):
-        failures = _run_page(DOCS / page)
+        failures = _run_page(REPO_ROOT / page)
         assert not failures, f"{page} has stale example code:\n" + "\n".join(failures)
