@@ -306,31 +306,45 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         *,
         gen_angle: bool = False,
         gen_dihe: bool = False,
+        gen_improper: bool = False,
         clear_existing: bool = False,
     ) -> "Atomistic":
-        """Perceive angles/dihedrals from the bond graph **in place**.
+        """Perceive angles/dihedrals/impropers from the bond graph **in place**.
 
-        Angle/dihedral perception (2-edge / 3-edge paths over the bond graph)
-        runs in the molrs Rust kernel via :meth:`generate_topology`. Mutates
-        ``self`` and returns it for chaining — matching the core mutation
-        contract (``.copy()`` is the explicit opt-in for an independent graph).
+        All three run in the molrs Rust kernel via :meth:`generate_topology`;
+        nothing is enumerated on the Python side. Mutates ``self`` and returns
+        it for chaining — matching the core mutation contract (``.copy()`` is
+        the explicit opt-in for an independent graph).
+
+        Angles are 2-edge paths and proper dihedrals 3-edge paths over the bond
+        graph. Impropers are the **molecular-mechanics** reading: one
+        ``[centre, i, j, k]`` quartet per atom with exactly three neighbours,
+        centre first and peripherals sorted — not every 3-combination at every
+        centre of degree >= 3, which would hand an sp3 carbon four quartets
+        where a force field wants none. Whether a trivalent centre is planar
+        enough to deserve the term is force-field data (GAFF reads PARMCHK's
+        ``improper_flag``), not a graph property, so every trivalent centre is
+        emitted and the selection belongs to the layer holding the table.
 
         With no ``gen_*`` flags this is a no-op that returns ``self``. Pass
-        ``clear_existing=True`` to drop previously generated angles/dihedrals
-        before re-perceiving.
+        ``clear_existing=True`` to drop previously generated relations of the
+        requested kinds before re-perceiving.
 
         Args:
             gen_angle: When True, generate angle relations.
             gen_dihe: When True, generate dihedral relations.
-            clear_existing: When True, clear existing angles/dihedrals first.
+            gen_improper: When True, generate improper relations.
+            clear_existing: When True, clear existing relations of the
+                requested kinds first.
 
         Returns:
             ``self``, with any requested topology written in place.
         """
-        if gen_angle or gen_dihe or clear_existing:
+        if gen_angle or gen_dihe or gen_improper or clear_existing:
             self.generate_topology(
                 gen_angle=gen_angle,
                 gen_dihedral=gen_dihe,
+                gen_improper=gen_improper,
                 clear_existing=clear_existing,
             )
         return self
