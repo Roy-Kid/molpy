@@ -60,6 +60,14 @@ all = ["molcrafts-molpy[dev,doc]"]
 [project.scripts]
 molpy = "molpy.cli:main"
 
+# Formats molpy owns, published for any molcrafts viewer to read. Declaring
+# them here rather than importing a host keeps the arrow one-way: molpy says
+# what it can parse, and a platform picks it up at install time.
+[project.entry-points."molcrafts.metric_readers"]
+lammps_log = "molpy.integrations.metric_readers:LammpsLogReader"
+mrec = "molpy.integrations.metric_readers:MrecReader"
+mlp_jsonl = "molpy.integrations.metric_readers:MlpJsonlReader"
+
 [project.urls]
 Homepage = "https://github.com/MolCrafts/molpy"
 Documentation = "https://molpy.molcrafts.org"
@@ -153,8 +161,16 @@ filterwarnings = [
 
 # Until molcrafts-molrs 0.14 is on PyPI, uv (CI + local) installs the 0.14
 # line from git. The published PyPI pin in [project] dependencies is unchanged.
+# Local editable checkout, by operator ruling (2026-09-18): nothing is pushed,
+# development happens against the sibling working trees.
+#
+# This has to be here and not only in a downstream's pyproject: uv honours a path
+# dependency's *own* sources for its transitive deps, so while this said `git` a
+# downstream that pointed molpy at this directory still got molrs from the remote
+# — and `rev = "dev"` resolves to cfb3c03, which has no `molrs.io.mrec`. That made
+# `molpy.io.mrec` unimportable from molhub even with molpy local.
 [tool.uv.sources]
-molcrafts-molrs = { git = "https://github.com/MolCrafts/molrs.git", subdirectory = "molrs-python", rev = "dev" }
+molcrafts-molrs = { path = "../molrs/molrs-python", editable = true }
 
 [tool.tox]
 requires = ["tox>=4.23"]
