@@ -53,27 +53,6 @@ _EINSTEIN_HELFAND_PREFACTOR = (
 ) / (6.0 * _ANGSTROM_M * _ANGSTROM_M * _ANGSTROM_M * _BOLTZMANN_SI)
 
 
-def _unwrap_inplace(coords: np.ndarray, frames: list) -> None:
-    """Minimum-image unwrap of a ``(n_frames, n_atoms, 3)`` array, in place.
-
-    Frame 0 is kept; each later frame is rebuilt from the previous
-    (already-unwrapped) frame plus the minimum-image displacement, so a particle
-    crossing a periodic boundary stays continuous. Uses the previous frame's box
-    (NPT-correct) and caches the wrapped :class:`~molpy.core.box.Box` per unique
-    cell matrix, so a constant-cell (NVT) trajectory wraps the box exactly once
-    instead of once per frame.
-    """
-    cache: dict[bytes, Box] = {}
-    for i in range(1, len(frames)):
-        rs_box = frames[i - 1].box
-        key = np.asarray(rs_box.matrix).tobytes()
-        box = cache.get(key)
-        if box is None:
-            box = Box.from_box(rs_box)
-            cache[key] = box
-        coords[i] = coords[i - 1] + box.diff_dr(coords[i] - coords[i - 1])
-
-
 def _orth_mic_dr(dr: np.ndarray, lengths: np.ndarray) -> np.ndarray:
     """MIC for orthogonal PBC: ``dr - L * rint(dr/L)``."""
     return dr - lengths * np.rint(dr / lengths)
@@ -535,37 +514,59 @@ class IonicConductivity(Compute):
         self.fit_end_frac = fit_end_frac
 
     def __call__(self, trajectory: Trajectory) -> ConductivityResult:
-        frames = list(trajectory)
-        n_frames = len(frames)
+        """Stream the trajectory: only the per-frame collective dipole is kept.
+
+        Positions are unwrapped frame to frame with the previous frame's box
+        (NPT-correct), and the wrapped :class:`~molpy.core.box.Box` is cached
+        per distinct cell matrix, so a constant-cell run wraps its box once.
+        """
+        charges: np.ndarray | None = None
+        volume: float | None = None
+        n_atoms = 0
+        pos = np.empty((0, 3))
+        prev_pos = np.empty((0, 3))
+        unwrapped = np.empty((0, 3))
+        prev_box = None
+        box_cache: dict[bytes, Box] = {}
+        dipoles: list[np.ndarray] = []
+        n_frames = 0
+        for n_frames, frame in enumerate(trajectory, start=1):
+            atoms = frame["atoms"]
+            if charges is None:
+                if frame.box is None or frame.box.is_free:
+                    raise ValueError("Trajectory frames must have a non-free Box")
+                for col in ("x", "y", "z", "charge"):
+                    if col not in atoms:
+                        raise ValueError(f"Missing column '{col}' in atoms block")
+                # Charges are taken once from frame 0: the dipole / current
+                # formulas assume fixed per-atom charges (standard non-polarizable
+                # FF), so they are intentionally not re-read per frame.
+                charges = np.asarray(atoms["charge"], dtype=np.float64)
+                n_atoms = len(charges)
+                volume = (
+                    self._volume if self._volume is not None else frame.box.volume()
+                )
+                pos = np.empty((n_atoms, 3), dtype=np.float64)
+                prev_pos = np.empty((n_atoms, 3), dtype=np.float64)
+            pos[:, 0] = atoms["x"]
+            pos[:, 1] = atoms["y"]
+            pos[:, 2] = atoms["z"]
+            if n_frames == 1:
+                unwrapped = pos.copy()
+            else:
+                key = np.asarray(prev_box.matrix).tobytes()
+                box = box_cache.get(key)
+                if box is None:
+                    box = Box.from_box(prev_box)
+                    box_cache[key] = box
+                unwrapped += box.diff_dr(pos - prev_pos)
+            dipoles.append(charges @ unwrapped)
+            prev_pos, pos = pos, prev_pos
+            prev_box = frame.box
         if n_frames < 2:
             raise ValueError(f"Need at least 2 frames, got {n_frames}")
-
-        frame0 = frames[0]
-        if frame0.box is None or frame0.box.is_free:
-            raise ValueError("Trajectory frames must have a non-free Box")
-
-        for col in ["x", "y", "z", "charge"]:
-            if col not in frame0["atoms"]:
-                raise ValueError(f"Missing column '{col}' in atoms block")
-
-        n_atoms = len(frame0["atoms"]["x"])
-        volume = self._volume if self._volume is not None else frame0.box.volume()
-
-        positions = np.empty((n_frames, n_atoms, 3), dtype=np.float64)
-        # Charges are taken once from frame 0: the dipole / current formulas
-        # assume fixed per-atom charges (standard non-polarizable FF), so they
-        # are intentionally not re-read per frame.
-        charges = np.asarray(frame0["atoms"]["charge"], dtype=np.float64)
-        for i, frame in enumerate(frames):
-            positions[i, :, 0] = frame["atoms"]["x"]
-            positions[i, :, 1] = frame["atoms"]["y"]
-            positions[i, :, 2] = frame["atoms"]["z"]
-
-        # Minimum-image unwrap (same convention as DielectricSusceptibility).
-        _unwrap_inplace(positions, frames)
-
-        # Ionic translational dipole M_J[f, d] = sum_a charges[a] * pos[f, a, d].
-        translational_dipole = np.einsum("a,fad->fd", charges, positions)
+        assert volume is not None
+        translational_dipole = np.vstack(dipoles)
 
         # Explicit raw-compute + fit: the collective-dipole MSD is measured in
         # Rust (no fitted sigma), then the diffusive-window OLS slope is the
