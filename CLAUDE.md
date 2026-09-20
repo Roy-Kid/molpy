@@ -210,6 +210,15 @@ MolPy is a computational chemistry toolkit with explicit data flow and minimal m
 > (`>=0.14.0,<0.15`). Import-time `check_molrs_version` enforces major.minor
 > only. Public molrs symbols are re-exported on the molpy facade
 > (`molpy.Frame is molrs.Frame`); application code imports `molpy`, not `molrs`.
+>
+> **Sink direction.** Anything molpy and molrs both implement sinks into molrs;
+> molpy keeps only identity re-exports and the numpy-facing layer. The test is
+> one predicate: if molrs already provides the capability on a surface molpy
+> consumes (`molrs.io.*`, `molrs.ff.*`, `molrs.Box`, …), the molpy copy goes
+> (pdb, top, amber, lammps data / molecule / log, force-field xml and Box
+> geometry are sunk); if it does not, the module is a molpy-native extension
+> (HDF5, ac, moltemplate, lammps-bond-react, openmm emit, the FieldFormatter
+> layer) and is not a debt.
 
 Import direction (full table in `.claude/notes/architecture.md`): `core` imports
 nothing from molpy; `io` may be imported by `builder`, `pack`, `engine` and

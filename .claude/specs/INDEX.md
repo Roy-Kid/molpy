@@ -3,6 +3,16 @@
 > Spec files are deleted on completion (CLAUDE.md: specs are alive, not archived);
 > the rows below are the history. The 12 files listed were removed 2026-09-20.
 
+## release-0-14 (closed 2026-09-20)
+
+The molrs-side chain (08–12) is closed; see molrs `.claude/specs/INDEX.md` and
+`.claude/notes/release.md` § v0.14.0 for what shipped in-tree and the manual
+release steps left. In molpy: `molpy.md` re-exports by identity, the shared
+formats are molrs-backed, docs speak molpy and carry
+`docs/getting-started/migration-0-14.md`. Open as its own decision: the
+callable `compute.base.Compute` shells versus the molrs `Compute` Protocol
+(verb unification).
+
 ## Active
 
 
