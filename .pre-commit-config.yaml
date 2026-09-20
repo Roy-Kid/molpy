@@ -9,14 +9,19 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Fixture bytes under tests/tests-data are test inputs (ragged spacing,
+      # missing final newlines); the fixers must not rewrite them.
       - id: trailing-whitespace
+        exclude: ^tests/tests-data/
       - id: end-of-file-fixer
+        exclude: ^tests/tests-data/
       - id: check-yaml
         args: ["--unsafe"]
       - id: check-added-large-files
         args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: mixed-line-ending
+        exclude: ^tests/tests-data/
       - id: check-toml
       - id: check-json
 
