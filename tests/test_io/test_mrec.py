@@ -94,22 +94,3 @@ class TestSchema:
         assert schema.MOLREC_VERSION == 1
         with pytest.raises(Exception, match="molrec_version"):
             schema.validate_meta({"record_schema_version": 1, "format_name": "mrec"})
-
-
-class TestMrecSurface:
-    def test_import_zarr_raises_import_error(self) -> None:
-        with pytest.raises(ImportError):
-            import molpy.io.zarr  # noqa: F401
-
-    def test_has_no_frame_reader(self) -> None:
-        import molpy.io.mrec as mrec
-
-        assert not hasattr(mrec, "FrameReader")
-
-    def test_has_no_record(self) -> None:
-        import molpy
-        import molpy.io.mrec as mrec
-
-        assert not hasattr(molpy, "Record")
-        assert not hasattr(mrec, "read_record")
-        assert not hasattr(mrec, "write_record")

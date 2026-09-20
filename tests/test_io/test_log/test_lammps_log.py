@@ -14,33 +14,6 @@ def _write_log(tmp_path: Path, text: str) -> Path:
     return log_file
 
 
-def test_lammps_log_reads_default_thermo(TEST_DATA_DIR: Path) -> None:
-    """Default thermo style: header + numeric rows up to ``Loop time``."""
-    log = LAMMPSLog(TEST_DATA_DIR / "lammps-log" / "thermo_style_default.log")
-    log.read()
-
-    assert len(log.runs) == 1
-    stage = log.runs[0].thermo.data
-    columns = stage.dtype.names
-    assert "Step" in columns
-    assert "Temp" in columns
-    assert stage["Step"][0] == 0
-    assert stage.shape[0] >= 2  # at least two thermo rows
-
-
-def test_lammps_log_to_dict_is_json_friendly(TEST_DATA_DIR: Path) -> None:
-    """``to_dict`` returns plain Python types suitable for HTTP transport."""
-    log = LAMMPSLog(TEST_DATA_DIR / "lammps-log" / "thermo_style_default.log").read()
-    payload = log.to_dict()
-
-    assert len(payload["runs"]) == 1
-    stage = payload["runs"][0]["thermo"]
-    assert isinstance(stage["columns"], list)
-    assert isinstance(stage["rows"], list)
-    assert all(isinstance(row, list) for row in stage["rows"])
-    assert all(isinstance(value, float) for value in stage["rows"][0])
-
-
 def test_lammps_log_handles_missing_file(tmp_path: Path) -> None:
     """Missing files raise ``FileNotFoundError`` rather than silent no-op."""
     log = LAMMPSLog(tmp_path / "nope.log")

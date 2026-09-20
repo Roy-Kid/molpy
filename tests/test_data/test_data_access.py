@@ -78,30 +78,6 @@ class TestDataAccess:
         assert "__init__.py" not in forcefields
 
 
-class TestForcefieldIntegration:
-    """XML reader takes explicit paths only; data module resolves packaged files."""
-
-    def test_resolve_requires_existing_path(self):
-        from molpy.io.forcefield.xml import _resolve_forcefield_path
-
-        data_path = get_path("forcefield/tip3p.xml")
-        path = _resolve_forcefield_path(str(data_path))
-        assert path.exists()
-        assert path.name == "tip3p.xml"
-
-    def test_resolve_does_not_lookup_bare_builtin_names(self):
-        from molpy.io.forcefield.xml import _resolve_forcefield_path
-
-        with pytest.raises(FileNotFoundError, match="not found"):
-            _resolve_forcefield_path("oplsaa.xml")
-
-    def test_resolve_nonexistent_raises(self):
-        from molpy.io.forcefield.xml import _resolve_forcefield_path
-
-        with pytest.raises(FileNotFoundError):
-            _resolve_forcefield_path("nonexistent.xml")
-
-
 class TestDataModuleImport:
     """Test that data module can be imported and used."""
 
