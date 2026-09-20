@@ -1,13 +1,15 @@
-"""Read a SMILES / BigSMILES-monomer string into a 3D structure.
+"""Read a SMILES string into a molecular graph.
 
 Unlike the file readers in this package the *source* is the notation string
 itself, so :class:`SmilesReader` does not extend :class:`DataReader`; it keeps
 the same ``.read()`` idiom and — like every other data reader — defaults to a
 :class:`~molrs.Frame`.
 
-**3D embedding is molrs-only** (:class:`molrs.conformer.Conformer` via
-:class:`molpy.conformer.Conformer`). Plain SMILES parsing is also molrs
-(:class:`molrs.io.SmilesIR`). Do **not** route this path through RDKit.
+Parsing is molrs (:class:`molrs.io.SmilesIR`) and open valences are filled
+by :meth:`molpy.core.perceive.Perceive.find_hydrogens`. A SMILES string
+carries no coordinates, so none are invented here: 3D embedding is a
+separate conformer step (:class:`molpy.conformer.Conformer`) the caller
+composes. Do **not** route this path through RDKit.
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ class SmilesReader:
 
     - Plain SMILES → :class:`molrs.io.SmilesIR` → graph
     - Leading ``{`` → rejected (use assembly topology helpers)
-    - 3D → :class:`molpy.conformer.Conformer` (molrs-backed)
+    - ``add_hydrogens`` → :meth:`~molpy.core.perceive.Perceive.find_hydrogens`
 
     :meth:`read` returns a tabular :class:`~molrs.Frame` (same default as
     :class:`~molpy.io.data.base.DataReader`). For the rich molecular graph
@@ -46,20 +48,16 @@ class SmilesReader:
         smiles: str,
         *,
         add_hydrogens: bool = True,
-        optimize: bool = True,
         gen_topo: bool = False,
         name_atoms: bool = True,
-        seed: int | None = 0,
     ) -> None:
         self.smiles = smiles
         self.add_hydrogens = add_hydrogens
-        self.optimize = optimize
         self.gen_topo = gen_topo
         self.name_atoms = name_atoms
-        self.seed = seed
 
     def read(self) -> "Frame":
-        """Parse, embed 3D, return a tabular :class:`~molrs.Frame`.
+        """Parse and return a tabular :class:`~molrs.Frame`.
 
         Matches the :class:`~molpy.io.data.base.DataReader` contract used by
         XYZ / PDB / … readers. For the graph form see :meth:`read_as`.
@@ -121,19 +119,15 @@ class SmilesReader:
         )
 
     def _read_atomistic(self) -> "Atomistic":
-        """Parse with molrs, embed 3D with molrs Conformer, optionally name atoms."""
+        """Parse with molrs, fill open valences, optionally name atoms."""
         import molrs
 
-        from molpy.conformer import Conformer
         from molpy.core.atomistic import Atomistic
+        from molpy.core.perceive import Perceive
 
-        mol = self._parse_graph(Atomistic, molrs)
-        speed = "medium" if self.optimize else "fast"
-        out, _report = Conformer(
-            speed=speed,
-            add_hydrogens=self.add_hydrogens,
-            seed=self.seed,
-        ).generate(mol)
+        out = self._parse_graph(Atomistic, molrs)
+        if self.add_hydrogens:
+            out = Perceive().find_hydrogens(out)
         if self.gen_topo:
             out = out.get_topo(gen_angle=True, gen_dihe=True)
         if self.name_atoms:

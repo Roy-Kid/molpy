@@ -1,4 +1,4 @@
-"""SmilesReader must use molrs (parse + Conformer)."""
+"""SmilesReader: molrs parse plus hydrogen perception, no coordinates."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def test_smiles_reader_read_returns_frame() -> None:
     from molpy.io.data.smiles import SmilesReader
     from molrs import Frame
 
-    frame = SmilesReader("CCO", add_hydrogens=True, optimize=False, seed=0).read()
+    frame = SmilesReader("CCO", add_hydrogens=True).read()
     assert isinstance(frame, Frame)
     assert "atoms" in frame
     assert frame["atoms"].nrows >= 3
@@ -26,15 +26,11 @@ def test_smiles_reader_read_as_atomistic() -> None:
     from molpy.core.atomistic import Atomistic
     from molpy.io.data.smiles import SmilesReader
 
-    mol = SmilesReader("CCO", add_hydrogens=True, optimize=False, seed=0).read_as(
-        Atomistic
-    )
+    mol = SmilesReader("CCO", add_hydrogens=True).read_as(Atomistic)
     assert isinstance(mol, Atomistic)
     assert mol.n_atoms >= 3
 
-    mol2 = SmilesReader("CCO", add_hydrogens=True, optimize=False, seed=0).read_as(
-        "atomistic"
-    )
+    mol2 = SmilesReader("CCO", add_hydrogens=True).read_as("atomistic")
     assert isinstance(mol2, Atomistic)
 
 

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-import molpy as mp
+from molpy.core.atomistic import Atom, Atomistic
 from molpy.core import fields
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class Replicas:
             raise ValueError(f"spacing must be positive (Å), got {spacing}")
 
         rng = np.random.default_rng(seed)
-        world = mp.Atomistic()
+        world = Atomistic()
         mol_id = 1  # fields.MOL_ID is 1-indexed
         for i in range(n):
             for j in range(n):
@@ -79,7 +79,7 @@ class Replicas:
                     origin = np.array([i, j, k], dtype=float) * spacing
                     if jitter:
                         origin = origin + rng.uniform(-jitter, jitter, 3)
-                    copy.move(list(origin), entity_type=mp.Atom)
+                    copy.move(list(origin), entity_type=Atom)
                     for atom in copy.atoms:
                         atom[fields.MOL_ID] = mol_id
                     world.merge(copy)
@@ -93,10 +93,10 @@ class Replicas:
         """
         if count < 1:
             raise ValueError(f"count must be >= 1, got {count}")
-        world = mp.Atomistic()
+        world = Atomistic()
         for index in range(count):
             copy = self._strand.copy()
-            copy.move([index * spacing, 0.0, 0.0], entity_type=mp.Atom)
+            copy.move([index * spacing, 0.0, 0.0], entity_type=Atom)
             for atom in copy.atoms:
                 atom[fields.MOL_ID] = index + 1
             world.merge(copy)

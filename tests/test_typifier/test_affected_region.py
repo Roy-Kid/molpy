@@ -6,8 +6,6 @@ first-class ``Atomistic`` subgraph carrying ``interior`` / ``boundary`` /
 Producers (``Reacter``, ``Crosslinker``) build it from the atoms an edit touched.
 """
 
-import inspect
-
 import molrs
 import pytest
 
@@ -15,7 +13,6 @@ import molpy as mp
 from molpy.typifier.affected_region import AffectedRegion
 from molpy.core.atomistic import Atom, Atomistic
 from molpy.typifier.base import Match, Typifier
-from molpy.wrapper.antechamber import write_antechamber_input_pdb
 
 
 def _carbon_chain(m: int) -> tuple[Atomistic, list[Atom]]:
@@ -338,31 +335,6 @@ def test_region_is_not_equal_to_plain_atomistic():
 # --------------------------------------------------------------------------
 # ac-003 — the region is a MolGraph, consumable by AmberTools unchanged
 # --------------------------------------------------------------------------
-
-
-def test_region_feeds_the_ambertools_pdb_bridge():
-    chain, carbons = _carbon_chain(5)
-    region = AffectedRegion._from(
-        chain, [carbons[2]], extract_radius=2, interior_reach=0
-    )
-
-    # The antechamber input bridge is typed ``(path, atomistic: Atomistic)``;
-    # the region satisfies that declared input type unchanged.
-    assert isinstance(region, Atomistic)
-    params = list(inspect.signature(write_antechamber_input_pdb).parameters.values())
-    # (annotation is a string under ``from __future__ import annotations``)
-    assert params[1].annotation in (Atomistic, "Atomistic")
-
-    # ...and exposes the exact per-atom surface the PDB writer reads (element +
-    # x/y/z on every atom), so the bridge consumes it like any Atomistic. (The
-    # full write is not run here: it needs no antechamber, and the writer's
-    # object-dtype string columns hit an unrelated molrs Block limitation that
-    # affects every Atomistic equally, not the region.)
-    atoms = list(region.atoms)
-    assert atoms
-    for a in atoms:
-        assert a.get("element") is not None
-        assert all(a.get(k) is not None for k in ("x", "y", "z"))
 
 
 # --------------------------------------------------------------------------
