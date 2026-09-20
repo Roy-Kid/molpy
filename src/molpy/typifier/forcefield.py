@@ -75,6 +75,15 @@ class _TermMatcher:
             (self._pattern(candidate), candidate)
             for candidate in forcefield.get_types(ff_type)
         ]
+        # A pattern can only match a term whose first or last endpoint (type
+        # or class) equals its own first component, or whose first component
+        # is a wildcard — in either orientation. Bucketing by that component
+        # turns the per-term scan of every force-field type into a lookup.
+        self._by_first: dict[str, list[tuple[int, tuple[str, ...], Type]]] = {}
+        for position, (pattern, candidate) in enumerate(self._table):
+            first = pattern[0] if pattern else ""
+            key = "*" if first is None or first == "*" else first
+            self._by_first.setdefault(key, []).append((position, pattern, candidate))
 
     @property
     def parameterizes(self) -> bool:
@@ -123,10 +132,23 @@ class _TermMatcher:
             f"No {self._ff_type.__name__} found for atom types: {' - '.join(resolved)}"
         )
 
+    def _candidates(
+        self, atom_types: Sequence[str]
+    ) -> list[tuple[int, tuple[str, ...], Type]]:
+        """Types whose first component could match either end, in table order."""
+        keys = {atom_types[0], atom_types[-1], "*"}
+        for end in (atom_types[0], atom_types[-1]):
+            cls = self._index.class_of(end)
+            if cls is not None:
+                keys.add(cls)
+        found = [entry for key in keys for entry in self._by_first.get(key, ())]
+        found.sort(key=lambda entry: entry[0])
+        return found
+
     def _best(self, atom_types: Sequence[str]) -> Type | None:
         best_key: tuple[int, int] | None = None
         best: Type | None = None
-        for pattern, ff_type in self._table:
+        for _position, pattern, ff_type in self._candidates(atom_types):
             score = self._index.score(pattern, atom_types)
             if score is None:
                 continue
