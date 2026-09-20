@@ -83,7 +83,7 @@ sdf = SpatialDistribution(
     extent=(6.0, 6.0, 6.0),           # half-width of the grid, Å
     bulk_density=300 / 20.0**3,       # for the g_SDF normalization
 )
-result = sdf([frame])
+result = sdf.compute([frame])
 
 print(np.asarray(result.density).shape)     # -> (16, 16, 16)
 print(int(np.asarray(result.counts).sum())) # -> 6

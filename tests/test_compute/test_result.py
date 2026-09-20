@@ -1,21 +1,11 @@
-"""EinsteinConductivity.compute + DielectricResult.fit_debye."""
+"""Dielectric result containers — Debye fit of an analytic susceptibility."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from molpy.compute import EinsteinConductivity
 from molpy.compute.result import DielectricResult
-
-
-def test_einstein_conductivity_raw_msd():
-    n = 50
-    m = np.zeros((n, 3))
-    m[:, 0] = 0.01 * np.arange(n)
-    raw = EinsteinConductivity().compute(m, 2.0, 20)
-    assert raw["msd"][0] == pytest.approx(0.0, abs=1e-12)
-    assert raw["msd"][-1] > raw["msd"][1]
 
 
 def test_dielectric_result_fit_debye():

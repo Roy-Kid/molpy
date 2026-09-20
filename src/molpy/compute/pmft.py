@@ -19,10 +19,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class PMFTXY(Compute):
+class PMFTXY:
     """2-D potential of mean force and torque on an (x, y) grid.
 
     Parameters
@@ -34,8 +32,7 @@ class PMFTXY(Compute):
     """
 
     def __init__(self, x_max: float, y_max: float, n_x: int, n_y: int):
-        super().__init__(x_max=x_max, y_max=y_max, n_x=n_x, n_y=n_y)
         self._inner = molrs.compute.pmft.PMFTXY(x_max, y_max, n_x, n_y)
 
-    def __call__(self, frames, nlists):
+    def compute(self, frames, nlists):
         return self._inner.compute(frames, nlists)

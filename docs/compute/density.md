@@ -141,8 +141,8 @@ frame.box = mp.Box.cubic(20.0)
 ```python
 from molpy.compute import NeighborList, LocalDensity
 
-nlist = NeighborList(cutoff=5.0)(frame)
-(counts, density), = LocalDensity(r_max=5.0)([frame], [nlist])
+nlist = NeighborList(cutoff=5.0).compute(frame)
+(counts, density), = LocalDensity(r_max=5.0).compute([frame], [nlist])
 
 print(counts.shape, density.shape)          # -> (400,) (400,)
 print(round(float(density.mean()), 4))      # -> 0.0507
@@ -178,7 +178,7 @@ frame:
 ```python
 from molpy.compute import GaussianDensity
 
-grid, = GaussianDensity(nx=32, ny=32, nz=32, sigma=1.5)([frame])
+grid, = GaussianDensity(nx=32, ny=32, nz=32, sigma=1.5).compute([frame])
 print(grid.shape)                            # -> (32, 32, 32)
 ```
 

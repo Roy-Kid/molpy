@@ -25,7 +25,7 @@ def van_hove(trajectory: Trajectory) -> dict[str, float]:
     """Self part of G(r, t) at a spread of lags."""
     frames = _frames(trajectory, stride=1)[:1500]
     lags = [10, 50, 200, 600]
-    result = VanHove(n_rbins=120, r_max=12.0, lags=lags, stride=20)(frames)
+    result = VanHove(n_rbins=120, r_max=12.0, lags=lags, stride=20).compute(frames)
 
     r = np.asarray(result.r_centers)
     g_self = np.asarray(result.g_self)
@@ -51,7 +51,9 @@ def voronoi_volumes(trajectory: Trajectory) -> dict[str, float]:
     box = mp.Box.cubic(trajectory.box_length)
     volumes: list[np.ndarray] = []
     for xyz in trajectory.wrapped[::100]:
-        cells = RadicalVoronoi()(np.ascontiguousarray(xyz), np.zeros(len(xyz)), box)
+        cells = RadicalVoronoi().build(
+            np.ascontiguousarray(xyz), np.zeros(len(xyz)), box
+        )
         volumes.append(np.asarray(cells.volumes))
     stacked = np.concatenate(volumes)
 
@@ -78,7 +80,7 @@ def voronoi_volumes(trajectory: Trajectory) -> dict[str, float]:
 def vibrational_dos(trajectory: Trajectory) -> dict[str, float]:
     """VDOS of liquid argon from the velocity autocorrelation."""
     acf = Acf().compute(np.ascontiguousarray(trajectory.velocities), max_lag=400)
-    spectrum = PowerSpectrum()(acf.acf, dt_fs=trajectory.dt)
+    spectrum = PowerSpectrum().fit(acf.acf, dt_fs=trajectory.dt)
     frequency = np.asarray(spectrum["frequencies_cm1"])
     intensity = np.asarray(spectrum["intensities"])
 
@@ -168,7 +170,7 @@ def rotational_relaxation(_trajectory: Trajectory) -> dict[str, float]:
         frame["bonds"] = bonds
         frames.append(frame)
 
-    result = LegendreReorientation(max_lag=200)(frames)
+    result = LegendreReorientation(max_lag=200).compute(frames)
     lag = np.asarray(result.lags, dtype=float)
     c1, c2 = np.asarray(result.c1), np.asarray(result.c2)
 

@@ -11,7 +11,6 @@ import numpy as np
 import molpy
 import molrs
 from molpy.compute import NeighborList
-from molpy.compute.base import Compute
 
 
 def _make_random_frame(n: int = 200, box_len: float = 10.0, seed: int = 0):
@@ -23,13 +22,9 @@ def _make_random_frame(n: int = 200, box_len: float = 10.0, seed: int = 0):
     return frame, xyz
 
 
-def test_neighborlist_is_a_compute_subclass():
-    assert issubclass(NeighborList, Compute)
-
-
 def test_basic_periodic():
     frame, _ = _make_random_frame()
-    nlist = NeighborList(cutoff=2.0)(frame)
+    nlist = NeighborList(cutoff=2.0).compute(frame)
     assert nlist.n_pairs > 0
     distances = np.sqrt(nlist.dist_sq())
     assert (distances <= 2.0).all()
@@ -42,7 +37,7 @@ def test_parity_with_molrs_direct():
     """
     frame, xyz = _make_random_frame(seed=42)
 
-    via_molpy = NeighborList(cutoff=2.5)(frame)
+    via_molpy = NeighborList(cutoff=2.5).compute(frame)
     via_molrs = molrs.NeighborQuery(frame.box, xyz, 2.5).query_self()
 
     assert via_molpy.n_pairs == via_molrs.n_pairs
@@ -59,7 +54,7 @@ def test_input_frame_immutable():
     z_before = frame["atoms"]["z"].copy()
     pbc_before = frame.box.pbc.copy()
 
-    NeighborList(cutoff=3.0)(frame)
+    NeighborList(cutoff=3.0).compute(frame)
 
     np.testing.assert_array_equal(frame.box.matrix, box_matrix_before)
     np.testing.assert_array_equal(frame["atoms"]["x"], x_before)
@@ -72,6 +67,6 @@ def test_distances_within_cutoff():
     """Spot-check: every reported pair distance ≤ cutoff."""
     frame, _ = _make_random_frame(n=500, seed=1)
     cutoff = 1.8
-    nlist = NeighborList(cutoff=cutoff)(frame)
+    nlist = NeighborList(cutoff=cutoff).compute(frame)
     distances = np.sqrt(nlist.dist_sq())
     assert (distances <= cutoff + 1e-10).all()

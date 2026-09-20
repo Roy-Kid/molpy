@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import molpy as mp
 from molpy.compute import LegendreReorientation
-from molpy.compute.base import Compute
 
 
 def _chain_frame(n: int = 6, t: int = 0):
@@ -30,10 +29,6 @@ def _chain_frame(n: int = 6, t: int = 0):
     return mol.get_topo().to_frame()
 
 
-def test_reorientation_is_compute_subclass():
-    assert issubclass(LegendreReorientation, Compute)
-
-
 def test_frame_carries_bonds_block():
     frame = _chain_frame()
     assert "bonds" in frame.keys()
@@ -43,7 +38,7 @@ def test_reorientation_reads_bonds_from_frame():
     # Several time-ordered frames; the (tail, head) pairs come from the first
     # frame's `bonds` block — no `pairs` argument is passed.
     frames = [_chain_frame(t=t) for t in range(4)]
-    result = LegendreReorientation(max_lag=2)(frames)
+    result = LegendreReorientation(max_lag=2).compute(frames)
     assert result.c1.shape[0] >= 1
     assert result.c2.shape[0] >= 1
     assert len(result.lags) == result.c1.shape[0]

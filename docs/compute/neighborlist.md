@@ -135,7 +135,7 @@ frame = mp.Frame()
 frame["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 frame.box = mp.Box.cubic(20.0)
 
-nlist = NeighborList(cutoff=3.0)(frame)
+nlist = NeighborList(cutoff=3.0).compute(frame)
 print(nlist.n_pairs)   # -> 3
 ```
 

@@ -45,7 +45,7 @@ def solid_angle_jacobian(_trajectory: Trajectory) -> dict[str, float]:
 
     # The kernel bins radians; the constructor's 0..180 default is a degrees
     # range bolted onto it, so the range must be given explicitly as 0..pi.
-    result = AngleDistribution(n_bins=90, min=0.0, max=float(np.pi))([frame])
+    result = AngleDistribution(n_bins=90, min=0.0, max=float(np.pi)).compute([frame])
     centers = np.asarray(result.bin_centers)
     density = np.asarray(result.density)
     corrected = np.asarray(result.density_sin_corrected)

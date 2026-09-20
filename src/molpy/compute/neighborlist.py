@@ -16,10 +16,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class NeighborList(Compute):
+class NeighborList:
     """Spatial neighbor-pair query within a cutoff radius.
 
     Parameters
@@ -29,16 +27,15 @@ class NeighborList(Compute):
 
     Examples
     --------
-    >>> nlist = NeighborList(cutoff=2.5)(frame)
+    >>> nlist = NeighborList(cutoff=2.5).compute(frame)
     >>> nlist.n_pairs
     1834
     """
 
     def __init__(self, cutoff: float):
-        super().__init__(cutoff=float(cutoff))
         self.cutoff = float(cutoff)
 
-    def __call__(self, frame) -> molrs.NeighborList:
+    def compute(self, frame) -> molrs.NeighborList:
         if frame.box is None or frame.box.is_free:
             raise ValueError("frame.box is required for spatial neighbor search")
         # Block list-indexing returns (N, 3) via np.column_stack — single

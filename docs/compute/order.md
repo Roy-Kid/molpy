@@ -159,8 +159,8 @@ The result is a list with one **dict** per frame, holding the degrees you asked
 for and a `(n_degrees, n_atoms)` array of per-atom values:
 
 ```python
-nlist = NeighborList(cutoff=4.5)(crystal)
-result, = Steinhardt(l=[4, 6])([crystal], [nlist])
+nlist = NeighborList(cutoff=4.5).compute(crystal)
+result, = Steinhardt(l=[4, 6]).compute([crystal], [nlist])
 
 print(sorted(result))                        # -> ['l', 'ql']
 q = np.asarray(result["ql"])
@@ -191,7 +191,7 @@ plain **int**. `Steinhardt` evaluates several degrees at once, so its `l` is a
 ```python
 from molpy.compute import SolidLiquid
 
-n_solid_bonds, is_solid = SolidLiquid(l=6)([crystal], [nlist])[0]
+n_solid_bonds, is_solid = SolidLiquid(l=6).compute([crystal], [nlist])[0]
 n_solid_bonds, is_solid = np.asarray(n_solid_bonds), np.asarray(is_solid)
 print(int(n_solid_bonds[0]), bool(is_solid.all()))    # -> 12 True
 ```
@@ -231,7 +231,7 @@ frame["orientations"] = {
     "atomi": np.arange(n_rods),
     "atomj": np.arange(n_rods, 2 * n_rods),
 }
-order, eigenvalues, director, q_tensor = Nematic()([frame])
+order, eigenvalues, director, q_tensor = Nematic().compute([frame])
 print(round(float(order), 3))                # -> 0.058
 ```
 
@@ -243,7 +243,7 @@ aligned = np.array([0.0, 0.0, 1.0]) + rng.normal(0.0, 0.15, size=(n_rods, 3))
 aligned /= np.linalg.norm(aligned, axis=1, keepdims=True)
 pos = np.concatenate([centres + 0.5 * aligned, centres - 0.5 * aligned])
 frame["atoms"] = {"x": pos[:, 0], "y": pos[:, 1], "z": pos[:, 2]}
-order, _, director, _ = Nematic()([frame])
+order, _, director, _ = Nematic().compute([frame])
 print(round(float(order), 3))                # -> 0.934
 print(np.round(np.abs(director), 2).tolist())  # -> [0.01, 0.01, 1.0]
 ```

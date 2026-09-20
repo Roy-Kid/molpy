@@ -187,7 +187,7 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 |---|---|---|---|---|---|
 | 构造 | 配方/IR/参数 → 新结构 | `build` | `PolymerBuilder.build(topology)`(`builder/assembly/_polymer.py:87`)、`Lattice.build(region)`(`builder/crystal.py:210`)、`GrapheneBuilder.build`(`nanostructure/graphene.py:56`)、`CarbonTubeBuilder.build`(`nanostructure/carbon_tube.py:65`)、`AmberPolymerBuilder.build`(`polymer/ambertools/amber_builder.py:166`) | 已成立 | `molrs:` 侧已是 `build`(`molrs.builder.*`、`NeighborList.build`);molpy 永不改写 molrs 的动词(sink direction) |
 | 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | **部分**:`GraphAssembler` 现名 `assemble`(`builder/assembly/_assembler.py:116`),改名由 **sub-spec 04**(`api-verb-unification-04-assembler`)兑现;**04 落地时必须把本格改为「已成立」并删除债务清单第 3 行** | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
-| 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(02 落地前它们是 `Compute` ABC 的子类,落地后不继承任何基类;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | **落地前为已声明的债(sub-spec 02**,`api-verb-unification-02-compute`**)**:当前全部子类实现 `__call__`(抽象方法在 `compute/base.py:51`),全树零个 `def compute`;**02 落地时必须把本格改为「已成立」并删除债务清单第 1 行** | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
+| 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(不继承任何基类,靠结构满足 molrs Protocol;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | 已成立(2026-09-20,sub-spec 02):molpy 拥有的分析入口动词是 `compute`;残余债 `dielectric.py from_dipole_series` 见债务清单 | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
 | 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | **落地前为已声明的债(sub-spec 03**,`api-verb-unification-03-pack`**)**:`molpy.pack` 整包仍在,删除集见脚注 4;**03 落地时必须把本格改为「已成立」并删除债务清单第 2 行** | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
 | 分型 | 图 → 带类型的图 | `typify` | `molrs:Typifier`;`typifier/base.py:99` 是参考范式(继承 molrs 基类、保留动词、加一个 hook,`typify` 在 `:106`) | 已成立 | molrs 所有(描述性) |
 | 3D 生成 | 图 → 坐标 | `generate` | `Conformer.generate`(`conformer/__init__.py:42`)——**仅此一个**,其余同词干的名字见脚注 1 | 已成立 | `molrs:molrs.conformer.Conformer` 所有(描述性) |
@@ -216,7 +216,7 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 
 | 债 | 位置 | 归属 |
 |---|---|---|
-| 分析族全部实现 `__call__`,无 `def compute`;molpy 自带 `Compute` ABC 与 molrs Protocol 并存 | `compute/base.py:18`/`:51` + 全部子类 | **sub-spec 02** `api-verb-unification-02-compute` |
+| 分析族残余:`DielectricSusceptibility.from_dipole_series(M, …)` 是返回结果的实例方法——同一个类上的第二个分析入口(`from_*` 名字误用) | `src/molpy/compute/dielectric.py`(`from_dipole_series`) | 随删除两个一体化配方类的 `/mol:refactor` 折进 primitive,**不在本链** |
 | `Packer.__call__` 与 `Packer.pack` 并存;`molpy.pack` 整包仍在 | `pack/packer/base.py:50`/`:69`、`pack/packer/packmol.py:56` | **sub-spec 03** `api-verb-unification-03-pack` |
 | 图变换族入口仍叫 `assemble` | `builder/assembly/_assembler.py:116` | **sub-spec 04** `api-verb-unification-04-assembler` |
 | `Selector` 一名两义:`core/selector.py:43 Selector = MaskPredicate`(掩码谓词)与 `builder/assembly/_selector.py:26 class Selector(ABC)`(装配选择器)是两个无关的类型 | 同左 | 单独 `/mol:refactor`,**不在本链** |

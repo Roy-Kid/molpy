@@ -130,7 +130,7 @@ frame["bonds"] = {"atomi": index[:, 0], "atomj": index[:, 1]}
 ```
 
 ```python
-result = DistanceDistribution(n_bins=60, min=1.35, max=1.75)([frame])
+result = DistanceDistribution(n_bins=60, min=1.35, max=1.75).compute([frame])
 
 centers = np.asarray(result.bin_centers)
 density = np.asarray(result.density)
@@ -160,7 +160,7 @@ angles["angles"] = {
     "atomi": triples[:, 0], "atomj": triples[:, 1], "atomk": triples[:, 2]
 }
 
-adf = AngleDistribution(n_bins=90, min=0.0, max=float(np.pi))([angles])
+adf = AngleDistribution(n_bins=90, min=0.0, max=float(np.pi)).compute([angles])
 print(adf.angular, np.asarray(adf.bin_centers).max() <= np.pi)   # -> True True
 ```
 

@@ -26,7 +26,6 @@ from molrs.compute.transport import DebyeRelaxation as _MolrsDebyeRelaxation
 from molrs.compute.transport import EinsteinConductivity as _MolrsEinsteinConductivity
 from molrs.compute.transport import GreenKuboConductivity as _MolrsGreenKuboConductivity
 from ..core.box import Box
-from .base import Compute
 from .result import (
     ConductivityResult,
     DielectricResult,
@@ -75,7 +74,7 @@ def _normalize_dielectric_routes(routes: list[str]) -> list[str]:
     return out
 
 
-class DielectricSusceptibility(Compute):
+class DielectricSusceptibility:
     """Frequency-dependent dielectric susceptibility from an MD trajectory.
 
     Single-pass over ``trajectory``: online MIC unwrap of positions, accumulate
@@ -127,18 +126,7 @@ class DielectricSusceptibility(Compute):
         window_type: str = "hann",
         routes: list[str] | None = None,
         volume: float | None = None,
-        **config_kwargs,
     ):
-        super().__init__(
-            dt=dt,
-            temperature=temperature,
-            max_correlation_time=max_correlation_time,
-            epsilon_inf=epsilon_inf,
-            window_type=window_type,
-            routes=routes,
-            volume=volume,
-            **config_kwargs,
-        )
         self.dt = dt
         self.temperature = temperature
         self.max_correlation_time = max_correlation_time
@@ -279,7 +267,7 @@ class DielectricSusceptibility(Compute):
             },
         )
 
-    def __call__(self, trajectory: Trajectory) -> DielectricSusceptibilityResult:
+    def compute(self, trajectory: Trajectory) -> DielectricSusceptibilityResult:
         n_known = len(trajectory) if isinstance(trajectory, Sized) else None
 
         want_j = self._need_velocity_current()
@@ -415,7 +403,7 @@ class DielectricSusceptibility(Compute):
         )
 
 
-class IonicConductivity(Compute):
+class IonicConductivity:
     """Static ionic conductivity sigma via the Einstein-Helfand relation.
 
     Builds the **ionic translational dipole** M_J(t) = sum_i q_i r_i(t) from the
@@ -459,17 +447,7 @@ class IonicConductivity(Compute):
         volume: float | None = None,
         fit_start_frac: float = 0.1,
         fit_end_frac: float = 0.5,
-        **config_kwargs,
     ):
-        super().__init__(
-            dt=dt,
-            temperature=temperature,
-            max_correlation_time=max_correlation_time,
-            volume=volume,
-            fit_start_frac=fit_start_frac,
-            fit_end_frac=fit_end_frac,
-            **config_kwargs,
-        )
         self.dt = dt
         self.temperature = temperature
         self.max_correlation_time = max_correlation_time
@@ -477,7 +455,7 @@ class IonicConductivity(Compute):
         self.fit_start_frac = fit_start_frac
         self.fit_end_frac = fit_end_frac
 
-    def __call__(self, trajectory: Trajectory) -> ConductivityResult:
+    def compute(self, trajectory: Trajectory) -> ConductivityResult:
         """Stream the trajectory: only the per-frame collective dipole is kept.
 
         Positions are unwrapped frame to frame with the previous frame's box

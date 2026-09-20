@@ -20,10 +20,8 @@ from collections.abc import Sequence
 
 import molrs
 
-from .base import Compute
 
-
-class SpatialDistribution(Compute):
+class SpatialDistribution:
     """Target-atom density on a molecule body-fixed grid (SDF).
 
     Parameters
@@ -60,17 +58,9 @@ class SpatialDistribution(Compute):
         extent: tuple[float, float, float],
         bulk_density: float | None = None,
     ):
-        super().__init__(
-            reference=reference,
-            template=template,
-            target=target,
-            n=n,
-            extent=extent,
-            bulk_density=bulk_density,
-        )
         self._inner = molrs.compute.density.SpatialDistribution(
             reference, template, target, n, extent, bulk_density
         )
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

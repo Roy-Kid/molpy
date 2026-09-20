@@ -21,10 +21,8 @@ from collections.abc import Sequence
 
 import molrs
 
-from .base import Compute
 
-
-class DistanceDistribution(Compute):
+class DistanceDistribution:
     """Distance distribution function over ``(i, j)`` atom pairs.
 
     Parameters
@@ -36,14 +34,13 @@ class DistanceDistribution(Compute):
     """
 
     def __init__(self, n_bins: int, min: float, max: float):
-        super().__init__(n_bins=n_bins, min=min, max=max)
         self._inner = molrs.compute.distribution.DistanceDistribution(n_bins, min, max)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)
 
 
-class AngleDistribution(Compute):
+class AngleDistribution:
     """Angular distribution function (ADF) over ``(i, j, k)`` triplets.
 
     The angle is taken at the middle atom ``j``. The result's
@@ -59,14 +56,13 @@ class AngleDistribution(Compute):
     """
 
     def __init__(self, n_bins: int, min: float = 0.0, max: float = 180.0):
-        super().__init__(n_bins=n_bins, min=min, max=max)
         self._inner = molrs.compute.distribution.AngleDistribution(n_bins, min, max)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)
 
 
-class DihedralDistribution(Compute):
+class DihedralDistribution:
     """Dihedral distribution function (DDF) over ``(i, j, k, l)`` quadruplets.
 
     Parameters
@@ -78,14 +74,13 @@ class DihedralDistribution(Compute):
     """
 
     def __init__(self, n_bins: int, min: float = -180.0, max: float = 180.0):
-        super().__init__(n_bins=n_bins, min=min, max=max)
         self._inner = molrs.compute.distribution.DihedralDistribution(n_bins, min, max)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)
 
 
-class CombinedDistribution(Compute):
+class CombinedDistribution:
     """Joint (combined) distribution over several geometric observables — the
     reference implementation combined distribution function (CDF).
 
@@ -103,8 +98,7 @@ class CombinedDistribution(Compute):
     """
 
     def __init__(self, axes: Sequence[tuple[str, int, float, float, bool]]):
-        super().__init__(axes=axes)
         self._inner = molrs.compute.distribution.CombinedDistribution(axes)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

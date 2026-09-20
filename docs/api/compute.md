@@ -9,7 +9,7 @@ SI scale) the same way the Rust API does.
 Like freud’s [API modules](https://freud.readthedocs.io/en/stable/), each
 `molpy.compute` module has its own page under [Compute](../compute/index.md)
 with an overview table and full signatures. This page is the **index** plus the
-shared base / result types.
+shared contract / result types.
 
 !!! note "Analysis units (LAMMPS *real*)"
     Length **Å**, charge **e**, **time fs**, volume Å³, temperature K.
@@ -25,13 +25,17 @@ shared base / result types.
 | Fit | Integrate or slope-fit the curve | `CumulativeTrapezoid`, `LinearFit`, `DebyeFit`, `EinsteinHelfandSpectrum`, `GreenKuboSpectrum` |
 | Scale | MD → SI prefactor in your script | $1/(6 V k_B T)$, $1/(3 V k_B T)$, $1/d$ |
 
-There is **no** all-in-one `IonicConductivity` / `DielectricSusceptibility` recipe
-class. Historical tame names remain as **aliases** of the public types:
-
-| Alias (deprecated name) | Canonical type |
-|-------------------------|----------------------|
-| `JACF` | `GreenKuboConductivity` |
-| `PMSDCompute` | `EinsteinConductivity` |
+Two all-in-one recipe classes do exist today — `IonicConductivity` and
+`DielectricSusceptibility`, both in `molpy.compute.dielectric` — and both
+**violate** the three-layer rule above: a single call unwraps the trajectory,
+collects the dipole series, runs the raw Compute, fits the slope *and* applies
+the SI prefactor, so the fit window and the unit conversion that decide the
+published number are buried in a library default instead of being visible in
+your script. They are routed to a `/mol:refactor` that will split them into
+primitives and delete the façade. **Do not use them in new code**: compose
+`EinsteinConductivity` → `LinearFit` → your own prefactor, as the
+[PMSD](../compute/pmsd.md) and [Dielectric](../compute/dielectric.md) pages
+show.
 
 Self-diffusion uses `MSD` (Einstein) and `Acf` / `signal.acf_fft` (Green–Kubo);
 see the [MSD](../compute/msd.md) and [VACF](../compute/vacf.md) guides.
@@ -67,11 +71,18 @@ see the [MSD](../compute/msd.md) and [VACF](../compute/vacf.md) guides.
 
 ---
 
-## Shared base types
+## Shared types
 
-### Base
+### The `Compute` contract
 
-::: molpy.compute.base
+`Compute` is not a base class to inherit from. It is a structural
+`typing.Protocol` owned by the molrs backend and re-exported here
+(`molpy.compute.Compute is molrs.compute.Compute`): any class that defines a
+`compute(...)` method satisfies it, with no subclassing and no registration.
+Writing one is covered in
+[Adding a Compute Operation](../developer/extending-compute.md).
+
+::: molpy.compute.Compute
 
 ### Result types
 

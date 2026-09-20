@@ -143,12 +143,13 @@ frame.box = mp.Box.cubic(200.0)
 
 ```python
 masses = np.full(n_beads, 12.011)
-clusters = Cluster(min_cluster_size=5)([frame], [NeighborList(cutoff=2.5)(frame)])
-centers = ClusterCenters()([frame], clusters)
-com = CenterOfMass(masses)([frame], clusters)
+nlist = NeighborList(cutoff=2.5).compute(frame)
+clusters = Cluster(min_cluster_size=5).compute([frame], [nlist])
+centers = ClusterCenters().compute([frame], clusters)
+com = CenterOfMass(masses).compute([frame], clusters)
 
-rg = np.asarray(RadiusOfGyration(masses)([frame], clusters, com)[0])
-tensor = np.asarray(GyrationTensor()([frame], clusters, centers)[0])
+rg = np.asarray(RadiusOfGyration(masses).compute([frame], clusters, com)[0])
+tensor = np.asarray(GyrationTensor().compute([frame], clusters, centers)[0])
 print(round(float(rg[0]), 2), tensor.shape)     # -> 4.84 (1, 3, 3)
 ```
 
@@ -170,7 +171,7 @@ way from a rod either. Single chains scatter widely around the
 ensemble value of about 0.4, so quote $\kappa^2$ as an average. Pass `masses=None`
 anywhere above for purely geometric (unit-mass) descriptors.
 
-`InertiaTensor(masses)([frame], clusters, com)` returns the mass-weighted
+`InertiaTensor(masses).compute([frame], clusters, com)` returns the mass-weighted
 version with the same shape, for principal axes.
 
 ## When it goes wrong

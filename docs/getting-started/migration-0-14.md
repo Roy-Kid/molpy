@@ -71,8 +71,17 @@ Python `UFFTypifier`) do not exist. `typify()` returns a new graph.
 
 ## Compute
 
-- Shells are plain callables constructed with their parameters and called
-  with the data (`RDF(n_bins=100, r_max=10.0)(frames, neighbors)`).
+- Shells are plain classes: construct with the measurement parameters, then
+  call the `compute` verb with the data —
+  `RDF(n_bins=100, r_max=10.0).compute(frames, neighbors)`. Calling the object
+  itself no longer works.
+- `molpy.compute.Compute` is the molrs `Protocol`
+  (`molpy.compute.Compute is molrs.compute.Compute`): a class conforms by
+  defining `compute(...)`, never by subclassing. The molpy base class is gone,
+  and with it `dump()` and the `**config` catch-all that fed it.
+- `RadicalVoronoi` and `VoronoiIntegration` are now the molrs classes
+  themselves, which keep their own verbs: `RadicalVoronoi().build(...)` and
+  `VoronoiIntegration().integrate(...)`.
 - `Workflow` is removed: a DAG of analyses is a script, not a library object.
 - `ACFAnalyzer` and `SpectralAnalyzer` are removed; `IonicConductivity` and
   `DielectricSusceptibility` stream frames and no longer print progress (the

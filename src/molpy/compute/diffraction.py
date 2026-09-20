@@ -21,10 +21,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class StaticStructureFactorDebye(Compute):
+class StaticStructureFactorDebye:
     """Static structure factor S(k) via the Debye equation.
 
     Parameters
@@ -34,8 +32,7 @@ class StaticStructureFactorDebye(Compute):
     """
 
     def __init__(self, k_values):
-        super().__init__(k_values=k_values)
         self._inner = molrs.compute.diffraction.StaticStructureFactorDebye(k_values)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

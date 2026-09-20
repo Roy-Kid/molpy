@@ -18,10 +18,8 @@ from __future__ import annotations
 from molrs.compute.density import RDF as _MolrsRDF
 from molrs.compute.density import RDFResult as _MolrsRDFResult
 
-from .base import Compute
 
-
-class RDF(Compute):
+class RDF:
     """Histogram pair distances into g(r) over one or more frames.
 
     Parameters
@@ -39,10 +37,9 @@ class RDF(Compute):
     """
 
     def __init__(self, n_bins: int, r_max: float, r_min: float = 0.0):
-        super().__init__(n_bins=n_bins, r_max=r_max, r_min=r_min)
         self._rdf = _MolrsRDF(n_bins, r_max, r_min)
 
-    def __call__(self, frames, neighbors) -> _MolrsRDFResult:
+    def compute(self, frames, neighbors) -> _MolrsRDFResult:
         frame_list = self._as_list(frames)
         for f in frame_list:
             if f.box.is_free:

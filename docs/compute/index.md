@@ -16,8 +16,8 @@ two, and the conventions introduced there apply everywhere.
 
 ## How a compute is used
 
-Every analysis follows the same three beats: **configure an object, call it on
-data, read the result.**
+Every analysis follows the same three beats: **configure an object, call
+`.compute(...)` on data, read the result.**
 
 ```python
 import numpy as np
@@ -30,13 +30,13 @@ frame = mp.Frame()
 frame["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 frame.box = mp.Box.cubic(20.0)
 
-nlist = NeighborList(cutoff=10.0)(frame)          # configure, then call
-result = RDF(n_bins=100, r_max=10.0)([frame], [nlist])
+nlist = NeighborList(cutoff=10.0).compute(frame)   # configure, then .compute(...)
+result = RDF(n_bins=100, r_max=10.0).compute([frame], [nlist])
 print(result.rdf.shape, result.bin_centers.shape)  # -> (100,) (100,)
 ```
 
 The parameters that define the measurement (`cutoff`, `n_bins`, `r_max`) go into
-the constructor; the data goes into the call. That separation is deliberate — it
+the constructor; the data goes into `.compute(...)`. That separation is deliberate — it
 means one configured analyzer can be applied to many trajectories and the
 measurement stays identical.
 
@@ -52,7 +52,7 @@ one entry per frame**, where each entry is a tuple of arrays:
 ```python
 from molpy.compute import LocalDensity
 
-per_frame = LocalDensity(r_max=10.0)([frame], [nlist])
+per_frame = LocalDensity(r_max=10.0).compute([frame], [nlist])
 print(len(per_frame), len(per_frame[0]))           # -> 1 2
 ```
 
@@ -62,7 +62,7 @@ it more than once, and pass it around. When you have exactly one frame it reads
 better to unpack immediately:
 
 ```python
-(counts, density), = LocalDensity(r_max=10.0)([frame], [nlist])
+(counts, density), = LocalDensity(r_max=10.0).compute([frame], [nlist])
 print(density.shape)                               # -> (200,)
 ```
 
@@ -96,11 +96,7 @@ raw = EinsteinConductivity().compute(M, dt=10.0, max_correlation_time=20)
 print(sorted(raw))                                 # -> ['lag_times', 'msd']
 ```
 
-Three details in those two lines regularly trip people up.
-
-**They are called with `.compute(...)`, not `(...)`.** Frame-oriented analyses
-are callable objects; the array-oriented ones expose a named `compute` method.
-The per-page examples show which is which.
+Two details in those two lines regularly trip people up.
 
 **A conductivity returns something called `msd`.** That is not a mistake. The
 Einstein route to conductivity is the mean squared displacement of the
@@ -158,8 +154,8 @@ from molpy.compute import NeighborList, RDF
 reader = read_lammps_trajectory("run.lammpstrj")
 frames = reader.read_all()   # list[Frame]; frame.box from BOX BOUNDS
 
-nlists = [NeighborList(cutoff=8.0)(f) for f in frames]
-gr = RDF(n_bins=160, r_max=8.0)(frames, nlists)
+nlists = [NeighborList(cutoff=8.0).compute(f) for f in frames]
+gr = RDF(n_bins=160, r_max=8.0).compute(frames, nlists)
 ```
 
 Prefer dumps that already store continuous paths (`xu yu zu`, or `x y z` plus

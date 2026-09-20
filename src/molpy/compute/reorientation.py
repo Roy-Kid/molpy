@@ -26,10 +26,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class LegendreReorientation(Compute):
+class LegendreReorientation:
     """First/second Legendre reorientational TCFs ``C_1(t)``, ``C_2(t)``.
 
     Parameters
@@ -48,8 +46,7 @@ class LegendreReorientation(Compute):
     """
 
     def __init__(self, max_lag: int, stride: int = 1):
-        super().__init__(max_lag=max_lag, stride=stride)
         self._inner = molrs.compute.order.LegendreReorientation(max_lag, stride)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

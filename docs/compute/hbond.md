@@ -73,7 +73,7 @@ frame = mp.Frame()
 frame["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 frame.box = mp.Box.cubic(30.0)
 
-result = HBonds(donors=np.array([[0, 1]]), acceptors=np.array([2]))([frame])
+result = HBonds(donors=np.array([[0, 1]]), acceptors=np.array([2])).compute([frame])
 print(list(result.counts))            # -> [1]
 ```
 
@@ -95,7 +95,7 @@ To use a different criterion, pass one:
 from molpy.compute import HBondCriterion
 
 strict = HBondCriterion(dist_cutoff=3.0, angle_cutoff=160.0)
-tighter = HBonds(np.array([[0, 1]]), np.array([2]), strict)([frame])
+tighter = HBonds(np.array([[0, 1]]), np.array([2]), strict).compute([frame])
 print(list(tighter.counts))           # -> [1]
 ```
 

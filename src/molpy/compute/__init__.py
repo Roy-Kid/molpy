@@ -1,7 +1,7 @@
 """Trajectory and structure analyses.
 
-Configure a compute, call it on frames or pre-assembled arrays, read typed
-fields. Analysis time is femtoseconds (LAMMPS real units).
+Configure a compute, run ``.compute(...)`` on frames or pre-assembled arrays,
+read typed fields. Analysis time is femtoseconds (LAMMPS real units).
 
 Transport and dielectric quantities are composed explicitly::
 
@@ -16,7 +16,7 @@ Example::
 
 """
 
-from .base import Compute
+from molrs.compute import Compute
 from .cluster import Cluster, ClusterCenters, ClusterProperties
 from .decomposition import DescriptorRow, KMeans, Pca
 from .dielectric import (

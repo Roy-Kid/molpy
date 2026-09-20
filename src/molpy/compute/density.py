@@ -14,10 +14,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class LocalDensity(Compute):
+class LocalDensity:
     """Per-particle local number density within a cutoff sphere.
 
     Parameters
@@ -29,14 +27,13 @@ class LocalDensity(Compute):
     """
 
     def __init__(self, r_max: float, diameter: float = 0.0):
-        super().__init__(r_max=r_max, diameter=diameter)
         self._inner = molrs.compute.density.LocalDensity(r_max, diameter)
 
-    def __call__(self, frames, nlists):
+    def compute(self, frames, nlists):
         return self._inner.compute(frames, nlists)
 
 
-class GaussianDensity(Compute):
+class GaussianDensity:
     """Gaussian-smeared number density on a 3-D grid.
 
     Parameters
@@ -48,8 +45,7 @@ class GaussianDensity(Compute):
     """
 
     def __init__(self, nx: int, ny: int, nz: int, sigma: float):
-        super().__init__(nx=nx, ny=ny, nz=nz, sigma=sigma)
         self._inner = molrs.compute.density.GaussianDensity(nx, ny, nz, sigma)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

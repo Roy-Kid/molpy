@@ -213,8 +213,8 @@ calls, with many more analyses behind them.
 from molpy.compute import NeighborList, RDF
 
 system.box = mp.Box.cubic(30.0)
-neighbors = NeighborList(cutoff=8.0)(system)
-result = RDF(n_bins=50, r_max=8.0)([system], [neighbors])  # g(r) over the box
+neighbors = NeighborList(cutoff=8.0).compute(system)
+result = RDF(n_bins=50, r_max=8.0).compute([system], [neighbors])  # g(r) over the box
 ```
 
 </article>

@@ -5,10 +5,8 @@ from __future__ import annotations
 from molrs.compute.msd import MSD as _MolrsMSD
 from molrs.compute.msd import MSDTimeSeries as _MolrsMSDTimeSeries
 
-from .base import Compute
 
-
-class MSD(Compute):
+class MSD:
     """Mean squared displacement.
 
     Two estimators, chosen by ``method`` — they are not interchangeable:
@@ -20,14 +18,13 @@ class MSD(Compute):
 
     Examples
     --------
-    >>> series = MSD(method="window")(trajectory_frames)
+    >>> series = MSD(method="window").compute(trajectory_frames)
     >>> series.mean.shape    # (n_frames,)
     """
 
     def __init__(self, method: str = "direct") -> None:
-        super().__init__(method=method)
         self.method = method
         self._impl = _MolrsMSD(method=method)
 
-    def __call__(self, frames) -> _MolrsMSDTimeSeries:
+    def compute(self, frames) -> _MolrsMSDTimeSeries:
         return self._impl.compute(frames)

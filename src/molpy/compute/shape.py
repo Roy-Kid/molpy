@@ -31,8 +31,6 @@ from molrs.compute.cluster import (
     RadiusOfGyration as _MolrsRadiusOfGyration,
 )
 
-from .base import Compute
-
 
 def _as_masses(masses):
     if masses is None:
@@ -40,7 +38,7 @@ def _as_masses(masses):
     return np.ascontiguousarray(masses, dtype=np.float64)
 
 
-class CenterOfMass(Compute):
+class CenterOfMass:
     """Mass-weighted center per cluster.
 
     Parameters
@@ -50,25 +48,23 @@ class CenterOfMass(Compute):
     """
 
     def __init__(self, masses=None) -> None:
-        super().__init__(masses=masses)
         self._impl = _MolrsCenterOfMass(_as_masses(masses))
 
-    def __call__(self, frames, clusters):
+    def compute(self, frames, clusters):
         return self._impl.compute(frames, clusters)
 
 
-class GyrationTensor(Compute):
+class GyrationTensor:
     """Gyration tensor per cluster (unweighted)."""
 
     def __init__(self) -> None:
-        super().__init__()
         self._impl = _MolrsGyrationTensor()
 
-    def __call__(self, frames, clusters, centers):
+    def compute(self, frames, clusters, centers):
         return self._impl.compute(frames, clusters, centers)
 
 
-class InertiaTensor(Compute):
+class InertiaTensor:
     """Inertia tensor per cluster.
 
     Parameters
@@ -78,14 +74,13 @@ class InertiaTensor(Compute):
     """
 
     def __init__(self, masses=None) -> None:
-        super().__init__(masses=masses)
         self._impl = _MolrsInertiaTensor(_as_masses(masses))
 
-    def __call__(self, frames, clusters, com):
+    def compute(self, frames, clusters, com):
         return self._impl.compute(frames, clusters, com)
 
 
-class RadiusOfGyration(Compute):
+class RadiusOfGyration:
     """Radius of gyration per cluster.
 
     Parameters
@@ -95,8 +90,7 @@ class RadiusOfGyration(Compute):
     """
 
     def __init__(self, masses=None) -> None:
-        super().__init__(masses=masses)
         self._impl = _MolrsRadiusOfGyration(_as_masses(masses))
 
-    def __call__(self, frames, clusters, com):
+    def compute(self, frames, clusters, com):
         return self._impl.compute(frames, clusters, com)

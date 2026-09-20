@@ -100,7 +100,7 @@ group_b = rng.normal(3.0, 1.0, size=(60, 5))
 table = np.vstack([group_a, group_b])
 
 table = (table - table.mean(axis=0)) / table.std(axis=0)   # standardize first
-projected = Pca()([DescriptorRow(row) for row in table])
+projected = Pca().compute([DescriptorRow(row) for row in table])
 
 coords = np.asarray(projected.coords)
 variance = np.asarray(projected.variance)
@@ -121,7 +121,7 @@ they were built.
 `KMeans` consumes the PCA result directly:
 
 ```python
-labels = np.asarray(KMeans(k=2, max_iter=100, seed=0)(projected).labels)
+labels = np.asarray(KMeans(k=2, max_iter=100, seed=0).compute(projected).labels)
 truth = np.array([0] * 60 + [1] * 60)
 agreement = max((labels == truth).mean(), (labels != truth).mean())
 print(round(float(agreement), 3))               # -> 1.0

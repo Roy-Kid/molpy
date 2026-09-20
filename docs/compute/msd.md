@@ -173,7 +173,7 @@ from molpy.io import read_lammps_trajectory
 from molpy.compute import MSD
 
 frames = read_lammps_trajectory("run.lammpstrj").read_all()
-series = MSD(method="window")(frames)
+series = MSD(method="window").compute(frames)
 msd = np.asarray(series.mean)
 lag = np.arange(len(msd)) * 10.0   # fs, whatever Δt your dump used
 ```

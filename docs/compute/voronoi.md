@@ -66,8 +66,8 @@ parameter-free coordination number — no cutoff, no first-minimum argument. And
 
 ## Computing it
 
-`RadicalVoronoi` takes `(positions, radii, box)`. Note that despite what its
-docstring says, you call the object itself; there is no `.compute` method.
+`RadicalVoronoi` builds the tessellation with
+`build(positions, radii, box)`.
 
 ```python
 import numpy as np
@@ -79,7 +79,7 @@ n_atoms, box_length = 400, 20.0
 xyz = np.ascontiguousarray(rng.uniform(0.0, box_length, size=(n_atoms, 3)))
 radii = np.zeros(n_atoms)                       # equal radii -> plain Voronoi
 
-cells = RadicalVoronoi()(xyz, radii, mp.Box.cubic(box_length))
+cells = RadicalVoronoi().build(xyz, radii, mp.Box.cubic(box_length))
 volumes = np.asarray(cells.volumes)
 
 print(volumes.shape)                                    # -> (400,)
@@ -97,7 +97,8 @@ construction:
 
 ```python
 mixed = rng.uniform(0.5, 1.5, n_atoms)
-big = np.asarray(RadicalVoronoi()(xyz, mixed, mp.Box.cubic(box_length)).volumes)
+cells_mixed = RadicalVoronoi().build(xyz, mixed, mp.Box.cubic(box_length))
+big = np.asarray(cells_mixed.volumes)
 print(float(np.corrcoef(mixed, big)[0, 1]) > 0.3)       # -> True
 ```
 
@@ -120,8 +121,9 @@ parameter-free route to porosity in a framework material.
 `VoronoiIntegration` partitions a volumetric electron density over the cells and
 returns per-molecule charges and dipole moments. It is the standard route from
 *ab initio* MD to infrared intensities, because the dipole flux the
-[Spectra](spectra.md) page needs has to come from somewhere. Call it with
-`(positions, radii, atomic_numbers, atom_to_mol, n_mol, grid, box)`.
+[Spectra](spectra.md) page needs has to come from somewhere. Call
+`VoronoiIntegration().integrate(positions, radii, atomic_numbers, atom_to_mol,
+n_mol, grid, box)`.
 
 Its accuracy is set by the density grid spacing, and the convergence test is to
 halve the spacing until the total charge and the resulting spectrum stop moving.
