@@ -278,13 +278,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             if block_name == "atoms" and drop_on_atoms:
                 for col in list(drop_on_atoms):
                     if col in block:
-                        try:
-                            del block[col]
-                        except Exception:
-                            try:
-                                block.remove(col)  # type: ignore[attr-defined]
-                            except Exception:
-                                pass
+                        del block[col]
 
     _formatter = LammpsFieldFormatter()
 

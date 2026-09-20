@@ -73,11 +73,8 @@ def _since_of(request: ReadRequest | None) -> int:
 
 
 def _head(path: Path, size: int = _PROBE_BYTES) -> bytes:
-    try:
-        with path.open("rb") as handle:
-            return handle.read(size)
-    except OSError:
-        return b""
+    with path.open("rb") as handle:
+        return handle.read(size)
 
 
 class LammpsLogReader:
@@ -111,12 +108,9 @@ class LammpsLogReader:
             return False
         # Banner present but the marker sits past the probe window — scan on
         # in bounded chunks rather than loading the whole file.
-        try:
-            with path.open("rb") as handle:
-                handle.seek(len(head))
-                return _LAMMPS_MARKER in handle.read(4 * 1024 * 1024)
-        except OSError:
-            return False
+        with path.open("rb") as handle:
+            handle.seek(len(head))
+            return _LAMMPS_MARKER in handle.read(4 * 1024 * 1024)
 
     def read(
         self,

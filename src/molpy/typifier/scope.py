@@ -48,8 +48,9 @@ def _compile_pattern(
         return item
     try:
         return molrs.perceive.SmartsPattern(item)
-    except Exception:
-        # OPLS-style bare atom expressions often need brackets.
+    except ValueError:
+        # OPLS-style bare atom expressions (``C``, ``N2``) need brackets; any
+        # other parse error surfaces from this second attempt.
         return molrs.perceive.SmartsPattern(f"[{item}]")
 
 

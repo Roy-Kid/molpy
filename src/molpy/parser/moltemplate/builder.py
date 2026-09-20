@@ -1064,20 +1064,14 @@ def build_system(
         # connectivity-driven FFs. Type assignment remains best-effort.
         existing_angles = len(list(system.angles))
         existing_dihedrals = len(list(system.dihedrals))
-        try:
-            system = system.get_topo(
-                gen_angle=existing_angles == 0,
-                gen_dihe=existing_dihedrals == 0,
-            )  # type: ignore[assignment]
-        except Exception:
-            pass
+        system = system.get_topo(
+            gen_angle=existing_angles == 0,
+            gen_dihe=existing_dihedrals == 0,
+        )  # type: ignore[assignment]
 
     # Apply Bonds/Angles/Dihedrals/Impropers By Type wildcard rules to fill
     # in missing ``type`` attributes on connectivity links.
-    try:
-        _apply_by_type_to_system(system, ff)
-    except Exception:
-        pass
+    _apply_by_type_to_system(system, ff)
 
     return system, ff
 

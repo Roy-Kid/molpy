@@ -11,6 +11,7 @@ unwrap); all correlators and spectral physics live in molrs:
 
 from __future__ import annotations
 
+from collections.abc import Sized
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -307,13 +308,7 @@ class DielectricSusceptibility(Compute):
         import time as _time
 
         t_phase0 = _time.time()
-        n_known: int | None = None
-        n_attr = getattr(trajectory, "n_frames", None)
-        if n_attr is not None:
-            try:
-                n_known = int(n_attr() if callable(n_attr) else n_attr)
-            except Exception:
-                n_known = None
+        n_known = len(trajectory) if isinstance(trajectory, Sized) else None
         if n_known is not None:
             print(
                 f"[DielectricSusceptibility] index/scan: n_frames={n_known} "
@@ -386,12 +381,7 @@ class DielectricSusceptibility(Compute):
                     jden = None
                 box_obj = Box.from_box(frame.box)
                 # Orthogonal PBC → pure-NumPy MIC (avoids Rust call + zeros alloc/frame)
-                try:
-                    style = getattr(box_obj, "style", None)
-                    is_orth = style is Box.Style.ORTHOGONAL or style == "orthogonal"
-                except Exception:
-                    is_orth = False
-                if is_orth:
+                if box_obj.style is Box.Style.ORTHOGONAL:
                     orth_lengths = np.asarray(
                         [box_obj.lx, box_obj.ly, box_obj.lz], dtype=np.float64
                     )
@@ -409,14 +399,10 @@ class DielectricSusceptibility(Compute):
                 if box_obj is None or abs(vol_f - float(prev_box.volume())) > 1e-9:
                     box_obj = Box.from_box(prev_box)
                     orth_lengths = None
-                    try:
-                        style = getattr(box_obj, "style", None)
-                        if style is Box.Style.ORTHOGONAL or style == "orthogonal":
-                            orth_lengths = np.asarray(
-                                [box_obj.lx, box_obj.ly, box_obj.lz], dtype=np.float64
-                            )
-                    except Exception:
-                        pass
+                    if box_obj.style is Box.Style.ORTHOGONAL:
+                        orth_lengths = np.asarray(
+                            [box_obj.lx, box_obj.ly, box_obj.lz], dtype=np.float64
+                        )
                 # dr into a temporary view; update unwrapped in-place into buffer.
                 dr = pos - prev_wrapped_buf
                 if orth_lengths is not None:

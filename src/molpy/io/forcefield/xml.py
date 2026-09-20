@@ -71,15 +71,12 @@ def _tag_layer(ff: ForceField, layer: int) -> None:
     """Stamp overlay layer on atom types when non-zero."""
     if layer == 0:
         return
-    try:
-        for cat_name in ff.style_names():
-            category, sname = cat_name.split(":", 1)
-            if category != "atom":
-                continue
-            for tname, _params in ff.types(category, sname):
-                ff.set_type_param(category, sname, tname, "layer", float(layer))
-    except Exception:
-        pass
+    for cat_name in ff.style_names():
+        category, sname = cat_name.split(":", 1)
+        if category != "atom":
+            continue
+        for tname, _params in ff.types(category, sname):
+            ff.set_type_param(category, sname, tname, "layer", float(layer))
 
 
 def _resolve_forcefield_path(filepath: str | Path) -> Path:
