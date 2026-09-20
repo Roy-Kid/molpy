@@ -182,3 +182,6 @@ amber_work/
 /gel/
 /push/
 /[0-9][0-9]_output/
+
+# Snapshot inputs built by the CI publish job
+.ci-out/
