@@ -4,6 +4,7 @@ import molpy.io as mpio
 import molpy.io.forcefield as mpff
 
 _FF = """\
+special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 0.5
 pair_style lj/cut/coul/long 10.0 10.0
 pair_coeff c3 c3 0.107800 3.397710
 
@@ -39,7 +40,10 @@ def test_forcefield_namespace_read_lammps_forcefield(tmp_path):
 
 def test_list_of_includes_concatenates(tmp_path):
     a = tmp_path / "styles.ff"
-    a.write_text("pair_style lj/cut/coul/long 10.0 10.0\npair_coeff c3 c3 0.1 3.4\n")
+    a.write_text(
+        "special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 0.5\n"
+        "pair_style lj/cut/coul/long 10.0 10.0\npair_coeff c3 c3 0.1 3.4\n"
+    )
     b = tmp_path / "bonds.ff"
     b.write_text("bond_style harmonic\nbond_coeff c3-c3 100.0 1.5\n")
     ff = mpio.read_lammps_forcefield([a, b])
