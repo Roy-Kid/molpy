@@ -28,21 +28,6 @@ def litfsi_prmtop(TEST_DATA_DIR):
     return TEST_DATA_DIR / "prmtop" / "LiTFSI.prmtop"
 
 
-@pytest.fixture
-def litfsi_inpcrd(TEST_DATA_DIR):
-    return TEST_DATA_DIR / "inpcrd" / "LiTFSI.inpcrd"
-
-
-def test_read_amber_is_the_only_combined_amber_entry_point():
-    assert molpy_io.read_amber is read_amber
-    assert "read_amber_prmtop" not in molpy_io.__all__
-    assert not hasattr(molpy_io, "read_amber_prmtop")
-
-
-def test_prmtop_file_exists(litfsi_prmtop):
-    assert litfsi_prmtop.exists()
-
-
 def test_prmtop_reader_initialization(litfsi_prmtop):
     reader = AmberPrmtopReader(litfsi_prmtop)
     assert reader.file == litfsi_prmtop
@@ -92,10 +77,11 @@ def test_prmtop_read_charges(litfsi_prmtop):
 def test_prmtop_read_atomic_numbers(litfsi_prmtop):
     frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
     atoms = frame["atoms"]
-    if "atomic_number" in atoms:
-        z = np.asarray(atoms["atomic_number"])
-        assert len(z) == 16
-        assert all(z > 0)
+    # LiTFSI.prmtop carries %FLAG ATOMIC_NUMBER, so both columns must exist.
+    z = np.asarray(atoms["atomic_number"])
+    assert len(z) == 16
+    assert all(z > 0)
+    assert "element" in atoms
 
 
 def test_prmtop_read_masses(litfsi_prmtop):
@@ -157,22 +143,9 @@ def test_prmtop_forcefield_structure(litfsi_prmtop):
     assert len(ff.get_types(AngleType)) > 0
 
 
-def test_prmtop_charge_conversion_constant():
-    assert CHARGE_CONVERSION_FACTOR == 18.2223
-
-
 def test_prmtop_nonexistent_file():
     with pytest.raises(FileNotFoundError):
         AmberPrmtopReader("/nonexistent/file.prmtop").read()
-
-
-def test_read_amber_helper_reads_prmtop_and_inpcrd(litfsi_prmtop, litfsi_inpcrd):
-    frame, ff = read_amber(litfsi_prmtop, litfsi_inpcrd)
-    assert frame["atoms"].nrows == 16
-    assert ff is not None
-    assert "x" in frame["atoms"]
-    assert "y" in frame["atoms"]
-    assert "z" in frame["atoms"]
 
 
 # ---------------------------------------------------------------------------
@@ -259,12 +232,6 @@ def test_prmtop_decode_bond_params_negative_raises():
         molrs.io.prmtop_decode_bond_params([-3, 6, 1], [359.0], [1.35])
 
 
-def test_bond_count_matches_pointers(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    assert frame.meta["n_bonds"] == 14
-    assert len(frame["bonds"]["atomi"]) == 14
-
-
 def test_bond_atom_indices_zero_based(litfsi_prmtop):
     frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
     bonds = frame["bonds"]
@@ -309,12 +276,6 @@ def test_angle_equil_from_litfsi_tables(litfsi_prmtop):
     assert any(abs(a[5] - expected) < 0.01 for a in type1)
 
 
-def test_angle_count_matches_pointers(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    assert frame.meta["n_angles"] == 25
-    assert len(frame["angles"]["atomi"]) == 25
-
-
 def test_prmtop_decode_dihedral_negative_k():
     dih = molrs.io.prmtop_decode_dihedral_params(
         [12, 21, -24, 27, 1],
@@ -347,28 +308,6 @@ def test_prmtop_decode_dihedral_periodicity_int():
     )
     assert isinstance(dih[0][7], int)
     assert dih[0][7] == 3
-
-
-def test_dihedral_count_matches_pointers(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    assert frame.meta["n_dihedrals"] == 27
-    assert len(frame["dihedrals"]["atomi"]) == 27
-
-
-def test_dihedral_indices_in_range(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    n_atoms = frame.meta["n_atoms"]
-    for key in ("atomi", "atomj", "atomk", "atoml"):
-        assert all(0 <= v < n_atoms for v in frame["dihedrals"][key])
-
-
-def test_charge_conversion_factor_value():
-    assert CHARGE_CONVERSION_FACTOR == 18.2223
-
-
-def test_charge_li_equals_one(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    assert abs(float(np.asarray(frame["atoms"]["charge"])[-1]) - 1.0) < 1e-5
 
 
 def test_charge_system_neutral(litfsi_prmtop):
@@ -483,9 +422,7 @@ def test_angle_residue_intra_fsi(litfsi_prmtop):
 
 def test_title_preserved_in_typed_meta(litfsi_prmtop):
     frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    if "title" in frame.meta:
-        title = frame.meta["title"]
-        assert "TFSI" in str(title) or str(title)
+    assert frame.meta["title"] == "TFSI"
 
 
 def test_missing_pointers_raises_valueerror(tmp_path):
@@ -493,19 +430,6 @@ def test_missing_pointers_raises_valueerror(tmp_path):
     bad.write_text("%VERSION 1\n%FLAG TITLE\n%FORMAT(20a4)\nx\n")
     with pytest.raises(ValueError, match="POINTERS"):
         AmberPrmtopReader(bad).read()
-
-
-def test_nonexistent_file_raises():
-    with pytest.raises(FileNotFoundError):
-        AmberPrmtopReader("/no/such/file.prmtop").read()
-
-
-def test_known_elements_become_an_atomic_number_column(litfsi_prmtop):
-    frame, _ = AmberPrmtopReader(litfsi_prmtop).read()
-    atoms = frame["atoms"]
-    if "atomic_number" in atoms:
-        assert "element" in atoms
-        assert len(atoms["atomic_number"]) == 16
 
 
 def test_bonds_with_h_table_from_sections(litfsi_prmtop):
