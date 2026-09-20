@@ -1,5 +1,7 @@
 import numpy as np
 
+import molrs
+
 from molpy.core.region import BoxRegion, SphereRegion
 
 
@@ -158,28 +160,38 @@ class MinDistanceConstraint(Constraint):
     def __init__(self, dmin: float):
         self.dmin = dmin
 
+    def _close_pairs(
+        self, points: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Pairs closer than ``dmin``: ``(i, j, displacement_ij, distance)``.
+
+        The molrs neighbour query is O(N) in the number of points; only the
+        pairs that can carry a penalty are ever materialised.
+        """
+        points = np.ascontiguousarray(points, dtype=np.float64)
+        if len(points) < 2:
+            empty = np.zeros(0, dtype=np.int64)
+            return empty, empty, np.zeros((0, 3)), np.zeros(0)
+        found = molrs.NeighborQuery.free(points, self.dmin).query_self()
+        i = np.asarray(found.query_point_indices(), dtype=np.int64)
+        j = np.asarray(found.point_indices(), dtype=np.int64)
+        disp = np.asarray(found.disp(), dtype=np.float64)  # points[j] - points[i]
+        return i, j, disp, np.sqrt(np.asarray(found.dist_sq(), dtype=np.float64))
+
     def penalty(self, points: np.ndarray) -> float:
-        dist = np.linalg.norm(points[:, None, :] - points[None, :, :], axis=-1)
-        i, j = np.triu_indices(len(points), k=1)
-        d_ij = dist[i, j]
-        violations = np.maximum(0, self.dmin - d_ij)
-        penalty = np.sum(violations**2)
-        return penalty
+        _, _, _, dist = self._close_pairs(points)
+        violations = np.maximum(0.0, self.dmin - dist)
+        return float(np.sum(violations**2))
 
     def dpenalty(self, points: np.ndarray) -> np.ndarray:
-        n = len(points)
-        grad = np.zeros_like(points)
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                diff = points[i] - points[j]
-                dist = np.linalg.norm(diff)
-
-                if dist < self.dmin and dist > 1e-8:
-                    # Gradient pushes points apart
-                    unit_vec = diff / dist
-                    force = 2 * (self.dmin - dist) * unit_vec
-                    grad[i] += force
-                    grad[j] -= force
-
+        i, j, disp, dist = self._close_pairs(points)
+        grad = np.zeros_like(points, dtype=np.float64)
+        keep = (dist < self.dmin) & (dist > 1e-8)
+        i, j, disp, dist = i[keep], j[keep], disp[keep], dist[keep]
+        # d/dr_i of (dmin - |r_i - r_j|)^2 = -2 (dmin - d) (r_i - r_j) / d
+        #                                  =  2 (dmin - d) (r_j - r_i) / d.
+        # This is the gradient (uphill); descending it moves i away from j.
+        grad_i = (2.0 * (self.dmin - dist) / dist)[:, None] * disp
+        np.add.at(grad, i, grad_i)
+        np.add.at(grad, j, -grad_i)
         return grad
