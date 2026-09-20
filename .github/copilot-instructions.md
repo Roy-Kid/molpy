@@ -23,7 +23,7 @@
 - Public API is re-exported from `src/molpy/__init__.py` (keep it import-safe; avoid importing optional deps unguarded).
 - Optional integrations should be import-guarded (pattern: `src/molpy/adapter/__init__.py` uses `try/except ModuleNotFoundError`).
 - Doc blocks that shell out must start with `# docs: skip — <reason>`.
-- Some tests may use `TEST_DATA_DIR` fixture which clones/pulls `https://github.com/molcrafts/tests-data.git` on demand.
+- Data-driven tests read the small fixture files committed under `tests/tests-data/` through the `TEST_DATA_DIR` fixture.
 
 ## Hard restrictions (must follow)
 

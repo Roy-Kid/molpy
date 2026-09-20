@@ -42,7 +42,6 @@ dev = [
     "pytest-cov>=3.0.0",
     "pytest-mock>=3.10.0",
     "pytest-xdist>=3.0",
-    "filelock>=3.0",
     "ruff==0.16.1",
     "ty==0.0.65",
     "tox>=4.23",
