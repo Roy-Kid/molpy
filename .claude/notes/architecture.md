@@ -110,7 +110,7 @@ Per-package constraints from the same source:
 
 ## 设计铁律 (2026-07-10, 由 graph-assembler 链引出)
 
-四条硬约束,适用于全仓库,优先于任何 spec 的局部方便。
+六条硬约束,适用于全仓库,优先于任何 spec 的局部方便。
 
 ### 1. 不硬编码字段名
 
@@ -152,8 +152,8 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 - 但**禁止假 OOP**:只为消灭自由函数而造的命名空间类、单次使用的抽象、
   二次封装外部类型的门面 —— 一律不要(见 `feedback_no_wrapper_layers_oop`)。
   一个类必须携带数据或承担分派。
-- 同族变换用**同一个动词**:`GraphAssembler.assemble`、`VirtualSiteBuilder.apply`。
-  不要一个类叫 `build`、一个叫 `apply`、一个叫 `run`。
+- 同族变换用**同一个动词**。不要一个类叫 `build`、一个叫 `apply`、一个叫 `run`。
+  族与动词的绑定表、`__call__` 政策与已声明的债见本节下方「变换族 → 动词」。
 - 工作流拼装(`crosslink_gel(...)` 这种把几个类串起来的自由函数)属于**文档**,不属于库。
 
 **门面 vs 真类 —— 别把这条用反了。** 判据不是"它内部调用了别的类",而是
@@ -172,6 +172,63 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 
 > 边界切错的信号:**同一份数据穿过两个对象传了两次**
 > (`expand(topology)` 与 `TopologySelector(topology)`)。看到这个就回去重切。
+
+#### 同族变换用**同一个动词**——变换族 → 动词表(2026-09-20,api-verb-unification 链)
+
+**族的边界只由「输入 → 输出」决定,与类名/后缀无关;本表不改任何类名。**
+`VirtualSiteBuilder`(`builder/virtualsite.py:61`)、`DrudeBuilder`(`:92`)、`Tip4pBuilder`(`:173`)顶着 `Builder`
+后缀,但它们吃一个已有的 `Atomistic`、吐一个被改写的 `Atomistic`——**图变换族**,动词 `apply`;
+`GrapheneBuilder`(`nanostructure/graphene.py:15`)、`CarbonTubeBuilder`(`carbon_tube.py:15`)吃参数、吐新结构——
+**构造族**,动词 `build`。同一个后缀落在两族里,正说明后缀不是判据。下一次改名照「输入 → 输出」判,不照名字判。
+
+`molrs:` 前缀 = 对 molrs 现状的描述,不约束 molrs;molpy 沿用 molrs 的动词,反向不成立(sink direction)。
+
+| 变换族 | 输入 → 输出 | 动词 | 成员 | 状态 | 依据 |
+|---|---|---|---|---|---|
+| 构造 | 配方/IR/参数 → 新结构 | `build` | `PolymerBuilder.build(topology)`(`builder/assembly/_polymer.py:87`)、`Lattice.build(region)`(`builder/crystal.py:210`)、`GrapheneBuilder.build`(`nanostructure/graphene.py:56`)、`CarbonTubeBuilder.build`(`nanostructure/carbon_tube.py:65`)、`AmberPolymerBuilder.build`(`polymer/ambertools/amber_builder.py:166`) | 已成立 | `molrs:` 侧已是 `build`(`molrs.builder.*`、`NeighborList.build`);molpy 永不改写 molrs 的动词(sink direction) |
+| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | **部分**:`GraphAssembler` 现名 `assemble`(`builder/assembly/_assembler.py:116`),改名由 **sub-spec 04**(`api-verb-unification-04-assembler`)兑现;**04 落地时必须把本格改为「已成立」并删除债务清单第 3 行** | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
+| 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(02 落地前它们是 `Compute` ABC 的子类,落地后不继承任何基类;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | **落地前为已声明的债(sub-spec 02**,`api-verb-unification-02-compute`**)**:当前全部子类实现 `__call__`(抽象方法在 `compute/base.py:51`),全树零个 `def compute`;**02 落地时必须把本格改为「已成立」并删除债务清单第 1 行** | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
+| 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | **落地前为已声明的债(sub-spec 03**,`api-verb-unification-03-pack`**)**:`molpy.pack` 整包仍在,删除集见脚注 4;**03 落地时必须把本格改为「已成立」并删除债务清单第 2 行** | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
+| 分型 | 图 → 带类型的图 | `typify` | `molrs:Typifier`;`typifier/base.py:99` 是参考范式(继承 molrs 基类、保留动词、加一个 hook,`typify` 在 `:106`) | 已成立 | molrs 所有(描述性) |
+| 3D 生成 | 图 → 坐标 | `generate` | `Conformer.generate`(`conformer/__init__.py:42`)——**仅此一个**,其余同词干的名字见脚注 1 | 已成立 | `molrs:molrs.conformer.Conformer` 所有(描述性) |
+| 外部进程 | 文件/体系 → 文件/轨迹 | `run` | `Wrapper.run`(`wrapper/base.py:74`)、`Engine.run`(`engine/base.py:212`)、`molrs:LBFGS.run` | 已成立 | 「跑一个东西」,不是数据变换;不动 |
+| 发射 | Frame → 引擎输入 | `emit` | `Emitter.emit`(`io/emit/__init__.py:32`)及各格式实现(`io/emit/{lammps,gromacs,openmm,xml}.py`) | 已成立(自由函数形态的债见债务清单) | 不动 |
+| 读写 | 路径 ↔ 对象 | `read` / `write` | `io` | 已成立 | 不动 |
+| 选择 | context/struct → 子集 | `select` | 入口动词 `select`:`Selector.select`(`builder/assembly/_selector.py:35`)、`VirtualSiteBuilder.select`(`builder/virtualsite.py:78`)、`Atomistic.select`(`core/atomistic.py:270`) / `CoarseGrain.select`(`core/cg.py:189`)(核心数据模型上的两处只作描述,其命名归 § Graph sink decisions,本表不授权改名);`MaskPredicate.mask(block) -> ndarray`(`core/selector.py:24`)是**生产者 hook**,不是第二个入口动词 | 已成立(名字撞车的债见债务清单) | 不动 |
+| 放置 | struct → 就地坐标 | `place` | `Placer.place`(`builder/assembly/_placer.py:46`)、`ResiduePlacer.place`(`:75`);经 `builder/assembly/__init__.py:16` 与 `builder/__init__.py:42,44` 导出 | 已成立 | 领域动词,不在两族之内,见脚注 6 |
+
+**`Compute` 归属裁定。** 仓里同时活着两个 `Compute` 概念——`molpy.compute.base.Compute`(`compute/base.py:18`,一个以 `__call__` 为抽象方法的 ABC)与 `molrs.compute.protocol.Compute`(只认 `compute`)。**唯一的 `Compute` 是 molrs 那个**,sub-spec 02 落地后用户经 identity re-export 以 `molpy.compute.Compute` 取得(铁律 6 的第一档手段;今天 `compute/__init__.py:19` 还是 `from .base import Compute`)。molpy 的 ABC 并非空壳——它带 `__init__(**config)`(`compute/base.py:41-48`)与 `dump()`(`:65-71`),按铁律 6 的三档表那本该是「继承」档;本链**裁定不继承而是删除**:`dump()` 在 `src/`、`tests/` 中零调用(唯一引用是 `docs/developer/extending-compute.md:69`),`**config` 只喂 `dump()`,二者都是没有消费者的公开面。这是 **sub-spec 02 名下的一次 breaking change**(`dump()` 与 `**config` 从公开面消失,`extending-compute.md` 随之改写),不是无损再导出;02 的 ac-003 记录它。不留 `__call__` 糖、不留转发壳。`.claude/specs/INDEX.md` 把这件事记为 release-0-14 遗留的 open decision("the callable `compute.base.Compute` shells versus the molrs `Compute` Protocol (verb unification)")——**本链就是它的关闭动作**,sub-spec 02 落地后该条从 open 转 closed。
+
+**一族一动词,不是一类一动词。** 一个类可以在它参与的**每一个**族里各有一个动词——`PolymerBuilder` 自己有 `build`(构造族,`_polymer.py:87`),并从 `GraphAssembler` 继承 `apply`(图变换族)。被禁止的是**同一族里两个动词**,不是一个类上有两个动词。
+
+**`assemble → apply` 裁定。** `GraphAssembler.assemble` → `apply` 而非 `build`:`PolymerBuilder(GraphAssembler)`(`_polymer.py:38`)已有 `build(topology)`(`:87`,在 `:94` 调 `self.assemble`),父类再挂 `build(world, selector)` 会撞签名(LSP,`ty` 报错);而 `assemble` 吃一个已有的 world、吐一个被改写的 world——图 → 图,本就属 `apply` 族。
+
+**脚注:**
+
+1. 本表约束的是变换的**入口动词**;抽象模板 hook 与描述性方法名不在族内,保留原名:`VirtualSiteBuilder.build_sites`(`builder/virtualsite.py:82`/`:126`/`:205`)、`engine/openmm.py:303 generate_inputs`、`builder/polymer/sequences.py:34`/`:74`/`:138`/`:182 generate_sequence`、`adapter/rdkit.py:105 generate_3d`。(`pack` 侧的 `generate_input_*` 随 sub-spec 03 整包消失,不必单独裁决。)
+2. **`build_*` 全树普查。** 同词干的一行捷径,保留:`PolymerBuilder.build_sequence`/`build_linear`/`build_ring`/`build_star`(`_polymer.py:96`/`:100`/`:110`/`:114`)、`builder/ambertools.py:241 build_polymer`、`builder/polymer/system.py:146 build_chain`。模板 hook,保留:`build_sites`(见脚注 1)。**债**:`parser/moltemplate/builder.py:551 build_forcefield` 与 `:967 build_system` 是自由函数形态的工厂,正撞 CLAUDE.md § Forbid「Factory functions as the primary constructor story」与铁律 4「自由函数不是公开面」——见债务清单,单独 `/mol:refactor`,不属本链。
+3. `DistributionIR.build()`(`builder/polymer/distributions.py:28`)不吃数据——它是 factory 式构造器,不是变换族成员;改名或删除是另一次 `/mol:refactor`(维护者裁定 OQ-3 记为「只留脚注」)。
+4. **`__call__` 政策。** 一族一个动词;`__call__` 只出现在「这个对象**就是**一个函数」的地方。本链全部落地后,唯一豁免是 `core/selector.py` 的 `MaskPredicate.__call__(block) -> Block`(`:26`)与 `mask(block) -> ndarray`(`:24`)并存——返回类型不同,且谓词要用 `& | ~` 组合(`:30`–`:40`)。其余把 `__call__` 当作同一操作第二个名字的,一律删:(a) 全部 compute 壳,由 sub-spec 02 改名为 `compute`;(b) `Packer.__call__`(`pack/packer/base.py:69`)与 `Packmol.__call__`(`pack/packer/packmol.py:56`),随 sub-spec 03 **整包删除**——删除集为 `src/molpy/pack/` 全包(`Packmol`、`Packer`、`Target`、全部 `*Constraint`)、`tests/test_pack/`、以及 `src/molpy/__init__.py:29`/`:48`/`:317` 三处 facade 登记,并**改写**(不是删除)两处会悬空的 docstring 交叉引用 `src/molpy/builder/assembly/_replicas.py:3` 与 `src/molpy/adapter/__init__.py:6-7`。**在 03 落地之前,「唯一豁免」这句话尚不为真**——那之前 `Packer.__call__` 是 sub-spec 03 名下的已声明的债,见债务清单。
+5. **不写死计数。** 本表不记「N 个 compute 壳」这类会腐烂的数字;需要时现场数,按动词而不按基类:`rg -n 'def compute\(' src/molpy/compute`(02 落地前该命令给 0——那时壳还叫 `__call__`,用 `rg -n 'class \w+\(Compute\)' src/molpy/compute` 数基类形式,2026-09-20 给 34 行,其中 33 行是真实子类,另一行是 `compute/base.py:27` docstring 里的示例——**读 grep 输出要减掉 doctest**)。
+6. **族的边界只由「输入 → 输出」决定,与类名/后缀无关,本表也不改任何类名;核心数据模型 API 整体在两族之外。** 边界样例:`VirtualSiteBuilder`(`builder/virtualsite.py:61`)、`DrudeBuilder`(`:92`)、`Tip4pBuilder`(`:173`)带 `Builder` 后缀却属**图变换族**;`GrapheneBuilder`(`nanostructure/graphene.py:15`)、`CarbonTubeBuilder`(`carbon_tube.py:15`)属**构造族**。另有一类是**领域动词**,既不是构造族入口、也不是图变换族入口,因此不受本表约束、保留原名:`MonomerLibrary.expand(topology)`(`builder/assembly/_library.py:57`)、`Replicas.grid`/`.times`(`builder/assembly/_replicas.py:40`/`:89`)与 `Placer.place`/`ResiduePlacer.place`。**判据**(不是例子清单):`Atomistic`/`CoarseGrain`/`Frame` 的核心数据模型 API——`def_*`/`del_*`/`copy`/`merge`(`core/atomistic.py:462`)/`move`/`rotate`/`scale`/`align`(`:534`)/`replicate`(`:559`)/`extract_subgraph`(`:377`)/`to_frame`——虽然也是「已有图 → 改写后的图」,但它们是数据模型自身的动作,由 § Graph sink decisions(锁定)与 CLAUDE.md § What must never change casually 管辖,**不属于图变换族**;图变换族只收「以整张图为输入、产出新图的领域变换入口」(finalize、virtual sites、assembly、reaction)。
+
+**本表尚未兑现的部分(已声明的债):**
+
+| 债 | 位置 | 归属 |
+|---|---|---|
+| 分析族全部实现 `__call__`,无 `def compute`;molpy 自带 `Compute` ABC 与 molrs Protocol 并存 | `compute/base.py:18`/`:51` + 全部子类 | **sub-spec 02** `api-verb-unification-02-compute` |
+| `Packer.__call__` 与 `Packer.pack` 并存;`molpy.pack` 整包仍在 | `pack/packer/base.py:50`/`:69`、`pack/packer/packmol.py:56` | **sub-spec 03** `api-verb-unification-03-pack` |
+| 图变换族入口仍叫 `assemble` | `builder/assembly/_assembler.py:116` | **sub-spec 04** `api-verb-unification-04-assembler` |
+| `Selector` 一名两义:`core/selector.py:43 Selector = MaskPredicate`(掩码谓词)与 `builder/assembly/_selector.py:26 class Selector(ABC)`(装配选择器)是两个无关的类型 | 同左 | 单独 `/mol:refactor`,**不在本链** |
+| 模块级自由函数 `emit(name, …)` 注册表 dispatcher 与 `emit_python`,违铁律 4「自由函数不是公开面」 | `io/emit/__init__.py:51`、`parser/moltemplate/py_emitter.py:42` | 单独 `/mol:refactor`,**不在本链** |
+| 自由 `build_*` 工厂(见脚注 2) | `parser/moltemplate/builder.py:551`/`:967` | 单独 `/mol:refactor`,**不在本链** |
+| § 4「边界切错的信号」在 `_polymer.py:93-94` 上仍在鸣响:`expand(topology)` 之后又 `TopologySelector(topology)`,同一份数据穿两个对象 | `builder/assembly/_polymer.py:93-94` | 单独裁决(让 `MonomerLibrary.expand` 连同配对规则一起产出,或 `TopologySelector` 从展开后的 world 推导),**不在本链**;sub-spec 04 已记为 found-not-fixed |
+| CLAUDE.md managed 块 `:71` 复述动词且两例皆假(`NeighborList.build` 实为 `__call__`→02 后为 `compute`;`ForceField.energy` 不存在) | `CLAUDE.md:71`(managed) | 链后由操作者 `/mol:bootstrap` 重生成 |
+| managed 块 § Style summary(`architecture.md:43-49`)复述命名/构造约定,与本表两个副本 | `architecture.md:43-49`(managed) | 链后 `/mol:map`:Style summary 不再复述动词裁定,动词一栏只指向 § 设计铁律 4(其余 naming/construction/errors 栏照常) |
+
+本清单是**记账与路由**,不是放行:每一行要么有承载 sub-spec、要么有明确的下一次 `/mol:refactor` / `/mol:bootstrap` / `/mol:map`;不得把任何一行读作「本表允许的例外」。
+
+给下一次 `/mol:map` 的一句话:本文件 managed 块里的 § Style summary(`architecture.md:43-49`)仍在复述命名/构造约定;下一次 `/mol:map` 生成的 Style summary 不得复述动词裁定,动词一栏只指向本节(librarian 需要的 naming/construction/errors 其余栏照常),避免同一套约定有两个副本(债务清单第 9 行)。
 
 ### 5. 不 fallback,不静默失败
 

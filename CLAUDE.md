@@ -227,6 +227,11 @@ only and never `io`; `builder` may drive `wrapper` (AmberTools); `conformer` is
 used by `builder` and `typifier`; nothing imports the package root (`import
 molpy as mp`) from inside `src/`.
 
+Transformation verbs: one verb per transformation family, decided by
+input→output (not by class name); the binding table (families, members,
+declared debt, owning sub-spec) is `.claude/notes/architecture.md` § 设计铁律 4.
+Do not restate verbs here.
+
 ### Data Model Layer
 
 The foundation is three class hierarchies:
@@ -470,8 +475,9 @@ def test_adapter_fallback():
 
 - Polymer builders: sequence generation, placement, crosslinking
 - AmberTools integration: prepare molecules, run Antechamber, tleap
-- Construction is a method on the owning type (`Lattice.build`, `PolymerBuilder.build`,
-  `GraphAssembler.assemble`); there are no free `build_*` / `create_*` factories
+- Construction and transformation verbs: look them up in the family→verb table
+  (`.claude/notes/architecture.md` § 设计铁律 4), which also records the declared
+  debt and its owning sub-spec
 
 ### `optimize`, `md`, `potential`, `io.log`
 

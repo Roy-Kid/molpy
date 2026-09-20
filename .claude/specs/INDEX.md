@@ -17,12 +17,11 @@ callable `compute.base.Compute` shells versus the molrs `Compute` Protocol
 
 | Slug | Status |
 |---|---|
-| [api-verb-unification-01-verbtable](api-verb-unification-01-verbtable.md) | **approved** — 变换族→动词表 + `__call__` 政策 + `Compute` 归属裁定写入 architecture.md § 铁律 4；CLAUDE.md/cross-repo 指针；audit parked（见下） |
 | [api-verb-unification-02-compute](api-verb-unification-02-compute.md) | **approved** — 删 compute/base.py，31 壳 `__call__`→`compute`，`Compute` = molrs Protocol 身份再导出，voronoi 两壳改 identity re-export；depends_on 01 |
 | [api-verb-unification-03-pack](api-verb-unification-03-pack.md) | **approved** — 整包删除 molpy.pack（零消费者，打包归 molpack）；depends_on 01 |
 | [api-verb-unification-04-assembler](api-verb-unification-04-assembler.md) | **approved** — `GraphAssembler.assemble`→`apply` + 迁移页动词表；depends_on 01 |
 
-**api-verb-unification chain — spec-audit parked, maintainer rulings pending (2026-09-20):**
+**api-verb-unification chain — five rulings approved by the maintainer 2026-09-20; 01 landed (verb table in architecture.md § 铁律 4), 02–04 in progress:**
 (1) `assemble → apply`（不是 `build`）；(2) 整包删除 `molpy.pack`（含 `constraint.py`/`target.py`）；(3) compute 壳不留 `__call__` 糖、`dump()`/`**config` 随基类消失（breaking）；(4) voronoi 两壳改 identity re-export 而非改名；(5) `tests/test_compute/test_dielectric.py` 保留并路由（不删）。全部裁定即 `/mol:impl-all api-verb-unification`；任何一项改判则先 `/mol:spec` supersede 对应 sub-spec。
 
 | Slug | Status |
