@@ -25,8 +25,9 @@
 </div>
 
 MolPy is a Python toolkit for the full molecular-system workflow — parsing,
-building, editing, typing, analyzing, packing, and reading/writing simulation
-formats.
+building, editing, typing, analyzing, and reading/writing simulation formats.
+Packing a box is the job of the companion package
+[molpack](https://docs.molcrafts.org/molpack/).
 
 > **Under active development.** Public APIs may change between minor releases.
 
@@ -61,7 +62,6 @@ it, analyze or minimize it, then read and write it across formats.
 | **`typifier`** | Atom typing — OPLS-AA, CL&P, MMFF, GAFF via AmberTools |
 | **`potential` · `optimize`** | Energy & force potentials with L-BFGS minimization |
 | **`compute`** | Analysis modules under `molpy.compute` — `rdf`/`msd`/`dielectric`/`spectra`/`order`/`voronoi`/… (native kernels) |
-| **`pack`** | Packmol-based packing with density targets |
 | **`io`** | Read/write — PDB, GRO, LAMMPS data, XYZ, force fields, trajectories, … |
 | **`engine`** | MD input generation & run management — LAMMPS, CP2K, OpenMM |
 | **`wrapper` · `adapter`** | External CLIs (Antechamber, tleap, …) and optional RDKit in-memory bridge |

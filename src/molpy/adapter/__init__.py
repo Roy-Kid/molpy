@@ -2,9 +2,9 @@
 
 Adapters do *data synchronisation only* — in-memory conversion and/or file
 artifact read/write. They MUST NOT execute external binaries; execution belongs
-in :mod:`molpy.wrapper`. Those are the two bridging patterns, and MolPy keeps
-one worked example of each: :class:`RDKitAdapter` here, and the Packmol packer
-(:mod:`molpy.pack.packer.packmol`) on the wrapper side.
+in :mod:`molpy.wrapper`. Those are the two bridging patterns, and MolPy keeps a
+worked example of each: :class:`RDKitAdapter` here, and the AmberTools CLI
+wrappers (antechamber, parmchk2, prepgen, tleap) on the wrapper side.
 
 **An example is not a dependency.** RDKit is an optional extra: importing molpy
 never requires it, no molpy code path routes through it, and this package is the

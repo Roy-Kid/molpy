@@ -1,9 +1,9 @@
 """Replicate a strand into a multi-molecule world for statistical assembly.
 
-Packing production boxes belongs in :mod:`molpy.pack`. This class only does what
-crosslinking demos need: copy one strand onto a grid, give each copy a
-``mol_id``, and return one :class:`~molpy.core.atomistic.Atomistic` that a
-proximity selector can edit.
+Packing production boxes belongs to the external molpack package
+(``molcrafts-molpack``). This class only does what crosslinking demos need:
+copy one strand onto a grid, give each copy a ``mol_id``, and return one
+:class:`~molpy.core.atomistic.Atomistic` that a proximity selector can edit.
 """
 
 from __future__ import annotations

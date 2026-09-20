@@ -196,7 +196,6 @@ MolPy is a computational chemistry toolkit with explicit data flow and minimal m
 | `conformer` | 3D generation (ETKDG + MMFF) |
 | `typifier` | Atom typing: OPLS-AA, CL&P, MMFF, GAFF (AmberTools) |
 | `compute` | Trajectory analysis: RDF, MSD, transport, dielectric, spectra, order, … |
-| `pack` | Packing: Packmol, constraints, density targets |
 | `engine` | MD abstractions: LAMMPS, CP2K, OpenMM |
 | `wrapper` | External CLIs: Antechamber, Prepgen, Parmchk2, TLeap |
 | `adapter` | Optional in-memory bridge: RDKit (worked example only) |
@@ -221,7 +220,7 @@ MolPy is a computational chemistry toolkit with explicit data flow and minimal m
 > layer) and is not a debt.
 
 Import direction (full table in `.claude/notes/architecture.md`): `core` imports
-nothing from molpy; `io` may be imported by `builder`, `pack`, `engine` and
+nothing from molpy; `io` may be imported by `builder`, `engine` and
 `typifier` (packaged force fields are read through it); `wrapper` imports `core`
 only and never `io`; `builder` may drive `wrapper` (AmberTools); `conformer` is
 used by `builder` and `typifier`; nothing imports the package root (`import
@@ -376,7 +375,7 @@ tests/
 ├─ test_builder/           # test_assembly/, test_polymer/, test_nanostructure/, crystal, symmetry
 ├─ test_typifier/          # Typifiers
 ├─ test_compute/           # Analysis (pure-numpy modules only; molrs pass-throughs are tested in molrs)
-├─ test_pack/  test_engine/  test_wrapper/  test_adapter/  test_conformer/  test_md/  test_potential/  test_integrations/
+├─ test_engine/  test_wrapper/  test_adapter/  test_conformer/  test_md/  test_potential/  test_integrations/
 ```
 
 ### No third-party scientific software in the test gate

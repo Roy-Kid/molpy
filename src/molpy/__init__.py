@@ -26,7 +26,6 @@ if TYPE_CHECKING:
         io,
         md,
         optimize,
-        pack,
         parser,
         typifier,
     )
@@ -45,7 +44,6 @@ _LAZY_SUBMODULES = frozenset(
         "io",
         "md",
         "optimize",
-        "pack",
         "parser",
         "typifier",
     }
@@ -314,7 +312,6 @@ __all__ = [
     "io",
     "md",
     "optimize",
-    "pack",
     "parser",
     "typifier",
     # Version

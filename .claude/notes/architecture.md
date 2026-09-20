@@ -77,13 +77,12 @@ layers cannot import from higher layers; **`core/` imports nothing from molpy**.
 ALLOWED (→ = may be imported by):
   core/              → everything inside molpy
   parser/            → io, typifier, builder
-  io/                → builder, pack, engine, typifier
+  io/                → builder, engine, typifier
   typifier/          → builder
   compute/           → (application code only)
-  builder/           → pack
-  pack/              → (application code only)
+  builder/           → (application code only)
   engine/            → (application code only)
-  wrapper/, adapter/ → builder, pack, engine
+  wrapper/, adapter/ → builder, engine
   conformer/         → builder, typifier
   data/              → everything (packaged files + get_forcefield_path)
   md/ optimize/ potential/ → application code only (pure molrs re-exports)
@@ -186,9 +185,9 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 | 变换族 | 输入 → 输出 | 动词 | 成员 | 状态 | 依据 |
 |---|---|---|---|---|---|
 | 构造 | 配方/IR/参数 → 新结构 | `build` | `PolymerBuilder.build(topology)`(`builder/assembly/_polymer.py:87`)、`Lattice.build(region)`(`builder/crystal.py:210`)、`GrapheneBuilder.build`(`nanostructure/graphene.py:56`)、`CarbonTubeBuilder.build`(`nanostructure/carbon_tube.py:65`)、`AmberPolymerBuilder.build`(`polymer/ambertools/amber_builder.py:166`) | 已成立 | `molrs:` 侧已是 `build`(`molrs.builder.*`、`NeighborList.build`);molpy 永不改写 molrs 的动词(sink direction) |
-| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | **部分**:`GraphAssembler` 现名 `assemble`(`builder/assembly/_assembler.py:116`),改名由 **sub-spec 04**(`api-verb-unification-04-assembler`)兑现;**04 落地时必须把本格改为「已成立」并删除债务清单第 3 行** | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
+| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | **部分**:`GraphAssembler` 现名 `assemble`(`builder/assembly/_assembler.py:116`),改名由 **sub-spec 04**(`api-verb-unification-04-assembler`)兑现;**04 落地时必须把本格改为「已成立」并删除债务清单中「图变换族入口仍叫 `assemble`」那一行** | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
 | 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(不继承任何基类,靠结构满足 molrs Protocol;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | 已成立(2026-09-20,sub-spec 02):molpy 拥有的分析入口动词是 `compute`;残余债 `dielectric.py from_dipole_series` 见债务清单 | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
-| 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | **落地前为已声明的债(sub-spec 03**,`api-verb-unification-03-pack`**)**:`molpy.pack` 整包仍在,删除集见脚注 4;**03 落地时必须把本格改为「已成立」并删除债务清单第 2 行** | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
+| 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | 已成立(2026-09-20,sub-spec 03):molpy.pack 已整包删除,打包归 molpack | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
 | 分型 | 图 → 带类型的图 | `typify` | `molrs:Typifier`;`typifier/base.py:99` 是参考范式(继承 molrs 基类、保留动词、加一个 hook,`typify` 在 `:106`) | 已成立 | molrs 所有(描述性) |
 | 3D 生成 | 图 → 坐标 | `generate` | `Conformer.generate`(`conformer/__init__.py:42`)——**仅此一个**,其余同词干的名字见脚注 1 | 已成立 | `molrs:molrs.conformer.Conformer` 所有(描述性) |
 | 外部进程 | 文件/体系 → 文件/轨迹 | `run` | `Wrapper.run`(`wrapper/base.py:74`)、`Engine.run`(`engine/base.py:212`)、`molrs:LBFGS.run` | 已成立 | 「跑一个东西」,不是数据变换;不动 |
@@ -208,7 +207,7 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 1. 本表约束的是变换的**入口动词**;抽象模板 hook 与描述性方法名不在族内,保留原名:`VirtualSiteBuilder.build_sites`(`builder/virtualsite.py:82`/`:126`/`:205`)、`engine/openmm.py:303 generate_inputs`、`builder/polymer/sequences.py:34`/`:74`/`:138`/`:182 generate_sequence`、`adapter/rdkit.py:105 generate_3d`。(`pack` 侧的 `generate_input_*` 随 sub-spec 03 整包消失,不必单独裁决。)
 2. **`build_*` 全树普查。** 同词干的一行捷径,保留:`PolymerBuilder.build_sequence`/`build_linear`/`build_ring`/`build_star`(`_polymer.py:96`/`:100`/`:110`/`:114`)、`builder/ambertools.py:241 build_polymer`、`builder/polymer/system.py:146 build_chain`。模板 hook,保留:`build_sites`(见脚注 1)。**债**:`parser/moltemplate/builder.py:551 build_forcefield` 与 `:967 build_system` 是自由函数形态的工厂,正撞 CLAUDE.md § Forbid「Factory functions as the primary constructor story」与铁律 4「自由函数不是公开面」——见债务清单,单独 `/mol:refactor`,不属本链。
 3. `DistributionIR.build()`(`builder/polymer/distributions.py:28`)不吃数据——它是 factory 式构造器,不是变换族成员;改名或删除是另一次 `/mol:refactor`(维护者裁定 OQ-3 记为「只留脚注」)。
-4. **`__call__` 政策。** 一族一个动词;`__call__` 只出现在「这个对象**就是**一个函数」的地方。本链全部落地后,唯一豁免是 `core/selector.py` 的 `MaskPredicate.__call__(block) -> Block`(`:26`)与 `mask(block) -> ndarray`(`:24`)并存——返回类型不同,且谓词要用 `& | ~` 组合(`:30`–`:40`)。其余把 `__call__` 当作同一操作第二个名字的,一律删:(a) 全部 compute 壳,由 sub-spec 02 改名为 `compute`;(b) `Packer.__call__`(`pack/packer/base.py:69`)与 `Packmol.__call__`(`pack/packer/packmol.py:56`),随 sub-spec 03 **整包删除**——删除集为 `src/molpy/pack/` 全包(`Packmol`、`Packer`、`Target`、全部 `*Constraint`)、`tests/test_pack/`、以及 `src/molpy/__init__.py:29`/`:48`/`:317` 三处 facade 登记,并**改写**(不是删除)两处会悬空的 docstring 交叉引用 `src/molpy/builder/assembly/_replicas.py:3` 与 `src/molpy/adapter/__init__.py:6-7`。**在 03 落地之前,「唯一豁免」这句话尚不为真**——那之前 `Packer.__call__` 是 sub-spec 03 名下的已声明的债,见债务清单。
+4. **`__call__` 政策。** 一族一个动词;`__call__` 只出现在「这个对象**就是**一个函数」的地方。本链全部落地后,唯一豁免是 `core/selector.py` 的 `MaskPredicate.__call__(block) -> Block`(`:26`)与 `mask(block) -> ndarray`(`:24`)并存——返回类型不同,且谓词要用 `& | ~` 组合(`:30`–`:40`)。其余把 `__call__` 当作同一操作第二个名字的,一律删(均已落地 2026-09-20):(a) 全部 compute 壳,由 sub-spec 02 改名为 `compute`;(b) 原 `Packer.__call__` 与 `Packmol.__call__`,随 sub-spec 03 **整包删除**——删除集为 `src/molpy/pack/` 全包(`Packmol`、`Packer`、`Target`、全部 `*Constraint`)、`tests/test_pack/`、以及 `src/molpy/__init__.py:29`/`:48`/`:317` 三处 facade 登记,并**改写**(不是删除)两处会悬空的 docstring 交叉引用 `src/molpy/builder/assembly/_replicas.py:3` 与 `src/molpy/adapter/__init__.py:6-7`。02 与 03 均已落地,「唯一豁免」自 2026-09-20 起为真。
 5. **不写死计数。** 本表不记「N 个 compute 壳」这类会腐烂的数字;需要时现场数,按动词而不按基类:`rg -n 'def compute\(' src/molpy/compute`(02 落地前该命令给 0——那时壳还叫 `__call__`,用 `rg -n 'class \w+\(Compute\)' src/molpy/compute` 数基类形式,2026-09-20 给 34 行,其中 33 行是真实子类,另一行是 `compute/base.py:27` docstring 里的示例——**读 grep 输出要减掉 doctest**)。
 6. **族的边界只由「输入 → 输出」决定,与类名/后缀无关,本表也不改任何类名;核心数据模型 API 整体在两族之外。** 边界样例:`VirtualSiteBuilder`(`builder/virtualsite.py:61`)、`DrudeBuilder`(`:92`)、`Tip4pBuilder`(`:173`)带 `Builder` 后缀却属**图变换族**;`GrapheneBuilder`(`nanostructure/graphene.py:15`)、`CarbonTubeBuilder`(`carbon_tube.py:15`)属**构造族**。另有一类是**领域动词**,既不是构造族入口、也不是图变换族入口,因此不受本表约束、保留原名:`MonomerLibrary.expand(topology)`(`builder/assembly/_library.py:57`)、`Replicas.grid`/`.times`(`builder/assembly/_replicas.py:40`/`:89`)与 `Placer.place`/`ResiduePlacer.place`。**判据**(不是例子清单):`Atomistic`/`CoarseGrain`/`Frame` 的核心数据模型 API——`def_*`/`del_*`/`copy`/`merge`(`core/atomistic.py:462`)/`move`/`rotate`/`scale`/`align`(`:534`)/`replicate`(`:559`)/`extract_subgraph`(`:377`)/`to_frame`——虽然也是「已有图 → 改写后的图」,但它们是数据模型自身的动作,由 § Graph sink decisions(锁定)与 CLAUDE.md § What must never change casually 管辖,**不属于图变换族**;图变换族只收「以整张图为输入、产出新图的领域变换入口」(finalize、virtual sites、assembly、reaction)。
 
@@ -217,7 +216,6 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 | 债 | 位置 | 归属 |
 |---|---|---|
 | 分析族残余:`DielectricSusceptibility.from_dipole_series(M, …)` 是返回结果的实例方法——同一个类上的第二个分析入口(`from_*` 名字误用) | `src/molpy/compute/dielectric.py`(`from_dipole_series`) | 随删除两个一体化配方类的 `/mol:refactor` 折进 primitive,**不在本链** |
-| `Packer.__call__` 与 `Packer.pack` 并存;`molpy.pack` 整包仍在 | `pack/packer/base.py:50`/`:69`、`pack/packer/packmol.py:56` | **sub-spec 03** `api-verb-unification-03-pack` |
 | 图变换族入口仍叫 `assemble` | `builder/assembly/_assembler.py:116` | **sub-spec 04** `api-verb-unification-04-assembler` |
 | `Selector` 一名两义:`core/selector.py:43 Selector = MaskPredicate`(掩码谓词)与 `builder/assembly/_selector.py:26 class Selector(ABC)`(装配选择器)是两个无关的类型 | 同左 | 单独 `/mol:refactor`,**不在本链** |
 | 模块级自由函数 `emit(name, …)` 注册表 dispatcher 与 `emit_python`,违铁律 4「自由函数不是公开面」 | `io/emit/__init__.py:51`、`parser/moltemplate/py_emitter.py:42` | 单独 `/mol:refactor`,**不在本链** |

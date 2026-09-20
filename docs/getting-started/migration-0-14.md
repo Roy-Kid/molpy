@@ -110,11 +110,22 @@ Python `UFFTypifier`) do not exist. `typify()` returns a new graph.
 
 ## Packing
 
-`InsideBoxConstraint`, `OutsideBoxConstraint`, `InsideSphereConstraint` and
-`OutsideSphereConstraint` now score the squared distance to the boundary and
-`dpenalty` is its gradient (before: a count of violators and a unit push
-direction). `MinDistanceConstraint` uses a neighbor query and also returns
-the gradient.
+The whole `molpy.pack` package is removed in 0.14 — the Packmol subprocess
+wrapper, the `Packer` base class, `Target`, and the penalty constraints
+(`InsideBoxConstraint`, `OutsideBoxConstraint`, `InsideSphereConstraint`,
+`OutsideSphereConstraint`, `MinDistanceConstraint`). There is no shim and no
+deprecation window: `mp.pack` raises `AttributeError`.
+
+Packing is [molpack](https://docs.molcrafts.org/molpack/)
+(`pip install molcrafts-molpack`), a separate optional package that molpy does
+not depend on. Describe each species with a `Target`, attach a restraint —
+molpack spells these `*Restraint`, e.g. `InsideBoxRestraint`, where molpy
+spelled them `*Constraint` — and run the session with `Molpack`. The
+[Pack reference](../api/pack.md) carries a worked example.
+
+The deleted package had no callers: nothing in molpy, the docs, the examples,
+or the sibling MolCrafts packages imported it, so there is nothing to migrate
+beyond the import itself.
 
 ## RDKit adapter
 
@@ -125,6 +136,6 @@ RDKit atom with a negative `mp_id` becomes a new atom on the next
 
 ## Removed without replacement
 
-`molpy.reacter`, `io.data.amber_prep`, the moltemplate `emit_all`, the
-compute `Workflow`, the test-data download step (fixtures are committed under
-`tests/tests-data/`).
+`molpy.reacter`, `molpy.pack` (packing is molpack, see above),
+`io.data.amber_prep`, the moltemplate `emit_all`, the compute `Workflow`, the
+test-data download step (fixtures are committed under `tests/tests-data/`).
