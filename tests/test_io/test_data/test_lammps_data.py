@@ -14,7 +14,6 @@ import pytest
 import molrs
 
 import molpy as mp
-from molpy._frame_meta import get_frame_meta
 from molpy.io.data.lammps import LammpsDataReader, LammpsDataWriter
 
 
@@ -102,8 +101,8 @@ class TestLammpsDataReader:
         assert len(np.unique(mol_ids)) <= 4  # max 4 different molecules
 
         # Scalar provenance is typed Frame meta; structured products are explicit.
-        assert get_frame_meta(frame, "format") == "lammps_data"
-        assert get_frame_meta(frame, "atom_style") == "full"
+        assert frame.meta["format"] == "lammps_data"
+        assert frame.meta["atom_style"] == "full"
         assert isinstance(result.forcefield, mp.ForceField)
 
     def test_whitespaces_file(self, test_files):

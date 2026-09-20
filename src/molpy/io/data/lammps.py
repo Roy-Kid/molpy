@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 
 from molrs import Frame
-from molpy._frame_meta import update_frame_meta
 from molpy.core.fields import CHARGE, MOL_ID, FieldFormatter
 from molpy.core.forcefield import ForceField
 
@@ -102,7 +101,6 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
         import molrs.ff as mff
         import molrs.io
-        from molpy._frame_meta import get_frame_meta
 
         try:
             frame = molrs.io.read_lammps_data(
@@ -123,7 +121,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         type_labels = self._type_labels_from_meta(frame)
         self._adapt_frame(frame, type_labels)
 
-        coeffs_text = get_frame_meta(frame, "lammps_coeffs_text", None)
+        coeffs_text = frame.meta.get("lammps_coeffs_text")
         if coeffs_text:
             try:
                 forcefield = mff.read_lammps_data_coeffs(
@@ -162,8 +160,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             if block in frame:
                 counts.setdefault(key, int(frame[block].nrows))
 
-        update_frame_meta(
-            frame,
+        frame.meta.update(
             {
                 "format": "lammps_data",
                 "atom_style": self.atom_style,
@@ -183,8 +180,6 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
     def _type_labels_from_meta(self, frame: Frame) -> dict[str, dict[int, str]]:
         """Parse molrs ``*_type_labels`` meta (``id:label,...``) into maps."""
-        from molpy._frame_meta import get_frame_meta
-
         out: dict[str, dict[int, str]] = {}
         for kind, meta_key in (
             ("atom", "atom_type_labels"),
@@ -193,7 +188,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             ("dihedral", "dihedral_type_labels"),
             ("improper", "improper_type_labels"),
         ):
-            packed = get_frame_meta(frame, meta_key, None)
+            packed = frame.meta.get(meta_key)
             if not packed:
                 continue
             id_to_label: dict[int, str] = {}
@@ -211,10 +206,8 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         return out
 
     def _counts_from_meta(self, frame: Frame) -> dict[str, int]:
-        from molpy._frame_meta import get_frame_meta
-
         counts: dict[str, int] = {}
-        packed = get_frame_meta(frame, "lammps_counts", None)
+        packed = frame.meta.get("lammps_counts")
         if not packed:
             return counts
         for part in str(packed).split(","):
@@ -229,9 +222,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
     def _missing_box_axes(self, frame: Frame) -> list[str]:
         """Axes absent from the data header (not merely zero-length)."""
-        from molpy._frame_meta import get_frame_meta
-
-        packed = get_frame_meta(frame, "lammps_box_axes", None)
+        packed = frame.meta.get("lammps_box_axes")
         if packed is None:
             # Older molrs without the flag: treat missing box as all axes.
             return [] if frame.box is not None else ["x", "y", "z"]
@@ -393,8 +384,6 @@ class LammpsDataWriter(DataWriter):
         and assigns dense 1-based ids after numeric-aware sort. Empty labels
         raise — the inventory must be usable as Type Labels text.
         """
-        from molpy._frame_meta import update_frame_meta
-
         meta_update: dict[str, str] = {}
         for type_key, meta_key in self._TYPE_LABEL_META:
             labels = self.type_labels.get(type_key)
@@ -407,7 +396,7 @@ class LammpsDataWriter(DataWriter):
             packed = ",".join(f"{i}:{lab}" for i, lab in enumerate(ordered, 1))
             meta_update[meta_key] = packed
         if meta_update:
-            update_frame_meta(frame, meta_update)
+            frame.meta.update(meta_update)
 
     def _prepend_drude_comment(self, flags: str) -> None:
         header = (

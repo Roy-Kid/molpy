@@ -13,8 +13,6 @@ from typing import Any
 import molrs.io
 from molrs import Frame
 
-from molpy._frame_meta import _unwrap_meta, update_frame_meta
-
 from .base import TrajectoryWriter
 
 
@@ -35,9 +33,9 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
                 "LAMMPS trajectory write requires frame.box (molrs needs a simbox)"
             )
         if timestep is not None:
-            update_frame_meta(frame, {"timestep": int(_unwrap_meta(timestep))})
+            frame.meta["timestep"] = int(timestep)
         elif "timestep" not in frame.meta:
-            update_frame_meta(frame, {"timestep": len(self._frames)})
+            frame.meta["timestep"] = len(self._frames)
         self._frames.append(frame)
 
     def close(self) -> None:
@@ -68,9 +66,9 @@ class LammpsDumpLocalWriter(TrajectoryWriter):
                 "LAMMPS dump local write requires frame.box (molrs needs a simbox)"
             )
         if timestep is not None:
-            update_frame_meta(frame, {"timestep": int(_unwrap_meta(timestep))})
+            frame.meta["timestep"] = int(timestep)
         elif "timestep" not in frame.meta:
-            update_frame_meta(frame, {"timestep": len(self._frames)})
+            frame.meta["timestep"] = len(self._frames)
         self._frames.append(frame)
 
     def close(self) -> None:

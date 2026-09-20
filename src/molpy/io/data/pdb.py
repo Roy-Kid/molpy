@@ -14,8 +14,6 @@ import numpy as np
 import molrs.io
 from molrs import Block, Frame
 
-from molpy._frame_meta import get_frame_meta
-
 from .base import DataReader, DataWriter
 
 
@@ -50,7 +48,7 @@ def _ensure_element_column(frame: Frame) -> Frame:
     atoms = frame["atoms"]
     if "element" in atoms:
         return frame
-    elements_str = get_frame_meta(frame, "elements")
+    elements_str = frame.meta.get("elements")
     if not isinstance(elements_str, str) or not elements_str.strip():
         return frame
     parts = elements_str.split()
