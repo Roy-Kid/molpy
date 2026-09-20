@@ -116,7 +116,7 @@ def register(sub: argparse._SubParsersAction) -> None:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    from molpy.io.emit import EMITTERS, emit, emit_all
+    from molpy.io.emit import EMITTERS, emit
     from molpy.io.forcefield.moltemplate import read_moltemplate_system
 
     if not args.script.exists():
@@ -129,9 +129,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     engines = args.emit or ["lammps"]
     if "all" in engines:
-        results = emit_all(atomistic, ff, out_dir, prefix=args.prefix)
-        for engine, paths in results.items():
-            _print_emit_result(engine, paths)
+        for engine in EMITTERS:
+            _print_emit_result(
+                engine, emit(engine, atomistic, ff, out_dir, prefix=args.prefix)
+            )
         return 0
 
     unknown = [e for e in engines if e not in EMITTERS]
