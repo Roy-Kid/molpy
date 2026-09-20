@@ -6,10 +6,7 @@ All functions return Frame objects by populating an optional frame parameter.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from .log.lammps import LAMMPSLog
+from typing import Any
 
 PathLike = str | Path
 
@@ -412,21 +409,6 @@ def read_chgcar(file: PathLike) -> Any:
 # =============================================================================
 # Log Readers
 # =============================================================================
-
-
-def read_LAMMPS_log(file: PathLike) -> "LAMMPSLog":
-    """
-    Read a LAMMPS log file and return a nested dataclass result.
-
-    Args:
-        file: Path to LAMMPS log file
-
-    Returns:
-        Parsed ``LAMMPSLog`` object.
-    """
-    from .log.lammps import read_LAMMPS_log as _read_LAMMPS_log
-
-    return _read_LAMMPS_log(Path(file))
 
 
 def read_smiles(smiles: str) -> Any:

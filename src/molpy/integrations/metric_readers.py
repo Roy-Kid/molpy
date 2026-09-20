@@ -119,24 +119,24 @@ class LammpsLogReader:
         source: str = "",
         request: ReadRequest | None = None,
     ) -> Iterator[dict[str, Any]]:
-        from molpy.io import read_LAMMPS_log
+        from molpy.io import read_lammps_log
 
         stride = _stride_of(request)
         limit = _limit_of(request)
         skip = _since_of(request)
-        parsed = read_LAMMPS_log(path)
+        parsed = read_lammps_log(path)
         emitted = 0
         seen = 0
 
         for run_index, run in enumerate(parsed.runs):
-            thermo = getattr(run, "thermo", None)
-            if thermo is None or not len(thermo.columns):
+            thermo = run.thermo
+            if thermo is None or not thermo.columns:
                 continue
-            columns = list(thermo.columns)
+            columns = thermo.columns
             step_at = columns.index("Step") if "Step" in columns else None
             # Push the sampling into the array: the viewer asked for every
             # Nth *sample*, and a row is one sample of every column at once.
-            rows = thermo.data[::stride] if stride > 1 else thermo.data
+            rows = thermo.rows[::stride] if stride > 1 else thermo.rows
             for row in rows:
                 step = float(row[step_at]) if step_at is not None else None
                 for position, column in enumerate(columns):

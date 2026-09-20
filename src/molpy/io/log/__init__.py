@@ -1,35 +1,42 @@
-"""Log file readers."""
+"""Simulation log readers: the molrs structured LAMMPS log.
 
-from .lammps import (
-    LAMMPSCPUUse,
-    LAMMPSLoadBalance,
-    LAMMPSLog,
-    LAMMPSLogHeader,
-    LAMMPSLoopTime,
-    LAMMPSMemoryUsage,
-    LAMMPSNeighborStatistics,
-    LAMMPSPerformance,
-    LAMMPSRun,
-    LAMMPSThermo,
-    LAMMPSTimingBreakdown,
-    LAMMPSTimingRow,
-    LAMMPSWarning,
-    read_LAMMPS_log,
+``read_lammps_log(path)`` returns a :class:`LammpsLog` — ``header``, one
+:class:`LammpsRun` per ``run`` (``thermo["Step"]`` is a float64 column),
+``warnings`` — parsed in Rust; ``to_dict()`` gives the JSON form.
+"""
+
+from molrs.io import (
+    LammpsCpuUse,
+    LammpsLoadBalance,
+    LammpsLog,
+    LammpsLogHeader,
+    LammpsLoopTime,
+    LammpsMemoryUsage,
+    LammpsNeighborStatistics,
+    LammpsPerformance,
+    LammpsRun,
+    LammpsThermo,
+    LammpsTimingBreakdown,
+    LammpsTimingRow,
+    LammpsWarning,
+    parse_lammps_log_text,
+    read_lammps_log,
 )
 
 __all__ = [
-    "LAMMPSCPUUse",
-    "LAMMPSLoadBalance",
-    "LAMMPSLog",
-    "LAMMPSLogHeader",
-    "LAMMPSLoopTime",
-    "LAMMPSMemoryUsage",
-    "LAMMPSNeighborStatistics",
-    "LAMMPSPerformance",
-    "LAMMPSRun",
-    "LAMMPSThermo",
-    "LAMMPSTimingBreakdown",
-    "LAMMPSTimingRow",
-    "LAMMPSWarning",
-    "read_LAMMPS_log",
+    "LammpsCpuUse",
+    "LammpsLoadBalance",
+    "LammpsLog",
+    "LammpsLogHeader",
+    "LammpsLoopTime",
+    "LammpsMemoryUsage",
+    "LammpsNeighborStatistics",
+    "LammpsPerformance",
+    "LammpsRun",
+    "LammpsThermo",
+    "LammpsTimingBreakdown",
+    "LammpsTimingRow",
+    "LammpsWarning",
+    "parse_lammps_log_text",
+    "read_lammps_log",
 ]
