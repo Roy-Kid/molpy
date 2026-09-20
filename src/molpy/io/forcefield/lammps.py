@@ -9,7 +9,7 @@ specialized pair styles (CL&Pol Thole / Tang−Toennies).
 from pathlib import Path
 from typing import TextIO
 
-from molpy import ForceField
+from molpy.core.forcefield import ForceField
 from molpy.core.fields import ForceFieldFormatter
 from molpy.core.forcefield import PairCoulTTStyle, PairTholeStyle
 from molpy.io.data.lammps import LammpsFieldFormatter
