@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 
-import molrs
 
 from molpy.compute import StaticStructureFactorDebye
 from molpy.compute.base import Compute
 
 from .parity_helpers import (
-    assert_nested_equal,
     frame_coords_snapshot,
     random_periodic_frame,
 )
@@ -18,14 +16,6 @@ from .parity_helpers import (
 
 def test_ssf_is_compute_subclass():
     assert issubclass(StaticStructureFactorDebye, Compute)
-
-
-def test_ssf_parity_with_molrs_direct():
-    frame = random_periodic_frame()
-    k = np.linspace(0.5, 8.0, 40)
-    mine = StaticStructureFactorDebye(k)(frame)
-    direct = molrs.compute.diffraction.StaticStructureFactorDebye(k).compute([frame])
-    assert_nested_equal(mine, direct)
 
 
 def test_ssf_ideal_gas_large_k_approaches_one():

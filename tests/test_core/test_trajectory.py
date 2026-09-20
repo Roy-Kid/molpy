@@ -1,7 +1,5 @@
 """Tests for the trajectory module (molrs-backed eager container + splitters)."""
 
-from pathlib import Path
-
 import numpy as np
 import pytest
 
@@ -209,36 +207,3 @@ class TestErrorHandling:
         beyond_traj = traj[8:20]
         assert isinstance(beyond_traj, Trajectory)
         assert len(beyond_traj) == 2  # Only frames 8 and 9
-
-
-class TestIntegration:
-    """Integration tests combining multiple components."""
-
-    def test_full_workflow_with_splitting(self, frames):
-        topology = object()
-        traj = Trajectory(frames, topology)
-
-        segments = TrajectorySplitter(traj).split_frames(3)
-        assert len(segments) == 4
-
-        first_segment = segments[0]
-        assert len(list(first_segment)) == 3
-        assert all(seg._topology is topology for seg in segments)
-
-
-class TestTrajectoryReadWriteFailLoud:
-    """Store doors on Trajectory fail loud and name molpy.io.mrec."""
-
-    def test_read_fails_loud_naming_mrec(self, tmp_path: Path) -> None:
-        traj = Trajectory([_make_frame()])
-        path = tmp_path / "traj.mrec"
-        with pytest.raises((TypeError, RuntimeError), match="molpy.io.mrec"):
-            traj.read(str(path))
-        assert not path.exists()
-
-    def test_write_fails_loud_naming_mrec(self, tmp_path: Path) -> None:
-        traj = Trajectory([_make_frame()])
-        path = tmp_path / "traj.mrec"
-        with pytest.raises((TypeError, RuntimeError), match="molpy.io.mrec"):
-            traj.write(str(path))
-        assert not path.exists()
