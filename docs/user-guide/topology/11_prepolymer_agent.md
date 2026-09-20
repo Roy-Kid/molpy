@@ -13,7 +13,7 @@ chain = eo_builder().build_linear("EO", 5)
 agent = full_library()["X4"]
 world = Replicas(chain).times(4, spacing=8.0)
 # merge agent copies …
-cured = GraphAssembler(mp.Reaction(ETHER)).assemble(
+cured = GraphAssembler(mp.Reaction(ETHER)).apply(
  world,
  ExhaustiveSelector(cutoff=10.0, exclude_same_molecule=True),
 )

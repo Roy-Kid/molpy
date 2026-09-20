@@ -13,11 +13,9 @@ import pytest
 
 from molpy.core.atomistic import Angle, Dihedral
 from molpy.core.forcefield import AtomType
-from molpy.data.forcefield import get_forcefield_path, list_forcefields
+from molpy.data import get_forcefield_path, list_forcefields
 from molpy.io.forcefield.xml import read_xml_forcefield
 from molpy.typifier import ClpTypifier, OPLSAATypifier
-
-from .conftest import bf4_graph, c4c1im_graph
 
 # Hard-coded from paduagroup/clandp il.ff (CL&P; JPCB 108 (2004) 2038,
 # DOI 10.1021/jp0362133). Units: charge e; sigma Å; epsilon kcal/mol
@@ -91,13 +89,13 @@ def test_clp_typifier_owns_the_builtin_overlay(clp: ClpTypifier):
     assert ClpTypifier.load_forcefield() is clp.ff
 
 
-def test_cation_and_anion_typify_once(clp: ClpTypifier):
+def test_cation_and_anion_typify_once(clp: ClpTypifier, c4c1im_graph, bf4_graph):
     """One cation + one anion: ring types, full typing, net charge, LJ/charge ref.
 
     Covers the former multi-param matrix (four anions × charge × LJ × pipeline)
     without rebuilding ForceFieldParams for every ion.
     """
-    cation = clp.typify(c4c1im_graph())
+    cation = clp.typify(c4c1im_graph)
     types = [a.get("type") for a in cation.atoms]
     assert types[0] == "NA" and types[2] == "NA"
     assert types[1] == "CR"
@@ -115,7 +113,7 @@ def test_cation_and_anion_typify_once(clp: ClpTypifier):
         assert atom.get("sigma") == pytest.approx(ref["sigma_A"], rel=1e-4)
         assert atom.get("epsilon") == pytest.approx(ref["epsilon_kcal"], rel=1e-4)
 
-    anion = clp.typify(bf4_graph())
+    anion = clp.typify(bf4_graph)
     assert {a.get("type") for a in anion.atoms} == {"B", "FBF"}
     _assert_fully_typed(anion)
     assert sum(a.get("charge") for a in anion.atoms) == pytest.approx(-1.0, abs=1e-6)

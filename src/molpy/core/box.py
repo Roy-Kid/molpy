@@ -11,10 +11,10 @@ from numpy.typing import ArrayLike
 
 
 class Box(molrs.Box):
-    """Simulation box — molpy front for the molrs spatial primitive.
+    """Simulation box — molpy front for the native spatial primitive.
 
-    Inherits ``molrs.Box`` directly, so a ``molpy.Box`` instance is
-    accepted by every molrs API (``NeighborQuery``, ``RDF``, ``wrap``,
+    Inherits ``Box`` directly, so a ``molpy.Box`` instance is
+    accepted by every native API (``NeighborQuery``, ``RDF``, ``wrap``,
     ``isin``, …) without conversion. molpy adds:
 
     - the ``Style`` enum (FREE / ORTHOGONAL / TRICLINIC),
@@ -27,7 +27,7 @@ class Box(molrs.Box):
       ``dist``, ``make_fractional``, ``make_absolute``,
       ``get_distance_between_faces``, ``get_images``).
 
-    **Immutable.** State lives in the molrs base; there are no per-axis
+    **Immutable.** State lives in the native base; there are no per-axis
     setters — construct a new ``Box`` through one of the classmethod
     factories instead. This matches molpy's own ``coding-style.md``
     "avoid mutation" rule.
@@ -46,10 +46,10 @@ class Box(molrs.Box):
     class Style(str, Enum):
         """Enumeration of simulation-box geometries.
 
-        Values are the canonical molrs style strings so a ``molpy.Box.Style``
-        member compares equal to the string returned by ``molrs.Box.style``
+        Values are the canonical native style strings so a ``molpy.Box.Style``
+        member compares equal to the string returned by ``style``
         (e.g. ``Box.Style.ORTHOGONAL == "orthogonal"``), letting ``frame.box``
-        (a molrs box) interoperate with molpy style checks.
+        (a native box) interoperate with molpy style checks.
         """
 
         FREE = "free"
@@ -140,7 +140,7 @@ class Box(molrs.Box):
     def is_free(self) -> bool:
         """``True`` if this box is FREE (no defined cell, zero volume).
 
-        Derived from the molrs base's ``cell_defined`` flag — the single source
+        Derived from the native base's ``cell_defined`` flag — the single source
         of truth — not a Python-side shadow.
         """
         return not self.cell_defined
@@ -258,7 +258,7 @@ class Box(molrs.Box):
     def from_box(cls, box: "Box") -> "Box":
         """Copy / upgrade constructor.
 
-        Accepts a molpy ``Box`` or a bare ``molrs.Box`` (e.g. ``frame.box``),
+        Accepts a molpy ``Box`` or a bare ``Box`` (e.g. ``frame.box``),
         reading only the public ``matrix`` / ``pbc`` / ``origin`` accessors so it
         works across both. A free source box reconstructs a free molpy box.
         """
@@ -350,12 +350,13 @@ class Box(molrs.Box):
         return float(self.matrix[2, 2])
 
     @property
-    def l(self) -> np.ndarray:
+    def diag(self) -> np.ndarray:
+        """The diagonal of the cell matrix (``lx, ly, lz``)."""
         return self.matrix.diagonal().copy()
 
     @property
-    def l_inv(self) -> np.ndarray:
-        l = self.l
+    def diag_inv(self) -> np.ndarray:
+        l = self.diag
         with np.errstate(divide="ignore"):
             return np.where(l != 0.0, 1.0 / np.where(l == 0.0, 1.0, l), 0.0)
 

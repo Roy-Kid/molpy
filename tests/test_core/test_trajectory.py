@@ -207,18 +207,3 @@ class TestErrorHandling:
         beyond_traj = traj[8:20]
         assert isinstance(beyond_traj, Trajectory)
         assert len(beyond_traj) == 2  # Only frames 8 and 9
-
-
-class TestIntegration:
-    """Integration tests combining multiple components."""
-
-    def test_full_workflow_with_splitting(self, frames):
-        topology = object()
-        traj = Trajectory(frames, topology)
-
-        segments = TrajectorySplitter(traj).split_frames(3)
-        assert len(segments) == 4
-
-        first_segment = segments[0]
-        assert len(list(first_segment)) == 3
-        assert all(seg._topology is topology for seg in segments)

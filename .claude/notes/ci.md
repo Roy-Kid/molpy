@@ -14,12 +14,12 @@ same commit.
 | Format | `ruff format --check src/ tests/` | required (pre-commit stage) | required |
 | Lint | `ruff check src/ tests/` | required (pre-commit stage) | required |
 | Type | `ty check src/molpy/` | required (pre-commit stage) | required |
-| Tests | `pytest tests/ -v` | required (**pre-push stage**) | required |
-| Notebook strip | `nbstripout` | required when `.ipynb` present | intentionally absent |
+| Tests | `uv run --extra dev python -m pytest tests/ -n auto` | required (**pre-push stage**) | required |
 | File hygiene | `pre-commit-hooks` (trailing-ws, eof, merge-conflict, …) | required | intentionally absent |
 | Docs build | `zensical build` | intentionally absent (too slow) | required when `docs/` present |
 
-Intentional exemptions: `nbstripout` and file hygiene are local-only hooks;
+Intentional exemptions: file hygiene hooks are local-only (and skip
+`tests/tests-data/`, whose bytes are test inputs);
 `zensical build` / docs jobs are CI-only. Do not "fix" these as parity gaps.
 Docs deploy is Cloudflare Pages (builds from the repo), not a GitHub workflow.
 
@@ -33,31 +33,28 @@ Docs deploy is Cloudflare Pages (builds from the repo), not a GitHub workflow.
   with inline flags (drift risk).
 - Install both hook stages: `pre-commit install --hook-type pre-commit --hook-type pre-push`.
 
-## Whole-tree gates: tox, never `language: system` pytest
+## Whole-tree gates
 
-Canonical test gate: `uv run --extra dev tox -e py` with `package = "wheel"`.
-That throwaway env installs molpy as a wheel and resolves
-`molcrafts-molrs` from **PyPI** within the minor range in `pyproject.toml` —
-it cannot see monorepo editables (`.venv` `molcrafts_molrs.pth` → sibling
-checkout).
+- Lint: `tox -e lint` (ruff format, ruff check, ty check) — the only tox env.
+- Tests: `uv run --extra dev python -m pytest tests/ -n auto`, identical in
+  ci.yml, full.yml, release.yml and the pre-push hook. It runs in the uv
+  project environment because uv honours `[tool.uv.sources]` (the sibling
+  molrs checkout); tox's pip does not, which is why the former `tox -e py`
+  env was deleted (2026-09-20).
 
-**2026-07-29 incident:** `dev` still used `entry: pytest … language: system`.
-Editable molrs hid missing PyPI APIs (`write_lammps_forcefield`); CI failed
-while local pre-push “passed”. **Never reintroduce system-pytest as the CI mirror.**
+**2026-07-29 incident:** a `language: system` pytest hook ran against an
+editable molrs that hid missing PyPI APIs; CI failed while pre-push "passed".
+The test hook must always be the CI command above, never a bare `pytest`.
 
-`tox-lint` / `tox-py` / `molrs-pin-on-pypi` must keep `always_run: true`.
+`tox-lint` / `pytest` / `molrs-pin-on-pypi` keep `always_run: true`.
 
-## Ownership split (do not merge into tox)
+## Ownership split
 
 | Concern | Owner |
 |---|---|
-| Fetch / skip tests-data | `tests/conftest.py` (session fixture) |
-| A published `molcrafts-molrs` on the minor line exists on PyPI | `.pre-commit-config.yaml` hook **`molrs-pin-on-pypi`** (pre-push) |
-| Non-editable wheel smoke | `tox -e py` `commands_pre` (molpy under `site-packages` only) |
+| Fixture files | `tests/tests-data/` (committed; read via the `TEST_DATA_DIR` fixture in `tests/conftest.py`) |
+| A published `molcrafts-molrs` on the minor line exists on PyPI | `.pre-commit-config.yaml` hook **`molrs-pin-on-pypi`** (pre-push; auto-skips while `[tool.uv.sources]` overrides the pin) |
 | Format / lint / type | `tox -e lint` |
-
-Do **not** put tests-data download or the PyPI pin probe into `pyproject.toml`
-tox commands.
 
 ## Escape hatch
 

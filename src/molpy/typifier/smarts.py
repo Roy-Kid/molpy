@@ -10,7 +10,7 @@ tests.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import molrs
 
@@ -34,7 +34,7 @@ class SmartsTypifier(LocalTypifier):
     """Typifier whose receptive field is derived from a SMARTS pattern set.
 
     Args:
-        patterns: SMARTS strings or compiled :class:`molrs.perceive.SmartsPattern`
+        patterns: SMARTS strings or compiled ``SmartsPattern``
             instances. At least one pattern is required.
 
     Raises:

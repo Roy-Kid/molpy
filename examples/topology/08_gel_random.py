@@ -16,7 +16,7 @@ def main() -> None:
     melt = Replicas(strand).grid(2, spacing=6.0, jitter=0.4, seed=3)
     n0 = melt.n_atoms
 
-    gel = GraphAssembler(mp.Reaction(XLINK)).assemble(
+    gel = GraphAssembler(mp.Reaction(XLINK)).apply(
         melt,
         RandomSelector(
             conversion=0.5,
@@ -30,7 +30,7 @@ def main() -> None:
         f"random gel (conv=0.5, seed=7): {n0} → {gel.n_atoms} atoms  (~{n_xlink} xlinks)"
     )
 
-    gel2 = GraphAssembler(mp.Reaction(XLINK)).assemble(
+    gel2 = GraphAssembler(mp.Reaction(XLINK)).apply(
         melt,
         RandomSelector(
             conversion=0.5,

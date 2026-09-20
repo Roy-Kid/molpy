@@ -147,7 +147,7 @@ rng = np.random.default_rng(0)
 velocities = np.ascontiguousarray(rng.normal(0.0, 0.02, size=(1024, 32, 3)))
 
 vacf = np.asarray(Acf().compute(velocities, max_lag=256).acf)
-vdos = PowerSpectrum()(vacf, dt_fs=0.5)
+vdos = PowerSpectrum().fit(vacf, dt_fs=0.5)
 
 print(sorted(vdos))
 # -> ['frequencies_cm1', 'intensities', 'n_frames', 'resolution']
@@ -194,7 +194,7 @@ from molpy.compute import IRSpectrum
 flux_acf = np.asarray(Acf().compute(
     np.ascontiguousarray(flux[:, None, :]), max_lag=256
 ).acf)
-ir = IRSpectrum()(flux_acf, dt_fs=0.5)
+ir = IRSpectrum().fit(flux_acf, dt_fs=0.5)
 print(sorted(ir))
 # -> ['frequencies_cm1', 'intensities', 'n_frames', 'resolution']
 ```
@@ -212,7 +212,7 @@ much the molecule's overall polarizability breathes) and an anisotropic part
 ```python
 from molpy.compute import RamanSpectrum
 
-raman = RamanSpectrum()(vacf, vacf, dt_fs=0.5)   # (acf_iso, acf_aniso)
+raman = RamanSpectrum().fit(vacf, vacf, dt_fs=0.5)   # (acf_iso, acf_aniso)
 print(sorted(raman))
 # -> ['anisotropic', 'frequencies_cm1', 'isotropic', 'n_frames',
 #     'parallel', 'perpendicular', 'resolution']

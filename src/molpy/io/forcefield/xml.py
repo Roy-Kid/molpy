@@ -1,7 +1,7 @@
-"""OpenMM / OPLS XML force-field I/O (molrs-backed).
+"""OpenMM / OPLS XML force-field I/O (native-backed).
 
-Read: :func:`molrs.ff.read_forcefield_xml` / :func:`molrs.ff.read_opls_xml`.
-Write: :func:`molrs.ff.write_forcefield_xml`.
+Read: the native ``read_forcefield_xml`` / the native ``read_opls_xml``.
+Write: the native ``write_forcefield_xml``.
 """
 
 from __future__ import annotations
@@ -71,15 +71,12 @@ def _tag_layer(ff: ForceField, layer: int) -> None:
     """Stamp overlay layer on atom types when non-zero."""
     if layer == 0:
         return
-    try:
-        for cat_name in ff.style_names():
-            category, sname = cat_name.split(":", 1)
-            if category != "atom":
-                continue
-            for tname, _params in ff.types(category, sname):
-                ff.set_type_param(category, sname, tname, "layer", float(layer))
-    except Exception:
-        pass
+    for cat_name in ff.style_names():
+        category, sname = cat_name.split(":", 1)
+        if category != "atom":
+            continue
+        for tname, _params in ff.types(category, sname):
+            ff.set_type_param(category, sname, tname, "layer", float(layer))
 
 
 def _resolve_forcefield_path(filepath: str | Path) -> Path:
@@ -94,7 +91,7 @@ def read_xml_forcefield(
     forcefield: ForceField | None = None,
     layer: int = 0,
 ) -> ForceField:
-    """Read an OpenMM/OPLS XML force field (molrs)."""
+    """Read an OpenMM/OPLS XML force field (native)."""
     path = _resolve_forcefield_path(filepath)
     loaded = _mff.read_forcefield_xml(str(path))
     _tag_layer(loaded, layer)
@@ -109,7 +106,7 @@ def read_oplsaa_forcefield(
     forcefield: ForceField | None = None,
     layer: int = 0,
 ) -> ForceField:
-    """Read OPLS-AA / OpenMM XML with molrs OPLS unit conversion."""
+    """Read OPLS-AA / OpenMM XML with the native OPLS unit conversion."""
     path = _resolve_forcefield_path(filepath)
     loaded = _mff.read_opls_xml(str(path))
     _tag_layer(loaded, layer)
@@ -119,34 +116,8 @@ def read_oplsaa_forcefield(
     return forcefield
 
 
-class XMLForceFieldReader:
-    """Deprecated shell: prefer :func:`read_xml_forcefield` (molrs)."""
-
-    def __init__(self, filepath: str | Path, *, angle_unit: str = "radian") -> None:
-        self._file = Path(filepath)
-        self._angle_unit = _check_angle_unit(angle_unit)
-
-    def read(
-        self,
-        forcefield: ForceField | None = None,
-        layer: int = 0,
-    ) -> ForceField:
-        return read_xml_forcefield(self._file, forcefield=forcefield, layer=layer)
-
-
-class OPLSAAForceFieldReader(XMLForceFieldReader):
-    """Deprecated shell: prefer :func:`read_oplsaa_forcefield` (molrs)."""
-
-    def read(
-        self,
-        forcefield: ForceField | None = None,
-        layer: int = 0,
-    ) -> ForceField:
-        return read_oplsaa_forcefield(self._file, forcefield=forcefield, layer=layer)
-
-
 class XMLForceFieldWriter:
-    """Write a ForceField to OpenMM-style XML (via molrs)."""
+    """Write a ForceField to OpenMM-style XML (natively)."""
 
     def __init__(
         self, filepath: str | Path, precision: int = 6, *, angle_unit: str = "radian"

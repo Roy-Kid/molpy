@@ -31,7 +31,7 @@ classifiers = [
 # No lark / zarr / RDKit / etc. as hard deps — those live in molrs or optional extras.
 dependencies = [
     "numpy>=2.0",
-    "molcrafts-molrs>=0.13.2,<0.14",
+    "molcrafts-molrs>=0.14.0,<0.15",
     "molcrafts-mollog>=1.0.0",
     "molcrafts-molcfg>=1.2.0",
 ]
@@ -39,11 +39,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=6.0.0",
-    "pytest-cov>=3.0.0",
-    "pytest-mock>=3.10.0",
-    "pytest-benchmark>=5.0",
     "pytest-xdist>=3.0",
-    "filelock>=3.0",
     "ruff==0.16.1",
     "ty==0.0.65",
     "tox>=4.23",
@@ -60,6 +56,14 @@ all = ["molcrafts-molpy[dev,doc]"]
 
 [project.scripts]
 molpy = "molpy.cli:main"
+
+# Formats molpy owns, published for any molcrafts viewer to read. Declaring
+# them here rather than importing a host keeps the arrow one-way: molpy says
+# what it can parse, and a platform picks it up at install time.
+[project.entry-points."molcrafts.metric_readers"]
+lammps_log = "molpy.integrations.metric_readers:LammpsLogReader"
+mrec = "molpy.integrations.metric_readers:MrecReader"
+mlp_jsonl = "molpy.integrations.metric_readers:MlpJsonlReader"
 
 [project.urls]
 Homepage = "https://github.com/MolCrafts/molpy"
@@ -82,7 +86,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "molpy.data" = ["README.md"]
-"molpy.data.forcefield" = ["*.xml"]
+"molpy.data.forcefield" = ["*.xml", "*.ff"]
 
 [tool.ruff]
 # Matches requires-python: the lint gate must reject syntax the floor
@@ -93,21 +97,10 @@ line-length = 88
 [tool.ruff.lint]
 # Keep the historical default-style gate (E4/E7/E9/F); ruff 0.16 still honors
 # an explicit select so we do not inherit future default expansions mid-release.
-select = ["E4", "E7", "E9", "F"]
-ignore = [
-    "F401",
-    "F403",
-    "F541",
-    "F811",
-    "F821",
-    "F822",
-    "F841",
-    "E402",
-    "E721",
-    "E722",
-    "E741",
-    "E743",
-]
+select = ["E4", "E7", "E9", "F", "RUF100"]
+# E402: readers/writers import lazily inside functions by design (layering);
+# E741: single-letter names in the maths-heavy kernels stay.
+ignore = ["E402", "E741"]
 
 [tool.ty.environment]
 python-version = "3.14"
@@ -119,12 +112,10 @@ all = "warn"
 missing-override-decorator = "ignore"
 missing-type-argument = "ignore"
 unresolved-import = "ignore"
-unresolved-attribute = "ignore"
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
 invalid-method-override = "ignore"
 invalid-return-type = "ignore"
-unresolved-reference = "ignore"
 unsupported-operator = "ignore"
 not-iterable = "ignore"
 unknown-argument = "ignore"
@@ -138,27 +129,32 @@ invalid-parameter-default = "ignore"
 too-many-positional-arguments = "ignore"
 invalid-type-form = "ignore"
 call-non-callable = "ignore"
-unused-type-ignore-comment = "ignore"
 redundant-cast = "ignore"
-possibly-unresolved-reference = "ignore"
 
 [tool.ty.terminal]
 output-format = "full"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+# No __init__.py under tests/: same basenames (four test_lammps.py) resolve by path.
+addopts = "--import-mode=importlib"
 pythonpath = ["src"]
 filterwarnings = [
     "error",
-    "ignore:Benchmarks are automatically disabled because xdist plugin is active:pytest_benchmark.logger.PytestBenchmarkWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
-markers = [
-    "benchmark: pytest-benchmark suite under benchmarks/",
-]
+
+# No [tool.uv.sources] override: molcrafts-molrs 0.14.0 is on PyPI, so the pin in
+# [project] dependencies resolves everywhere, including a CI runner, which has no
+# sibling checkout to point at. Do not reintroduce a path or git source without
+# removing it again before the next release: it silently disables
+# .pre-commit/check_molrs_pin_on_pypi.py, and uv honours a path dependency's own
+# sources transitively, so a downstream that points at this directory inherits
+# them (that is how molhub once got a molrs without `molrs.io.mrec`).
 
 [tool.tox]
 requires = ["tox>=4.23"]
-env_list = ["lint", "py"]
+env_list = ["lint"]
 
 [tool.tox.env.lint]
 skip_install = true
@@ -168,20 +164,4 @@ commands = [
     ["ruff", "format", "--check", "src/", "tests/"],
     ["ruff", "check", "src/", "tests/"],
     ["ty", "check", "src/molpy/"],
-]
-
-[tool.tox.env.py]
-package = "wheel"
-extras = ["dev"]
-base_python = ["python3"]
-pass_env = ["HOME", "PATH", "SSH_AUTH_SOCK", "TERM", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]
-commands_pre = [
-    [
-        "{envpython}",
-        "-c",
-        "import molpy, pathlib; r=pathlib.Path(molpy.__file__).resolve(); assert 'site-packages' in str(r), r",
-    ],
-]
-commands = [
-    ["{envpython}", "-m", "pytest", "tests/", "-n", "auto"],
 ]

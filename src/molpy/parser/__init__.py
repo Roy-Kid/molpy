@@ -1,13 +1,13 @@
-"""Parsing façade — SMILES / SMARTS from molrs; moltemplate stays local.
+"""Parsing façade — SMILES / SMARTS from the native core; moltemplate stays local.
 
-Chemistry notation is parsed by ``molrs`` only, and it is parsed by **types**,
+Chemistry notation is parsed by the native core only, and it is parsed by **types**,
 not by helper functions:
 
-* :class:`molrs.io.SmilesIR` — ``SmilesIR("CCO")`` parses; ``.to_atomistic()`` /
+* ``SmilesIR`` — ``SmilesIR("CCO")`` parses; ``.to_atomistic()`` /
   ``.components()`` / ``.n_components`` read the result.
 * :class:`~molpy.core.atomistic.Atomistic` — ``mp.io.read_smiles("CCO")``
   when a molpy graph is what you want.
-* :class:`molrs.perceive.SmartsPattern` — ``SmartsPattern("[#6]")`` compiles a query.
+* ``SmartsPattern`` — ``SmartsPattern("[#6]")`` compiles a query.
 
 There is deliberately nothing else here. ``parse_smiles`` / ``parse_smarts`` /
 ``parse_molecule`` / ``parse_mixture`` / ``smiles_to_atomistic`` /

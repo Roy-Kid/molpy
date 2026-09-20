@@ -14,12 +14,9 @@ Clone the repository, create a virtualenv, install in editable mode with dev dep
 ```bash
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-python3.14 -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -e ".[dev]"
-pre-commit install
-pytest tests/ -v
+uv sync --extra dev
+pre-commit install --hook-type pre-commit --hook-type pre-push
+uv run --extra dev python -m pytest tests/ -n auto
 ```
 
 If all tests pass, the environment is ready.
@@ -47,15 +44,14 @@ the checkout.
 git clone https://github.com/MolCrafts/molrs.git
 cd molrs
 pip install maturin
-maturin develop -m molrs-python/Cargo.toml --release   # installs `molrs` editable into the venv
-
-# back in molpy, the editable install now resolves the local molrs
+# back in molpy: [tool.uv.sources] already names ../molrs/molrs-python
 cd ../molpy
-pip install -e ".[dev]"
-python -c "import molpy as mp; print(mp.version, mp.Frame(), mp.Element('C').symbol)"
+uv sync --extra dev --reinstall-package molcrafts-molrs
+uv run python -c "import molpy as mp; print(mp.version, mp.Frame(), mp.Element('C').symbol)"
 ```
 
-Re-run `maturin develop` after any change to the molrs Rust source to recompile
+Re-run that `uv sync … --reinstall-package molcrafts-molrs` after any change
+to the molrs Rust source to recompile
 the extension. See the
 [molrs build-from-source guide](https://docs.molcrafts.org/molrs/getting-started/installation/)
 for the native-crate and WASM build targets.
@@ -68,8 +64,8 @@ successor), configured by `zensical.toml` at the repo root. Install the doc
 extras and start a local preview server from the repo root.
 
 ```bash
-pip install -e ".[doc]"
-zensical serve
+uv sync --extra doc
+uv run zensical serve
 ```
 
 The site is at `http://localhost:8000`. Changes to `.md` files are reflected immediately.
@@ -93,8 +89,7 @@ mocks and script literals. Doc blocks that would shell out declare
 ruff format --check src tests             # check formatting
 ruff format src tests                     # auto-format
 ruff check src                            # lint source tree
-pytest tests/ -v        # local test suite
-pytest --cov=src/molpy tests/ -v          # with coverage
+uv run --extra dev python -m pytest tests/ -n auto   # the CI test command
 pre-commit run --all-files                # all pre-commit hooks
 zensical build                            # build static doc site into site/
 ```
@@ -102,4 +97,4 @@ zensical build                            # build static doc site into site/
 
 ## Troubleshooting
 
-If imports fail after pulling new code, reinstall the editable package: `pip install -e ".[dev]"`. Docs site build is `pip install ".[doc]"` + `zensical build` (theme + mkdocstrings only — no notebook/matplotlib stack). If formatting checks fail in CI, run `ruff format src tests` locally before pushing.
+If imports fail after pulling new code, run `uv sync --extra dev` (add `--reinstall-package molcrafts-molrs` when molrs changed). Docs site build is `uv sync --extra doc` + `uv run zensical build` (theme + mkdocstrings only — no notebook/matplotlib stack). If formatting checks fail in CI, run `ruff format src tests` locally before pushing.

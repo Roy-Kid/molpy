@@ -1,6 +1,6 @@
-"""Dimensionality reduction + clustering ML primitives — molrs-backed.
+"""Dimensionality reduction + clustering ML primitives — native-backed.
 
-- ``Pca`` (alias for molrs ``Pca2``): 2-component PCA over a list of
+- ``Pca`` (alias for the native ``Pca2``): 2-component PCA over a list of
   ``DescriptorRow`` objects.
 - ``KMeans``: k-means clustering over a ``PcaResult``.
 
@@ -16,21 +16,18 @@ from molrs.compute.ml import (
     Pca2 as _MolrsPca2,
 )
 
-from .base import Compute
 
-
-class Pca(Compute):
+class Pca:
     """Two-component PCA. Input: list of ``DescriptorRow``."""
 
     def __init__(self) -> None:
-        super().__init__()
         self._impl = _MolrsPca2()
 
-    def __call__(self, rows):
+    def compute(self, rows):
         return self._impl.compute(rows)
 
 
-class KMeans(Compute):
+class KMeans:
     """k-means over a ``PcaResult``.
 
     Parameters
@@ -44,10 +41,9 @@ class KMeans(Compute):
     """
 
     def __init__(self, k: int, max_iter: int = 100, seed: int = 0) -> None:
-        super().__init__(k=k, max_iter=max_iter, seed=seed)
         self._impl = _MolrsKMeans(k, max_iter, seed)
 
-    def __call__(self, pca_result):
+    def compute(self, pca_result):
         return self._impl.compute(pca_result)
 
 

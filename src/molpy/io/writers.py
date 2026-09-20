@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from .data.lammps_bond_react import BondReactTemplate
 
 PathLike = str | Path
 
@@ -28,7 +29,7 @@ def write_lammps_data(
 ) -> None:
     """Write a Frame to a LAMMPS data file (structure only).
 
-    Structure / topology / Masses / type labels go through molrs after the
+    Structure / topology / Masses / type labels go through the native core after the
     writer stamps ``type_id`` from Frame columns. Force-field ``* Coeffs`` are
     a separate step — use :func:`write_lammps_data_coeffs`.
 
@@ -57,7 +58,7 @@ def write_lammps_data_coeffs(
 ) -> None:
     """Insert ``* Coeffs`` into an existing LAMMPS data file.
 
-    Type ids come from the Frame; form map and units conversion live in molrs.
+    Type ids come from the Frame; form map and units conversion live in the native core.
     Typical composition::
 
         ff.map_type(frame)
@@ -70,28 +71,28 @@ def write_lammps_data_coeffs(
 
 
 def write_pdb(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a PDB file (molrs; canonical columns)."""
+    """Write a Frame to a PDB file (native; canonical columns)."""
     from .data.pdb import PDBWriter
 
     PDBWriter(Path(file)).write(frame)
 
 
 def write_gro(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a GROMACS GRO file (molrs)."""
+    """Write a Frame to a GROMACS GRO file (native)."""
     import molrs.io
 
     molrs.io.write_gro(str(file), frame)
 
 
 def write_xyz(file: PathLike, frame: Any) -> None:
-    """Write a Frame to an XYZ file (molrs)."""
+    """Write a Frame to an XYZ file (native)."""
     import molrs.io
 
     molrs.io.write_xyz(str(file), frame)
 
 
 def write_mol2(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a Tripos MOL2 file (molrs)."""
+    """Write a Frame to a Tripos MOL2 file (native)."""
     from .data.mol2 import Mol2Writer
 
     Mol2Writer(Path(file)).write(frame)
@@ -204,6 +205,7 @@ def write_lammps_forcefield(
     forcefield: Any,
     precision: int = 6,
     skip_pair_style: bool = False,
+    skip_units: bool = False,
     frame: Any = None,
     *,
     units: str = "real",
@@ -215,21 +217,25 @@ def write_lammps_forcefield(
         file: Output file path
         forcefield: ForceField object to write
         precision: Number of decimal places for floating point values
-        skip_pair_style: If True, omit the ``pair_style`` line so the calling
-            LAMMPS input script can set it independently (e.g. to switch between
+        skip_pair_style: If True, omit ``pair_style`` and ``special_bonds`` so the calling
+            LAMMPS input script can set them independently (e.g. to switch between
             ``lj/cut/coul/cut`` for minimisation and ``lj/cut/coul/long`` for MD).
+        skip_units: If True, omit the ``units`` line so the include can follow
+            ``units`` already set in the input script.
         frame: When given, restrict emitted coeffs to the types the frame
             actually uses — so a force field carrying extra types (e.g. cap
             artifacts from region parameterisation) does not emit a coeff for a
             type absent from the data file's labelmap (which LAMMPS rejects).
         units: LAMMPS ``units`` style for the written include (``real``,
-            ``metal``, or ``lj``). Conversion goes through molrs's lj hub.
+            ``metal``, or ``lj``). Conversion goes through the native core's lj hub.
     """
     from .forcefield.lammps import LAMMPSForceFieldWriter
 
     writer = LAMMPSForceFieldWriter(Path(file), precision=precision, units=units)
     used = _frame_used_types(frame) if frame is not None else {}
-    writer.write(forcefield, skip_pair_style=skip_pair_style, **used)
+    writer.write(
+        forcefield, skip_pair_style=skip_pair_style, skip_units=skip_units, **used
+    )
 
 
 # =============================================================================
@@ -240,7 +246,7 @@ def write_lammps_forcefield(
 def write_lammps_trajectory(
     file: PathLike, frames: list, atom_style: str = "full"
 ) -> None:
-    """Write frames to a LAMMPS dump trajectory (molrs).
+    """Write frames to a LAMMPS dump trajectory (native).
 
     Each frame must have ``box``. Optional ``frame.meta['timestep']`` is written
     as ITEM: TIMESTEP.
@@ -248,11 +254,23 @@ def write_lammps_trajectory(
     Args:
         file: Output file path.
         frames: Sequence of Frame objects.
-        atom_style: Accepted for API parity; ignored by molrs (columns from frame).
+        atom_style: Accepted for API parity; ignored by the native core (columns from frame).
     """
     from .trajectory.lammps import LammpsTrajectoryWriter
 
     with LammpsTrajectoryWriter(Path(file), atom_style) as writer:
+        for frame in frames:
+            writer.write_frame(frame)
+
+
+def write_lammps_dump_local(file: PathLike, frames: list) -> None:
+    """Write LAMMPS dump local (OVITO Load trajectory bonds) natively.
+
+    Same door as the native ``write_lammps_dump_local``.
+    """
+    from .trajectory.lammps import LammpsDumpLocalWriter
+
+    with LammpsDumpLocalWriter(Path(file)) as writer:
         for frame in frames:
             writer.write_frame(frame)
 
@@ -275,7 +293,7 @@ def write_xyz_trajectory(file: PathLike, frames: list) -> None:
 def write_trr(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS TRR trajectory (single precision).
 
-    Thin delegation to the native molrs writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native writer. Each frame needs ``x``/``y``/
     ``z`` (nm); optional ``vx``/``vy``/``vz`` and ``fx``/``fy``/``fz`` are
     written when present.
 
@@ -291,7 +309,7 @@ def write_trr(file: PathLike, frames: list) -> None:
 def write_xtc(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS XTC (compressed) trajectory.
 
-    Thin delegation to the native molrs writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native writer. Each frame needs ``x``/``y``/
     ``z`` (nm); quantization precision comes from ``frame.meta['precision']``
     when present, else 1000 (0.001 nm).
 
@@ -305,19 +323,19 @@ def write_xtc(file: PathLike, frames: list) -> None:
 
 
 def write_dcd_trajectory(file: PathLike, frames: list) -> None:
-    """Write frames to a NAMD-compatible DCD trajectory (molrs).
+    """Write frames to a NAMD-compatible DCD trajectory (native).
 
     Args:
         file: Output ``.dcd`` path.
         frames: Frames with equal atom counts; box presence must be consistent.
     """
-    import molrs.io.raw as raw
+    import molrs.io
 
-    raw.write_dcd(str(file), list(frames))
+    molrs.io.write_dcd(str(file), list(frames))
 
 
 def write_cube(file: PathLike, frame: Any) -> None:
-    """Write a frame grid block to a Gaussian Cube file (molrs)."""
+    """Write a frame grid block to a Gaussian Cube file (native)."""
     import molrs.io
 
     molrs.io.write_cube(str(file), frame)
@@ -361,7 +379,7 @@ def write_lammps_bond_react_system(
     workdir: PathLike,
     frame: Any,
     forcefield: Any,
-    templates: "dict[str, Any] | Sequence[Any]",
+    templates: "dict[str, BondReactTemplate] | Sequence[BondReactTemplate]",
 ) -> None:
     """Write a complete LAMMPS fix bond/react system.
 
@@ -395,12 +413,15 @@ def write_lammps_bond_react_system(
     workdir_path.mkdir(parents=True, exist_ok=True)
 
     # Normalise templates to {name: template} dict
-    if not isinstance(templates, dict):
-        templates = {f"rxn{i + 1}": t for i, t in enumerate(templates)}
+    by_name: dict[str, BondReactTemplate] = (
+        templates
+        if isinstance(templates, dict)
+        else {f"rxn{i + 1}": t for i, t in enumerate(templates)}
+    )
 
     # -- Collect template frames --
-    tpl_frames: list[tuple[str, Any, Any, Any]] = []
-    for name, tpl in templates.items():
+    tpl_frames: list[tuple[str, BondReactTemplate, Any, Any]] = []
+    for name, tpl in by_name.items():
         # Assign 1-based atom IDs before converting to frames
         tpl.assign_atom_ids()
         tpl_frames.append((name, tpl, tpl.pre.to_frame(), tpl.post.to_frame()))

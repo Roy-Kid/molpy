@@ -1,20 +1,27 @@
 # prek: pre-commit = lint; pre-push = molrs pin + tests
-# CI: lint job + 3 OS × 3.12–3.14 matrix (ci.yml)
+# CI: lint job + 3 OS × 3.12–3.14 matrix (ci.yml).
+# Tests MUST use `uv run pytest`, not tox: tox's pip ignores [tool.uv.sources].
 
 default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit, pre-push]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # Fixture bytes under tests/tests-data are test inputs (ragged spacing,
+      # missing final newlines); the fixers must not rewrite them.
       - id: trailing-whitespace
+        exclude: ^tests/tests-data/
       - id: end-of-file-fixer
+        exclude: ^tests/tests-data/
       - id: check-yaml
         args: ["--unsafe"]
       - id: check-added-large-files
         args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: mixed-line-ending
+        exclude: ^tests/tests-data/
       - id: check-toml
       - id: check-json
 
@@ -22,7 +29,7 @@ repos:
     hooks:
       - id: tox-lint
         name: tox -e lint
-        entry: uv run --extra dev tox -e lint
+        entry: uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
         language: system
         pass_filenames: false
         always_run: true
@@ -36,9 +43,10 @@ repos:
         always_run: true
         stages: [pre-push]
 
-      - id: tox-py
-        name: tox -e py
-        entry: uv run --extra dev tox -e py
+      # Same command as ci.yml `test` — uv honors [tool.uv.sources], tox/pip does not.
+      - id: pytest
+        name: uv pytest (CI parity)
+        entry: uv run --extra dev python -m pytest tests/ -n auto
         language: system
         pass_filenames: false
         always_run: true

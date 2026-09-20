@@ -613,16 +613,14 @@ frcmod file.
 **Step 6 — find the packing and export interfaces**
 
 ```
-molmcp_outline(path="molpy/pack")
+molmcp_outline(path="molpack")
 ```
 
 ```
-Molpack                  High-level molpack packing interface
-InsideBoxRestraint       Place molecules inside a rectangular box
-OutsideBoxConstraint     Keep molecules outside a box
-InsideSphereConstraint   Sphere constraint
-MinDistanceConstraint    Minimum pairwise distance
-Target                   One packing target (frame + count + constraint)
+Molpack                  Multi-component packing session
+Target                   One species + count + restraints
+InsideBoxRestraint       Axis-aligned box confinement
+pack_with_report         Pack and return a PackResult with diagnostics
 ```
 
 ```

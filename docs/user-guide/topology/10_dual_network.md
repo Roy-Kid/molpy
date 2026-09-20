@@ -2,10 +2,10 @@
 
 **Script:** [`examples/topology/10_dual_network.py`](https://github.com/MolCrafts/molpy/blob/master/examples/topology/10_dual_network.py)
 
-Two `assemble` steps, two SITE namespaces — complex materials are stacks of simple edits.
+Two `apply` steps, two SITE namespaces — complex materials are stacks of simple edits.
 
 1. Mark `x` / `h`, partial random crosslink (`XLINK`)
-2. Clear first labels, mark `y` / `k`, second `assemble` with `XLINK2`
+2. Clear first labels, mark `y` / `k`, second `apply` with `XLINK2`
 
 ```python
 # net1: RandomSelector on XLINK (sites x/h)

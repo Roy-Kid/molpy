@@ -34,8 +34,8 @@ and the `optimizer` agent. Migrated from the former local `molpy-perf` skill and
 ## Algorithm complexity
 
 - Neighbor search: O(N) cell lists or KD-tree, never O(N²) all-pairs for large N.
-- Topology/graph algorithms: use igraph, do not hand-roll traversals; avoid
-  redundant topology traversals (cache them).
+- Topology/graph algorithms: use the molrs graph kernels (`Atomistic` topology,
+  `NeighborQuery`), do not hand-roll traversals; cache repeated traversals.
 - Avoid repeated sorts; maintain sorted invariants or cache sort results.
 - Document complexity in docstrings: O(N), O(N²), etc.
 
@@ -46,7 +46,10 @@ and the `optimizer` agent. Migrated from the former local `molpy-perf` skill and
 
 ## Discipline
 
-- Never sacrifice correctness for speed; benchmark before and after every change.
+- Never sacrifice correctness for speed. There is no benchmark harness in this
+  repo (the benchmark/regression system is being redesigned); a performance
+  change is verified for correctness by the unit suite and its speed claim is
+  recorded here as owed, not asserted.
 
 ## Profiling commands
 
@@ -55,3 +58,33 @@ python -m cProfile -o profile.out script.py
 kernprof -l -v script.py                      # pip install line_profiler
 python -m memory_profiler script.py           # pip install memory_profiler
 ```
+
+## Owed (2026-09-20)
+
+Every hot-path finding from the 0.14 cleanup has been acted on; the list is
+kept so the reasoning is not lost.
+
+- `builder/assembly/_proximity.py` — no-cutoff site pairing computes all
+  distances in one numpy broadcast (the O(sites_a × sites_b) *output* is the
+  pairing itself); connected components come from one `topo_distances`
+  traversal per component; chain-end degree from `incident_relations`.
+- `builder/assembly/_placer.py` — residues are row-index groups from the
+  `RES_ID` column; coordinates are read once (`xyz`) and written back through
+  the three write-through column views. No per-atom PyO3 calls.
+- `builder/assembly/_assembler.py` — `_total_charge` sums the charge column
+  when every atom carries one; a partial column is summed entity-wise over its
+  validity mask (unblocked by molrs `column()` raising on holes instead of
+  zero-filling).
+- `core/atomistic.py` — `symbols` reads the element column. `select` takes a
+  per-atom Python predicate by contract, so it is O(N) Python by design;
+  `get_neighbors` is already O(degree) through the adjacency index.
+  `def_*s` still call Rust once per element: a batch entry is a molrs feature
+  request, not a molpy fix.
+- `adapter/rdkit.py` — single pass each way, joined by the `mp_id` tag; the
+  `id`/`mp_id` reconciliation passes are gone (rdkit is optional; tests under
+  `tests/test_adapter/test_rdkit.py` skip without it).
+- `typifier/clp.py` — `clp.xml` is parsed once, by the native typifier.
+- `pack/constraint.py` — box and sphere penalties are smooth squared
+  distances with analytic gradients, finite-difference tested.
+- `compute/dielectric.py` — no progress printing or phase timing in library
+  code.

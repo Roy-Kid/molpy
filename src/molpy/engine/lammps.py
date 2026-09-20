@@ -211,7 +211,7 @@ class LAMMPSEngine(Engine):
             timeout: Subprocess timeout in seconds.
 
         Returns:
-            A new :class:`~molrs.Frame` with relaxed coordinates.
+            A new :class:`~molpy.Frame` with relaxed coordinates.
 
         Raises:
             ValueError: If *frame* has no box.
@@ -274,7 +274,7 @@ class LAMMPSEngine(Engine):
             timeout: Subprocess timeout in seconds.
 
         Returns:
-            A new :class:`~molrs.Frame` with the post-MD coordinates.
+            A new :class:`~molpy.Frame` with the post-MD coordinates.
 
         Raises:
             ValueError: If *ensemble* is unknown or *frame* has no box.
@@ -468,6 +468,6 @@ def _splice_coords(original: Frame, relaxed: Frame) -> Frame:
         sel = list(np.argsort(rid, kind="stable"))
 
     atoms["x"], atoms["y"], atoms["z"] = rx[sel], ry[sel], rz[sel]
-    new = molrs.Frame.from_dict(data)
+    new = molrs.Frame(data["blocks"], meta=data["meta"])
     new.box = original.box
     return new

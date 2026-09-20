@@ -19,7 +19,6 @@ from molpy.builder.assembly import Finalization, PolymerBuilder
 from molpy.builder.assembly._topology import TopologySelector
 from molpy.core import fields
 from molpy.core.atomistic import Atomistic
-from molpy.io.readers import read_amber
 from molpy.builder.assembly._cgsmiles_ir import CGSmilesGraphIR
 from molpy.builder.assembly._residue_graph import linear_topology
 
@@ -360,7 +359,12 @@ class AmberPolymerBuilder:
 
         for label in labels:
             monomer = self.library[label]
-            net_charge = self.net_charges.get(label, 0)
+            if self.net_charges and label not in self.net_charges:
+                raise KeyError(
+                    f"net_charges declares no charge for monomer {label!r}; "
+                    "declare every label (0 for a neutral one) or pass no net_charges"
+                )
+            net_charge = self.net_charges[label] if self.net_charges else 0
             monomer_dir = work_dir / "monomers" / label
             monomer_dir.mkdir(parents=True, exist_ok=True)
             variants = recipes[label]
@@ -680,7 +684,6 @@ class AmberPolymerBuilder:
         # tleap still writes under output/; we then promote into chains/.
         prmtop_tmp = output_dir / f"{output_prefix}.prmtop"
         inpcrd_tmp = output_dir / f"{output_prefix}.inpcrd"
-        pdb = output_dir / f"{output_prefix}.pdb"  # optional debug only; not written
 
         tleap = TLeapWrapper(
             name="tleap", workdir=work_dir, env=self.env, env_manager=self.env_manager

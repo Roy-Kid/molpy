@@ -38,24 +38,14 @@ class LammpsEmitter:
         init_path = out_dir / f"{prefix}.in.init"
         run_path = out_dir / f"{prefix}.in"
 
-        # 1) data file
-        try:
-            from molpy.io.data.lammps import LammpsDataWriter
+        from molpy.io.data.lammps import LammpsDataWriter
+        from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
 
-            frame = atomistic.to_frame()
-            LammpsDataWriter(data_path, atom_style=atom_style).write(frame)
-        except Exception:
-            data_path.write_text(
-                f"# {prefix} data\n# (LammpsDataWriter unavailable for this FF)\n"
-            )
+        # 1) data file
+        LammpsDataWriter(data_path, atom_style=atom_style).write(atomistic.to_frame())
 
         # 2) in.settings from FF
-        try:
-            from molpy.io.forcefield.lammps import LAMMPSForceFieldWriter
-
-            LAMMPSForceFieldWriter(settings_path).write(ff)
-        except Exception:
-            settings_path.write_text("# fallback: no native LAMMPS FF writer output\n")
+        LAMMPSForceFieldWriter(settings_path).write(ff)
 
         # 3) in.init
         init_lines = [

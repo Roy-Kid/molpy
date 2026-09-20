@@ -32,7 +32,7 @@ def _unwrapped_frames(trajectory: Trajectory) -> list[mp.Frame]:
 
 def mean_squared_displacement(trajectory: Trajectory) -> dict[str, float]:
     """MSD(tau) and the Einstein diffusion coefficient."""
-    series = MSD(method="window")(_unwrapped_frames(trajectory))
+    series = MSD(method="window").compute(_unwrapped_frames(trajectory))
     msd = np.asarray(series.mean)
     lag = np.arange(len(msd)) * trajectory.dt
 

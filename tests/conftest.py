@@ -1,18 +1,9 @@
 import contextlib
-import io
-import tarfile
-import urllib.request
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import mollog
 import pytest
-from filelock import FileLock
-
-_TARBALL_URL = (
-    "https://github.com/molcrafts/tests-data/archive/refs/heads/master.tar.gz"
-)
-_DEFAULT_DIR = Path(__file__).resolve().parent / "tests-data"
 
 
 class _RecordingHandler(mollog.Handler):
@@ -51,64 +42,7 @@ def mollog_capture() -> Callable[[str], "contextlib.AbstractContextManager"]:
     return _capture
 
 
-_SENTINEL = _DEFAULT_DIR / "README.md"
-
-
-def _ensure_test_data() -> Path:
-    """Download tests-data (minus ``con/``) if absent; skip data tests if it isn't.
-
-    Fetches the archive and extracts everything except the ``con/`` directory,
-    rather than git-cloning. tests-data (a fork of chemfiles/tests-data) ships EON
-    fixtures under ``con/`` — a reserved device name Windows cannot create, so a
-    git checkout aborts there ("cannot create directory at 'con'") and
-    sparse-checkout can't reliably exclude it on Windows. Extracting the tarball
-    without con/ never asks the OS to create it, so this works on every platform
-    (nothing reads con/ data) and leaves tests-data itself untouched. If the
-    download fails (e.g. offline), skip the data-dependent tests via a
-    ``README.md`` sentinel rather than failing.
-
-    An existing checkout (git clone or a previous extract) is reused as-is and
-    deliberately NOT refreshed: under ``-n auto`` the session fixture runs once
-    per worker, and a concurrent refresh would corrupt the shared tree. CI
-    fetches fresh each run (in a serial pre-test step); to refresh a local copy,
-    delete tests/tests-data.
-    """
-    if not _SENTINEL.exists():
-        try:
-            with urllib.request.urlopen(_TARBALL_URL, timeout=60) as resp:
-                raw = resp.read()
-        except OSError:
-            pytest.skip("tests-data unavailable (download failed)")
-        _DEFAULT_DIR.mkdir(parents=True, exist_ok=True)
-        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as tar:
-            members = []
-            for member in tar.getmembers():
-                # Archive paths are "tests-data-<ref>/<rel>"; drop the root
-                # component and skip the Windows-reserved con/ directory.
-                _, _, rel = member.name.partition("/")
-                if not rel or rel == "con" or rel.startswith("con/"):
-                    continue
-                member.name = rel
-                members.append(member)
-            tar.extractall(_DEFAULT_DIR, members=members, filter="data")
-    if not _SENTINEL.exists():
-        pytest.skip("tests-data checkout unavailable or incomplete")
-    return _DEFAULT_DIR
-
-
 @pytest.fixture(scope="session", name="TEST_DATA_DIR")
-def find_test_data(tmp_path_factory, worker_id) -> Path:
-    """Ensure the tests-data repository is present.
-
-    xdist-safe: the session fixture runs once **per worker**, so without a lock
-    all workers would download/extract into the *same* directory concurrently and
-    corrupt each other's tree. Serialize the fetch across workers with a
-    cross-process lock on a shared path; ``_ensure_test_data`` is a no-op once the
-    tree is present, so running it once per worker (in turn) is harmless.
-    """
-    if worker_id == "master":
-        # Not running under xdist — no other workers to race with.
-        return _ensure_test_data()
-    lock_path = tmp_path_factory.getbasetemp().parent / "tests_data.lock"
-    with FileLock(str(lock_path)):
-        return _ensure_test_data()
+def test_data_dir() -> Path:
+    """Fixture files committed under tests/tests-data."""
+    return Path(__file__).resolve().parent / "tests-data"

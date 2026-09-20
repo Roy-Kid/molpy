@@ -5,9 +5,21 @@ Project-specific test requirements beyond the structure documented in CLAUDE.md
 `scientist` agents. Migrated from the former local `molpy-tester`, `molpy-test`,
 `molpy-review` skills and `molpy-scientist` agent (2026-06-10).
 
-## Coverage targets
+## Test shape (2026-09-20)
 
-- ≥ 80% per module overall; **≥ 90% for `core/`**.
+- Unit tests only, under `tests/`, path-mirroring `src/molpy/` with **no
+  `__init__.py`** (`--import-mode=importlib`; same basenames resolve by path).
+- One behaviour per test, hand-written inputs. Not in the suite: end-to-end
+  pipelines, numbers captured from another program, source-text / import-all /
+  docs-block gates, molrs-parity checks (`molpy.X(frame) == molrs.x(frame)`),
+  a `regressions/` directory.
+- Fixture files are small (≤ 16 KB) and committed under `tests/tests-data/<format>/`;
+  tests read them through the `TEST_DATA_DIR` session fixture and derive edge
+  cases (missing newline, corrupted token) into `tmp_path`. No download step.
+- A molpy module that only re-exports molrs (`md`, `optimize`, `potential`,
+  `compute/*` pass-throughs, `io.log`) has no molpy test: the numerics are
+  proven in molrs's Rust suite and the seam in molrs-python's tests.
+- Test-to-test sharing goes through `conftest.py` fixtures, never imports.
 - Tests must be deterministic. Never modify tests to make them pass — fix the
   implementation (unless the test itself is wrong).
 

@@ -133,7 +133,7 @@ The compute takes the $k$ grid up front and returns, **per frame**, a tuple of
 from molpy.compute import StaticStructureFactorDebye
 
 k = np.linspace(1.0, 4.5, 140)
-(k_out, s_k, n_particles), = StaticStructureFactorDebye(k)([frame])
+(k_out, s_k, n_particles), = StaticStructureFactorDebye(k).compute([frame])
 
 print(n_particles)                        # -> 256
 print(round(float(k_out[np.argmax(s_k)]), 2))   # -> 2.06
@@ -152,7 +152,7 @@ Average over a trajectory by passing more frames; `S(k)` is an ensemble average
 like $g(r)$:
 
 ```python
-per_frame = StaticStructureFactorDebye(k)([frame, frame])
+per_frame = StaticStructureFactorDebye(k).compute([frame, frame])
 s_mean = np.mean([s for _, s, _ in per_frame], axis=0)
 print(s_mean.shape)                       # -> (140,)
 ```

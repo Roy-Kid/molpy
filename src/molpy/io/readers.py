@@ -6,10 +6,7 @@ All functions return Frame objects by populating an optional frame parameter.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from .log.lammps import LAMMPSLog
+from typing import Any
 
 PathLike = str | Path
 
@@ -29,18 +26,23 @@ def _ensure_frame(frame):
 # =============================================================================
 
 
-def read_lammps_data(file: PathLike, atom_style: str, frame: Any = None) -> Any:
+def read_lammps_data(
+    file: PathLike, atom_style: str = "full", frame: Any = None
+) -> Any:
     """
     Read a LAMMPS data file and return its explicit parse products.
 
     Args:
         file: Path to LAMMPS data file
-        atom_style: LAMMPS atom style (e.g., 'full', 'atomic')
+        atom_style: LAMMPS atom style (e.g., 'full', 'atomic'). Defaults to
+            ``"full"``. the native core still auto-detects columns; this only controls
+            molpy column-drop adapt.
         frame: Optional existing Frame to populate
 
     Returns:
         ``LammpsDataResult`` with ``frame``, ``forcefield``, ``counts``, and
-        ``type_labels``. Callers must select the product they consume.
+        ``type_labels``. Structure lookup (``result["atoms"]``, ``result.box``)
+        delegates to ``.frame``; ``.forcefield`` stays an explicit product.
     """
     from .data.lammps import LammpsDataReader
 
@@ -66,11 +68,11 @@ def read_lammps_molecule(file: PathLike, frame: Any = None) -> Any:
 
 
 def read_pdb(file: PathLike, frame: Any = None) -> Any:
-    """Read a PDB file (molrs); CONECT pairs are de-duplicated.
+    """Read a PDB file (native); CONECT pairs are de-duplicated.
 
     Args:
         file: Path to PDB file.
-        frame: Accepted for API parity; ignored (molrs returns a new Frame).
+        frame: Accepted for API parity; ignored (the native core returns a new Frame).
 
     Returns:
         :class:`~molpy.Frame` for the first MODEL.
@@ -136,11 +138,11 @@ def read_amber_frcmod(file: PathLike) -> dict[str, Any]:
 
 
 def read_mol2(file: PathLike, frame: Any = None) -> Any:
-    """Read a Tripos MOL2 file (molrs; first molecule).
+    """Read a Tripos MOL2 file (native; first molecule).
 
     Args:
         file: Path to a ``.mol2`` file.
-        frame: Accepted for API parity; ignored (molrs returns a new Frame).
+        frame: Accepted for API parity; ignored (the native core returns a new Frame).
 
     Returns:
         Canonical :class:`~molpy.Frame`.
@@ -169,7 +171,7 @@ def read_xsf(file: PathLike, frame: Any = None) -> Any:
 
 
 def read_gro(file: PathLike, frame: Any = None) -> Any:
-    """Read a GROMACS GRO file (molrs); returns the first frame.
+    """Read a GROMACS GRO file (native); returns the first frame.
 
     Args:
         file: Path to ``.gro`` file.
@@ -185,7 +187,7 @@ def read_gro(file: PathLike, frame: Any = None) -> Any:
 
 
 def read_xyz(file: PathLike, frame: Any = None) -> Any:
-    """Read an XYZ file (molrs) with molpy column normalization.
+    """Read an XYZ file (native) with molpy column normalization.
 
     Args:
         file: Path to XYZ file.
@@ -209,12 +211,12 @@ def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
     """
     Read a LAMMPS force-field include (``*.ff``) into a ForceField.
 
-    Delegates to the native molrs reader (``molrs.ff.read_lammps_forcefield``),
-    which parses the include directly into a ``molrs.ff.ForceField`` in molrs units
-    (Å, kcal/mol, radians, e): LAMMPS harmonic ``K`` → molrs ``k = 2K``, angle
+    Delegates to the native reader (``read_lammps_forcefield``),
+    which parses the include directly into a ``ForceField`` in the native store units
+    (Å, kcal/mol, radians, e): LAMMPS harmonic ``K`` → the native ``k = 2K``, angle
     and dihedral-phase values are converted degrees → radians, and
     ``dihedral_style fourier``
-    maps to the molrs ``periodic`` kernel. AMBER 1-4 scaling is recorded on the
+    maps to the native ``periodic`` kernel. AMBER 1-4 scaling is recorded on the
     force field's special bonds. Per-atom charge and mass live in the LAMMPS
     *data* file, not this include, so they are not read here.
 
@@ -223,7 +225,7 @@ def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
             list is concatenated and parsed as a single document.
 
     Returns:
-        ``molpy.ForceField`` (which is ``molrs.ff.ForceField``).
+        ``molpy.ForceField`` (which is ``ForceField``).
     """
     import molrs
 
@@ -235,7 +237,7 @@ def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
 
 
 # Identity re-export onto molpy.io only (no package-root mp.read_*).
-from .forcefield.xml import read_xml_forcefield as read_xml_forcefield  # noqa: E402
+from .forcefield.xml import read_xml_forcefield as read_xml_forcefield
 
 
 def read_amber(
@@ -299,12 +301,12 @@ def read_lammps_trajectory(traj: PathLike) -> Any:
     """
     Read LAMMPS trajectory file and return a trajectory reader.
 
-    Backed by the molrs Rust lazy reader.
+    Backed by the native Rust lazy reader.
 
     Args:
         traj: Path to LAMMPS trajectory file
     Returns:
-        molrs ``TrajectoryReader`` object
+        the native ``TrajectoryReader`` object
     """
     import molrs.io
 
@@ -315,13 +317,13 @@ def read_xyz_trajectory(file: PathLike) -> Any:
     """
     Read XYZ trajectory file and return a trajectory reader.
 
-    Backed by the molrs Rust lazy reader.
+    Backed by the native Rust lazy reader.
 
     Args:
         file: Path to XYZ trajectory file
 
     Returns:
-        molrs ``TrajectoryReader`` object
+        the native ``TrajectoryReader`` object
     """
     import molrs.io
 
@@ -332,7 +334,7 @@ def read_pdb_trajectory(file: PathLike) -> list:
     """Read every model of a (multi-frame) PDB file as a list of Frames.
 
     Each ``MODEL``/``END``-delimited block becomes one Frame. A single-model PDB
-    yields a one-element list. Backed by the molrs Rust reader.
+    yields a one-element list. Backed by the native Rust reader.
     """
     import molrs.io
 
@@ -343,13 +345,13 @@ def read_pdb_trajectory(file: PathLike) -> list:
 def read_dcd_trajectory(file: PathLike) -> Any:
     """Read a DCD trajectory and return a lazy trajectory reader.
 
-    Backed by the molrs Rust lazy reader (O(1) random access by frame index).
+    Backed by the native Rust lazy reader (O(1) random access by frame index).
 
     Args:
         file: Path to a ``.dcd`` file.
 
     Returns:
-        molrs ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -359,14 +361,14 @@ def read_dcd_trajectory(file: PathLike) -> Any:
 def read_trr_trajectory(file: PathLike) -> Any:
     """Read a GROMACS TRR trajectory and return a lazy trajectory reader.
 
-    Backed by the molrs Rust lazy reader (single/double precision, coordinates
+    Backed by the native Rust lazy reader (single/double precision, coordinates
     plus velocities/forces when present; O(1) random access).
 
     Args:
         file: Path to a ``.trr`` file.
 
     Returns:
-        molrs ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -376,14 +378,14 @@ def read_trr_trajectory(file: PathLike) -> Any:
 def read_xtc_trajectory(file: PathLike) -> Any:
     """Read a GROMACS XTC (compressed) trajectory and return a lazy reader.
 
-    Backed by the molrs Rust lazy reader (lossy compression; accepts classic
+    Backed by the native Rust lazy reader (lossy compression; accepts classic
     1995 and 2023 magic; O(1) random access after a one-time index scan).
 
     Args:
         file: Path to a ``.xtc`` file.
 
     Returns:
-        molrs ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -391,14 +393,14 @@ def read_xtc_trajectory(file: PathLike) -> Any:
 
 
 def read_cube(file: PathLike) -> Any:
-    """Read a Gaussian Cube file into a Frame with a grid block (molrs)."""
+    """Read a Gaussian Cube file into a Frame with a grid block (native)."""
     import molrs.io
 
     return molrs.io.read_cube(str(file))
 
 
 def read_chgcar(file: PathLike) -> Any:
-    """Read a VASP CHGCAR into a Frame with a ``chgcar`` grid block (molrs)."""
+    """Read a VASP CHGCAR into a Frame with a ``chgcar`` grid block (native)."""
     import molrs.io
 
     return molrs.io.read_chgcar(str(file))
@@ -407,21 +409,6 @@ def read_chgcar(file: PathLike) -> Any:
 # =============================================================================
 # Log Readers
 # =============================================================================
-
-
-def read_LAMMPS_log(file: PathLike) -> "LAMMPSLog":
-    """
-    Read a LAMMPS log file and return a nested dataclass result.
-
-    Args:
-        file: Path to LAMMPS log file
-
-    Returns:
-        Parsed ``LAMMPSLog`` object.
-    """
-    from .log.lammps import read_LAMMPS_log as _read_LAMMPS_log
-
-    return _read_LAMMPS_log(Path(file))
 
 
 def read_smiles(smiles: str) -> Any:
@@ -487,12 +474,12 @@ def write_smarts(
 ) -> str:
     """Encode the local topology around ``center`` as a SMARTS string.
 
-    Thin wrap of ``molrs.io.write_smarts``. Science flags match the molrs
+    Thin wrap of ``write_smarts``. Science flags match the native
     ``LocalSmartsOptions`` surface. This is an io entry — not a method on
     :class:`~molpy.core.atomistic.Atomistic`.
 
     Args:
-        mol: molpy :class:`~molpy.core.atomistic.Atomistic` (or molrs graph).
+        mol: molpy :class:`~molpy.core.atomistic.Atomistic` (or a native graph).
         center: Atom view (``.handle``) or integer handle.
         reach: Bond radius of the local ball (must be >= 1).
         atomic_number: Use ``[#Z]`` rather than elemental symbols.

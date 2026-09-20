@@ -1,6 +1,6 @@
-"""XYZ file I/O — molrs backend with thin molpy column normalization.
+"""XYZ file I/O — the native backend with thin molpy column normalization.
 
-Parse/serialize: :mod:`molrs.io`. After read, molpy may merge split multi-
+Parse/serialize: the native ``io`` module. After read, molpy may merge split multi-
 columns (``CS_1``+``CS_2``→``CS``), map ``species``→``element``, and fill
 ``atomic_number`` when missing.
 """
@@ -20,21 +20,26 @@ from .base import DataReader, DataWriter
 
 
 def _normalize_xyz_frame(frame: Frame) -> Frame:
-    """Apply molpy column conventions on a molrs XYZ Frame (in place)."""
+    """Apply molpy column conventions on a native XYZ Frame (in place)."""
     for block_name in list(frame.keys()):
         block = frame[block_name]
-        keys = list(block.keys())
-        merged_pairs: list[tuple[str, str, str]] = []
-        for key in keys:
-            if key.endswith("_1") and key[:-2] + "_2" in keys:
-                base = key[:-2]
-                merged_pairs.append((base, key, base + "_2"))
-        for base, k1, k2 in merged_pairs:
-            block[base] = np.column_stack(
-                [np.asarray(block[k1]), np.asarray(block[k2])]
-            )
-            del block[k1]
-            del block[k2]
+        keys = set(block.keys())
+        # molrs splits an n-wide property into ``base_1`` .. ``base_n``;
+        # rejoin every such run, whatever its width.
+        merged: list[tuple[str, list[str]]] = []
+        for key in sorted(keys):
+            if not key.endswith("_1"):
+                continue
+            base = key[:-2]
+            parts = [key]
+            while f"{base}_{len(parts) + 1}" in keys:
+                parts.append(f"{base}_{len(parts) + 1}")
+            if len(parts) > 1:
+                merged.append((base, parts))
+        for base, parts in merged:
+            block[base] = np.column_stack([np.asarray(block[k]) for k in parts])
+            for k in parts:
+                del block[k]
         if "species" in block and "element" not in block:
             block["element"] = np.asarray(block["species"])
         if "element" in block and ATOMIC_NUMBER not in block:
@@ -44,7 +49,7 @@ def _normalize_xyz_frame(frame: Frame) -> Frame:
 
 
 class XYZReader(DataReader):
-    """Read XYZ via molrs + :func:`_normalize_xyz_frame`."""
+    """Read XYZ natively + :func:`_normalize_xyz_frame`."""
 
     def __init__(self, path: str | Path, **kwargs: object) -> None:
         super().__init__(Path(path), **kwargs)
@@ -55,7 +60,7 @@ class XYZReader(DataReader):
 
 
 class XYZWriter(DataWriter):
-    """Write XYZ via molrs."""
+    """Write XYZ natively."""
 
     def __init__(self, path: str | Path, **kwargs: object) -> None:
         super().__init__(Path(path), **kwargs)

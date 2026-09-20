@@ -11,9 +11,9 @@ import pytest
 
 import molrs
 
-from molpy import Atom, Atomistic, Bond
+from molpy import Atomistic
 from molpy.core import fields
-from molpy.core.entity import Entities, Entity
+from molpy.core.entity import Entities
 
 
 class TestEntitiesColumnAccess:

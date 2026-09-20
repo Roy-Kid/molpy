@@ -1,8 +1,12 @@
-"""Bond-orientational order operators — molrs-backed thin shells.
+"""Nematic order parameter — reads its axes from the frame's ``orientations`` block.
 
-Steinhardt / Hexatic / Nematic / SolidLiquid forward verbatim to
-``molrs.compute.order.*``; parity vs the direct molrs call is the core
-guarantee, plus input-immutability.
+Regression guard: the op reads its per-particle orientation axis from the
+frame's core ``orientations`` topology block — one ``(head, tail)`` atom pair
+per row, the same on-disk schema as ``bonds`` (endpoint columns ``atomi`` /
+``atomj``). The molpy wrapper therefore forwards ``(frames)`` ONLY; no separate
+director array is passed. A prior signature passed such an external array —
+these tests pin the no-external-array contract (the director/axis is the
+internal expansion ``normalize(pos[head] - pos[tail])``).
 """
 
 from __future__ import annotations
@@ -10,76 +14,27 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import molrs
-
-from molpy.compute import Hexatic, Nematic, SolidLiquid, Steinhardt
-from molpy.compute.base import Compute
-from molpy.compute import NeighborList
-
-from .parity_helpers import (
-    assert_nested_equal,
-    attach_orientations,
-    frame_coords_snapshot,
-    random_periodic_frame,
-)
+from molpy.compute import Nematic
 
 
-@pytest.fixture
-def frame_and_nlist():
-    frame = random_periodic_frame()
-    nlist = NeighborList(cutoff=3.0)(frame)
-    return frame, nlist
+def test_frame_carries_orientations_block(axis_frame):
+    frame = axis_frame()
+    assert "orientations" in frame.keys()
 
 
-def test_order_classes_are_compute_subclasses():
-    assert all(
-        issubclass(c, Compute) for c in (Steinhardt, Hexatic, Nematic, SolidLiquid)
-    )
-
-
-def test_steinhardt_parity_with_molrs_direct(frame_and_nlist):
-    frame, nlist = frame_and_nlist
-    mine = Steinhardt([4, 6], average=True)(frame, nlist)
-    direct = molrs.compute.order.Steinhardt([4, 6], average=True).compute(
-        [frame], [nlist]
-    )
-    assert_nested_equal(mine, direct)
-
-
-def test_hexatic_parity_with_molrs_direct(frame_and_nlist):
-    frame, nlist = frame_and_nlist
-    mine = Hexatic(6)(frame, nlist)
-    direct = molrs.compute.order.Hexatic(6).compute([frame], [nlist])
-    assert_nested_equal(mine, direct)
-
-
-def test_solidliquid_parity_with_molrs_direct(frame_and_nlist):
-    frame, nlist = frame_and_nlist
-    mine = SolidLiquid(6, q_threshold=0.7, n_threshold=6)(frame, nlist)
-    direct = molrs.compute.order.SolidLiquid(6, 0.7, 6).compute([frame], [nlist])
-    assert_nested_equal(mine, direct)
-
-
-def test_nematic_reads_orientations_from_frame(frame_and_nlist):
-    # The per-particle directors are read from the frame's `orientations`
-    # block — no external director array is passed.
-    frame, _ = frame_and_nlist
-    n = len(np.asarray(frame["atoms"]["x"]))
-    idx = np.arange(n, dtype=np.uint32)
-    attach_orientations(frame, heads=idx, tails=(idx + 1) % n)
-    mine = Nematic()(frame)
-    direct = molrs.compute.order.Nematic().compute([frame])
-    assert_nested_equal(mine, direct)
-    order, eigenvalues, director, q_tensor = mine
+def test_nematic_reads_orientations_from_frame(axis_frame):
+    # No director array — directors are the unit head-tail vectors of the
+    # `orientations` block. All axes point +z, so order ~ 1, director ~ z.
+    frame = axis_frame()
+    order, eigenvalues, director, q_tensor = Nematic().compute(frame)
     assert np.asarray(eigenvalues).shape == (3,)
     assert np.asarray(q_tensor).shape == (3, 3)
+    assert order > 0.9
+    assert abs(np.asarray(director)[2]) > 0.9
 
 
-def test_order_input_frame_immutable(frame_and_nlist):
-    frame, nlist = frame_and_nlist
-    before = frame_coords_snapshot(frame)
-    Steinhardt([6])(frame, nlist)
-    Hexatic(6)(frame, nlist)
-    SolidLiquid(6)(frame, nlist)
-    after = frame_coords_snapshot(frame)
-    np.testing.assert_array_equal(before, after)
+def test_nematic_rejects_external_directors(axis_frame):
+    frame = axis_frame()
+    directors = np.zeros((8, 3))
+    with pytest.raises(TypeError):
+        Nematic().compute(frame, directors)

@@ -1,7 +1,7 @@
 # Geometry Optimization
 
-Take the strain out of a freshly built structure: `molpy.optimize` relaxes it
-to a local force-field minimum and tells you why it stopped.
+Take the strain out of a freshly built structure: `LBFGS` relaxes it to a
+local force-field minimum and reports why it stopped.
 
 ## When you need it
 
@@ -10,72 +10,64 @@ lengths, angles, and close contacts carry excess energy. Before a production
 simulation — or to compare energies meaningfully — you minimize the geometry so
 the forces drop below a tolerance.
 
-**An `Optimizer` moves atoms downhill on a potential until the maximum force
-`fmax` falls under a threshold.** MolPy ships `LBFGS`, a limited-memory
-quasi-Newton minimizer, evaluating a force field through `ForceFieldPotential`.
+**`LBFGS` moves atoms downhill on a set of potentials until the maximum force
+falls under `fmax`.** The minimizer is the native limited-memory quasi-Newton
+implementation, re-exported as `molpy.LBFGS` / `molpy.optimize.LBFGS`; it
+drives the `Potentials` a force field compiles for your frame.
 
 ## Minimizing a structure
-
-`molpy.optimize` is imported directly (it is not exposed as `mp.optimize`):
 
 ```python
 import molpy as mp
 from molpy.conformer import Conformer
-from molpy.optimize import LBFGS, ForceFieldPotential
 
 mol, _ = Conformer(seed=42).generate(mp.io.read_smiles("CCO"))
 forcefield = mp.io.read_xml_forcefield(mp.data.get_forcefield_path("oplsaa.xml"))
 frame = mp.typifier.OPLSAATypifier().typify(mol).to_frame()
 
-potential = ForceFieldPotential(forcefield) # wraps a ForceField
-opt = LBFGS(potential)
-result = opt.run(frame, fmax=0.05, steps=200) # relaxes frame in place
+potentials = forcefield.to_potentials(frame)  # bonded + pair terms for this frame
+opt = mp.LBFGS(potentials, fmax=0.05, max_steps=200)
+frame, report = opt.run(frame)  # a new frame with the relaxed coordinates
 
-print(result.converged, result.energy, result.fmax, result.nsteps)
-print(result.reason) # why it stopped
+print(report.converged, report.final_energy, report.final_fmax, report.n_steps)
 ```
 
-`run` returns an `OptimizationResult`; by default it optimizes `frame` **in
-place** (`inplace=True`). Pass `inplace=False` to keep the input untouched.
+`run` never mutates its input: it returns the relaxed frame and an
+`OptReport`. Keep the returned frame; the one you passed in is unchanged.
 
 ## Parameters
 
-`LBFGS(potential, *, maxstep=0.04, memory=20, damping=1.0)`:
+`LBFGS(potentials, *, fmax=0.05, max_steps=500, max_step=0.2, memory=8)`:
 
 | Parameter | Effect |
 |---|---|
-| `maxstep` | Largest atomic displacement per step (Å). Smaller = more stable but slower; raise it only if convergence is sluggish and stable. |
+| `fmax` | Convergence threshold on the largest force component (kcal/mol/Å). The run stops when every force is below it. |
+| `max_steps` | Hard cap on iterations — a safety net if `fmax` is never reached. |
+| `max_step` | Largest atomic displacement per step (Å). Smaller = more stable but slower; raise it only if convergence is sluggish and stable. |
 | `memory` | Number of past steps the L-BFGS Hessian approximation keeps. More memory = better curvature estimate, more storage. |
-| `damping` | Scales each proposed step (`1.0` = undamped). Lower it if the optimizer overshoots on stiff systems. |
 
-`run(frame, fmax=0.01, steps=1000, *, inplace=True)`:
-
-| Parameter | Effect |
-|---|---|
-| `fmax` | Convergence threshold on the max force (eV/Å). The run stops when every force is below it. |
-| `steps` | Hard cap on iterations — a safety net if `fmax` is never reached. |
+`run` also accepts a bare `(N, 3)` coordinate array (or a `(B, N, 3)` batch)
+when you already hold coordinates outside a frame; it returns arrays of the
+same shape.
 
 ## Reading the result
 
-`OptimizationResult` carries `frame`, `energy`, `fmax`, `nsteps`, `converged`,
-and `reason`. Always check `converged`: a run that hit the `steps` cap
-(`converged = False`) has *not* reached the minimum — loosen `fmax`, raise
-`steps`, or inspect the structure.
-
-To watch progress, attach a callback that fires every `interval` steps:
-
-```python
-opt.attach(lambda: print(opt.step(frame)), interval=10) # (energy, fmax) per call
-```
+`OptReport` carries `converged`, `final_energy`, `final_fmax` and `n_steps`.
+Always check `converged`: a run that hit `max_steps` (`converged = False`)
+has *not* reached the minimum — loosen `fmax`, raise `max_steps`, or inspect
+the structure.
 
 ## Pitfalls
 
-- **Not converged ≠ minimized.** A `False` `converged` with `reason` naming the
- step limit means you stopped early.
-- **`fmax` units are eV/Å.** A threshold that is too tight for a coarse force
- field never converges; too loose leaves residual strain.
-- Optimization needs a *typified* frame with a force field — run a typifier first,
- otherwise `ForceFieldPotential` has nothing to evaluate.
+- **Not converged ≠ minimized.** A `False` `converged` means you stopped at
+ the step cap.
+- **Units are the native units:** energies in kcal/mol, forces in kcal/mol/Å,
+ lengths in Å. A threshold that is too tight for a coarse force field never
+ converges; too loose leaves residual strain.
+- The potentials are compiled for one topology. Relaxing a frame whose bonds
+ or types changed needs `to_potentials` again.
+- Optimization needs a *typified* frame with a force field — run a typifier
+ first, otherwise `to_potentials` has nothing to compile.
 
 ## See also
 

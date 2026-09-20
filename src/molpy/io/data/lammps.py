@@ -1,4 +1,4 @@
-"""LAMMPS data file I/O (structure via molrs, coeffs via molrs.ff)."""
+"""LAMMPS data file I/O (structure natively, coeffs natively.ff)."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,26 +6,10 @@ from pathlib import Path
 import numpy as np
 
 from molrs import Frame
-from molpy._frame_meta import update_frame_meta
-from molpy.core.fields import CHARGE, MOL_ID, FieldFormatter
+from molpy.core.fields import LammpsFieldFormatter
 from molpy.core.forcefield import ForceField
 
 from .base import DataReader, DataWriter
-
-
-class LammpsFieldFormatter(FieldFormatter):
-    """LAMMPS-specific field name translation.
-
-    Maps LAMMPS atom_style column names to canonical field names::
-
-        "q"   → "charge"
-        "mol" → "mol_id"
-    """
-
-    _field_formatters = {
-        "q": CHARGE,
-        "mol": MOL_ID,
-    }
 
 
 def _is_int_type_token(value: object) -> bool:
@@ -55,12 +39,29 @@ def _sorted_type_names(names: list[str] | set[str] | tuple[str, ...]) -> list[st
 
 @dataclass(frozen=True, slots=True)
 class LammpsDataResult:
-    """Explicit products of parsing one LAMMPS data file."""
+    """Explicit products of parsing one LAMMPS data file.
+
+    Frame-like lookup (``result["atoms"]``, ``"atoms" in result``,
+    ``result.box``) delegates to :attr:`frame` so callers can treat the
+    result as the structure without dropping ``.frame`` / ``.forcefield``.
+    """
 
     frame: Frame
     forcefield: ForceField
     counts: dict[str, int]
     type_labels: dict[str, list[str]]
+
+    def __getitem__(self, key: str):
+        """Return ``self.frame[key]``."""
+        return object.__getattribute__(self, "frame")[key]
+
+    def __contains__(self, key: object) -> bool:
+        """Return whether ``key`` is a block on :attr:`frame`."""
+        return key in object.__getattribute__(self, "frame")
+
+    def __getattr__(self, name: str):
+        """Delegate unknown attributes (e.g. ``box``) to :attr:`frame`."""
+        return getattr(object.__getattribute__(self, "frame"), name)
 
 
 class LammpsDataReader(DataReader[LammpsDataResult]):
@@ -74,9 +75,9 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         """Read a LAMMPS data file into frame + forcefield products.
 
         Structure, Type Labels, header counts, and ``* Coeffs`` text are
-        produced by :func:`molrs.io.read_lammps_data` (single pass). Coeffs
+        produced by the native ``read_lammps_data`` (single pass). Coeffs
         become a :class:`~molpy.ForceField` via
-        :func:`molrs.ff.read_lammps_data_coeffs`. This class only adapts the
+        the native ``read_lammps_data_coeffs``. This class only adapts the
         molpy surface (``type`` column, atom_style column drop, result bundle).
         """
         del frame  # molrs always returns a new Frame
@@ -85,7 +86,6 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
         import molrs.ff as mff
         import molrs.io
-        from molpy._frame_meta import get_frame_meta
 
         try:
             frame = molrs.io.read_lammps_data(
@@ -106,7 +106,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         type_labels = self._type_labels_from_meta(frame)
         self._adapt_frame(frame, type_labels)
 
-        coeffs_text = get_frame_meta(frame, "lammps_coeffs_text", None)
+        coeffs_text = frame.meta.get("lammps_coeffs_text")
         if coeffs_text:
             try:
                 forcefield = mff.read_lammps_data_coeffs(
@@ -145,8 +145,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             if block in frame:
                 counts.setdefault(key, int(frame[block].nrows))
 
-        update_frame_meta(
-            frame,
+        frame.meta.update(
             {
                 "format": "lammps_data",
                 "atom_style": self.atom_style,
@@ -165,9 +164,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         )
 
     def _type_labels_from_meta(self, frame: Frame) -> dict[str, dict[int, str]]:
-        """Parse molrs ``*_type_labels`` meta (``id:label,...``) into maps."""
-        from molpy._frame_meta import get_frame_meta
-
+        """Parse the native ``*_type_labels`` meta (``id:label,...``) into maps."""
         out: dict[str, dict[int, str]] = {}
         for kind, meta_key in (
             ("atom", "atom_type_labels"),
@@ -176,7 +173,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             ("dihedral", "dihedral_type_labels"),
             ("improper", "improper_type_labels"),
         ):
-            packed = get_frame_meta(frame, meta_key, None)
+            packed = frame.meta.get(meta_key)
             if not packed:
                 continue
             id_to_label: dict[int, str] = {}
@@ -194,10 +191,8 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         return out
 
     def _counts_from_meta(self, frame: Frame) -> dict[str, int]:
-        from molpy._frame_meta import get_frame_meta
-
         counts: dict[str, int] = {}
-        packed = get_frame_meta(frame, "lammps_counts", None)
+        packed = frame.meta.get("lammps_counts")
         if not packed:
             return counts
         for part in str(packed).split(","):
@@ -212,9 +207,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
     def _missing_box_axes(self, frame: Frame) -> list[str]:
         """Axes absent from the data header (not merely zero-length)."""
-        from molpy._frame_meta import get_frame_meta
-
-        packed = get_frame_meta(frame, "lammps_box_axes", None)
+        packed = frame.meta.get("lammps_box_axes")
         if packed is None:
             # Older molrs without the flag: treat missing box as all axes.
             return [] if frame.box is not None else ["x", "y", "z"]
@@ -231,11 +224,11 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         frame: Frame,
         type_labels: dict[str, dict[int, str]],
     ) -> None:
-        """Post-process molrs Frame for molpy surface compatibility.
+        """Post-process the native Frame for molpy surface compatibility.
 
         - Expose ``type`` (string labels when a Type Labels section exists,
           else numeric ``type_id``).
-        - Drop columns the requested ``atom_style`` does not carry (molrs
+        - Drop columns the requested ``atom_style`` does not carry (the core
           auto-detects style from the file and may keep extra fields).
         """
         style = self.atom_style.lower().split("/")[0]
@@ -270,26 +263,20 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
             if block_name == "atoms" and drop_on_atoms:
                 for col in list(drop_on_atoms):
                     if col in block:
-                        try:
-                            del block[col]
-                        except Exception:
-                            try:
-                                block.remove(col)  # type: ignore[attr-defined]
-                            except Exception:
-                                pass
+                        del block[col]
 
     _formatter = LammpsFieldFormatter()
 
 
 class LammpsDataWriter(DataWriter):
-    """Structure-only LAMMPS data writer (thin molrs façade).
+    """Structure-only LAMMPS data writer (thin native façade).
 
-    Structure emission is :func:`molrs.io.write_lammps_data`. molrs resolves
+    Structure emission is the native ``write_lammps_data``. the native core resolves
     atom ``id`` (1..N when absent), ``type`` / ``type_id`` numbering, Masses
     (element-preferred), and ``* Type Labels`` from the Frame. This class only:
 
     1. Optionally seeds meta with constructor ``type_labels`` (unused-type
-       inventory) so molrs can merge them with labels present on the Frame.
+       inventory) so the native core can merge them with labels present on the Frame.
     2. Prepends a Drude ``fix drude`` comment when shells are detected.
 
     Force-field ``* Coeffs`` are **not** written here — call
@@ -298,9 +285,9 @@ class LammpsDataWriter(DataWriter):
     **Frame requirements:**
     - Atoms must carry ``type`` and/or ``type_id`` (and connectivity blocks
       that are present must too). Prefer
-      :meth:`~molrs.ff.forcefield.ForceField.map_type` first.
+      :meth:`ForceField.map_type` first.
     - Connectivity endpoints are 0-based row indices (as from
-      ``Atomistic.to_frame()``); molrs maps them to atom IDs.
+      ``Atomistic.to_frame()``); the native core maps them to atom IDs.
     """
 
     #: Constructor key → frame meta key for optional unused-type inventory.
@@ -326,7 +313,7 @@ class LammpsDataWriter(DataWriter):
             atom_style: Accepted for API parity (layout from columns).
             type_labels: Optional **extra** unused-type inventory only. Type
                 ids always come from the Frame (``type`` then ``type_id``).
-                Prefer :meth:`~molrs.ff.forcefield.ForceField.map_type` on the
+                Prefer :meth:`ForceField.map_type` on the
                 Frame before write. Do **not** pass a ForceField here — use
                 :func:`write_lammps_data_coeffs` as a separate step.
         """
@@ -339,7 +326,7 @@ class LammpsDataWriter(DataWriter):
     _formatter = LammpsFieldFormatter()
 
     def write(self, frame: Frame) -> None:
-        """Write Frame structure to a LAMMPS data file (via molrs).
+        """Write Frame structure to a LAMMPS data file (natively).
 
         Frame must already carry ``type`` and/or ``type_id`` on atoms (and on
         any connectivity blocks that are present). Force-field ``* Coeffs`` are
@@ -370,14 +357,12 @@ class LammpsDataWriter(DataWriter):
             self._prepend_drude_comment(drude_flags)
 
     def _seed_type_label_meta(self, frame: Frame) -> None:
-        """Pack constructor ``type_labels`` into frame meta for molrs merge.
+        """Pack constructor ``type_labels`` into frame meta for the native merge.
 
-        molrs unions these labels with string ``type`` columns on the Frame
+        the native core unions these labels with string ``type`` columns on the Frame
         and assigns dense 1-based ids after numeric-aware sort. Empty labels
         raise — the inventory must be usable as Type Labels text.
         """
-        from molpy._frame_meta import update_frame_meta
-
         meta_update: dict[str, str] = {}
         for type_key, meta_key in self._TYPE_LABEL_META:
             labels = self.type_labels.get(type_key)
@@ -390,7 +375,7 @@ class LammpsDataWriter(DataWriter):
             packed = ",".join(f"{i}:{lab}" for i, lab in enumerate(ordered, 1))
             meta_update[meta_key] = packed
         if meta_update:
-            update_frame_meta(frame, meta_update)
+            frame.meta.update(meta_update)
 
     def _prepend_drude_comment(self, flags: str) -> None:
         header = (
@@ -401,7 +386,7 @@ class LammpsDataWriter(DataWriter):
         path.write_text(header + path.read_text())
 
     def _ordered_atom_type_names(self, frame: Frame) -> list[str]:
-        """Sorted atom type names matching molrs Type Labels order."""
+        """Sorted atom type names matching the native Type Labels order."""
         names: set[str] = set()
         if "atoms" in frame and frame["atoms"].nrows > 0 and "type" in frame["atoms"]:
             names.update(str(t) for t in np.asarray(frame["atoms"]["type"]).flat)
@@ -451,32 +436,9 @@ class LammpsDataWriter(DataWriter):
 
 def _type_ids_from_frame(frame: Frame) -> dict[str, int]:
     """Build ForceField type-name → id map from Frame ``type`` / ``type_id``."""
-    out: dict[str, int] = {}
-    for block_name in ("atoms", "bonds", "angles", "dihedrals", "impropers"):
-        if block_name not in frame:
-            continue
-        block = frame[block_name]
-        if block.nrows == 0:
-            continue
-        if "type" in block and "type_id" in block:
-            types = np.asarray(block["type"]).astype(str)
-            tids = np.asarray(block["type_id"]).astype(int)
-            for name, tid in zip(types, tids, strict=False):
-                out[str(name)] = int(tid)
-        elif "type" in block:
-            types = [str(t) for t in np.asarray(block["type"])]
-            if types and all(_is_int_type_token(t) for t in types):
-                for t in types:
-                    out[t] = int(t)
-            else:
-                ordered = _sorted_type_names(set(types))
-                for i, name in enumerate(ordered, 1):
-                    out[name] = i
-        elif "type_id" in block:
-            # Numeric-only body: id strings as names for integer FF types.
-            for tid in np.unique(np.asarray(block["type_id"]).astype(int)):
-                out[str(int(tid))] = int(tid)
-    return out
+    import molrs.io
+
+    return {k: int(v) for k, v in molrs.io.lammps_type_ids_from_frame(frame).items()}
 
 
 def write_lammps_data_coeffs(
@@ -491,13 +453,13 @@ def write_lammps_data_coeffs(
 
     Type ids are taken from the Frame (``type`` / ``type_id``), not from a
     caller-supplied inventory. Coefficient numbers (form map + units) are
-    produced entirely by molrs.
+    produced entirely by the native core.
 
     Args:
         path: Path to a data file already written by :class:`LammpsDataWriter`.
         frame: Frame whose type columns define the id space (call
             ``forcefield.map_type(frame)`` first when needed).
-        forcefield: Force field in molrs store units.
+        forcefield: Force field in native store units.
         units: LAMMPS ``units`` style for numeric conversion (``real`` /
             ``metal`` / ``lj``).
         precision: Decimal places for floating coefficients.

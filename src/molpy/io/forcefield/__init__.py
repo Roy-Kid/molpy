@@ -1,10 +1,10 @@
 """Force field I/O: readers and writers for XML, LAMMPS, and GROMACS formats.
 
 Stacks (do not cross-call):
-- **XML read** (OpenMM/OPLS): molrs — :func:`read_xml_forcefield`.
-- **XML write**: molpy :class:`XMLForceFieldWriter` (no molrs writer yet).
-- **LAMMPS** (``*.ff``): molrs — thin wrappers around
-  ``molrs.ff.read_lammps_forcefield`` / ``write_lammps_forcefield``.
+- **XML read** (OpenMM/OPLS): the native core — :func:`read_xml_forcefield`.
+- **XML write**: molpy :class:`XMLForceFieldWriter` (no native writer yet).
+- **LAMMPS** (``*.ff``): the native core — thin wrappers around
+  ``read_lammps_forcefield`` / ``write_lammps_forcefield``.
 """
 
 from pathlib import Path
@@ -12,7 +12,7 @@ from typing import Any
 
 from .lammps import LAMMPSForceFieldWriter
 from .top import GromacsForceFieldWriter, GromacsTopReader
-from .xml import XMLForceFieldReader, XMLForceFieldWriter, read_xml_forcefield
+from .xml import XMLForceFieldWriter, read_xml_forcefield
 
 PathLike = str | Path
 
@@ -20,7 +20,6 @@ __all__ = [
     "GromacsForceFieldWriter",
     "GromacsTopReader",
     "LAMMPSForceFieldWriter",
-    "XMLForceFieldReader",
     "XMLForceFieldWriter",
     "read_lammps_forcefield",
     "write_lammps_forcefield",
@@ -31,7 +30,7 @@ __all__ = [
 def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
     """Read a LAMMPS force-field include (``*.ff``) into a ForceField.
 
-    Thin wrapper of molrs — the only supported path for LAMMPS ``*.ff``.
+    Thin wrapper of the native core — the only supported path for LAMMPS ``*.ff``.
     """
     import molrs
 
@@ -48,6 +47,7 @@ def write_lammps_forcefield(
     *,
     precision: int = 6,
     skip_pair_style: bool = False,
+    skip_units: bool = False,
     units: str = "real",
     atom_types: set[str] | None = None,
     bond_types: set[str] | None = None,
@@ -55,13 +55,15 @@ def write_lammps_forcefield(
     dihedral_types: set[str] | None = None,
     improper_types: set[str] | None = None,
 ) -> None:
-    """Write a ForceField to a LAMMPS ``*.ff`` include (molrs only).
+    """Write a ForceField to a LAMMPS ``*.ff`` include (the native core only).
 
     Args:
         path: Destination ``*.ff`` path.
-        forcefield: Force field in molrs store units.
+        forcefield: Force field in native store units.
         precision: Decimal places for floating coefficients.
-        skip_pair_style: Omit the ``pair_style`` line when True.
+        skip_pair_style: Omit ``pair_style`` and ``special_bonds`` when True.
+        skip_units: Omit the ``units`` line when True (include after the input
+            script already set ``units``).
         units: LAMMPS ``units`` style for the file (``real``, ``metal``, ``lj``).
         atom_types: Optional pair atom-type whitelist.
         bond_types, angle_types, dihedral_types, improper_types: Bonded whitelists.
@@ -73,6 +75,7 @@ def write_lammps_forcefield(
         forcefield,
         precision=precision,
         skip_pair_style=skip_pair_style,
+        skip_units=skip_units,
         units=units,
         atom_types=atom_types,
         bond_types=bond_types,

@@ -1,20 +1,21 @@
-"""Trajectory container (molrs-backed) + split extensions.
+"""Trajectory container (native-backed) + split extensions.
 
-The trajectory *container* sinks to molrs: :class:`molpy.Trajectory` subclasses
-:class:`molrs.Trajectory` — an eager, materialized sequence of frames with
+The trajectory *container* sinks to the native core: :class:`molpy.Trajectory` subclasses
+:class:`~molpy.Trajectory` — an eager, materialized sequence of frames with
 optional ``step`` / ``time`` arrays. molpy adds Python-side conveniences: an
 associated topology, slice indexing that returns a sub-trajectory, and frame
-mapping. Lazy, seekable reading from disk lives in molrs as ``TrajectoryReader``
+mapping. Lazy, seekable reading from disk lives in the native core as ``TrajectoryReader``
 (``molpy.io.read_lammps_trajectory`` / ``read_xyz_trajectory``), not here.
 
 Trajectory *splitting* stays in molpy as an extension layer that operates on the
-molrs-backed container (:class:`SplitStrategy` and :class:`TrajectorySplitter`).
+native-backed container (:class:`SplitStrategy` and :class:`TrajectorySplitter`).
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
+from pathlib import Path
 from typing import Any, overload
 
 import molrs
@@ -25,22 +26,22 @@ from molrs import Frame
 class Trajectory(molrs.Trajectory):
     """An eager sequence of molecular frames with an optional topology.
 
-    Subclasses :class:`molrs.Trajectory`: frame storage, ``len()``, integer
+    Subclasses :class:`~molpy.Trajectory`: frame storage, ``len()``, integer
     indexing, and the ``frames`` / ``step`` / ``time`` accessors all live in
     the Rust container. molpy adds an associated ``topology``, slice indexing
     (returns a sub-:class:`Trajectory`), and :meth:`map`.
 
-    Frames must be :class:`molrs.Frame` objects — the Rust container copies
+    Frames must be :class:`~molpy.Frame` objects — the Rust container copies
     each into its column store on construction. For lazy, seekable reading from
     disk use ``molpy.io.read_lammps_trajectory`` / ``read_xyz_trajectory``, which
     return a lazy ``TrajectoryReader`` instead of materializing every frame.
 
     Args:
-        frames: Sequence of :class:`molrs.Frame` objects.
+        frames: Sequence of :class:`~molpy.Frame` objects.
         topology: Optional connectivity/topology object carried alongside the
             frames (stored and passed through unchanged). Defaults to None.
-        step: Optional per-frame integer step indices (forwarded to molrs).
-        time: Optional per-frame simulation times (forwarded to molrs).
+        step: Optional per-frame integer step indices (forwarded to the native core).
+        time: Optional per-frame simulation times (forwarded to the native core).
 
     Examples:
         >>> traj = Trajectory([frame0, frame1, frame2])
@@ -77,6 +78,37 @@ class Trajectory(molrs.Trajectory):
         """The topology object associated with this trajectory (or None)."""
         return self._topology
 
+    @classmethod
+    def read(cls, path: str | Path) -> "Trajectory":
+        """Refuse store I/O; use :mod:`molpy.io.mrec`.
+
+        Args:
+            path: Ignored. Present so the call matches a former store door.
+
+        Raises:
+            TypeError: Always. Scientific-record I/O lives on
+                :mod:`molpy.io.mrec`.
+        """
+        raise TypeError(
+            f"{cls.__qualname__}.read({path!r}) is not a store door; "
+            "use molpy.io.mrec.read_trajectory or molpy.io.mrec.TrajectoryReader"
+        )
+
+    def write(self, path: str | Path) -> None:
+        """Refuse store I/O; use :mod:`molpy.io.mrec`.
+
+        Args:
+            path: Ignored. Present so the call matches a former store door.
+
+        Raises:
+            TypeError: Always. Scientific-record I/O lives on
+                :mod:`molpy.io.mrec`.
+        """
+        raise TypeError(
+            f"{type(self).__qualname__}.write({path!r}) is not a store door; "
+            "use molpy.io.mrec.write_trajectory"
+        )
+
     @overload
     def __getitem__(self, key: int) -> Frame: ...
 
@@ -90,7 +122,7 @@ class Trajectory(molrs.Trajectory):
             key: Integer index or slice.
 
         Returns:
-            A rich :class:`Frame` for an integer key (the molrs container stores
+            A rich :class:`Frame` for an integer key (the native container stores
             bare core frames; this upgrades each one back to the rich Python
             layer on read), or a new :class:`Trajectory` (sharing this
             trajectory's topology) for a slice.
@@ -99,7 +131,7 @@ class Trajectory(molrs.Trajectory):
             return type(self)(self.frames[key], self._topology)
         if key < 0:
             key += len(self)
-        return Frame.from_dict(super().__getitem__(key))
+        return Frame(super().__getitem__(key))
 
     def map(self, func: Callable[[Frame], Frame]) -> "Trajectory":
         """Apply ``func`` to every frame, returning a new trajectory.
@@ -168,7 +200,7 @@ class FrameIntervalStrategy(SplitStrategy):
 class TimeIntervalStrategy(SplitStrategy):
     """Split a trajectory by simulation-time intervals.
 
-    Splits based on the trajectory's native per-frame ``time`` array (the molrs
+    Splits based on the trajectory's native per-frame ``time`` array (the native
     container's time representation, set via ``Trajectory(frames, time=...)``).
     A trajectory without a ``time`` array is left unsplit (single segment).
 

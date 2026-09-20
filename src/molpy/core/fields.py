@@ -1,34 +1,85 @@
-"""Canonical field registry — re-exported from molrs (single source of truth).
+"""Canonical field names and I/O name translation (single source of truth).
 
-The canonical field names and :class:`FieldSpec`/:class:`FieldFormatter` types now
-live in :mod:`molrs.fields`, whose keys are sourced from the Rust ``molrs.keys``
-constants. molpy re-exports them wholesale so existing
-``from molpy.core.fields import …`` call sites keep resolving, and adds only the
-force-field-specific :class:`ForceFieldFormatter` on top (until FF I/O is sunk
-into molrs-io).
+Canonical column names are **plain strings** sourced from the native ``keys``
+table and re-exported here one by one (``fields.CHARGE == "charge"``), so an
+annotation dict unpacks as ``update(**kwargs)`` and ``d["type"]`` keeps working.
+
+Name translation at a format boundary is :class:`FieldFormatter`, also native:
+a subclass maps ``{format_key: canonical_key}`` in ``_field_formatters`` and
+applies it with ``canonicalize``/``localize`` (per Block) or the ``*_frame``
+variants; ``register_field`` adds a mapping at runtime and ``__init_subclass__``
+keeps each subclass's registry isolated. The formatters for the formats the core
+parses (LAMMPS, GRO, MOL2, PDB, XYZ) are native and re-exported here; a format
+molpy parses itself declares its own subclass in its I/O module.
+
+molpy adds exactly two things: the assembly-owned field :data:`SITE`, and
+:class:`ForceFieldFormatter`, which extends the field mapping with a Style →
+serializer registry (until force-field I/O is sunk into the native I/O).
 """
 
 from __future__ import annotations
 
 from typing import Callable
 
-import numpy as np
 
-from molrs.fields import *  # noqa: F401,F403  (re-export the formatters)
-from molrs.fields import FieldFormatter, __all__ as _MOLRS_FIELDS_ALL
 from molrs import keys as _keys
+from molrs.fields import (
+    FieldFormatter,
+    GroFieldFormatter,
+    LammpsFieldFormatter,
+    Mol2FieldFormatter,
+    PdbFieldFormatter,
+    XyzFieldFormatter,
+)
 
 # Canonical column names come from molrs — one table, projected. Re-exported
 # as plain strings so annotation dicts unpack as ``update(**kwargs)`` and
 # ``d["type"]`` keeps working. ``molrs.keys.Key`` is still accepted as a
-# Block / Atom column address; it is not a valid Python keyword name.
-globals().update(
-    {
-        _n: getattr(getattr(_keys, _n), "key", getattr(_keys, _n))
-        for _n in dir(_keys)
-        if _n.isupper()
-    }
-)
+# Block / Atom column address; it is not a valid Python keyword name. The
+# list is spelled out (not built from ``dir(molrs.keys)``) so a type checker
+# can resolve ``fields.CHARGE``.
+ATOMI = _keys.ATOMI.key
+ATOMIC_NUMBER = _keys.ATOMIC_NUMBER.key
+ATOMJ = _keys.ATOMJ.key
+ATOMK = _keys.ATOMK.key
+ATOML = _keys.ATOML.key
+BEAD_TYPE = _keys.BEAD_TYPE.key
+BOND_NUMBER = _keys.BOND_NUMBER.key
+BOND_TYPE = _keys.BOND_TYPE.key
+CHARGE = _keys.CHARGE.key
+ELEMENT = _keys.ELEMENT.key
+EXCLUDE_14 = _keys.EXCLUDE_14.key
+ID = _keys.ID.key
+IS_14 = _keys.IS_14.key
+IX = _keys.IX.key
+IY = _keys.IY.key
+IZ = _keys.IZ.key
+MASS = _keys.MASS.key
+MOL_ID = _keys.MOL_ID.key
+MUX = _keys.MUX.key
+MUY = _keys.MUY.key
+MUZ = _keys.MUZ.key
+NAME = _keys.NAME.key
+QUATI = _keys.QUATI.key
+QUATJ = _keys.QUATJ.key
+QUATK = _keys.QUATK.key
+QUATW = _keys.QUATW.key
+RES_ID = _keys.RES_ID.key
+RES_NAME = _keys.RES_NAME.key
+TYPE = _keys.TYPE.key
+TYPE_ID = _keys.TYPE_ID.key
+VX = _keys.VX.key
+VY = _keys.VY.key
+VZ = _keys.VZ.key
+X = _keys.X.key
+Y = _keys.Y.key
+Z = _keys.Z.key
+# Column groups (plain lists of names), not single keys.
+COORDS = _keys.COORDS
+DIPOLE = _keys.DIPOLE
+ENDPOINTS = _keys.ENDPOINTS
+QUAT = _keys.QUAT
+VELOCITIES = _keys.VELOCITIES
 
 # ===================================================================
 #                    molpy-owned canonical fields
@@ -124,7 +175,7 @@ class ForceFieldFormatter(FieldFormatter):
     def _resolve_formatter(self, style: object) -> Callable | None:
         """Resolve the registered formatter for *style*.
 
-        molrs returns styles as their base category class (``BondStyle``,
+        the native core returns styles as their base category class (``BondStyle``,
         ``PairStyle``, …) regardless of which named/specialized style was
         registered, so an exact ``type(style)`` match only catches the generic
         fallbacks. Specialized formatters are therefore also matched by the
@@ -187,4 +238,13 @@ class ForceFieldFormatter(FieldFormatter):
         )
 
 
-__all__ = [*_MOLRS_FIELDS_ALL, "ForceFieldFormatter", "SITE"]
+__all__ = [
+    "FieldFormatter",
+    "GroFieldFormatter",
+    "LammpsFieldFormatter",
+    "Mol2FieldFormatter",
+    "PdbFieldFormatter",
+    "XyzFieldFormatter",
+    "ForceFieldFormatter",
+    "SITE",
+]

@@ -37,24 +37,11 @@ class GromacsEmitter:
         em_path = out_dir / "em.mdp"
         nvt_path = out_dir / "nvt.mdp"
 
-        try:
-            from molpy.io.data.gro import GroWriter
+        from molpy.io.data.gro import GroWriter
+        from molpy.io.forcefield.top import GromacsForceFieldWriter
 
-            frame = atomistic.to_frame()
-            GroWriter(gro_path).write(frame)
-        except Exception:
-            gro_path.write_text(f"MolPy placeholder\n{len(list(atomistic.atoms))}\n")
-
-        try:
-            from molpy.io.forcefield.top import GromacsTopWriter
-
-            GromacsTopWriter(top_path).write(ff)
-        except Exception:
-            top_path.write_text(
-                "; MolPy-generated GROMACS topology placeholder\n"
-                "[ defaults ]\n; nbfunc comb-rule gen-pairs fudgeLJ fudgeQQ\n"
-                "  1       2          yes       0.5     0.8333\n"
-            )
+        GroWriter(gro_path).write(atomistic.to_frame())
+        GromacsForceFieldWriter(top_path).write(ff)
 
         em_path.write_text(_EM_MDP)
         nvt_path.write_text(_NVT_MDP.format(temperature=temperature_K))

@@ -1,16 +1,16 @@
-"""Force-field model — thin re-export of the native molrs hierarchy.
+"""Force-field model — thin re-export of the native hierarchy.
 
-molrs (the Rust extension) natively owns the entire force-field model:
+the native core (the Rust extension) natively owns the entire force-field model:
 ``ForceField``, the ``Style`` tree, the ``Type`` tree and ``Parameters``.
 molpy maintains no parallel Python hierarchy; this module simply
-re-exports the molrs classes and adds the handful of thin specialized
-``Style`` subclasses that molrs does not ship a named class for (e.g.
+re-exports the native classes and adds the handful of thin specialized
+``Style`` subclasses that the native core does not ship a named class for (e.g.
 ``morse``, ``class2``, ``fourier``, ``periodic`` variants).
 
 A specialized style here carries no kernel — it only fixes the style name so
 callers can write ``ff.def_style(BondMorseStyle())`` instead of
 ``ff.def_bondstyle("morse")``. Energy/force evaluation lives entirely in
-molrs via ``ff.to_potentials().calc_energy(frame)`` / ``.calc_forces(frame)``.
+the native core via ``ff.to_potentials().calc_energy(frame)`` / ``.calc_forces(frame)``.
 """
 
 from __future__ import annotations

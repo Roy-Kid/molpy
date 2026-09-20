@@ -1,18 +1,12 @@
-"""ASE-style geometry optimization for molpy structures."""
+"""Geometry optimization: the native L-BFGS minimizer.
 
-from molrs.optimize import OptReport
+``LBFGS(potentials, *, fmax=0.05, max_steps=500, max_step=0.2, memory=8)``
+takes the ``Potentials`` compiled from a force field for the
+frame under study (``forcefield.to_potentials(frame)``); ``run(frame)``
+returns ``(frame, OptReport)``. Composition — typify, compile, relax — is the
+caller's, exactly as with any other native primitive.
+"""
 
-from .base import OptimizationResult, Optimizer, PotentialLike
-from .forcefield_potential import ForceFieldPotential
-from .lbfgs import LBFGS
-from .soft_potential import SoftPotential
+from molrs.optimize import LBFGS, OptReport
 
-__all__ = [
-    "Optimizer",
-    "OptimizationResult",
-    "PotentialLike",
-    "LBFGS",
-    "OptReport",
-    "ForceFieldPotential",
-    "SoftPotential",
-]
+__all__ = ["LBFGS", "OptReport"]

@@ -95,7 +95,7 @@ frame = mp.Frame()
 frame["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 frame.box = mp.Box.cubic(20.0)
 
-neighbors = NeighborList(cutoff=8.0)(frame)
+neighbors = NeighborList(cutoff=8.0).compute(frame)
 print(neighbors.n_pairs)  # number of pairs found
 print(np.sqrt(neighbors.dist_sq())[:5])  # pair distances (Å) from stored dist_sq
 ```
@@ -116,20 +116,23 @@ and lets you reuse a single search for several analyses:
 ```python
 from molpy.compute import RDF
 
-result = RDF(n_bins=50, r_max=8.0)(frame, neighbors)
+result = RDF(n_bins=50, r_max=8.0).compute(frame, neighbors)
 print(result.bin_centers)  # r at each bin centre
 print(result.rdf)  # g(r)
 ```
 
 For an ideal gas (uniformly random points) the middle bins of `result.rdf`
 sit near 1.0, which is the standard sanity check for a correct normalization.
-Multiple frames are averaged when you pass lists: `RDF(...)(frames, neighbor_lists)`.
+Multiple frames are averaged when you pass lists:
+`RDF(...).compute(frames, neighbor_lists)`.
 
 ## The wider analysis catalog is exposed as molpy operators
 
 A range of standard trajectory analyses already live in molrs. MolPy exposes
-each as a small `Compute` operator that forwards arguments and returns the
-molrs result type unchanged:
+each under a `compute(...)` method that forwards its arguments and returns the
+molrs result type unchanged. Most of these shells add nothing of their own and
+are pending a refactor into identity re-exports of the molrs classes, so read
+the table as a catalogue of molrs analyses rather than of molpy types:
 
 | Operator | What it computes |
 |----------|------------------|
@@ -161,13 +164,13 @@ from molpy.compute import (
 )
 
 trajectory = mp.Trajectory([frame, frame])
-clusters = Cluster(min_cluster_size=5)([frame], [neighbors])
-centers = ClusterCenters()([frame], clusters)
+clusters = Cluster(min_cluster_size=5).compute([frame], [neighbors])
+centers = ClusterCenters().compute([frame], clusters)
 
-msd = MSD(method="window")(trajectory)  # time series over a trajectory
-rg2 = GyrationTensor()([frame], clusters, centers)  # gyration tensor per cluster
-q6 = Steinhardt(l=[6])([frame], [neighbors])  # Steinhardt q6 per particle
-sk = StaticStructureFactorDebye(np.linspace(0.5, 6.0, 32))([frame])  # S(k)
+msd = MSD(method="window").compute(trajectory)  # time series over a trajectory
+rg2 = GyrationTensor().compute([frame], clusters, centers)  # per cluster
+q6 = Steinhardt(l=[6]).compute([frame], [neighbors])  # Steinhardt q6 per particle
+sk = StaticStructureFactorDebye(np.linspace(0.5, 6.0, 32)).compute([frame])  # S(k)
 ```
 
 ## One coordinate copy, and only one

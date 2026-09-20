@@ -1,10 +1,10 @@
-"""Hydrogen-bond detection — molrs-backed.
+"""Hydrogen-bond detection — native-backed.
 
 ``HBonds`` detects geometric hydrogen bonds per frame from explicit donor
 ``(D, H)`` pairs and acceptor atoms, using the :class:`HBondCriterion`
 (donor-acceptor distance and D-H...A angle). Pair these counts with the
 :class:`~molpy.compute.persist.Persist` survival analysis for hydrogen-bond
-lifetime dynamics. Thin shell over the molrs analysis-parity kernel; takes
+lifetime dynamics. Thin shell over the native analysis-parity kernel; takes
 ``(frames)``.
 
 References
@@ -19,13 +19,11 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
-
 # Re-export the configuration object so callers can tune the geometric criterion.
 HBondCriterion = molrs.compute.hbond.HBondCriterion
 
 
-class HBonds(Compute):
+class HBonds:
     """Detect hydrogen bonds per frame from explicit donors and acceptors.
 
     Parameters
@@ -45,8 +43,7 @@ class HBonds(Compute):
     """
 
     def __init__(self, donors, acceptors, criterion=None):
-        super().__init__(donors=donors, acceptors=acceptors, criterion=criterion)
         self._inner = molrs.compute.hbond.HBonds(donors, acceptors, criterion)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

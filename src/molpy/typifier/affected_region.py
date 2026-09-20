@@ -42,7 +42,7 @@ arithmetic. It **is** an
 :class:`~molpy.core.atomistic.Atomistic` — so it hands straight to third-party
 typifiers / AmberTools — but adds region semantics (``interior`` / ``boundary`` /
 ``hops`` / ``entity_map``) and an isomorphism-invariant structural ``__hash__`` /
-``__eq__`` (via the molrs Weisfeiler–Lehman graph hash), so identical polymer
+``__eq__`` (via the native Weisfeiler–Lehman graph hash), so identical polymer
 junctions dedupe to one cache key.
 
 ``interior`` is the **write-back set**: every atom within ``interior_reach`` hops
@@ -75,7 +75,7 @@ class _RegionMixin[E: Entity]:
     ones whose types are written back), the context-only ``boundary`` shell, the
     per-atom ``hops`` distance from the edit, and the region → parent
     ``entity_map`` (to map assigned types back). The concrete subclass supplies
-    the structural ``__hash__`` / ``__eq__`` over the molrs graph hash. Populated
+    the structural ``__hash__`` / ``__eq__`` over the native graph hash. Populated
     by :meth:`_from`, which is the region's only constructor.
     """
 
@@ -97,7 +97,7 @@ class AffectedRegion(_RegionMixin[Atom], Atomistic):
     """All-atom affected region: a hashable, typable, AmberTools-ready subgraph.
 
     Base order mirrors :class:`~molpy.core.atomistic.Atomistic`: the pyo3 native
-    ``molrs.Atomistic`` remains the solid base (contributed by ``Atomistic``),
+    ``Atomistic`` remains the solid base (contributed by ``Atomistic``),
     with the plain-Python :class:`_RegionMixin` layered in front for its region
     attributes.
 
@@ -138,7 +138,7 @@ class AffectedRegion(_RegionMixin[Atom], Atomistic):
 
         Args:
             graph: The parent graph an edit just modified.
-            touched: Seed atoms (views or molrs handles) the edit reported.
+            touched: Seed atoms (views or native handles) the edit reported.
             reach: Neighbourhood radius, in bonds, that decides one atom's type.
 
         Returns:
@@ -172,7 +172,7 @@ class AffectedRegion(_RegionMixin[Atom], Atomistic):
         """Build the region around ``touched`` in ``parent``.
 
         ``touched`` are the seed atoms an edit reported — :class:`Atom` views or
-        raw molrs handles (as returned by ``molrs.Reaction.apply``). ``parent``
+        raw native handles (as returned by ``apply``). ``parent``
         is not mutated: the region is an induced clone with its own atom views.
 
         Raises:

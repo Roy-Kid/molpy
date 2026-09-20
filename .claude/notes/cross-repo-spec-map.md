@@ -10,6 +10,13 @@ See `.claude/notes/release.md`.
 |-------|-------|
 | (see molrs `.claude/specs/INDEX.md`) | (see molpy `.claude/specs/INDEX.md`) |
 
+## Verbs
+
+molpy's family→verb table lives in molpy `.claude/notes/architecture.md`
+§ Design laws 4. Rows and members marked `molrs:` there **describe** molrs and do
+not bind it: molpy adopts molrs verbs (`build`, `apply`, `compute`, `typify`,
+`generate`, `run`); the reverse never holds (sink direction).
+
 ## Version
 
 Minor-line pin in `pyproject.toml`: `molcrafts-molrs>=X.Y.0,<X.(Y+1)` must

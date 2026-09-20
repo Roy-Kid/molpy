@@ -13,7 +13,7 @@ strand = eo_builder().build_linear("EO", 8)
 mark_backbone_crosslink_sites(strand, step=2)
 melt = Replicas(strand).grid(2, spacing=6.0, jitter=0.4, seed=3)
 
-gel = GraphAssembler(mp.Reaction(XLINK)).assemble(
+gel = GraphAssembler(mp.Reaction(XLINK)).apply(
  melt,
  RandomSelector(
  conversion=0.5,

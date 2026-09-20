@@ -7,12 +7,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path
 
-from molpy.core.forcefield import ForceField
-from molpy.io.readers import read_amber
-from molpy.io.utils import ensure_parent_dir
-from molrs import Frame
 
 from .base import Wrapper
 
@@ -50,18 +45,3 @@ class TLeapWrapper(Wrapper):
         script_path.write_text(script_text)
 
         return self.run(args=["-f", script_name], check=check)
-
-
-def read_tleap_outputs(
-    prmtop_path: Path, inpcrd_path: Path
-) -> tuple[Frame, ForceField]:
-    """Read tleap output files (prmtop and inpcrd) into Frame and ForceField.
-
-    Args:
-        prmtop_path: Path to the AMBER topology file (.prmtop).
-        inpcrd_path: Path to the AMBER coordinate file (.inpcrd).
-
-    Returns:
-        Tuple of (Frame, ForceField) objects.
-    """
-    return read_amber(prmtop_path, inpcrd_path)

@@ -7,7 +7,6 @@ Registered subcommands:
 from __future__ import annotations
 
 import argparse
-import sys
 
 from . import moltemplate
 
@@ -35,11 +34,5 @@ def main(argv: list[str] | None = None) -> int:
     if cmd is None or handler is None:
         parser.print_help()
         return 0
-    try:
-        rc = handler(args)
-    except SystemExit:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        print(f"molpy: error: {exc}", file=sys.stderr)
-        return 1
+    rc = handler(args)
     return int(rc) if rc is not None else 0

@@ -13,10 +13,9 @@ This page is the only place those integrations are documented as prerequisites.
 | Task | Use |
 |------|-----|
 | Parse SMILES / SMARTS | `molpy.parser` (`SmilesIR`, `SmartsPattern`) |
-
 | 3D coordinates | `molpy.conformer.Conformer` |
 | Graph assembly / polymers | `molpy.builder` (native) |
-| Pack a box | `molpy.pack` → molpack |
+| Pack a box | [molpack](https://docs.molcrafts.org/molpack/) (`molcrafts-molpack`, installed separately) |
 | OPLS-AA / CL&P / MMFF typing | `molpy.typifier` |
 | Trajectory analysis | `molpy.compute` (kernels) |
 | Files (PDB, LAMMPS data, XML FF, …) | `molpy.io` |

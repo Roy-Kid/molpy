@@ -1,11 +1,11 @@
-"""Van Hove correlation function G(r, t) — molrs-backed.
+"""Van Hove correlation function G(r, t) — native-backed.
 
 ``VanHove`` computes the self and distinct parts of the Van Hove correlation
 function, the time-resolved generalization of the radial distribution function:
 ``G_s(r, t)`` is the probability that a particle has moved a distance ``r`` in
 time ``t`` (it integrates to the self-diffusion picture), while ``G_d(r, t)``
 tracks how the structure around a particle decorrelates. Thin shell over the
-molrs analysis-parity kernel; takes ``(frames)``.
+the native analysis-parity kernel; takes ``(frames)``.
 
 References
 ----------
@@ -20,10 +20,8 @@ from collections.abc import Sequence
 
 import molrs
 
-from .base import Compute
 
-
-class VanHove(Compute):
+class VanHove:
     """Van Hove correlation function ``G(r, t)`` (self + distinct parts).
 
     Parameters
@@ -46,8 +44,7 @@ class VanHove(Compute):
     def __init__(
         self, n_rbins: int, r_max: float, lags: Sequence[int], stride: int = 1
     ):
-        super().__init__(n_rbins=n_rbins, r_max=r_max, lags=lags, stride=stride)
         self._inner = molrs.compute.dynamics.VanHove(n_rbins, r_max, lags, stride)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

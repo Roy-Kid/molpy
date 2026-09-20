@@ -1,4 +1,4 @@
-"""Radical (Laguerre) Voronoi tessellation, domains, voids & integration — molrs-backed.
+"""Radical (Laguerre) Voronoi tessellation, domains, voids & integration — native-backed.
 
 The **radical** (power / Laguerre) Voronoi tessellation partitions space by
 radius-weighted planes, so atoms of different size get cells proportional to
@@ -12,7 +12,10 @@ of the tessellation:
   yield per-molecule charges and dipoles (Voronoi/atomic-charge partitioning),
   the basis for predicting infrared spectra from *ab initio* MD.
 
-Thin shells over the molrs analysis-parity kernels.
+Every name here is the native analysis-parity object itself, re-exported
+unchanged: :class:`RadicalVoronoi` tessellates through ``build(positions,
+radii, box)`` and :class:`VoronoiIntegration` reduces a density through
+``integrate(positions, radii, atomic_numbers, atom_to_mol, n_mol, grid, box)``.
 
 References
 ----------
@@ -28,49 +31,18 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
-
-# Re-export the per-cell result type and the domain/void reductions.
+# Re-export the tessellation/integration operators, the per-cell result type and
+# the domain/void reductions.
+RadicalVoronoi = molrs.compute.voronoi.RadicalVoronoi
+VoronoiIntegration = molrs.compute.voronoi.VoronoiIntegration
 VoronoiCells = molrs.compute.voronoi.VoronoiCells
 voronoi_domains = molrs.compute.voronoi.voronoi_domains
 voronoi_voids = molrs.compute.voronoi.voronoi_voids
 
-
-class RadicalVoronoi(Compute):
-    """Radical (Laguerre / power) Voronoi tessellation under periodic boundaries.
-
-    Notes
-    -----
-    Called as ``compute(positions, radii, box)`` and returns
-    :class:`VoronoiCells` (per-cell volumes, faces, and neighbours).
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._inner = molrs.compute.voronoi.RadicalVoronoi()
-
-    def __call__(self, positions, radii, box):
-        return self._inner.build(positions, radii, box)
-
-
-class VoronoiIntegration(Compute):
-    """Integrate an electron density over radical-Voronoi cells.
-
-    Aggregates a volumetric electron density into per-molecule charges and
-    dipole moments, the Voronoi/atomic-charge partition used to derive infrared
-    intensities from *ab initio* MD trajectories.
-
-    Notes
-    -----
-    Called as ``compute(positions, radii, atomic_numbers, atom_to_mol, n_mol,
-    grid, box)`` and returns the per-molecule moments.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._inner = molrs.compute.voronoi.VoronoiIntegration()
-
-    def __call__(self, positions, radii, atomic_numbers, atom_to_mol, n_mol, grid, box):
-        return self._inner.integrate(
-            positions, radii, atomic_numbers, atom_to_mol, n_mol, grid, box
-        )
+__all__ = [
+    "RadicalVoronoi",
+    "VoronoiCells",
+    "VoronoiIntegration",
+    "voronoi_domains",
+    "voronoi_voids",
+]

@@ -52,8 +52,8 @@ def radial_distribution(trajectory: Trajectory) -> dict[str, float]:
     # Stay just inside L/2: the last bins of a minimum-image histogram are
     # distorted by the corners of the periodic cell.
     r_max = np.floor(trajectory.box_length / 2.0)
-    neighbors = [NeighborList(cutoff=r_max)(frame) for frame in frames]
-    result = RDF(n_bins=int(r_max / 0.05), r_max=r_max)(frames, neighbors)
+    neighbors = [NeighborList(cutoff=r_max).compute(frame) for frame in frames]
+    result = RDF(n_bins=int(r_max / 0.05), r_max=r_max).compute(frames, neighbors)
 
     r = np.asarray(result.bin_centers)
     g = np.asarray(result.rdf)
@@ -100,7 +100,9 @@ def neighbor_cost(trajectory: Trajectory) -> dict[str, float]:
     rows: list[dict[str, float | str]] = []
     ratios: list[float] = []
     for cutoff in np.arange(3.0, trajectory.box_length / 2.0 + 0.01, 0.5):
-        measured = 2.0 * NeighborList(cutoff=float(cutoff))(frame).n_pairs / n_atoms
+        measured = (
+            2.0 * NeighborList(cutoff=float(cutoff)).compute(frame).n_pairs / n_atoms
+        )
         ideal = density * 4.0 / 3.0 * np.pi * cutoff**3
         ratios.append(float(measured / ideal))
         rows.append(
@@ -135,8 +137,8 @@ def local_density(trajectory: Trajectory) -> dict[str, float]:
     rows: list[dict[str, float | str]] = []
     summary: dict[str, float] = {"bulk": float(bulk)}
     for probe in (4.0, 8.0):
-        neighbors = [NeighborList(cutoff=probe)(frame) for frame in frames]
-        per_frame = LocalDensity(r_max=probe)(frames, neighbors)
+        neighbors = [NeighborList(cutoff=probe).compute(frame) for frame in frames]
+        per_frame = LocalDensity(r_max=probe).compute(frames, neighbors)
         values = np.concatenate([np.asarray(density) for _, density in per_frame])
         counts, edges = np.histogram(values, bins=40, range=(0.0, 0.045), density=True)
         centers = 0.5 * (edges[:-1] + edges[1:])
@@ -161,7 +163,7 @@ def structure_factor(trajectory: Trajectory) -> dict[str, float]:
     # Start above the forward-scattering region: the Debye sum keeps its self
     # terms, so S(k -> 0) runs away to N and is not the compressibility limit.
     k = np.linspace(1.0, 8.0, 180)
-    per_frame = StaticStructureFactorDebye(k)(frames)
+    per_frame = StaticStructureFactorDebye(k).compute(frames)
     s_k = np.mean([np.asarray(s) for _, s, _ in per_frame], axis=0)
     write_json(
         "diffraction/argon_sk.json",

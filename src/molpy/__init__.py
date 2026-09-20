@@ -2,7 +2,7 @@
 
 Core data structures (``Atom``, ``ForceField``, ``Frame``, …) are imported
 eagerly and exposed at the package root — users write ``import molpy as mp``
-then ``mp.Frame`` (never ``molpy.core.Frame`` or ``molrs.Frame``). Heavier
+then ``mp.Frame`` (never ``molpy.core.Frame`` or the engine's ``Frame``). Heavier
 subpackages (``io``, ``engine``, ``parser``, …) load lazily on first attribute
 access (PEP 562).
 """
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
         data,
         engine,
         io,
+        md,
         optimize,
-        pack,
         parser,
         typifier,
     )
@@ -42,8 +42,8 @@ _LAZY_SUBMODULES = frozenset(
         "data",
         "engine",
         "io",
+        "md",
         "optimize",
-        "pack",
         "parser",
         "typifier",
     }
@@ -178,40 +178,50 @@ from .conformer import Conformer
 # Import Frame/Block from the pure-Python layer path so static analysis
 # (griffe/mkdocstrings) resolves ``molpy.Frame → molrs.frame.Frame`` without
 # going through the top-level ``molrs.Frame`` re-export alias chain.
-from molrs.frame import Block, Frame  # noqa: E402
+from molrs.frame import Block, Frame
 
-from molrs import (  # noqa: E402
+# One record of trajectory-like data: an ordered sequence of frames sharing one
+# identity (a single geometry is a length-1 collection; a scan or relaxation is
+# longer). Downstream consumers (molnex, molhub) import this alias from here.
+from collections.abc import Sequence as _Sequence
+from typing import TypeAlias as _TypeAlias
+
+# Explicit TypeAlias: with the module-level lazy ``__getattr__`` present, a
+# bare implicit alias falls through to it in some checkers (ty resolved the
+# name as ModuleType); the declared spelling pins it as a type alias.
+FrameCollection: _TypeAlias = _Sequence[Frame]
+
+from molrs import (
     BlockDtypeError,
     Cuboid,
     Element,
     ExtractedSubgraph,
     FRAME_SCHEMA_VERSION,
     Graph,
-    HollowSphere,
     MetaValue,
-    MolRec,
     NeighborList,
     NeighborQuery,
     Neighbors,
-    Observables,
     Parallelepiped,
     Quantity,
     Reaction,
     ScalarObservable,
     Sphere,
     Unit,
+    UnitPreset,
     UnitRegistry,
     UnitsError,
     VectorObservable,
+    VerletSkin,
     keys,
     schema,
     signal,
 )
-from molrs.compute.density import (  # noqa: E402
+from molrs.compute.density import (
     SpatialDistribution,
     SpatialDistributionResult,
 )
-from molrs.compute.distribution import (  # noqa: E402
+from molrs.compute.distribution import (
     AngleDistribution,
     CombinedDistribution,
     CombinedDistributionResult,
@@ -219,25 +229,25 @@ from molrs.compute.distribution import (  # noqa: E402
     DistanceDistribution,
     DistributionResult,
 )
-from molrs.compute.dynamics import (  # noqa: E402
+from molrs.compute.dynamics import (
     VanHove,
     VanHoveResult,
 )
-from molrs.compute.fitting import (  # noqa: E402
+from molrs.compute.fitting import (
     CumulativeTrapezoid,
     LinearFit,
     Plateau,
 )
-from molrs.compute.hbond import (  # noqa: E402
+from molrs.compute.hbond import (
     HBondCriterion,
     HBonds,
     HBondsResult,
 )
-from molrs.compute.order import (  # noqa: E402
+from molrs.compute.order import (
     LegendreReorientation,
     LegendreReorientationResult,
 )
-from molrs.compute.spectroscopy import (  # noqa: E402
+from molrs.compute.spectroscopy import (
     EinsteinHelfandSpectrum,
     GreenKuboSpectrum,
     IRSpectrum,
@@ -247,7 +257,7 @@ from molrs.compute.spectroscopy import (  # noqa: E402
     RoaSpectrum,
     VcdSpectrum,
 )
-from molrs.compute.transport import (  # noqa: E402
+from molrs.compute.transport import (
     DebyeFit,
     DebyeRelaxation,
     EinsteinConductivity,
@@ -256,18 +266,18 @@ from molrs.compute.transport import (  # noqa: E402
     GreenKuboDiffusion,
     VACF,
 )
-from molrs.compute.voronoi import (  # noqa: E402
+from molrs.compute.voronoi import (
     DensityGrid,
     MolecularMoments,
     RadicalVoronoi,
     VoronoiCells,
     VoronoiIntegration,
 )
-from molrs.conformer import (  # noqa: E402
+from molrs.conformer import (
     ConformerReport,
     ConformerStageReport,
 )
-from molrs.ff import (  # noqa: E402
+from molrs.ff import (
     AtdTypifier,
     BccModel,
     GasteigerModel,
@@ -281,12 +291,12 @@ from molrs.ff import (  # noqa: E402
 
 # I/O is **only** on ``molpy.io`` (``mp.io.read_*`` / ``write_*``). Never re-export
 # molrs.io / molrs.ff force-field file APIs / raw traj readers on the package root.
-from molrs.io import SmilesIR  # noqa: E402  # parser type, not a file I/O entry
-from molrs.optimize import (  # noqa: E402
+from molrs.io import SmilesIR  # parser type, not a file I/O entry
+from molrs.optimize import (
     LBFGS,
     OptReport,
 )
-from molrs.perceive import (  # noqa: E402
+from molrs.perceive import (
     RingInfo,
     SmartsMatch,
     SmartsPattern,
@@ -300,8 +310,8 @@ __all__ = [
     "data",
     "engine",
     "io",
+    "md",
     "optimize",
-    "pack",
     "parser",
     "typifier",
     # Version
@@ -402,20 +412,20 @@ __all__ = [
     "NeighborList",
     "NeighborQuery",
     "Neighbors",
+    "VerletSkin",
     "Block",
     "FRAME_SCHEMA_VERSION",
     "Frame",
+    "FrameCollection",
     "MetaValue",
     "Quantity",
     "Unit",
+    "UnitPreset",
     "UnitRegistry",
     "ScalarObservable",
     "VectorObservable",
-    "MolRec",
-    "Observables",
     "SmilesIR",
     "Cuboid",
-    "HollowSphere",
     "Parallelepiped",
     "Sphere",
     "Element",

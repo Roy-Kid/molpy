@@ -1,4 +1,4 @@
-"""Python argument shaping for molrs' native CL&Pol scaleLJ transform."""
+"""Python argument shaping for the native CL&Pol scaleLJ transform."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ compute_k_ij = molrs.ff.compute_k_ij
 def load_fragment_scaling_data(
     path: str | Path | None = None,
 ) -> dict[str, FragmentScaling]:
-    """Return molrs' compiled CL&Pol fragment table.
+    """Return the native core's compiled CL&Pol fragment table.
 
     The table is compiled in, not parsed at runtime; pass explicit
     ``FragmentScaling`` objects to :func:`scale_lj` for custom data.
@@ -39,7 +39,7 @@ def scale_lj(
     *,
     scale_sigma: bool = False,
 ) -> ForceField:
-    """Shape atom views and delegate COM/formula/FF rewriting to molrs."""
+    """Shape atom views and delegate COM/formula/FF rewriting to the native core."""
     payload = {
         label: (
             [str(atom.get("type") or "") for atom in atoms],

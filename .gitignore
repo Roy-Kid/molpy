@@ -6,8 +6,6 @@ __pycache__/
 # vscode
 .vscode/
 
-# tests-data
-tests-data
 test.*
 a.out
 chemfile-testcases/

@@ -14,7 +14,6 @@ import molrs
 
 import molpy
 from molpy.compute import RDF, NeighborList
-from molpy.compute.base import Compute
 
 
 def _uniform_frame(n: int, box_len: float, seed: int):
@@ -26,10 +25,6 @@ def _uniform_frame(n: int, box_len: float, seed: int):
     return frame
 
 
-def test_rdf_is_a_compute_subclass():
-    assert issubclass(RDF, Compute)
-
-
 def test_ideal_gas_g_of_r_approaches_one():
     """For a uniform random point cloud, g(r) → 1 in middle bins."""
     n_frames = 5
@@ -38,10 +33,10 @@ def test_ideal_gas_g_of_r_approaches_one():
     cutoff = 8.0
 
     frames = [_uniform_frame(n_points, box_len, seed=i) for i in range(n_frames)]
-    nlists = [NeighborList(cutoff=cutoff)(f) for f in frames]
+    nlists = [NeighborList(cutoff=cutoff).compute(f) for f in frames]
 
     rdf = RDF(n_bins=40, r_max=cutoff, r_min=0.0)
-    result = rdf(frames, nlists)
+    result = rdf.compute(frames, nlists)
 
     g_of_r = np.asarray(result.rdf)
     centers = np.asarray(result.bin_centers)
@@ -62,9 +57,9 @@ def test_multi_frame_aggregation():
     n_bins = 30
 
     frames = [_uniform_frame(800, box_len, seed=i) for i in range(3)]
-    nlists = [NeighborList(cutoff=cutoff)(f) for f in frames]
+    nlists = [NeighborList(cutoff=cutoff).compute(f) for f in frames]
 
-    multi = RDF(n_bins, r_max=cutoff)(frames, nlists)
+    multi = RDF(n_bins, r_max=cutoff).compute(frames, nlists)
     g_multi = np.asarray(multi.rdf)
 
     # Sanity: shape + finite + non-negative.
@@ -75,12 +70,12 @@ def test_multi_frame_aggregation():
 
 def test_input_frame_immutable():
     frame = _uniform_frame(300, 15.0, seed=11)
-    nlist = NeighborList(cutoff=4.0)(frame)
+    nlist = NeighborList(cutoff=4.0).compute(frame)
 
     box_matrix_before = frame.box.matrix.copy()
     x_before = frame["atoms"]["x"].copy()
 
-    RDF(20, r_max=4.0)([frame], [nlist])
+    RDF(20, r_max=4.0).compute([frame], [nlist])
 
     np.testing.assert_array_equal(frame.box.matrix, box_matrix_before)
     np.testing.assert_array_equal(frame["atoms"]["x"], x_before)
@@ -95,4 +90,4 @@ def test_no_box_raises():
     # frame.box left as None deliberately.
 
     with pytest.raises(ValueError, match="box"):
-        NeighborList(cutoff=2.0)(frame)
+        NeighborList(cutoff=2.0).compute(frame)

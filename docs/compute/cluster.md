@@ -104,8 +104,8 @@ frame = mp.Frame()
 frame["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 frame.box = mp.Box.cubic(40.0)
 
-nlist = NeighborList(cutoff=2.0)(frame)
-result, = Cluster(min_cluster_size=5)([frame], [nlist])
+nlist = NeighborList(cutoff=2.0).compute(frame)
+result, = Cluster(min_cluster_size=5).compute([frame], [nlist])
 print(result.num_clusters)                      # -> 3
 print(sorted(np.asarray(result.cluster_sizes).tolist()))    # -> [40, 40, 40]
 ```
@@ -130,7 +130,7 @@ filter, not part of the physics.
 ```python
 from molpy.compute import ClusterProperties
 
-props, = ClusterProperties()([frame], [result])
+props, = ClusterProperties().compute([frame], [result])
 print(sorted(props))
 # -> ['centers', 'centers_of_mass', 'cluster_masses', 'gyration_tensors',
 #     'radii_of_gyration', 'sizes']

@@ -2,14 +2,14 @@
 
 Polymer construction composes the real engine classes directly (there is
 no ``polymer()`` dispatcher): prepare monomers with
-:class:`molrs.io.SmilesIR` / :func:`molpy.io.read_smiles`,
+``SmilesIR`` / :func:`molpy.io.read_smiles`,
 mark the atoms that may react with ``fields.SITE``, then
 :meth:`PolymerBuilder.build` a CGSmiles string. Crosslinking is the same
 kernel with a different :class:`Selector`. Polydisperse systems drive
 :class:`PolymerBuilder` from the distribution + :class:`SystemPlanner`
 primitives. See :mod:`molpy.builder.assembly` for the full recipe.
 
-Crystal construction goes through :func:`build_crystal` with
+Crystal construction goes through :meth:`Lattice.build` with
 :class:`Lattice` / :class:`Site`. AmberTools-backed polymer builds use
 :class:`AmberPolymerBuilder`. Nanostructures expose direct ``build`` methods;
 their compile/cache details remain internal.
@@ -19,7 +19,7 @@ from molpy.core.region import BoxRegion, Cube, Region, SphereRegion
 
 from ._finalize import Finalization, StructureFinalizer
 from .ambertools import AmberResult, AmberTools
-from .crystal import Lattice, Site, SpaceGroup, build_crystal
+from .crystal import Lattice, Site, SpaceGroup
 from .nanostructure import CarbonTubeBuilder, GrapheneBuilder
 from .polymer import (
     AlternatingSequenceGenerator,
@@ -75,7 +75,6 @@ __all__ = [
     "Site",
     "SpaceGroup",
     "SphereRegion",
-    "build_crystal",
     # Nanostructure builders
     "CarbonTubeBuilder",
     "GrapheneBuilder",

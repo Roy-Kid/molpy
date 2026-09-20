@@ -1,8 +1,8 @@
-"""Distance-based clustering — molrs-backed.
+"""Distance-based clustering — native-backed.
 
-``Cluster`` takes (frames, nlists) and returns one ``ClusterResult`` per
-frame. ``ClusterCenters`` takes (frames, clusters) and returns the
-geometric centers per cluster.
+``Cluster`` takes (frames, nlists) or (frames, keys=...) and returns one
+``ClusterResult`` per frame. ``ClusterCenters`` takes (frames, clusters)
+and returns the geometric centers per cluster.
 
 Both wrappers take two data inputs — mirroring the ``RDF`` pattern.
 
@@ -18,10 +18,8 @@ from molrs.compute.cluster import Cluster as _MolrsCluster
 from molrs.compute.cluster import ClusterCenters as _MolrsClusterCenters
 from molrs.compute.cluster import ClusterProperties as _MolrsClusterProperties
 
-from .base import Compute
 
-
-class Cluster(Compute):
+class Cluster:
     """Group particles into clusters via a neighbor-list connectivity graph.
 
     Parameters
@@ -31,25 +29,31 @@ class Cluster(Compute):
     """
 
     def __init__(self, min_cluster_size: int) -> None:
-        super().__init__(min_cluster_size=min_cluster_size)
         self._impl = _MolrsCluster(min_cluster_size)
 
-    def __call__(self, frames, neighbors):
+    def compute(self, frames, neighbors=None, keys=None):
+        """Cluster by neighbor connectivity, or by membership ``keys``.
+
+        ``keys`` is one non-negative integer per atom (e.g. ``mol_id``).
+        When set, ``neighbors`` is ignored and grouping is purely by key —
+        the path for per-molecule properties such as chain Rg.
+        """
+        if keys is not None:
+            return self._impl.compute(frames, keys=keys)
         return self._impl.compute(frames, neighbors)
 
 
-class ClusterCenters(Compute):
+class ClusterCenters:
     """Geometric centers per cluster (unweighted)."""
 
     def __init__(self) -> None:
-        super().__init__()
         self._impl = _MolrsClusterCenters()
 
-    def __call__(self, frames, clusters):
+    def compute(self, frames, clusters):
         return self._impl.compute(frames, clusters)
 
 
-class ClusterProperties(Compute):
+class ClusterProperties:
     """Per-cluster properties (sizes, centers, masses, gyration tensors, Rg).
 
     Takes ``(frames, clusters)`` where ``clusters`` is the sequence of
@@ -57,8 +61,7 @@ class ClusterProperties(Compute):
     """
 
     def __init__(self) -> None:
-        super().__init__()
         self._impl = _MolrsClusterProperties()
 
-    def __call__(self, frames, clusters):
+    def compute(self, frames, clusters):
         return self._impl.compute(frames, clusters)

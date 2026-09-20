@@ -12,7 +12,7 @@ Registered emitters (lookup by name)::
     EMITTERS["gromacs"]  ->  GromacsEmitter
     EMITTERS["xml"]      ->  XMLEmitter
 
-Use :func:`emit_all` to run every registered emitter for ``--emit all``.
+``--emit all`` on the CLI loops :func:`emit` over ``EMITTERS``.
 """
 
 from __future__ import annotations
@@ -64,28 +64,11 @@ def emit(
     return EMITTERS[name].emit(atomistic, ff, out_dir, prefix=prefix, **opts)
 
 
-def emit_all(
-    atomistic: Atomistic,
-    ff: ForceField,
-    out_dir: Path,
-    *,
-    prefix: str = "system",
-    **opts: Any,
-) -> dict[str, list[Path]]:
-    """Run every registered emitter; returns ``{engine: [paths]}``."""
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    return {
-        name: e.emit(atomistic, ff, out_dir, prefix=prefix, **opts)
-        for name, e in EMITTERS.items()
-    }
-
-
 # Register built-in emitters on import
-from .gromacs import GromacsEmitter  # noqa: E402
-from .lammps import LammpsEmitter  # noqa: E402
-from .openmm import OpenMMEmitter  # noqa: E402
-from .xml import XMLEmitter  # noqa: E402
+from .gromacs import GromacsEmitter
+from .lammps import LammpsEmitter
+from .openmm import OpenMMEmitter
+from .xml import XMLEmitter
 
 register("lammps", LammpsEmitter())
 register("openmm", OpenMMEmitter())
@@ -97,7 +80,6 @@ __all__ = [
     "EMITTERS",
     "register",
     "emit",
-    "emit_all",
     "LammpsEmitter",
     "OpenMMEmitter",
     "GromacsEmitter",

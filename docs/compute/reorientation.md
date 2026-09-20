@@ -132,7 +132,7 @@ motion a *rotation*: a displacement along the axis would change the rod's length
 instead of its direction.
 
 ```python
-result = LegendreReorientation(max_lag=200)(frames)
+result = LegendreReorientation(max_lag=200).compute(frames)
 c1, c2 = np.asarray(result.c1), np.asarray(result.c2)
 print(round(float(c1[0]), 3), round(float(c2[0]), 3))   # -> 1.0 1.0
 print(c1.shape)                                          # -> (201,)

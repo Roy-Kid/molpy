@@ -27,25 +27,22 @@ def _dimer_system(separation: float = 2.2) -> tuple[molrs.Frame, ForceField]:
         carbon, carbon, epsilon=0.05, sigma=3.4
     )
 
-    frame = molrs.Frame.from_dict(
+    frame = molrs.Frame(
         {
-            "blocks": {
-                "atoms": {
-                    "x": np.array([0.0, separation]),
-                    "y": np.zeros(2),
-                    "z": np.zeros(2),
-                    "type": ["C", "C"],
-                    "charge": np.zeros(2),
-                    "id": np.array([1, 2], dtype=np.int64),
-                    "mol_id": np.array([1, 1], dtype=np.int64),
-                },
-                "bonds": {
-                    "atomi": np.array([0], dtype=np.int64),
-                    "atomj": np.array([1], dtype=np.int64),
-                    "type": ["C-C"],
-                },
+            "atoms": {
+                "x": np.array([0.0, separation]),
+                "y": np.zeros(2),
+                "z": np.zeros(2),
+                "type": ["C", "C"],
+                "charge": np.zeros(2),
+                "id": np.array([1, 2], dtype=np.int64),
+                "mol_id": np.array([1, 1], dtype=np.int64),
             },
-            "meta": {},
+            "bonds": {
+                "atomi": np.array([0], dtype=np.int64),
+                "atomj": np.array([1], dtype=np.int64),
+                "type": ["C-C"],
+            },
         }
     )
     frame.box = molrs.Box.cube(30.0)

@@ -181,7 +181,7 @@ def test_damping_closed_form_simple_params():
 
     # Use def_pairstyle to set non-default style params
     ff = molrs.ff.ForceField("tt-simple")
-    pstyle = ff.def_pairstyle("coul/tt", {"b": 1.0, "n": 2, "c": 1.0})
+    pstyle = ff.def_pairstyle("coul/tt", {"b": 1.0, "order": 2, "c": 1.0})
     pstyle.def_type("A", charge=q)
 
     frame = _build_pair_frame(

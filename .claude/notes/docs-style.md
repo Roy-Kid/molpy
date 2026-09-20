@@ -158,7 +158,7 @@ trajectory lives in gitignored `.cache/docs_data/`.
 
 ## Code example conventions (all docs)
 
-- Top-level import: `import molpy as mp`; submodule: `from molpy.reacter import Reacter`.
+- Top-level import: `import molpy as mp`; submodule: `from molpy.builder.assembly import GraphAssembler`.
 - Expected output as comment: `# -> [Atom: C, Atom: O]`.
 - Max 15 lines per block; realistic and runnable.
 - Consistent variable names: `mol`, `ff`, `frame`, `traj`, `builder`, `rxn`.

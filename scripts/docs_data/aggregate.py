@@ -36,8 +36,8 @@ def percolation(trajectory: Trajectory) -> dict[str, float]:
     for cutoff in np.arange(3.2, 5.61, 0.05):
         counts, fractions = [], []
         for frame in frames:
-            result = Cluster(min_cluster_size=2)(
-                [frame], [NeighborList(cutoff=float(cutoff))(frame)]
+            result = Cluster(min_cluster_size=2).compute(
+                [frame], [NeighborList(cutoff=float(cutoff)).compute(frame)]
             )[0]
             sizes = np.asarray(result.cluster_sizes)
             counts.append(result.num_clusters)
@@ -93,12 +93,14 @@ def chain_gyration(_trajectory: Trajectory) -> dict[str, float]:
                 "z": positions[:, 2],
             }
             frame.box = mp.Box.cubic(400.0)
-            clusters = Cluster(min_cluster_size=5)(
-                [frame], [NeighborList(cutoff=2.5)(frame)]
+            clusters = Cluster(min_cluster_size=5).compute(
+                [frame], [NeighborList(cutoff=2.5).compute(frame)]
             )
             masses = np.full(n_beads, 1.0)
-            com = CenterOfMass(masses)([frame], clusters)
-            radii = np.asarray(RadiusOfGyration(masses)([frame], clusters, com)[0])
+            com = CenterOfMass(masses).compute([frame], clusters)
+            radii = np.asarray(
+                RadiusOfGyration(masses).compute([frame], clusters, com)[0]
+            )
             if radii.size:
                 measured.append(float(radii.max()))
         squared = np.asarray(measured) ** 2
@@ -109,9 +111,7 @@ def chain_gyration(_trajectory: Trajectory) -> dict[str, float]:
         mean_rg = float(np.mean(measured))
         analytic = float(np.sqrt(n_beads * bond**2 / 6.0))
         ratios.append(root_mean_square / analytic)
-        rows.append(
-            {"n": n_beads, "rg": round(root_mean_square, 4), "series": "√⟨R²⟩"}
-        )
+        rows.append({"n": n_beads, "rg": round(root_mean_square, 4), "series": "√⟨R²⟩"})
         rows.append({"n": n_beads, "rg": round(mean_rg, 4), "series": "⟨R⟩"})
         rows.append({"n": n_beads, "rg": round(analytic, 4), "series": "exact"})
     write_json("shape/ideal_chain_rg.json", rows)
@@ -132,8 +132,8 @@ def descriptor_map(trajectory: Trajectory) -> dict[str, float]:
     liquid_frames = _frames(trajectory, stride=750)
 
     def descriptors(frame: mp.Frame, cutoff: float) -> np.ndarray:
-        nlist = NeighborList(cutoff=cutoff)(frame)
-        ql = np.asarray(Steinhardt(l=[4, 6])([frame], [nlist])[0]["ql"])
+        nlist = NeighborList(cutoff=cutoff).compute(frame)
+        ql = np.asarray(Steinhardt(l=[4, 6]).compute([frame], [nlist])[0]["ql"])
         coordination = np.full(ql.shape[1], 2.0 * nlist.n_pairs / ql.shape[1])
         return np.column_stack([ql[0], ql[1], coordination])
 
@@ -150,9 +150,9 @@ def descriptor_map(trajectory: Trajectory) -> dict[str, float]:
     # Standardize: PCA on raw columns would be dominated by coordination number.
     matrix = (matrix - matrix.mean(axis=0)) / matrix.std(axis=0)
 
-    projected = Pca()([DescriptorRow(row) for row in matrix])
+    projected = Pca().compute([DescriptorRow(row) for row in matrix])
     coords = np.asarray(projected.coords)
-    labels = np.asarray(KMeans(k=2, max_iter=100, seed=0)(projected).labels)
+    labels = np.asarray(KMeans(k=2, max_iter=100, seed=0).compute(projected).labels)
 
     rows: list[dict[str, float | str]] = [
         {

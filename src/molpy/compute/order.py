@@ -1,7 +1,7 @@
-"""Bond-orientational order operators — molrs-backed.
+"""Bond-orientational order operators — native-backed.
 
-Thin ``Compute`` shells over ``molrs.compute.order.*``. Each forwards verbatim
-to the Rust kernel and returns the molrs native result; molpy adds no wrapping
+Thin ``Compute`` shells over the native ``order`` kernels. Each forwards verbatim
+to the Rust kernel and returns the native native result; molpy adds no wrapping
 and copies nothing. Like ``compute.RDF``, these take two data inputs.
 
 References
@@ -22,10 +22,8 @@ from collections.abc import Sequence
 
 import molrs
 
-from .base import Compute
 
-
-class Steinhardt(Compute):
+class Steinhardt:
     """Steinhardt :math:`q_\\ell` / :math:`w_\\ell` bond-orientational order.
 
     Parameters
@@ -47,14 +45,13 @@ class Steinhardt(Compute):
         wl: bool = False,
         wl_normalize: bool = False,
     ):
-        super().__init__(l=l, average=average, wl=wl, wl_normalize=wl_normalize)
         self._inner = molrs.compute.order.Steinhardt(l, average, wl, wl_normalize)
 
-    def __call__(self, frames, nlists):
+    def compute(self, frames, nlists):
         return self._inner.compute(frames, nlists)
 
 
-class Hexatic(Compute):
+class Hexatic:
     """Two-dimensional :math:`\\psi_k` hexatic bond-orientational order.
 
     Parameters
@@ -64,17 +61,16 @@ class Hexatic(Compute):
     """
 
     def __init__(self, k: int):
-        super().__init__(k=k)
         self._inner = molrs.compute.order.Hexatic(k)
 
-    def __call__(self, frames, nlists):
+    def compute(self, frames, nlists):
         return self._inner.compute(frames, nlists)
 
 
-class Nematic(Compute):
+class Nematic:
     """Nematic order parameter and Q-tensor from per-particle directors.
 
-    Called as ``__call__(frames)`` only. The per-particle orientation directors
+    Called as ``compute(frames)`` only. The per-particle orientation directors
     are the unit ``head - tail`` vectors read from each frame's core
     ``orientations`` topology block (one ``(head, tail)`` atom pair per row), so
     no separate director array is passed. Returns
@@ -82,14 +78,13 @@ class Nematic(Compute):
     """
 
     def __init__(self):
-        super().__init__()
         self._inner = molrs.compute.order.Nematic()
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)
 
 
-class SolidLiquid(Compute):
+class SolidLiquid:
     """Solid-liquid classification via :math:`q_\\ell` bond correlations.
 
     Parameters
@@ -103,8 +98,7 @@ class SolidLiquid(Compute):
     """
 
     def __init__(self, l: int, q_threshold: float = 0.7, n_threshold: int = 6):
-        super().__init__(l=l, q_threshold=q_threshold, n_threshold=n_threshold)
         self._inner = molrs.compute.order.SolidLiquid(l, q_threshold, n_threshold)
 
-    def __call__(self, frames, nlists):
+    def compute(self, frames, nlists):
         return self._inner.compute(frames, nlists)

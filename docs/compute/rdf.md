@@ -195,8 +195,8 @@ answer in advance. Now histogram it.
 ```python
 from molpy.compute import NeighborList, RDF
 
-nlist = NeighborList(cutoff=8.0)(frame)
-result = RDF(n_bins=160, r_max=8.0)([frame], [nlist])
+nlist = NeighborList(cutoff=8.0).compute(frame)
+result = RDF(n_bins=160, r_max=8.0).compute([frame], [nlist])
 
 r, g = result.bin_centers, result.rdf
 peaks = r[g > 0.1]
@@ -213,8 +213,8 @@ trajectory is the same call with longer lists:
 
 ```python
 frames = [frame, frame]                        # in practice, your trajectory
-nlists = [NeighborList(cutoff=8.0)(f) for f in frames]
-averaged = RDF(n_bins=160, r_max=8.0)(frames, nlists)
+nlists = [NeighborList(cutoff=8.0).compute(f) for f in frames]
+averaged = RDF(n_bins=160, r_max=8.0).compute(frames, nlists)
 print(averaged.n_frames)                       # -> 2
 ```
 

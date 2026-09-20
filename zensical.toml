@@ -29,6 +29,7 @@ nav = [
       { "Quickstart" = "getting-started/quickstart.md" },
       { "Example Gallery" = "getting-started/examples.md" },
       { "FAQ" = "getting-started/faq.md" },
+      { "Migrating to 0.14" = "getting-started/migration-0-14.md" },
     ] },
     { "The Data Model" = [
       { "Atomistic and Topology" = "tutorials/01_atomistic_and_topology.md" },
@@ -137,7 +138,6 @@ nav = [
       { "Signal" = "compute/signal.md" },
     ] },
     { "Workflow" = [
-      { "Workflow" = "compute/workflow.md" },
     ] },
   ] },
 
@@ -212,8 +212,8 @@ generator = false
 
 [project.extra.molcrafts]
 product = "molpy"
-accent = "#0284c7"                       # primary (主) — molpy signature colour
-accent_soft = "rgba(2, 132, 199, 0.14)"  # secondary (副) — soft fill behind it
+accent = "#0284c7"                       # primary — molpy signature colour
+accent_soft = "rgba(2, 132, 199, 0.14)"  # secondary — soft fill behind it
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"

@@ -1,7 +1,7 @@
 """Pattern-derived receptive field for region typing.
 
-``TypeScope`` is the **system-side** synthesis of molrs syntax facts
-(``max_bond_depth``, ``ring_primitives``). molrs never names ``reach`` or
+``TypeScope`` is the **system-side** synthesis of native syntax facts
+(``max_bond_depth``, ``ring_primitives``). the native core never names ``reach`` or
 ``TypeScope`` — iron law 2: the engine reports grammar; the force-field layer
 decides whether a finite neighbourhood exists and how large it is.
 
@@ -48,8 +48,9 @@ def _compile_pattern(
         return item
     try:
         return molrs.perceive.SmartsPattern(item)
-    except Exception:
-        # OPLS-style bare atom expressions often need brackets.
+    except ValueError:
+        # OPLS-style bare atom expressions (``C``, ``N2``) need brackets; any
+        # other parse error surfaces from this second attempt.
         return molrs.perceive.SmartsPattern(f"[{item}]")
 
 
@@ -93,7 +94,7 @@ class TypeScope:
     def from_patterns(
         cls, patterns: Iterable[str | molrs.perceive.SmartsPattern]
     ) -> Self:
-        """Synthesise a scope from molrs syntax facts on each pattern.
+        """Synthesise a scope from native syntax facts on each pattern.
 
         Raises:
             UnboundedPatternSet: if any pattern uses an untyped ring primitive.

@@ -94,7 +94,9 @@ shorter leaves those corners permanently unvisited:
 from molpy.compute import NeighborList, PMFTXY
 
 analyzer = PMFTXY(x_max=6.0, y_max=6.0, n_x=40, n_y=40)
-(counts, density, pmf), = analyzer([frame], [NeighborList(cutoff=8.5)(frame)])
+(counts, density, pmf), = analyzer.compute(
+    [frame], [NeighborList(cutoff=8.5).compute(frame)]
+)
 
 print(counts.shape, pmf.shape)          # -> (40, 40) (40, 40)
 print(int(counts.sum()))                # -> 39708
@@ -115,8 +117,8 @@ Shorten the cutoff below the corner distance and they appear, in exactly the
 places geometry predicts:
 
 ```python
-short = NeighborList(cutoff=8.0)(frame)
-(_, _, clipped), = analyzer([frame], [short])
+short = NeighborList(cutoff=8.0).compute(frame)
+(_, _, clipped), = analyzer.compute([frame], [short])
 print(int((~np.isfinite(clipped)).sum()))   # -> 8
 ```
 
@@ -133,8 +135,8 @@ counts per bin.
 the end:
 
 ```python
-nlist = NeighborList(cutoff=8.5)(frame)
-per_frame = analyzer([frame, frame], [nlist, nlist])
+nlist = NeighborList(cutoff=8.5).compute(frame)
+per_frame = analyzer.compute([frame, frame], [nlist, nlist])
 total = np.sum([raw for raw, _, _ in per_frame], axis=0)
 
 occupied = total > 0
@@ -192,7 +194,9 @@ head = np.concatenate([np.arange(n_rods), np.arange(n_rods)])
 tail = np.concatenate([np.arange(n_rods, 2 * n_rods), np.arange(n_rods, 2 * n_rods)])
 rods["orientations"] = {"atomi": head, "atomj": tail}
 
-(body_counts, _, _), = analyzer([rods], [NeighborList(cutoff=8.5)(rods)])
+(body_counts, _, _), = analyzer.compute(
+    [rods], [NeighborList(cutoff=8.5).compute(rods)]
+)
 print(rods["orientations"].nrows, rods["atoms"].nrows)   # -> 400 400
 ```
 
@@ -208,7 +212,9 @@ neighbour has been rotated into its reference rod's frame before binning:
 plain = mp.Frame()
 plain["atoms"] = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
 plain.box = mp.Box.cubic(20.0)
-(lab_counts, _, _), = analyzer([plain], [NeighborList(cutoff=8.5)(plain)])
+(lab_counts, _, _), = analyzer.compute(
+    [plain], [NeighborList(cutoff=8.5).compute(plain)]
+)
 
 print(np.allclose(body_counts, lab_counts))   # -> False
 ```

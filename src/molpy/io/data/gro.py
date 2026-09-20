@@ -1,7 +1,8 @@
-"""GROMACS .gro file I/O — thin molrs wrappers.
+"""GROMACS .gro file I/O — thin native wrappers.
 
-Parse/serialize live in :mod:`molrs.io`. :class:`GroFieldFormatter` documents
-format-native names for the FieldFormatter hierarchy (no separate Python parser).
+Parse/serialize live in the native ``io`` module, which also owns
+:class:`GroFieldFormatter` (the .gro → canonical name map); there is no separate
+Python parser and no molpy copy of that formatter.
 """
 
 from __future__ import annotations
@@ -11,22 +12,13 @@ from pathlib import Path
 import molrs.io
 from molrs import Frame
 
-from molpy.core.fields import RES_ID, RES_NAME, FieldFormatter
+from molpy.core.fields import GroFieldFormatter
 
 from .base import DataReader, DataWriter
 
 
-class GroFieldFormatter(FieldFormatter):
-    """GROMACS .gro field name translation (documentation / hierarchy only)."""
-
-    _field_formatters = {
-        "res_number": RES_ID,
-        "res_name": RES_NAME,
-    }
-
-
 class GroReader(DataReader):
-    """Read GRO via molrs (first frame if multi-frame)."""
+    """Read GRO natively (first frame if multi-frame)."""
 
     _formatter = GroFieldFormatter()
 
@@ -42,7 +34,7 @@ class GroReader(DataReader):
 
 
 class GroWriter(DataWriter):
-    """Write GRO via molrs."""
+    """Write GRO natively."""
 
     _formatter = GroFieldFormatter()
 

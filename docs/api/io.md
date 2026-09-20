@@ -33,12 +33,14 @@ File readers and writers for molecular data, force fields, and trajectories.
 |----------|--------|-----------|
 | `read_lammps_trajectory` | LAMMPS dump | read (lazy) |
 | `read_xyz_trajectory` | XYZ trajectory | read (lazy) |
+| `mrec.TrajectoryReader` | mrec store | read (lazy cursor) |
+| `mrec.TrajectoryWriter` | mrec store | write (append-first) |
 
 ### Logs
 
 | Function | Format | Direction |
 |----------|--------|-----------|
-| `read_LAMMPS_log` | LAMMPS log | read |
+| `read_lammps_log` | LAMMPS log | read |
 
 ## Canonical examples
 
@@ -65,7 +67,7 @@ for frame in traj:
  process(frame)
 
 # Read LAMMPS run output
-log = mp.io.read_LAMMPS_log("log.lammps")
+log = mp.io.read_lammps_log("log.lammps")
 thermo = log.runs[0].thermo
 print(thermo.columns)
 
@@ -153,7 +155,10 @@ mp.io.write_lammps_system("output_dir", frame, ff)
 #### XYZ
 ::: molpy.io.trajectory.xyz
 
+#### mrec (scientific record stores)
+::: molpy.io.mrec
+
 ### Log Modules
 
 #### LAMMPS
-::: molpy.io.log.lammps
+::: molpy.io.log

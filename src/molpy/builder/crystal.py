@@ -4,12 +4,12 @@ Tile a Bravais lattice over a range of unit cells and (optionally) clip the
 result to a geometric :class:`molpy.core.region.Region`.
 
 Example:
-    >>> from molpy.builder import Lattice, build_crystal
+    >>> from molpy.builder import Lattice
     >>> from molpy.core.region import BoxRegion
     >>> lat = Lattice.fcc(a=3.52, species="Ni")
-    >>> structure = build_crystal(lat, repeats=(4, 4, 4))
+    >>> structure = lat.build(repeats=(4, 4, 4))
     >>> # or clip a 30 Å cube out of a larger tile:
-    >>> structure = build_crystal(lat, BoxRegion(lengths=[30, 30, 30]))
+    >>> structure = lat.build(BoxRegion(lengths=[30, 30, 30]))
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+
+import molrs
 from numpy.typing import ArrayLike
 
 from molpy.core.atomistic import Atomistic
@@ -25,7 +27,7 @@ from molpy.core.box import Box
 from molpy.core.region import Region
 from molpy.builder.symmetry import SpaceGroup
 
-__all__ = ["Lattice", "Site", "SpaceGroup", "build_crystal"]
+__all__ = ["Lattice", "Site", "SpaceGroup"]
 
 
 @dataclass(frozen=True)
@@ -205,72 +207,87 @@ class Lattice:
         ]
         return cls(a * np.eye(3), basis)
 
+    def build(
+        self,
+        region: Region | None = None,
+        *,
+        repeats: tuple[int, int, int] | None = None,
+    ) -> Atomistic:
+        """Tile this lattice and (optionally) clip to a Cartesian ``region``.
 
-def build_crystal(
-    lattice: Lattice,
-    region: Region | None = None,
-    *,
-    repeats: tuple[int, int, int] | None = None,
-) -> Atomistic:
-    """Tile ``lattice`` and (optionally) clip to a Cartesian ``region``.
+        Args:
+            region: Geometric region in Cartesian space (e.g.
+                :class:`molpy.core.region.BoxRegion`, ``SphereRegion``, or any
+                ``Region`` combination via ``& | ~``). Atoms outside the region
+                are discarded.
+            repeats: Number of unit cells along each lattice vector,
+                ``(nx, ny, nz)``. If omitted, the tile range is inferred from
+                ``region.bounds``. At least one of ``region`` or ``repeats``
+                must be provided.
 
-    Args:
-        lattice: Bravais lattice with basis sites.
-        region: Geometric region in Cartesian space (e.g.
-            :class:`molpy.core.region.BoxRegion`, ``SphereRegion``, or any
-            ``Region`` combination via ``& | ~``). Atoms outside the region
-            are discarded.
-        repeats: Number of unit cells along each lattice vector,
-            ``(nx, ny, nz)``. If omitted, the tile range is inferred from
-            ``region.bounds``. At least one of ``region`` or ``repeats``
-            must be provided.
+        Returns:
+            :class:`Atomistic` containing the kept atoms. The tiled super-cell is
+            :meth:`Lattice.supercell`, which the caller sets on ``frame.box`` when
+            the structure becomes a simulation.
+        """
+        if repeats is None:
+            if region is None:
+                raise ValueError("Provide `region`, `repeats`, or both.")
+            repeats = _infer_repeats(self, region.bounds)
 
-    Returns:
-        :class:`Atomistic` containing the kept atoms. The tiled super-cell is
-        :meth:`Lattice.supercell`, which the caller sets on ``frame.box`` when
-        the structure becomes a simulation.
-    """
-    if region is None and repeats is None:
-        raise ValueError("Provide `region`, `repeats`, or both.")
+        nx, ny, nz = (int(r) for r in repeats)
+        if nx <= 0 or ny <= 0 or nz <= 0:
+            raise ValueError(f"repeats must be positive, got {repeats}")
 
-    if repeats is None:
-        repeats = _infer_repeats(lattice, region.bounds)
+        out = Atomistic()
 
-    nx, ny, nz = (int(r) for r in repeats)
-    if nx <= 0 or ny <= 0 or nz <= 0:
-        raise ValueError(f"repeats must be positive, got {repeats}")
+        if not self.basis:
+            return out
 
-    out = Atomistic()
+        cells = _cell_grid(nx, ny, nz)  # (Nc, 3)
+        basis_fracs = np.array([s.fractional for s in self.basis], dtype=float)
+        fracs = (cells[:, None, :] + basis_fracs[None, :, :]).reshape(-1, 3)
+        carts = self.frac_to_cart(fracs)
 
-    if not lattice.basis:
-        return out
+        site_tiled = np.tile(np.array(self.basis, dtype=object), cells.shape[0])
 
-    cells = _cell_grid(nx, ny, nz)  # (Nc, 3)
-    basis_fracs = np.array([s.fractional for s in lattice.basis], dtype=float)
-    fracs = (cells[:, None, :] + basis_fracs[None, :, :]).reshape(-1, 3)
-    carts = lattice.frac_to_cart(fracs)
+        if region is not None:
+            mask = region.isin(carts)
+            carts = carts[mask]
+            site_tiled = site_tiled[mask]
 
-    site_tiled = np.tile(np.array(lattice.basis, dtype=object), cells.shape[0])
+        if len(carts) == 0:
+            return out
 
-    if region is not None:
-        mask = region.isin(carts)
-        carts = carts[mask]
-        site_tiled = site_tiled[mask]
-
-    for xyz, site in zip(carts, site_tiled):
-        attrs = dict(site.attrs or {})
-        # Canonical lattice fields win over optional annotations.
-        x, y, z = (float(component) for component in xyz)
-        attrs.update(
-            x=x,
-            y=y,
-            z=z,
-            element=site.species,
-            charge=site.charge,
-            label=site.label,
+        # One Frame, one molrs call — not one def_atom per lattice point.
+        # Canonical lattice fields win over optional site annotations, and every
+        # site must declare the same annotation keys: a Frame has no "absent"
+        # cell, and a filled-in default would be a guess.
+        keys: set[str] = set()
+        for site in self.basis:
+            keys.update(site.attrs or {})
+        for site in self.basis:
+            missing = keys - set(site.attrs or {})
+            if missing:
+                raise ValueError(
+                    f"site {site.label!r} lacks annotation(s) {sorted(missing)} "
+                    "that other sites declare"
+                )
+        columns: dict[str, np.ndarray] = {
+            key: np.array([site.attrs[key] for site in site_tiled])
+            for key in sorted(keys)
+        }
+        columns.update(
+            x=np.ascontiguousarray(carts[:, 0]),
+            y=np.ascontiguousarray(carts[:, 1]),
+            z=np.ascontiguousarray(carts[:, 2]),
+            element=np.array([site.species for site in site_tiled]),
+            charge=np.array([site.charge for site in site_tiled], dtype=float),
+            label=np.array([site.label for site in site_tiled]),
         )
-        out.def_atom(**attrs)
-    return out
+        frame = molrs.Frame()
+        frame["atoms"] = columns
+        return Atomistic.from_frame(frame)
 
 
 def _cell_grid(nx: int, ny: int, nz: int) -> np.ndarray:

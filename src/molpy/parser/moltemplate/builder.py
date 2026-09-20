@@ -22,13 +22,11 @@ from __future__ import annotations
 import math
 
 import re
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from molpy.core.atomistic import Atom, Atomistic, Bond, Angle, Dihedral, Improper
+from molpy.core.atomistic import Atom, Atomistic
 from molpy.core.forcefield import (
-    AtomStyle,
     AtomType,
     ForceField,
     Style,
@@ -41,7 +39,6 @@ from .ir import (
     Document,
     ImportStmt,
     NewStmt,
-    RandomChoice,
     ReplaceStmt,
     Transform,
     WriteBlock,
@@ -139,7 +136,7 @@ def _moltemplate_ff_search_paths() -> list[Path]:
 
     dirs: list[Path] = []
     try:
-        import moltemplate  # type: ignore
+        import moltemplate
 
         root = Path(moltemplate.__file__).parent
         ff_dir = root / "force_fields"
@@ -430,13 +427,13 @@ _PARAM_NAMES: dict[tuple[str, str], list[str]] = {
     ("bond", "harmonic"): ["k", "r0"],
     ("bond", "morse"): ["d0", "alpha", "r0"],
     ("angle", "harmonic"): ["k", "theta0"],
-    ("dihedral", "opls"): ["c1", "c2", "c3", "c4"],
-    ("dihedral", "periodic"): ["k", "n", "phi0"],
-    ("dihedral", "charmm"): ["k", "n", "phi0", "weight"],
+    ("dihedral", "opls"): ["k1", "k2", "k3", "k4"],
+    ("dihedral", "periodic"): ["k", "periodicity", "phase"],
+    ("dihedral", "charmm"): ["k", "periodicity", "phase", "weight"],
     ("dihedral", "multi/harmonic"): ["a1", "a2", "a3", "a4", "a5"],
     ("improper", "harmonic"): ["k", "chi0"],
-    ("improper", "periodic"): ["k", "n", "phi0"],
-    ("improper", "cvff"): ["k", "d", "n"],
+    ("improper", "periodic"): ["k", "periodicity", "phase"],
+    ("improper", "cvff"): ["k", "sign", "periodicity"],
     ("pair", "lj/cut/coul/cut"): ["epsilon", "sigma"],
     ("pair", "lj/cut/coul/long"): ["epsilon", "sigma"],
     ("pair", "buck"): ["a", "rho", "c"],
@@ -448,11 +445,14 @@ _PARAM_NAMES: dict[tuple[str, str], list[str]] = {
 #: radians throughout, and a reader normalizes at its own boundary — exactly as
 #: molrs's own LAMMPS force-field reader does (`readers/lammps.rs`, which calls
 #: `.to_radians()` on `theta0` and every dihedral phase).
-_DEGREE_PARAMS = frozenset({"theta0", "phi0", "chi0"})
+#: ``phase`` joins the reference angles: the canonical torsion phase is in
+#: radians internally and degrees at a moltemplate boundary, exactly as
+#: ``theta0`` / ``chi0`` are.
+_DEGREE_PARAMS = frozenset({"theta0", "phi0", "chi0", "phase"})
 
 
 def _to_internal_units(params: dict[str, float]) -> dict[str, float]:
-    """Normalize a parsed ``*_coeff`` parameter set to molrs units."""
+    """Normalize a parsed ``*_coeff`` parameter set to the native store units."""
     return {
         name: math.radians(value)
         if name in _DEGREE_PARAMS and isinstance(value, (int, float))
@@ -467,7 +467,7 @@ def _call_def_type(
     """Invoke ``style.def_type`` with positional params mapped to keywords.
 
     ``args`` ends with a ``list[float]`` of numeric params; everything before
-    it is AtomTypes. molrs ``def_type`` accepts params only as keyword args, so
+    it is AtomTypes. the native ``def_type`` accepts params only as keyword args, so
     the positional coefficient tail is mapped onto the canonical names for the
     owning ``(kind, style.name)`` kernel. If ``type_name`` is set it's passed
     as the ``name=`` kwarg.
@@ -1061,20 +1061,14 @@ def build_system(
         # connectivity-driven FFs. Type assignment remains best-effort.
         existing_angles = len(list(system.angles))
         existing_dihedrals = len(list(system.dihedrals))
-        try:
-            system = system.get_topo(
-                gen_angle=existing_angles == 0,
-                gen_dihe=existing_dihedrals == 0,
-            )  # type: ignore[assignment]
-        except Exception:
-            pass
+        system = system.get_topo(
+            gen_angle=existing_angles == 0,
+            gen_dihe=existing_dihedrals == 0,
+        )  # type: ignore[assignment]
 
     # Apply Bonds/Angles/Dihedrals/Impropers By Type wildcard rules to fill
     # in missing ``type`` attributes on connectivity links.
-    try:
-        _apply_by_type_to_system(system, ff)
-    except Exception:
-        pass
+    _apply_by_type_to_system(system, ff)
 
     return system, ff
 

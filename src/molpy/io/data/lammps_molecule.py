@@ -1,8 +1,8 @@
-"""LAMMPS molecule template I/O — molrs-backed.
+"""LAMMPS molecule template I/O — native-backed.
 
 Native ``.mol`` and JSON molecule files are read/written by
-:func:`molrs.io.read_lammps_molecule` /
-:func:`molrs.io.write_lammps_molecule`. This module is a thin façade that
+the native ``read_lammps_molecule`` /
+the native ``write_lammps_molecule``. This module is a thin façade that
 keeps the historical class API and applies the LAMMPS field formatter on
 read (``q`` → ``charge`` when present).
 """
@@ -13,7 +13,7 @@ from pathlib import Path
 
 from molrs import Frame
 
-from molpy.io.data.lammps import LammpsFieldFormatter
+from molpy.core.fields import LammpsFieldFormatter
 
 from .base import DataReader, DataWriter
 

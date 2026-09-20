@@ -145,7 +145,7 @@ Everything the CLI does is available programmatically.
 ```python
 # docs: skip — needs offline water.lt; moltemplate unit-tested with fixtures
 from molpy.io.forcefield.moltemplate import read_moltemplate_system
-from molpy.io.emit import emit, emit_all
+from molpy.io.emit import EMITTERS, emit
 from molpy.parser.moltemplate import (
  emit_python, #.lt →.py
  ltemplify, # (atomistic, ff) →.lt string
@@ -159,7 +159,8 @@ atomistic, ff = read_moltemplate_system("water.lt")
 emit("lammps", atomistic, ff, "out/", prefix="w")
 
 # All engines
-emit_all(atomistic, ff, "out/", prefix="w")
+for engine in EMITTERS:
+    emit(engine, atomistic, ff, "out/", prefix="w")
 
 #.lt →.py
 emit_python(parse_file("water.lt"), "water.py")

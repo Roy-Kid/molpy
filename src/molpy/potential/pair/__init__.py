@@ -1,4 +1,4 @@
-"""Pair (non-bonded) potential styles (facade over molrs)."""
+"""Pair (non-bonded) potential styles (facade over the native core)."""
 
 from molpy.core.forcefield import (
     PairBuckStyle,

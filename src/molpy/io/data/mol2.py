@@ -1,6 +1,6 @@
-"""Tripos MOL2 structure I/O (molrs-backed).
+"""Tripos MOL2 structure I/O (native-backed).
 
-Read/write go through :func:`molrs.io.read_mol2` / :func:`molrs.io.write_mol2`.
+Read/write go through the native ``read_mol2`` / the native ``write_mol2``.
 Canonical column names: ``type`` (SYBYL atom type), ``res_id``/``res_name``
 (from ``subst_*``).
 """
@@ -25,7 +25,7 @@ class Mol2Reader(DataReader):
         """Read the first molecule from the MOL2 path.
 
         Args:
-            frame: Accepted for API parity; ignored (molrs always returns a
+            frame: Accepted for API parity; ignored (the native core always returns a
                 new Frame).
 
         Returns:
@@ -46,7 +46,7 @@ class Mol2Reader(DataReader):
 
 
 class Mol2Writer(DataWriter):
-    """Write a Frame to a Tripos MOL2 file (molrs)."""
+    """Write a Frame to a Tripos MOL2 file (native)."""
 
     def __init__(self, file: str | Path) -> None:
         super().__init__(Path(file))

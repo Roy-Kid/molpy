@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from molpy.core import fields
-from molpy.core.atomistic import Atom, Atomistic, Bond, DrudeParticle, MasslessSite
+from molpy.core.atomistic import Atom, Atomistic, DrudeParticle, MasslessSite
 
 # 4*pi*eps0 in e^2 / (kJ/mol * A), per paduagroup/clandpol polarizer.
 FOUR_PI_EPS0 = 0.0007197587
@@ -39,7 +39,7 @@ def load_polarizability(path: str | Path | None = None) -> dict[str, dict[str, f
     A^3, dimensionless). Comment lines (``#``) and blanks are skipped.
     """
     if path is None:
-        from molpy.data.forcefield import get_forcefield_path
+        from molpy.data import get_forcefield_path
 
         path = get_forcefield_path("alpha.ff")
     table: dict[str, dict[str, float]] = {}

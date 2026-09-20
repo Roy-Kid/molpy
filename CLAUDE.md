@@ -13,12 +13,11 @@ mol_project:
   specs_path: .claude/specs
   notes_path: .claude/notes/notes.md
   build:
-    install: pip install -e ".[dev]"
-    format: ruff format src tests
-    check: ruff check src tests && ty check src/molpy/
-    test: pytest tests/ -v
-    test_single: pytest {path} -v
-    coverage: pytest --cov=src/molpy tests/ -v --cov-report=html
+    install: uv sync --extra dev
+    format: uv run ruff format src tests
+    check: uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+    test: uv run --extra dev python -m pytest tests/ -n auto
+    test_single: uv run --extra dev python -m pytest {path}
 ---
 
 # CLAUDE.md
@@ -45,71 +44,32 @@ users never import molrs directly.
 - Claude Code runtime config (agents, skills, hooks, settings):
   `.claude/agents/`, `.claude/skills/`, `.claude/hooks/`, `.claude/settings.json`
 
-## Design preferences (default)
+## Law (never violated)
 
-**Default for all MolCrafts projects.** Apply unless the operator
-**explicitly** requires a functional (or other) style for a named
-subsystem — then capture the exception with `/mol:note` and scope it.
-Do **not** invent a functional style on your own.
+Full text: `.claude/notes/law.md`. Outranks scope, minimal-diff, and
+convenience. There are no overridable defaults — a carve-out exists only if the
+operator wrote one into `law.md` naming the subsystem. An agent never grants
+itself one. CLAUDE.md carries **one line per law**; it is an index, not the
+rulebook. The detailed annex — the six design laws, the family→verb table and
+its declared-debt list — is `.claude/notes/architecture.md` § Design laws.
 
-### Iron law — no silent debt (all projects)
-
-Discover anti-pattern / failing test / broken invariant / clear bug
-in the surface you touch or depend on → **prioritize or hard-stop**:
-
-1. **Do not ignore** ("pre-existing, leave it"), skip-mark, weaken
-   asserts, or land features on known rot.
-2. **Fix now** if local + stage-allowed; else **stop**, report
-   path:line, route `/mol:fix` / `/mol:refactor` / supersede.
-3. **Name it** in the summary (found / fixed / blocking). Silence = process failure.
-
-Outranks "stay in scope" / "minimal diff" when those mean knowingly
-leaving rot you already saw.
-
-### Prefer
-
-- **OOP by default.** Domain concepts are types with methods
-  (`NeighborList.build`, `ForceField.energy`), not free-floating
-  helpers. Module-level functions only for true free operations (pure
-  math with no natural owner) or thin package re-exports.
-- **Primitive, single-responsibility public APIs.** Callers compose:
-  construct → configure → one concern → read result. Each public
-  method does one named thing.
-- **Inline until the second real use.** A helper used in exactly one
-  place stays inline (or a private method on the owning type). Extract
-  only at a second call site, or when a unit test must target that unit.
-
-### Forbid
-
-- **Factory functions as the primary constructor story.** No
-  `make_foo` / `build_bar` / `create_*` wrappers around construction.
-  Prefer `Foo(...)`. Explicit alternate constructors only when they
-  have distinct semantics (`Foo.from_file`, `Foo.empty`) — not
-  `make_foo` aliases of `__init__`.
-- **God data structures.** No mega-dict / mega-struct / ambient
-  "context" blob every layer reaches into. Pass the few fields a call
-  needs, or a narrow typed view. Split types that accumulate more
-  than one coherent responsibility.
-- **All-in-one façade APIs.** No public `run_everything` /
-  `compute_all` / `pipeline` that hides multi-step work. Composition
-  is the **caller's** job (scripts, docs examples, `regressions/`).
-  The library exposes primitives only.
-
-### Shape check (before adding a public symbol)
-
-1. Natural owning type? → method on that type, not a free function.
-2. More than one user-visible step? → split into primitives.
-3. Only one in-tree call site? → do not extract.
-4. Tempted to hang another field on a "context" bag? → new parameter
-   or smaller type instead.
-
-### Tests (default)
-
-- Unit tests **only** under `tests/`, path mirrors source
-  (`src/foo/boo.py` → `tests/test_foo/test_boo.py`), types mirror
-  (`FooClass` → `TestFooClass`). Single-function tests — no e2e under
-  `tests/`. Public-API scenarios → `regressions/` with **hard-coded**
-  goldens (no live third-party oracles). Details: `tester` agent.
+- **Conceptual integrity.** One problem, one coherent model — never parallel abstractions for the same concept.
+- **Architecture first.** Simple shape before local convenience — never a layer only for later or unmeasured performance.
+- **Earn complexity.** Every extra concept is paid for by demonstrated pressure.
+- **Locality of change.** A local requirement requires a local change — never lockstep, never cycles.
+- **Hide decisions, expose contracts.** Never leak representation or lifecycle across a boundary.
+- **Dependencies follow policy.** Mechanism depends on policy, never the reverse.
+- **Primitive public surface.** Orthogonal primitives; composition is the caller's job.
+- **Explicit flow.** Required ordering and ownership are enforceable — never a ritual the caller can skip.
+- **One home per fact.** Authority is unique. Representation may be copied; authority may not.
+- **No silent debt.** A conscious exception is debt; an invisible one becomes architecture.
+- **Tests verify owned behavior.** Tests belong to the owner of the behavior; unit-only by default.
+- **OOP by default, and real OOP.** Domain concepts are types with methods; no factory aliases, god-context bags, all-in-one façades, one-call-site helpers or wrappers over object access; one verb per transformation family.
+- **Native facade.** Application code imports `molpy` only; native types are identity re-exports (`molpy.Frame is molrs.Frame`) or real subclasses, never forwarding façades; shared capability sinks into the native core; the pin is one minor line.
+- **Canonical fields, in-place mutation.** Field names come from `molpy.core.fields`; `frame.box` is the only cell field; core mutation is in place with explicit `.copy()`; never guess an identity or fall back silently — raise.
+- **I/O and force-field file contracts.** On-disk formats never change without a migration note.
+- **Release with molrs.** The native core tags and publishes first; molpy bumps the minor pin after.
+- **Unit-only test gate.** No third-party scientific software or captured numbers in the gate; fixtures live in `tests/tests-data/`; no `regressions/`, no source-text gates; bindings smoke the seam only.
 
 ## Default workflow
 
@@ -118,15 +78,6 @@ For non-trivial work, prefer:
 2. implement (`/mol:impl` or `/mol:fix`)
 3. review (`/mol:review`)
 4. capture decisions (`/mol:note` — harness sync, not append-only)
-
-## What must never change casually
-
-- Identity re-exports: `molpy.Frame is molrs.Frame` (and Block/Element); no second Python storage layer
-- Hard dependency on `molcrafts-molrs` minor line (`>=X.Y.0,<X.(Y+1)`); users never `import molrs`
-- Canonical field names (`charge`, `mol_id`) and `FieldFormatter` boundary translation
-- Core data-model mutation semantics (in-place + `.copy()` opt-in)
-- `frame.box` as the only simulation-cell field on the Python surface
-- On-disk I/O formats and force-field file contracts without an explicit migration
 
 <!-- mol:bootstrap:managed end -->
 
@@ -148,31 +99,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Quick Development Commands
 
 ```bash
-# Setup
+# Setup (uv resolves molcrafts-molrs from the sibling checkout named in
+# [tool.uv.sources]; the Rust toolchain builds it)
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-pip install -e ".[dev]"
-prek install
+uv sync --extra dev
+pre-commit install --hook-type pre-commit --hook-type pre-push
 
-# Run tests
-pytest tests/ -v                    # All local tests
-pytest tests/test_core/ -v                             # Single module
-pytest tests/test_core/test_atomistic.py::test_atom -v # Single test
-pytest -k "pattern" -v                                 # Tests matching pattern
-pytest --cov=src/molpy tests/ -v --cov-report=html    # With coverage
+# Run tests (the CI command; no third-party scientific software needed)
+uv run --extra dev python -m pytest tests/ -n auto
+uv run --extra dev python -m pytest tests/test_core/                    # one directory
+uv run --extra dev python -m pytest tests/test_core/test_atomistic.py   # one file
+uv run --extra dev python -m pytest -k "pattern"                        # by name
 
-# Code quality
-ruff format --check src tests     # Check formatting
-ruff format src tests             # Auto-format
-ruff check src tests              # Lint
-ty check src/molpy/               # Type check
-prek run --all-files             # Run all hooks (prek reads .pre-commit-config.yaml)
+# After changing molrs (Rust), rebuild the wheel uv installed
+uv sync --extra dev --reinstall-package molcrafts-molrs
+
+# Code quality (the pre-commit hook runs exactly this)
+uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+pre-commit run --all-files
 
 # Documentation (built with Zensical; configured by zensical.toml)
-pip install -e ".[doc]"
-zensical serve                       # Local preview at http://localhost:8000
-zensical build                       # Build static site into site/
-python scripts/render_notebooks.py   # Re-render user-guide notebooks → Markdown
+uv sync --extra doc
+uv run zensical serve                       # Local preview at http://localhost:8000
+uv run zensical build                       # Build static site into site/
+uv run python scripts/render_notebooks.py   # Re-render user-guide notebooks → Markdown
 ```
 
 ## Architecture Overview
@@ -194,16 +145,40 @@ MolPy is a computational chemistry toolkit with explicit data flow and minimal m
 | `conformer` | 3D generation (ETKDG + MMFF) |
 | `typifier` | Atom typing: OPLS-AA, CL&P, MMFF, GAFF (AmberTools) |
 | `compute` | Trajectory analysis: RDF, MSD, transport, dielectric, spectra, order, … |
-| `pack` | Packing: Packmol, constraints, density targets |
 | `engine` | MD abstractions: LAMMPS, CP2K, OpenMM |
 | `wrapper` | External CLIs: Antechamber, Prepgen, Parmchk2, TLeap |
 | `adapter` | Optional in-memory bridge: RDKit (worked example only) |
+| `md`, `optimize`, `potential` | Re-exports of the molrs engines (`VelocityVerlet`, `LBFGS`, kernels); molpy adds nothing |
+| `data` | Bundled force-field files (`oplsaa.xml`, `clp.xml`, `tip3p.xml`, `alpha.ff`) and `get_forcefield_path` |
+| `integrations` | Metric readers the molexp platform consumes (LAMMPS log, mrec series) |
+| `cli` | `molpy moltemplate …` |
 
 > **Hard runtime dependency**: `molcrafts-molrs` (Rust extension) is required,
 > pinned to the same **minor** line in `pyproject.toml`
-> (`>=0.13.1,<0.14`). Import-time `check_molrs_version` enforces major.minor
+> (`>=0.14.0,<0.15`). Import-time `check_molrs_version` enforces major.minor
 > only. Public molrs symbols are re-exported on the molpy facade
 > (`molpy.Frame is molrs.Frame`); application code imports `molpy`, not `molrs`.
+>
+> **Sink direction.** Anything molpy and molrs both implement sinks into molrs;
+> molpy keeps only identity re-exports and the numpy-facing layer. The test is
+> one predicate: if molrs already provides the capability on a surface molpy
+> consumes (`molrs.io.*`, `molrs.ff.*`, `molrs.Box`, …), the molpy copy goes
+> (pdb, top, amber, lammps data / molecule / log, force-field xml and Box
+> geometry are sunk); if it does not, the module is a molpy-native extension
+> (HDF5, ac, moltemplate, lammps-bond-react, openmm emit, the FieldFormatter
+> layer) and is not a debt.
+
+Import direction (full table in `.claude/notes/architecture.md`): `core` imports
+nothing from molpy; `io` may be imported by `builder`, `engine` and
+`typifier` (packaged force fields are read through it); `wrapper` imports `core`
+only and never `io`; `builder` may drive `wrapper` (AmberTools); `conformer` is
+used by `builder` and `typifier`; nothing imports the package root (`import
+molpy as mp`) from inside `src/`.
+
+Transformation verbs: one verb per transformation family, decided by
+input→output (not by class name); the binding table (families, members,
+declared debt, owning sub-spec) is `.claude/notes/architecture.md` § Design laws 4.
+Do not restate verbs here.
 
 ### Data Model Layer
 
@@ -257,48 +232,55 @@ For integrating external libraries (RDKit, LAMMPS, …):
 
 ### Pattern: ForceField I/O
 
-All force-field readers/writers inherit from base classes in `io.forcefield.base`:
+Readers are functions over molrs parsers — `read_xml_forcefield`,
+`read_lammps_forcefield`, `read_top`, `read_amber` — plus the class readers
+`AmberPrmtopReader`, `GromacsTopReader` and `MolTemplateReader`. Writers
+subclass `ForceFieldWriter` (`io.forcefield.base`):
 
 ```
-ForceFieldReader (ABC)
-  ├─ LAMMPSForceFieldReader
-  ├─ XMLForceFieldReader
-  └─ AmberPrmtopReader (reads AMBER prmtop/inpcrd)
-
 ForceFieldWriter (ABC)
   ├─ LAMMPSForceFieldWriter
   ├─ XMLForceFieldWriter
-  └─ ...
+  └─ GromacsForceFieldWriter
 ```
+
+There are no deprecated shells around these; a reader that only forwarded to
+another was deleted, not kept.
 
 ### Pattern: Formatter Hierarchy (`core.fields`)
 
-Canonical field names and I/O boundary translation are defined in `core/fields.py`:
+Canonical field names and I/O boundary translation reach molpy through
+`core/fields.py`:
 
 ```
-FieldSpec                              — canonical field definition (key, dtype, shape, doc)
-    ↓
-FieldFormatter                         — data field mapping: {format_key: FieldSpec}
-    ↓                                     canonicalize() / localize() on Block
-ForceFieldFormatter(FieldFormatter)    — inherits field mapping + param formatters: {StyleType: Callable}
+fields.CHARGE, fields.MOL_ID, …      — canonical column names, plain `str`
+    (native keys table, re-exported; `fields.SITE` is the molpy-owned one)
+
+FieldFormatter                        — native; data field mapping: {format_key: canonical_key}
+    ↓                                   canonicalize() / localize() on Block, *_frame() on Frame
+ForceFieldFormatter(FieldFormatter)   — molpy; inherits field mapping, adds param
+                                        formatters: {StyleType: Callable}
 ```
 
-**Per-format subclasses live in their own I/O module** (not centralized):
+The per-format `FieldFormatter` subclasses for the formats the native core
+parses (LAMMPS, GRO, MOL2, PDB, XYZ) are native too, re-exported by
+`core/fields.py`; they are not redefined in the I/O modules. **A format molpy
+parses itself owns its subclass in its own I/O module** (not centralized):
 
 ```python
-# io/data/lammps.py
-class LammpsFieldFormatter(FieldFormatter):
-    _field_formatters = {"q": CHARGE, "mol": MOL_ID}
+# io/data/ac.py
+class AcFieldFormatter(FieldFormatter):
+    _field_formatters = {"q": CHARGE}
 
-# io/forcefield/lammps.py
+# io/forcefield/lammps.py — molpy-side param formatters on a native field map
 class LammpsForceFieldFormatter(LammpsFieldFormatter, ForceFieldFormatter):
-    _param_formatters = {BondHarmonicStyle: _format_bond_harmonic, ...}
+    _param_formatters = {PairTholeStyle: _format_pair_thole, ...}
 ```
 
 - Readers call `_formatter.canonicalize(block)` at exit (format → canonical)
 - Writers call `_formatter.localize_frame(frame)` at entry (canonical → format, on a copy)
-- `__init_subclass__` isolates registries per subclass
-- `register_field()` / `register_param_formatter()` for runtime extension
+- `__init_subclass__` isolates both registries per subclass
+- `register_field()` (native) / `register_param_formatter()` (molpy) for runtime extension
 
 **Canonical atom fields**: `charge` (not `q`), `mol_id` (not `mol`), `id`, `type`, `mass`, `x`/`y`/`z`, `element`, `symbol`, etc.
 
@@ -328,39 +310,44 @@ core `Atomistic`/`Struct`/`Frame` methods behave.
 
 ## Testing Guidelines
 
-MolPy targets **80%+ code coverage**. All new code must have tests.
+Every behaviour of every module has one unit test; there is no coverage
+number, no end-to-end suite and no golden files.
 
 ### Test Structure
 
-Tests live in `tests/` mirroring `src/molpy/`:
+Tests live in `tests/` mirroring `src/molpy/` (`src/molpy/io/data/gro.py` →
+`tests/test_io/test_data/test_gro.py`). There is **no `__init__.py`** under
+`tests/`; pytest runs with `--import-mode=importlib`, so the four
+`test_lammps.py` files resolve by path.
 
 ```
 tests/
+├─ conftest.py             # TEST_DATA_DIR + mollog capture
+├─ tests-data/             # committed fixture files, by format (xyz/, mol2/, gro/, …)
 ├─ test_core/              # Data structures
-├─ test_io/                # File I/O
-├─ test_parser/            # Parsing
-├─ test_builder/           # Assembly kernel, selectors, builders
+├─ test_io/                # File I/O (test_data/, test_forcefield/, test_log/, test_trajectory/, test_emit/)
+├─ test_parser/            # moltemplate
+├─ test_builder/           # test_assembly/, test_polymer/, test_nanostructure/, crystal, symmetry
 ├─ test_typifier/          # Typifiers
-├─ test_compute/           # Analysis
-├─ test_wrapper/           # External tools
-└─ test_engine/            # MD engines
+├─ test_compute/           # Analysis (pure-numpy modules only; molrs pass-throughs are tested in molrs)
+├─ test_engine/  test_wrapper/  test_adapter/  test_conformer/  test_md/  test_potential/  test_integrations/
 ```
 
 ### No third-party scientific software in the test gate
 
-The gate (`pytest tests/` + `pip install -e ".[dev]"`) must pass **without**
+The gate (`uv run --extra dev python -m pytest tests/ -n auto`) must pass **without**
 RDKit, AmberTools, freud, OpenMM, LAMMPS, Packmol, or any other third-party
 scientific package/executable. `dev` extras deliberately omit them. Optional
-backends (e.g. `pip install -e ".[rdkit]"`) are for users and docs notebooks only.
+backends (e.g. `uv sync --extra rdkit`) are for users and docs notebooks only.
 
 - Unit-test wrappers and engines with **mocks** and **script literals** — never
   launch a real binary.
 - There is **no** `@pytest.mark.external` marker and no dual suite. If it needs
   a binary, it does not belong in `tests/`.
-- Doc blocks that would shell out use `# docs: skip — <reason>` (see
-  `tests/test_docs/test_all_doc_blocks.py`).
+- Doc blocks are not executed by the test gate; ones that would shell out
+  still carry `# docs: skip — <reason>` for readers.
 
-Run tests with: `pytest tests/`
+Run tests with: `uv run --extra dev python -m pytest tests/ -n auto`
 
 ### Common Test Patterns
 
@@ -381,6 +368,15 @@ def test_helper_does_not_mutate_input():
     result = some_helper(original)        # helper does original.copy() internally
     assert result is not original         # independent object
     assert len(list(original.atoms)) == 1 # input untouched
+```
+
+**Fixture files** (readers, writers): the input is a small file under
+`tests/tests-data/<format>/`, read through the `TEST_DATA_DIR` fixture; an
+edge case (missing newline, corrupted token) is derived from it into `tmp_path`:
+```python
+def test_short_atom_record_raises(TEST_DATA_DIR):
+    with pytest.raises(OSError, match="too short"):
+        mp.io.read_gro(TEST_DATA_DIR / "gro" / "truncated_record.gro")
 ```
 
 **Adapter integration**:
@@ -404,7 +400,7 @@ def test_adapter_fallback():
 
 - **Owned by molrs, re-exported on molpy**: `molpy.Frame is molrs.Frame` (identity). Import from `molpy` / `import molpy as mp` — never from `molrs` in user code. Molpy has no `core.frame` module and no subclass, alias, `.to_molrs()` / `_inner` / `_source` bridge. `molcrafts-molrs` is a hard runtime dependency.
 - `Block`: **numpy-only** typed columns (float / int / bool / str) in the Rust Store, exposed as zero-copy numpy views. There is **no Python-side object-column overflow** — a non-representable column (object / None / ragged) is rejected fail-fast at write (`molrs.BlockDtypeError` / `TypeError`).
-- `Frame`: container of named Blocks + exact-dtype `meta` + `box`. Built from a molrs world via the world's native `to_frame()`; `Frame.from_dict` accepts exactly `{"blocks": ..., "meta": ...}`.
+- `Frame`: container of named Blocks + exact-dtype `meta` + `box`. Built from a molrs world via the world's native `to_frame()`, or with `Frame(blocks, meta=...)`.
 - `Trajectory`: Sequence of Frames
 
 ### `Element` (molrs-backed, molpy facade)
@@ -433,7 +429,16 @@ def test_adapter_fallback():
 
 - Polymer builders: sequence generation, placement, crosslinking
 - AmberTools integration: prepare molecules, run Antechamber, tleap
-- All builders follow consistent factory/builder pattern
+- Construction and transformation verbs: look them up in the family→verb table
+  (`.claude/notes/architecture.md` § Design laws 4), which also records the declared
+  debt and its owning sub-spec
+
+### `optimize`, `md`, `potential`, `io.log`
+
+- Pure re-exports of molrs: `molpy.optimize.LBFGS is molrs.optimize.LBFGS`,
+  `molpy.io.read_lammps_log` returns the molrs `LammpsLog`. molpy keeps no
+  Python re-implementation and no dataclass mirror of a molrs structure; if a
+  structure is missing on the Python side it is added in molrs.
 
 ## Code Quality Standards
 
@@ -454,12 +459,12 @@ From `docs/developer/coding-style.md`:
 - [ ] Public APIs have type hints and docstrings
 - [ ] Helpers don't mutate caller-owned structures unexpectedly (`.copy()` when needed)
 - [ ] No hardcoded values (use config or constants)
-- [ ] Hooks pass: `prek run --all-files`
+- [ ] Hooks pass: `pre-commit run --all-files`
 
 ## Common Gotchas
 
 1. **Optional imports**: If adding a new external tool, follow the adapter pattern and test graceful fallback.
-2. **Notebook output in git**: Pre-commit uses `nbstripout` to strip output; don't commit notebook output.
+2. **Fixture bytes are data**: the pre-commit whitespace fixers skip `tests/tests-data/`, so a fixture with ragged spacing or no final newline stays exactly as written.
 3. **External tools**: mock wrappers/engines in unit tests; put offline recipes under docs with `# docs: skip`.
 4. **Formatter registration**: Custom styles need `_param_formatters` registered on the format's `ForceFieldFormatter` subclass. Custom data fields need `_field_formatters` on the `FieldFormatter` subclass.
 5. **Identity vs equality**: `Entity` and `Link` use identity-based hashing (`id(self)`), not value-based.
@@ -468,8 +473,10 @@ From `docs/developer/coding-style.md`:
 
 ## Debugging Tips
 
-- **Import errors in tests**: Reinstall with `pip install -e ".[dev]"` to ensure editable mode
-- **Notebook doc build fails**: Run `pip install -e ".[doc]"` for doc deps
+- **Import errors in tests**: `uv sync --extra dev`; after a molrs change,
+  `uv sync --extra dev --reinstall-package molcrafts-molrs` (uv does not see
+  Rust edits by itself)
+- **Notebook doc build fails**: `uv sync --extra doc`
 - **Type checking**: Run locally with `ty check src/molpy/` (Astral's `ty`, also run in CI); config under `[tool.ty]` in `pyproject.toml`
 
 ---
@@ -486,7 +493,7 @@ testing.md, docs-style.md, ci.md).
 
 ```bash
 # Implementation workflow
-/mol:spec "natural language need"   # NL → spec + binding acceptance contract (中文/English)
+/mol:spec "natural language need"   # NL → spec + binding acceptance contract
 /mol:impl <spec>                    # TDD implementation from an approved spec (spec → tests → code → verify)
 /mol:litrev "method or topic"       # Literature review before implementing physical models
 
@@ -517,7 +524,7 @@ invoked through skills like `/mol:review`; release gating is handled by `/mol:sh
 /mol:spec "Add Morse bond potential"   # then: /mol:impl <spec>
 
 # Start from vague requirements
-/mol:spec "需要一个支持周期性边界条件的RDF计算器"
+/mol:spec "an RDF calculator that supports periodic boundary conditions"
 
 # Pre-PR validation
 /mol:review

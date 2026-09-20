@@ -37,22 +37,11 @@ class OpenMMEmitter:
         pdb_path = out_dir / f"{prefix}.pdb"
         py_path = out_dir / f"{prefix}.py"
 
-        # XML FF
-        try:
-            from molpy.io.forcefield.xml import XMLForceFieldWriter
+        from molpy.io.data.pdb import PDBWriter
+        from molpy.io.forcefield.xml import XMLForceFieldWriter
 
-            XMLForceFieldWriter(xml_path).write(ff)
-        except Exception:
-            xml_path.write_text('<?xml version="1.0"?>\n<ForceField/>\n')
-
-        # PDB coords
-        try:
-            from molpy.io.data.pdb import PDBWriter
-
-            frame = atomistic.to_frame()
-            PDBWriter(pdb_path).write(frame)
-        except Exception:
-            pdb_path.write_text("REMARK MolPy: empty placeholder PDB\nEND\n")
+        XMLForceFieldWriter(xml_path).write(ff)
+        PDBWriter(pdb_path).write(atomistic.to_frame())
 
         py_path.write_text(
             _OPENMM_SCRIPT_TEMPLATE.format(

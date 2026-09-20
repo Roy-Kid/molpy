@@ -1,11 +1,14 @@
+"""Unit tests for PDB writer focusing on required fields and None handling."""
+
 import importlib
 
 import numpy as np
 import pytest
 
+from molrs import Block, Frame, MetaValue
+
 
 @pytest.fixture(
-    scope="module",
     params=["molpy.io.data.pdb"],
     ids=["molpy"],
 )
@@ -13,68 +16,208 @@ def pdb_backend(request):
     return importlib.import_module(request.param)
 
 
-@pytest.fixture(scope="module")
-def pdb_test_files(TEST_DATA_DIR):
-    """Provide paths to PDB test files in chemfile-testcases/pdb."""
-    base = TEST_DATA_DIR / "pdb"
-    files = list(base.glob("*.pdb"))
-    if not files:
-        pytest.skip("No PDB test files found in chemfile-testcases/pdb")
-    return {f.name: f for f in files}
+class TestPDBWriterRequiredFields:
+    """Test that PDB writer correctly handles required fields and None values."""
 
+    @pytest.mark.parametrize("missing", ["x", "y", "z"])
+    def test_missing_required_field(self, tmp_path, pdb_backend, missing):
+        """A missing required coordinate field raises ValueError."""
+        columns = {
+            "x": np.array([1.0, 2.0]),
+            "y": np.array([4.0, 5.0]),
+            "z": np.array([7.0, 8.0]),
+        }
+        del columns[missing]
+        frame = Frame()
+        frame["atoms"] = Block(columns)
 
-class TestPDBIO:
-    def test_read_1avg(self, pdb_test_files, pdb_backend):
-        if "1avg.pdb" not in pdb_test_files:
-            pytest.skip("1avg.pdb not found")
-        reader = pdb_backend.PDBReader(pdb_test_files["1avg.pdb"])
-        frame = reader.read()
-        atoms = frame["atoms"]
-        assert atoms["name"].shape[0] == 3730
-        assert frame.box is not None
-        # Bonds block exists and has correct shape
-        bonds = frame["bonds"]
-        assert bonds["atomi"].shape[0] == 7
-        assert bonds["atomj"].shape[0] == 7
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
+        with pytest.raises(ValueError, match=f"Required field '{missing}' is missing"):
+            writer.write(frame)
 
-    def test_read_water(self, pdb_test_files, pdb_backend):
-        if "water.pdb" not in pdb_test_files:
-            pytest.skip("water.pdb not found")
-        # Single-frame read returns the first model of a multi-frame PDB.
-        reader = pdb_backend.PDBReader(pdb_test_files["water.pdb"])
-        frame = reader.read()
-        atoms = frame["atoms"]
-        n_atoms = atoms["name"].shape[0]
-        assert n_atoms > 0
-        # Separate x, y, z fields
-        assert "x" in atoms and "y" in atoms and "z" in atoms
-        assert atoms["x"].shape[0] == n_atoms
-        assert atoms["y"].shape[0] == n_atoms
-        assert atoms["z"].shape[0] == n_atoms
+    def test_none_value_in_required_field(self, tmp_path, pdb_backend):
+        """A None-bearing column is rejected at Block construction.
 
-        # All models are accessible as a trajectory (one frame per model).
-        import molpy as mp
+        Under the numpy-only Store contract a column cannot hold ``None``, so
+        the failure is fail-fast when the Block is built — earlier than (and
+        superseding) the writer's own required-field check.
+        """
+        import molrs
 
-        frames = mp.io.read_pdb_trajectory(pdb_test_files["water.pdb"])
-        assert len(frames) > 1
-        assert all(f["atoms"]["name"].shape[0] == n_atoms for f in frames)
+        with pytest.raises(molrs.BlockDtypeError):
+            Block(
+                {
+                    "x": np.array([None, 2.0]),
+                    "y": np.array([4.0, 5.0]),
+                    "z": np.array([7.0, 8.0]),
+                }
+            )
 
-    def test_write_and_read_roundtrip(self, tmp_path, pdb_test_files, pdb_backend):
-        # MOF-5 is small (~65 atoms). Round-tripping 1avg (3730 atoms) spends
-        # seconds in PDBWriter alone and does not cover more format surface.
-        if "MOF-5.pdb" not in pdb_test_files:
-            pytest.skip("MOF-5.pdb not found")
-        reader = pdb_backend.PDBReader(pdb_test_files["MOF-5.pdb"])
-        frame = reader.read()
-        out_path = tmp_path / "roundtrip.pdb"
-        writer = pdb_backend.PDBWriter(out_path)
+    def test_valid_minimal_frame(self, tmp_path, pdb_backend):
+        """Test that minimal valid frame (only x, y, z) writes correctly."""
+        frame = Frame()
+        atoms = Block(
+            {
+                "x": np.array([1.0, 2.0, 3.0]),
+                "y": np.array([4.0, 5.0, 6.0]),
+                "z": np.array([7.0, 8.0, 9.0]),
+            }
+        )
+        frame["atoms"] = atoms
+        frame.meta = {"elements": MetaValue("string", "C C H")}
+
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
         writer.write(frame)
-        frame2 = pdb_backend.PDBReader(out_path).read()
-        atoms1 = frame["atoms"]
-        atoms2 = frame2["atoms"]
-        assert atoms1["name"].shape == atoms2["name"].shape
-        # Check separate x, y, z fields
-        assert np.allclose(atoms1["x"], atoms2["x"])
-        assert np.allclose(atoms1["y"], atoms2["y"])
-        assert np.allclose(atoms1["z"], atoms2["z"])
-        assert frame2.box is not None
+
+        # Verify file was created and has correct structure
+        assert (tmp_path / "test.pdb").exists()
+
+        # Verify PDB file content directly (without reader)
+        with open(tmp_path / "test.pdb") as f:
+            lines = f.readlines()
+            atom_lines = [l for l in lines if l.startswith("ATOM")]
+            assert len(atom_lines) == 3
+
+            # Check coordinates are correct
+            for i, line in enumerate(atom_lines):
+                x = float(line[30:38])
+                y = float(line[38:46])
+                z = float(line[46:54])
+                assert abs(x - (1.0 + i)) < 0.001
+                assert abs(y - (4.0 + i)) < 0.001
+                assert abs(z - (7.0 + i)) < 0.001
+
+    def test_elements_from_typed_meta(self, tmp_path, pdb_backend):
+        """Test that elements are correctly extracted from typed metadata."""
+        frame = Frame()
+        atoms = Block(
+            {
+                "x": np.array([1.0, 2.0, 3.0, 4.0]),
+                "y": np.array([1.0, 2.0, 3.0, 4.0]),
+                "z": np.array([1.0, 2.0, 3.0, 4.0]),
+                "id": np.array([1, 2, 3, 4]),
+            }
+        )
+        frame["atoms"] = atoms
+        frame.meta = {"elements": MetaValue("string", "C O N H")}
+
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
+        writer.write(frame)
+
+        # Check PDB file content
+        with open(tmp_path / "test.pdb") as f:
+            lines = f.readlines()
+            atom_lines = [l for l in lines if l.startswith("ATOM")]
+            assert len(atom_lines) == 4
+
+            # Check element symbols (columns 77-78)
+            elements = [line[76:78].strip() for line in atom_lines]
+            assert elements == ["C", "O", "N", "H"]
+
+    def test_elements_from_atom_data(self, tmp_path, pdb_backend):
+        """Test that elements are extracted from atom data if metadata not available."""
+        frame = Frame()
+        atoms = Block(
+            {
+                "x": np.array([1.0, 2.0]),
+                "y": np.array([1.0, 2.0]),
+                "z": np.array([1.0, 2.0]),
+                "element": np.array(["C", "H"]),
+            }
+        )
+        frame["atoms"] = atoms
+
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
+        writer.write(frame)
+
+        # Check elements in output
+        with open(tmp_path / "test.pdb") as f:
+            lines = f.readlines()
+            atom_lines = [l for l in lines if l.startswith("ATOM")]
+            elements = [line[76:78].strip() for line in atom_lines]
+            assert elements == ["C", "H"]
+
+    def test_optional_field_none_rejected_at_construction(self, tmp_path, pdb_backend):
+        """None-bearing optional columns are rejected at Block construction.
+
+        The numpy-only Store has no place for ``None`` — a sparse optional field
+        must be expressed as a typed column (e.g. empty string / default value)
+        rather than a None-bearing object array.
+        """
+        import molrs
+
+        with pytest.raises(molrs.BlockDtypeError):
+            Block(
+                {
+                    "x": np.array([1.0, 2.0]),
+                    "y": np.array([1.0, 2.0]),
+                    "z": np.array([1.0, 2.0]),
+                    "occupancy": np.array([None, 1.0], dtype=object),
+                }
+            )
+
+        # The valid form: a typed column with a real default writes fine.
+        frame = Frame()
+        frame["atoms"] = Block(
+            {
+                "x": np.array([1.0, 2.0]),
+                "y": np.array([1.0, 2.0]),
+                "z": np.array([1.0, 2.0]),
+                "name": np.array(["X", "C"]),
+                "occupancy": np.array([0.0, 1.0]),
+            }
+        )
+        frame.meta = {"elements": MetaValue("string", "X C")}
+        pdb_backend.PDBWriter(tmp_path / "test.pdb").write(frame)
+        assert (tmp_path / "test.pdb").exists()
+
+    def test_atom_ids_from_field(self, tmp_path, pdb_backend):
+        """Test that atom IDs are correctly used from id field."""
+        frame = Frame()
+        atoms = Block(
+            {
+                "x": np.array([1.0, 2.0]),
+                "y": np.array([1.0, 2.0]),
+                "z": np.array([1.0, 2.0]),
+                "id": np.array([100, 200]),
+            }
+        )
+        frame["atoms"] = atoms
+        frame.meta = {"elements": MetaValue("string", "C H")}
+
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
+        writer.write(frame)
+
+        # Check atom serial numbers (columns 7-11)
+        with open(tmp_path / "test.pdb") as f:
+            lines = f.readlines()
+            atom_lines = [l for l in lines if l.startswith("ATOM")]
+            serials = [int(line[6:11].strip()) for line in atom_lines]
+            assert serials == [100, 200]
+
+    def test_atom_ids_default_to_index(self, tmp_path, pdb_backend):
+        """Test that atom IDs default to index+1 if id field missing."""
+        frame = Frame()
+        atoms = Block(
+            {
+                "x": np.array([1.0, 2.0, 3.0]),
+                "y": np.array([1.0, 2.0, 3.0]),
+                "z": np.array([1.0, 2.0, 3.0]),
+            }
+        )
+        frame["atoms"] = atoms
+        frame.meta = {"elements": MetaValue("string", "C C H")}
+
+        writer = pdb_backend.PDBWriter(tmp_path / "test.pdb")
+        writer.write(frame)
+
+        # Check atom serial numbers default to 1, 2, 3
+        with open(tmp_path / "test.pdb") as f:
+            lines = f.readlines()
+            atom_lines = [l for l in lines if l.startswith("ATOM")]
+            serials = [int(line[6:11].strip()) for line in atom_lines]
+            assert serials == [1, 2, 3]
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

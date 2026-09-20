@@ -9,10 +9,10 @@ The full pipeline, composing real classes end to end:
 2. Replicate it into a small bundle of independent chains, packed close
    enough that CH2 sites reach across chains.
 3. Crosslink CH2 sites across chains with a ``GraphAssembler`` + a
-   ``RandomSelector`` (offline, graph-level), then relax the freshly formed
-   bonds (SoftPotential).
+   ``RandomSelector`` (offline, graph-level).
 4. Parameterise the whole network with GAFF via AmberTools (antechamber +
-   parmchk2 + tleap): atom types, AM1-BCC charges, and a force field.
+   parmchk2 + tleap): atom types, AM1-BCC charges, and a force field; then
+   relax the freshly formed crosslink bonds on that force field (``LBFGS``).
 5. Write a complete LAMMPS system (``system.data`` + ``system.ff``).
 
 Requires AmberTools (antechamber/parmchk2/tleap). Set ``AMBER_ENV`` to the
@@ -46,17 +46,6 @@ OUT = Path("peo_gel_output")
 CROSSLINK = "[C;H2:1][H].[C;H2:2][H] >> [C:1][C:2]"
 
 
-def _relax(gel: mp.Atomistic) -> mp.Atomistic:
-    """Converge the freshly formed bonds; they started at a guessed length."""
-    import molrs
-
-    from molpy.optimize import LBFGS, SoftPotential
-
-    frame = gel.to_frame()
-    result = LBFGS(SoftPotential()).run(frame, fmax=0.05, steps=200)
-    return mp.Atomistic.adopt(molrs.Atomistic.from_frame(result.frame))
-
-
 def main() -> None:
     # 1. PEO chain straight from SMILES; Conformer (molpy's native molrs
     #    embedder) produces a physical 3D conformer.
@@ -79,8 +68,7 @@ def main() -> None:
     print(f"[1-2] {mol} PEO chains from SMILES {CHAIN_SMILES!r}: {n_atoms0} atoms")
 
     # 3. Crosslink across chains, then relax the new (over-stretched) bonds with
-    #    the force-field-free SoftPotential.
-    gel = GraphAssembler(mp.Reaction(CROSSLINK)).assemble(
+    gel = GraphAssembler(mp.Reaction(CROSSLINK)).apply(
         system,
         RandomSelector(
             conversion=1.0,
@@ -90,7 +78,6 @@ def main() -> None:
             max_per_molecule=2,
         ),
     )
-    gel = _relax(gel)
     n_xlink = (n_atoms0 - len(list(gel.atoms))) // 2  # each crosslink drops 2 H
     print(
         f"[3]   crosslinked network: {len(list(gel.atoms))} atoms, {n_xlink} crosslinks"
@@ -100,6 +87,10 @@ def main() -> None:
     #    tleap -> prmtop -> molrs ForceField).
     result = AmberTools(env=AMBER_ENV, env_manager="conda").parameterize(gel)
     frame = result.frame
+    # The crosslink bonds started at a guessed length: converge them on GAFF.
+    opt = mp.LBFGS(result.forcefield.to_potentials(frame), fmax=0.05, max_steps=200)
+    frame, report = opt.run(frame)
+    print(f"      relaxed in {report.n_steps} steps (converged={report.converged})")
     # The crosslinked network is one connected molecule -> single mol_id.
     frame["atoms"]["mol_id"] = np.ones(frame["atoms"].nrows, dtype=int)
     types = sorted(str(t) for t in set(frame["atoms"]["type"]))

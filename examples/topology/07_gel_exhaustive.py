@@ -16,7 +16,7 @@ def main() -> None:
     melt = Replicas(strand).grid(2, spacing=6.0, jitter=0.4, seed=3)
     n0 = melt.n_atoms
 
-    gel = GraphAssembler(mp.Reaction(XLINK)).assemble(
+    gel = GraphAssembler(mp.Reaction(XLINK)).apply(
         melt,
         ExhaustiveSelector(cutoff=6.0, exclude_same_molecule=True),
     )

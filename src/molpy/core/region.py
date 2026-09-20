@@ -1,6 +1,8 @@
-"""Selection sugar over molrs' native geometric regions."""
+"""Selection sugar over the native geometric regions."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from abc import abstractmethod
 
@@ -28,8 +30,17 @@ class Region(MaskPredicate):
     @abstractmethod
     def isin(self, xyz: np.ndarray) -> np.ndarray: ...
 
+    @property
+    @abstractmethod
+    def bounds(self) -> np.ndarray:
+        """Axis-aligned ``[[xlo, ylo, zlo], [xhi, yhi, zhi]]`` enclosing the region."""
+
 
 class _NativeRegionSugar:
+    if TYPE_CHECKING:
+        # Provided by the molrs native region this sugar is mixed into.
+        def contains(self, xyz: np.ndarray) -> np.ndarray: ...
+
     def isin(self, xyz: np.ndarray):
         array = np.asarray(xyz, dtype=float)
         if array.ndim == 1:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from molpy import Angle, Atom, Atomistic, Bond, Dihedral
+from molpy import Atomistic, Bond
 
 
 def _ethane() -> Atomistic:

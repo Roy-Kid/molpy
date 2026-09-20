@@ -1,7 +1,7 @@
 """Trajectory and structure analyses.
 
-Configure a compute, call it on frames or pre-assembled arrays, read typed
-fields. Analysis time is femtoseconds (LAMMPS real units).
+Configure a compute, run ``.compute(...)`` on frames or pre-assembled arrays,
+read typed fields. Analysis time is femtoseconds (LAMMPS real units).
 
 Transport and dielectric quantities are composed explicitly::
 
@@ -16,20 +16,17 @@ Example::
 
 """
 
-from .base import Compute
+from molrs.compute import Compute
 from .cluster import Cluster, ClusterCenters, ClusterProperties
 from .decomposition import DescriptorRow, KMeans, Pca
 from .dielectric import (
-    ACFAnalyzer,
     DielectricSusceptibility,
     IonicConductivity,
-    SpectralAnalyzer,
 )
 from molrs.compute.dielectric import Dielectric
 from molrs.compute.fitting import CumulativeTrapezoid, LinearFit
 from molrs.compute.spectroscopy import EinsteinHelfandSpectrum, GreenKuboSpectrum
 from molrs.compute.transport import DebyeFit, DebyeRelaxation
-from molrs.signal import acf_fft, apply_window, frequency_grid
 from .density import GaussianDensity, LocalDensity
 from .diffraction import StaticStructureFactorDebye
 from .environment import BondOrder
@@ -43,7 +40,6 @@ from .persist import Persist
 from .pmsd import EinsteinConductivity
 from .rdf import RDF
 from .result import (
-    ACFResult,
     ConductivityResult,
     DebyeSpectrumFit,
     DielectricResult,
@@ -53,7 +49,6 @@ from .result import (
     PersistResult,
     PMSDResult,
     Result,
-    SpectralResult,
     TimeSeriesResult,
 )
 from .shape import (
@@ -61,13 +56,6 @@ from .shape import (
     GyrationTensor,
     InertiaTensor,
     RadiusOfGyration,
-)
-from .workflow import (
-    Workflow,
-    WorkflowCycleError,
-    WorkflowDuplicateNodeError,
-    WorkflowError,
-    WorkflowMissingInputError,
 )
 
 from .distribution import (
@@ -106,7 +94,7 @@ from .voronoi import (
     voronoi_domains,
     voronoi_voids,
 )
-from .spectra import (
+from molrs.compute.spectroscopy import (
     IRSpectrum,
     PowerSpectrum,
     RamanSpectrum,
@@ -123,8 +111,6 @@ __all__ = [
     "OnsagerResult",
     "JACFResult",
     "PersistResult",
-    "ACFResult",
-    "SpectralResult",
     "DielectricResult",
     "DielectricSusceptibilityResult",
     "ConductivityResult",
@@ -136,8 +122,6 @@ __all__ = [
     "Dielectric",
     "DielectricSusceptibility",
     "IonicConductivity",
-    "ACFAnalyzer",
-    "SpectralAnalyzer",
     "DebyeRelaxation",
     "DebyeFit",
     "EinsteinHelfandSpectrum",
@@ -156,11 +140,6 @@ __all__ = [
     "DescriptorRow",
     "Pca",
     "KMeans",
-    "Workflow",
-    "WorkflowCycleError",
-    "WorkflowDuplicateNodeError",
-    "WorkflowError",
-    "WorkflowMissingInputError",
     "Steinhardt",
     "Hexatic",
     "Nematic",

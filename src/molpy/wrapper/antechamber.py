@@ -10,13 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
-
-from molpy.core.atomistic import Atomistic
-from molrs import Block, Frame
-from molpy.io.readers import read_amber_ac, read_mol2
-from molpy.io.utils import ensure_parent_dir
-from molpy.io.writers import write_pdb
 
 from .base import Wrapper
 
@@ -100,45 +93,3 @@ class AntechamberWrapper(Wrapper):
             args.extend(["-cf", "y"])
 
         return self.run_raw(args=args, check=check)
-
-
-def write_antechamber_input_pdb(path: Path, atomistic: Atomistic) -> None:
-    """Write a PDB suitable as antechamber input.
-
-    This intentionally avoids using Atomistic.to_frame() which may enforce
-    bond typing constraints that are irrelevant for PDB inputs.
-    """
-
-    ensure_parent_dir(path)
-    atoms = list(atomistic.atoms)
-
-    # Build each column straight into a typed numpy array (str, not object — the
-    # molrs Store rejects object columns). ``a.get(k) or default`` fills missing.
-    frame = Frame()
-    frame["atoms"] = Block.from_dict(
-        {
-            "x": np.array([a.get("x") or 0.0 for a in atoms], dtype=float),
-            "y": np.array([a.get("y") or 0.0 for a in atoms], dtype=float),
-            "z": np.array([a.get("z") or 0.0 for a in atoms], dtype=float),
-            "id": np.arange(1, len(atoms) + 1),
-            "name": np.array([a.get("name") or "X" for a in atoms], dtype=str),
-            "resName": np.array([a.get("resName") or "MOL" for a in atoms], dtype=str),
-            "resSeq": np.array([a.get("resSeq") or 1 for a in atoms], dtype=int),
-            "chainID": np.array([a.get("chainID") or "A" for a in atoms], dtype=str),
-            "element": np.array([a.get("element") or "X" for a in atoms], dtype=str),
-        }
-    )
-    write_pdb(path, frame)
-
-
-def read_antechamber_output(path: Path) -> Frame:
-    """Read antechamber-generated output (.ac or .mol2) into a Frame."""
-
-    suffix = path.suffix.lower()
-
-    if suffix == ".ac":
-        return read_amber_ac(path)
-    if suffix == ".mol2":
-        return read_mol2(path)
-
-    raise ValueError(f"Unsupported antechamber output format: {path}")

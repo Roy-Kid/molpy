@@ -25,8 +25,9 @@
 </div>
 
 MolPy is a Python toolkit for the full molecular-system workflow — parsing,
-building, editing, typing, analyzing, packing, and reading/writing simulation
-formats.
+building, editing, typing, analyzing, and reading/writing simulation formats.
+Packing a box is the job of the companion package
+[molpack](https://docs.molcrafts.org/molpack/).
 
 > **Under active development.** Public APIs may change between minor releases.
 
@@ -55,13 +56,12 @@ it, analyze or minimize it, then read and write it across formats.
 | Module | Capability |
 |---|---|
 | **`core`** | Explicit data model — editable `Atomistic` topology graph, `Frame`/`Block` columnar arrays, `ForceField`, `Box` |
-| **`parser`** | SMILES / SMARTS (via molrs types: `SmilesIR`, `SmartsPattern`); moltemplate `.lt` reader |
+| **`parser`** | SMILES / SMARTS (`SmilesIR`, `SmartsPattern`); moltemplate `.lt` reader |
 | **`builder`** | System assembly — polymers, crosslinking, polydispersity, virtual sites, AmberTools facade |
-| **`conformer`** | 3D coordinate generation (molrs ETKDG + MMFF cleanup) |
+| **`conformer`** | 3D coordinate generation (native ETKDG + MMFF cleanup) |
 | **`typifier`** | Atom typing — OPLS-AA, CL&P, MMFF, GAFF via AmberTools |
 | **`potential` · `optimize`** | Energy & force potentials with L-BFGS minimization |
-| **`compute`** | Analysis modules under `molpy.compute` — `rdf`/`msd`/`dielectric`/`spectra`/`order`/`voronoi`/… (molrs kernels) |
-| **`pack`** | Packmol-based packing with density targets |
+| **`compute`** | Analysis modules under `molpy.compute` — `rdf`/`msd`/`dielectric`/`spectra`/`order`/`voronoi`/… (native kernels) |
 | **`io`** | Read/write — PDB, GRO, LAMMPS data, XYZ, force fields, trajectories, … |
 | **`engine`** | MD input generation & run management — LAMMPS, CP2K, OpenMM |
 | **`wrapper` · `adapter`** | External CLIs (Antechamber, tleap, …) and optional RDKit in-memory bridge |
@@ -77,7 +77,7 @@ pip install molcrafts-molpy
 ```
 
 Core dependencies: NumPy and
-[molrs](https://github.com/MolCrafts/molrs) (`molcrafts-molrs>=0.13.1,<0.14`)
+[molrs](https://github.com/MolCrafts/molrs) (`molcrafts-molrs>=0.14.0,<0.15`)
 plus the MolCrafts logging/config packages. Optional: RDKit (adapter example),
 AmberTools (GAFF charges).
 
@@ -93,27 +93,20 @@ AmberTools (GAFF charges).
 ```bash
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-pip install -e ".[dev]"   # includes tox (gate driver)
-prek install
-# optional manual gates (same as prek/CI):
-#   uv run --extra dev tox -e lint
-#   uv run --extra dev tox -e py
-pytest tests/
+uv sync --extra dev
+pre-commit install --hook-type pre-commit --hook-type pre-push
+# the two gates (same as the hooks / CI):
+uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+uv run --extra dev python -m pytest tests/ -n auto
 ```
 
-`pip install -e ".[dev]"` pulls the published `molcrafts-molrs` wheel from
-PyPI. To develop molpy against a **local molrs checkout** (e.g. when changing
-the Rust core), build molrs editable first — molrs ships its Python bindings as
-a [maturin](https://www.maturin.rs/) project that needs the Rust toolchain via
-[`rustup`](https://rustup.rs/):
+`[tool.uv.sources]` points `molcrafts-molrs` at the sibling checkout
+`../molrs/molrs-python`, so `uv sync` builds the Rust core with your toolchain
+([`rustup`](https://rustup.rs/)). After editing molrs, rebuild what uv
+installed:
 
 ```bash
-git clone https://github.com/MolCrafts/molrs.git
-cd molrs
-pip install maturin
-maturin develop -m molrs-python/Cargo.toml --release   # installs `molrs` editable
-cd ../molpy
-pip install -e ".[dev]"                                # resolves molrs from the local build
+uv sync --extra dev --reinstall-package molcrafts-molrs
 ```
 
 See [docs/developer/development-setup](https://docs.molcrafts.org/molpy/developer/development-setup/)
@@ -128,12 +121,16 @@ Parse a SMILES string, assign OPLS-AA types, and write LAMMPS input files:
 ```python
 import molpy as mp
 
-mol   = mp.Atomistic.from_smiles("CCO")          # ethanol from SMILES
-ff    = mp.io.read_xml_forcefield(mp.data.get_forcefield_path("oplsaa.xml"))  # bundled OPLS-AA
-typed = mp.typifier.OplsAtomisticTypifier(ff).typify(mol)
+mol       = mp.SmilesIR("CCO").to_atomistic()     # ethanol from SMILES
+mol3d, _  = mp.Conformer(seed=42).generate(mol)   # 3D coordinates
 
-mp.io.write_lammps_system("output/", typed.to_frame(), ff)
-# → output/system.data  output/system.in
+typifier  = mp.typifier.OPLSAATypifier(           # bundled OPLS-AA
+    mp.data.get_forcefield_path("oplsaa.xml")
+)
+typed     = typifier.typify(mol3d)
+
+mp.io.write_lammps_system("output/", typed.to_frame(), typifier.forcefield())
+# → output/system.data  output/system.ff
 ```
 
 More workflows — packed solvent boxes, virtual-site models, polymer chains and

@@ -2,8 +2,9 @@
 MolPy I/O — the **only** public file I/O surface (``mp.io.read_*`` / ``write_*``).
 
 There is no package-root ``mp.read_*`` / ``mp.write_*``, and no ``MolStore`` /
-Zarr layer. Kernels and formats that molrs owns are reached through this
-module (thin wrappers / readers that call molrs); callers never ``import molrs``.
+Zarr layer. Kernels and formats the native core owns are reached through this module
+(thin wrappers / readers that call into it); callers never import the core
+extension themselves.
 
 Supports:
 - Data files (PDB, XYZ, LAMMPS, GROMACS, AMBER, …)
@@ -51,6 +52,14 @@ from .data.top import TopReader
 from .data.xsf import XsfReader, XsfWriter
 from .data.xyz import XYZReader
 
+# ForceField Readers and Writers
+from .forcefield.amber import AmberPrmtopReader
+from .forcefield.base import ForceFieldReader, ForceFieldWriter
+from .forcefield.lammps import LAMMPSForceFieldWriter
+from .forcefield.moltemplate import MolTemplateReader
+from .forcefield.top import GromacsTopReader
+from .utils import ZipReader
+
 # 5. Factory functions (use the classes above)
 from .readers import (
     read_amber,
@@ -60,7 +69,6 @@ from .readers import (
     read_cube,
     read_dcd_trajectory,
     read_gro,
-    read_LAMMPS_log,
     read_lammps_data,
     read_lammps_forcefield,
     read_lammps_molecule,
@@ -86,25 +94,28 @@ from .trajectory.base import (
 
 # 3. Trajectory Readers and Writers
 from .trajectory.lammps import (
+    LammpsDumpLocalWriter,
     LammpsTrajectoryWriter,
 )
 from .trajectory.xyz import XYZTrajectoryWriter
 
 # 4. Log Readers
-from .log.lammps import (
-    LAMMPSCPUUse,
-    LAMMPSLoadBalance,
-    LAMMPSLog,
-    LAMMPSLogHeader,
-    LAMMPSLoopTime,
-    LAMMPSMemoryUsage,
-    LAMMPSNeighborStatistics,
-    LAMMPSPerformance,
-    LAMMPSRun,
-    LAMMPSThermo,
-    LAMMPSTimingBreakdown,
-    LAMMPSTimingRow,
-    LAMMPSWarning,
+from .log import (
+    LammpsCpuUse,
+    LammpsLoadBalance,
+    LammpsLog,
+    LammpsLogHeader,
+    LammpsLoopTime,
+    LammpsMemoryUsage,
+    LammpsNeighborStatistics,
+    LammpsPerformance,
+    LammpsRun,
+    LammpsThermo,
+    LammpsTimingBreakdown,
+    LammpsTimingRow,
+    LammpsWarning,
+    parse_lammps_log_text,
+    read_lammps_log,
 )
 from .writers import (
     write_gro,
@@ -116,6 +127,7 @@ from .writers import (
     write_lammps_bond_react_system,
     write_lammps_system,
     write_lammps_trajectory,
+    write_lammps_dump_local,
     write_mol2,
     write_pdb,
     write_top,
@@ -131,15 +143,20 @@ from .writers import (
 # 6. Utility functions (shallowest level)
 read_txt = np.loadtxt
 
+# 7. Scientific-record I/O (submodule; names stay off this package root)
+from . import mrec
+
 __all__ = [
     # Core types
     "PathLike",
+    "mrec",
     # Factory functions - Readers
     "read_amber",
     "read_amber_ac",
     "read_amber_inpcrd",
     "read_gro",
-    "read_LAMMPS_log",
+    "read_lammps_log",
+    "parse_lammps_log_text",
     "read_lammps_data",
     "read_lammps_forcefield",
     "read_lammps_molecule",
@@ -169,6 +186,7 @@ __all__ = [
     "write_lammps_bond_react_system",
     "write_lammps_system",
     "write_lammps_trajectory",
+    "write_lammps_dump_local",
     "write_mol2",
     "write_pdb",
     "write_top",
@@ -208,8 +226,6 @@ __all__ = [
     "AmberPrmtopReader",
     "GromacsTopReader",
     "MolTemplateReader",
-    "XMLForceFieldReader",
-    "OPLSAAForceFieldReader",
     # ForceField Writers
     "ForceFieldWriter",
     "LAMMPSForceFieldWriter",
@@ -218,22 +234,23 @@ __all__ = [
     "BaseTrajectoryReader",
     # Trajectory Writers
     "TrajectoryWriter",
+    "LammpsDumpLocalWriter",
     "LammpsTrajectoryWriter",
     "XYZTrajectoryWriter",
     # Log Readers
-    "LAMMPSCPUUse",
-    "LAMMPSLoadBalance",
-    "LAMMPSLog",
-    "LAMMPSLogHeader",
-    "LAMMPSLoopTime",
-    "LAMMPSMemoryUsage",
-    "LAMMPSNeighborStatistics",
-    "LAMMPSPerformance",
-    "LAMMPSRun",
-    "LAMMPSThermo",
-    "LAMMPSTimingBreakdown",
-    "LAMMPSTimingRow",
-    "LAMMPSWarning",
+    "LammpsCpuUse",
+    "LammpsLoadBalance",
+    "LammpsLog",
+    "LammpsLogHeader",
+    "LammpsLoopTime",
+    "LammpsMemoryUsage",
+    "LammpsNeighborStatistics",
+    "LammpsPerformance",
+    "LammpsRun",
+    "LammpsThermo",
+    "LammpsTimingBreakdown",
+    "LammpsTimingRow",
+    "LammpsWarning",
     # Utility Classes
     "ZipReader",
 ]

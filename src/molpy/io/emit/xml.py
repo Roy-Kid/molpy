@@ -31,17 +31,9 @@ class XMLEmitter:
         out_dir = Path(out_dir)
         xml_path = out_dir / f"{prefix}.xml"
         pdb_path = out_dir / f"{prefix}.pdb"
-        try:
-            from molpy.io.forcefield.xml import XMLForceFieldWriter
+        from molpy.io.data.pdb import PDBWriter
+        from molpy.io.forcefield.xml import XMLForceFieldWriter
 
-            XMLForceFieldWriter(xml_path).write(ff)
-        except Exception:
-            xml_path.write_text('<?xml version="1.0"?>\n<ForceField/>\n')
-        try:
-            from molpy.io.data.pdb import PDBWriter
-
-            frame = atomistic.to_frame()
-            PDBWriter(pdb_path).write(frame)
-        except Exception:
-            pdb_path.write_text("REMARK MolPy placeholder\nEND\n")
+        XMLForceFieldWriter(xml_path).write(ff)
+        PDBWriter(pdb_path).write(atomistic.to_frame())
         return [xml_path, pdb_path]

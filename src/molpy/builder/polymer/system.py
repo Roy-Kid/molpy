@@ -181,7 +181,7 @@ class PolydisperseChainGenerator:
 
                 # Propose adding a single monomer
                 next_label = self.seq_generator.generate_sequence(1, rng)[0]
-                proposed_mass = current_mass + self.monomer_mass.get(next_label, 0.0)
+                proposed_mass = current_mass + self.monomer_mass[next_label]
 
                 # Always accept at least one monomer, even if it overshoots
                 if not monomers:
@@ -222,7 +222,7 @@ class PolydisperseChainGenerator:
         Returns:
             Total chain mass (g/mol)
         """
-        monomer_mass_sum = sum(self.monomer_mass.get(m, 0.0) for m in monomers)
+        monomer_mass_sum = sum(self.monomer_mass[m] for m in monomers)
         return monomer_mass_sum + self.end_group_mass
 
 
@@ -336,7 +336,7 @@ class SystemPlanner:
         # Use expected composition to estimate average monomer mass
         expected_comp = self.chain_generator.seq_generator.expected_composition()
         avg_monomer_mass = sum(
-            expected_comp.get(m, 0.0) * self.chain_generator.monomer_mass.get(m, 0.0)
+            expected_comp[m] * self.chain_generator.monomer_mass[m]
             for m in expected_comp.keys()
         )
 

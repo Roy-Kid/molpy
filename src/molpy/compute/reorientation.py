@@ -1,4 +1,4 @@
-"""Legendre reorientational correlation functions — molrs-backed.
+"""Legendre reorientational correlation functions — native-backed.
 
 ``LegendreReorientation`` computes the first- and second-order Legendre
 reorientational time-correlation functions of bond (or molecular) vectors,
@@ -9,7 +9,7 @@ reorientational time-correlation functions of bond (or molecular) vectors,
 
 with ``P_1(x) = x`` and ``P_2(x) = (3x^2 - 1)/2``. ``C_2(t)`` is the quantity
 probed by NMR and dielectric relaxation; its decay time is the reorientational
-correlation time. Thin shell over the molrs analysis-parity kernel; takes
+correlation time. Thin shell over the native analysis-parity kernel; takes
 ``(frames)`` only. The ``(tail, head)`` endpoints of each tracked bond vector
 are read from each frame's core ``bonds`` topology block, so no separate
 endpoint-index array is passed.
@@ -26,10 +26,8 @@ from __future__ import annotations
 
 import molrs
 
-from .base import Compute
 
-
-class LegendreReorientation(Compute):
+class LegendreReorientation:
     """First/second Legendre reorientational TCFs ``C_1(t)``, ``C_2(t)``.
 
     Parameters
@@ -48,8 +46,7 @@ class LegendreReorientation(Compute):
     """
 
     def __init__(self, max_lag: int, stride: int = 1):
-        super().__init__(max_lag=max_lag, stride=stride)
         self._inner = molrs.compute.order.LegendreReorientation(max_lag, stride)
 
-    def __call__(self, frames):
+    def compute(self, frames):
         return self._inner.compute(frames)

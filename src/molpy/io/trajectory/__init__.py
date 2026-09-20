@@ -10,13 +10,14 @@ from .base import (
 )
 
 # 2. Specific implementations
-from .lammps import LammpsTrajectoryWriter
+from .lammps import LammpsDumpLocalWriter, LammpsTrajectoryWriter
 from .xyz import XYZTrajectoryWriter
 
 __all__ = [
     "BaseReader",
     "BaseTrajectoryReader",
     "TrajectoryWriter",
+    "LammpsDumpLocalWriter",
     "LammpsTrajectoryWriter",
     "XYZTrajectoryWriter",
 ]

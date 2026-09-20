@@ -3,8 +3,6 @@ from io import TextIOWrapper
 
 from molrs import Frame
 
-from molpy._frame_meta import get_frame_meta
-
 from .base import TrajectoryWriter
 
 
@@ -30,9 +28,12 @@ class XYZTrajectoryWriter(TrajectoryWriter):
         self.fobj.write(f"{n_atoms}\n")
 
         # Write comment line
-        comment = get_frame_meta(
-            frame, "comment", f"Step={get_frame_meta(frame, 'step', 0)}"
-        )
+        if "comment" in frame.meta:
+            comment = str(frame.meta["comment"])
+        elif "step" in frame.meta:
+            comment = f"Step={frame.meta['step']}"
+        else:
+            comment = ""
         if box is not None:
             comment += f' Lattice="{box.matrix.tolist()}"'
         self.fobj.write(f"{comment}\n")

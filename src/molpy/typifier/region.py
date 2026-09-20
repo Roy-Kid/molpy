@@ -5,7 +5,7 @@ ordinary standalone :class:`~molpy.core.atomistic.Atomistic` — the context she
 around the region gives its interior atoms complete ring/degree/SMARTS context,
 so they receive the *same* types they would in the full structure — then snapshots
 the types of every **interior** atom (within ``interior_reach`` hops of the edit)
-plus the bonded terms wholly inside that set, keyed by the region's molrs
+plus the bonded terms wholly inside that set, keyed by the region's native
 **canonical order**.
 
 The result, a frozen :class:`RegionTypes`, holds plain data only (type strings +

@@ -112,7 +112,9 @@ from molpy.compute import VanHove
 from molpy.io import read_lammps_trajectory
 
 frames = read_lammps_trajectory("run.lammpstrj").read_all()
-result = VanHove(n_rbins=100, r_max=12.0, lags=[10, 50, 200], stride=10)(frames)
+result = VanHove(
+    n_rbins=100, r_max=12.0, lags=[10, 50, 200], stride=10
+).compute(frames)
 
 g_self = np.asarray(result.g_self)
 print(g_self.shape)    # -> (n_lags, n_rbins), one row per requested lag

@@ -42,12 +42,16 @@ def steinhardt_contrast(trajectory: Trajectory) -> dict[str, float]:
     """q6 distributions for a perfect FCC crystal and for liquid argon."""
     crystal = _fcc_frame()
     crystal_q = np.asarray(
-        Steinhardt(l=[4, 6])([crystal], [NeighborList(cutoff=4.5)(crystal)])[0]["ql"]
+        Steinhardt(l=[4, 6]).compute(
+            [crystal], [NeighborList(cutoff=4.5).compute(crystal)]
+        )[0]["ql"]
     )
 
     frames = _frames(trajectory, stride=50)
     # 5.4 A is the first minimum of g(r): the defensible "first shell" cutoff.
-    liquid = Steinhardt(l=[4, 6])(frames, [NeighborList(cutoff=5.4)(f) for f in frames])
+    liquid = Steinhardt(l=[4, 6]).compute(
+        frames, [NeighborList(cutoff=5.4).compute(f) for f in frames]
+    )
     liquid_q4 = np.concatenate([np.asarray(r["ql"])[0] for r in liquid])
     liquid_q6 = np.concatenate([np.asarray(r["ql"])[1] for r in liquid])
 
@@ -85,8 +89,8 @@ def bond_order_diagram(trajectory: Trajectory) -> dict[str, float]:
     from molpy.compute import BondOrder
 
     crystal = _fcc_frame(cells=4)
-    counts, _, theta_edges, phi_edges = BondOrder(n_theta=36, n_phi=72)(
-        [crystal], [NeighborList(cutoff=4.5)(crystal)]
+    counts, _, theta_edges, phi_edges = BondOrder(n_theta=36, n_phi=72).compute(
+        [crystal], [NeighborList(cutoff=4.5).compute(crystal)]
     )[0]
     counts = np.asarray(counts)
     theta = 0.5 * (np.asarray(theta_edges)[:-1] + np.asarray(theta_edges)[1:])
@@ -107,8 +111,8 @@ def bond_order_diagram(trajectory: Trajectory) -> dict[str, float]:
     liquid = np.sum(
         [
             np.asarray(r[0])
-            for r in BondOrder(n_theta=36, n_phi=72)(
-                frames, [NeighborList(cutoff=5.4)(f) for f in frames]
+            for r in BondOrder(n_theta=36, n_phi=72).compute(
+                frames, [NeighborList(cutoff=5.4).compute(f) for f in frames]
             )
         ],
         axis=0,

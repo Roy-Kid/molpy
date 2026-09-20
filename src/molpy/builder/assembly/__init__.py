@@ -9,7 +9,9 @@ explicit independent stage.
 
 from ._assembler import GraphAssembler
 from ._context import MatchContext
-from ._finalize import AssemblyFinalizer, Finalization
+from molpy.builder._finalize import Finalization
+
+from ._finalize import AssemblyFinalizer
 from ._library import MonomerLibrary
 from ._placer import Placer, ResiduePlacer
 from ._polymer import PolymerBuilder
@@ -23,11 +25,8 @@ from ._proximity import (
 from ._random import RandomSelector
 from ._replicas import Replicas
 from ._residue_graph import (
-    linear_cgsmiles,
     linear_topology,
-    ring_cgsmiles,
     ring_topology,
-    star_cgsmiles,
     star_topology,
 )
 from ._cgsmiles_ir import CGSmilesBondIR, CGSmilesGraphIR, CGSmilesNodeIR
@@ -58,10 +57,7 @@ __all__ = [
     "CGSmilesBondIR",
     "CGSmilesGraphIR",
     "CGSmilesNodeIR",
-    "linear_cgsmiles",
     "linear_topology",
-    "ring_cgsmiles",
     "ring_topology",
-    "star_cgsmiles",
     "star_topology",
 ]

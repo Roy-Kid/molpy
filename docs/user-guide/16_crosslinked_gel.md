@@ -87,7 +87,7 @@ def mark_crosslink_sites(strand, *, spacing=3, site="x", leaving="h"):
     return strand
 ```
 
-The marker is matched by a molrs `%LABEL` predicate in the reaction SMARTS (`%x` / `%h`), not by geometry — unmarked carbons are never considered.
+The marker is matched by a `%LABEL` predicate in the reaction SMARTS (`%x` / `%h`), not by geometry — unmarked carbons are never considered.
 
 ## The chain is replicated onto a jittered grid
 
@@ -128,7 +128,7 @@ gel = GraphAssembler(
     mp.Reaction(XLINK),
     typifier=typifier,
     reach=2,
-).assemble(
+).apply(
     box,
     ExhaustiveSelector(cutoff=6.5, exclude_same_molecule=True, exclude_same_match=True),
 )
