@@ -35,3 +35,51 @@ jobs:
       # tox's pip install does not honor [tool.uv.sources]; uv does, so the
       # unpublished molrs 0.14 git pin actually resolves here.
       - run: uv run --extra dev python -m pytest tests/ -n auto
+
+  # Publishes this run's tests and coverage to the MolCrafts CI index, which
+  # the engineering dashboard reads. Separate from the gate matrix on purpose:
+  # the matrix decides whether molpy is releasable, and its nine cells would
+  # otherwise collide — a snapshot id is keyed by record, profile and commit,
+  # so three ubuntu cells would all claim `tests-linux-x86_64-<sha>`. One
+  # designated run measures, so one record is published.
+  snapshot:
+    name: Publish tests + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v9.0.0
+
+      # Runs even when the gate matrix went red: a run whose tests failed is
+      # exactly the run whose test record is worth keeping. The `|| true` keeps
+      # the measurement from deciding this job's verdict — the matrix already did.
+      - name: Measure this run
+        if: ${{ !cancelled() }}
+        run: |
+          uv run --extra dev --with pytest-cov python -m pytest tests/ \
+            --junitxml=.ci-out/junit.xml \
+            --cov=molpy --cov-branch --cov-report=json:.ci-out/coverage.json || true
+
+      # `--track` waits on the credential as well as the branch: without
+      # MOLCRAFTS_CI_SSH_KEY there is nothing to push with, so the snapshots are
+      # built and uploaded as an artifact but never published, and CI stays
+      # green. Fork pull requests, which get no secrets, stay on that path.
+      - name: Build snapshots
+        if: ${{ !cancelled() && hashFiles('.ci-out/junit.xml') != '' }}
+        run: |
+          uvx --from git+https://github.com/MolCrafts/molcrafts-ci@master molci snapshot \
+            --out .ci-out/snapshots \
+            --junit .ci-out/junit.xml \
+            --coverage .ci-out/coverage.json \
+            ${{ (github.event_name == 'push' && github.ref == 'refs/heads/master' && secrets.MOLCRAFTS_CI_SSH_KEY != '') && '--track' || '' }}
+
+      - name: Publish to molcrafts-ci
+        if: ${{ !cancelled() && hashFiles('.ci-out/snapshots/*.json') != '' }}
+        uses: MolCrafts/molcrafts-ci/actions/submit@master
+        with:
+          snapshot-path: .ci-out/snapshots/*.json
+          project: molpy
+          # A deploy key on molcrafts-ci: one repository, git only.
+          ssh-key: ${{ secrets.MOLCRAFTS_CI_SSH_KEY }}
