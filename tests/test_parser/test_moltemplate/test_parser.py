@@ -14,7 +14,7 @@ from molpy.parser.moltemplate import (
     parse_string,
 )
 
-FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURES = Path(__file__).resolve().parents[2] / "tests-data" / "moltemplate"
 
 
 class TestTokenizer:

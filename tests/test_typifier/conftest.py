@@ -22,7 +22,7 @@ def _build(elements: list[str], edges: list[tuple[int, int]]) -> Atomistic:
     return asm.get_topo(gen_angle=True, gen_dihe=True)
 
 
-def c4c1im_graph() -> Atomistic:
+def _c4c1im_graph() -> Atomistic:
     """[C4C1im]+ connectivity (paduagroup/clandp z-matrix)."""
     el = [
         "N",
@@ -81,7 +81,7 @@ def c4c1im_graph() -> Atomistic:
     return _build(el, edges)
 
 
-def bf4_graph() -> Atomistic:
+def _bf4_graph() -> Atomistic:
     return _build(["B", "F", "F", "F", "F"], [(0, 1), (0, 2), (0, 3), (0, 4)])
 
 
@@ -94,9 +94,21 @@ def clp() -> ClpTypifier:
 @pytest.fixture(scope="module")
 def c4c1im_typed(clp: ClpTypifier) -> Atomistic:
     """[C4C1im]+ fully CL&P-typed once; Drude / charge tests reuse this graph."""
-    return clp.typify(c4c1im_graph())
+    return clp.typify(_c4c1im_graph())
 
 
 @pytest.fixture(scope="module")
 def mmff() -> MMFFTypifier:
     return MMFFTypifier()
+
+
+@pytest.fixture
+def c4c1im_graph() -> Atomistic:
+    """A fresh, untyped [C4C1im]+ graph."""
+    return _c4c1im_graph()
+
+
+@pytest.fixture
+def bf4_graph() -> Atomistic:
+    """A fresh, untyped [BF4]- graph."""
+    return _bf4_graph()

@@ -54,9 +54,9 @@ WATER_TIP3P_JSON: dict = {
 
 
 @pytest.fixture
-def test_files(tmp_path: Path):
+def test_files(tmp_path: Path, TEST_DATA_DIR: Path):
     """Paths to native fixtures plus an on-the-fly JSON water molecule."""
-    test_dir = Path(__file__).parent / "test_files"
+    test_dir = TEST_DATA_DIR / "lammps-molecule"
     water_json = tmp_path / "water_tip3p.json"
     water_json.write_text(json.dumps(WATER_TIP3P_JSON), encoding="utf-8")
     return {

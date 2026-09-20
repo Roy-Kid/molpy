@@ -8,17 +8,12 @@ import numpy as np
 from molpy.compute import StaticStructureFactorDebye
 from molpy.compute.base import Compute
 
-from .parity_helpers import (
-    frame_coords_snapshot,
-    random_periodic_frame,
-)
-
 
 def test_ssf_is_compute_subclass():
     assert issubclass(StaticStructureFactorDebye, Compute)
 
 
-def test_ssf_ideal_gas_large_k_approaches_one():
+def test_ssf_ideal_gas_large_k_approaches_one(random_periodic_frame):
     """Uniform random points -> S(k) ~ 1 at large k (no structure)."""
     frame = random_periodic_frame(n=2000, box_len=30.0, seed=3)
     k = np.linspace(1.0, 15.0, 60)
@@ -29,7 +24,7 @@ def test_ssf_ideal_gas_large_k_approaches_one():
     assert np.all(np.abs(upper_third - 1.0) < 0.3)
 
 
-def test_ssf_input_frame_immutable():
+def test_ssf_input_frame_immutable(random_periodic_frame, frame_coords_snapshot):
     frame = random_periodic_frame()
     before = frame_coords_snapshot(frame)
     StaticStructureFactorDebye(np.linspace(0.5, 8.0, 20))(frame)

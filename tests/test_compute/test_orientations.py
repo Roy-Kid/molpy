@@ -21,9 +21,24 @@ import molpy as mp
 from molpy.compute import PMFTXY, NeighborList, Nematic, SpatialDistribution
 from molpy.compute.base import Compute
 
-from .parity_helpers import attach_orientations
 
 _TEMPLATE = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+
+
+def _attach_orientations(frame, heads, tails):
+    """Attach an ``orientations`` topology block to ``frame`` (in place).
+
+    One ``(head, tail)`` atom-index row per particle, using the same on-disk
+    schema as the core ``bonds`` block — the two endpoint columns ``atomi``
+    (head) and ``atomj`` (tail), stored as unsigned-int atom indices. The
+    orientation-aware compute ops (Nematic / SpatialDistribution / PMFTXY) read
+    their per-particle axis ``normalize(pos[head] - pos[tail])`` from this block.
+    """
+    frame["orientations"] = {
+        "atomi": np.asarray(heads, dtype=np.uint32),
+        "atomj": np.asarray(tails, dtype=np.uint32),
+    }
+    return frame
 
 
 def _axis_frame(n_particles: int = 8, box_len: float = 10.0, seed: int = 0):
@@ -43,7 +58,7 @@ def _axis_frame(n_particles: int = 8, box_len: float = 10.0, seed: int = 0):
     frame.box = mp.Box.cubic(box_len)
     heads = [2 * k + 1 for k in range(n_particles)]
     tails = [2 * k for k in range(n_particles)]
-    attach_orientations(frame, heads=heads, tails=tails)
+    _attach_orientations(frame, heads=heads, tails=tails)
     return frame
 
 
@@ -98,7 +113,7 @@ def _pmft_frame(n: int = 20, box_len: float = 12.0, seed: int = 1):
     frame = _random_frame(n, box_len, seed)
     idx = np.arange(n, dtype=np.uint32)
     # One (head, tail) row per particle (query-point index order).
-    attach_orientations(frame, heads=(idx + 1) % n, tails=idx)
+    _attach_orientations(frame, heads=(idx + 1) % n, tails=idx)
     return frame
 
 
@@ -146,7 +161,7 @@ def test_sdf_reads_orientations_from_frame():
     frame = _random_frame(n, 10.0, seed=3)
     target = list(range(3, n))
     # One (head, tail) row per target atom, in target order.
-    attach_orientations(frame, heads=target, tails=[(t + 1) % n for t in target])
+    _attach_orientations(frame, heads=target, tails=[(t + 1) % n for t in target])
     res = SpatialDistribution(**_sdf_kwargs(target))([frame])
     assert np.asarray(res.density).size > 0
     assert res.orientation is not None  # per-voxel mean-orientation field present

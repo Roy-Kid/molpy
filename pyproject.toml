@@ -151,6 +151,8 @@ output-format = "full"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# No __init__.py under tests/: same basenames (four test_lammps.py) resolve by path.
+addopts = "--import-mode=importlib"
 pythonpath = ["src"]
 filterwarnings = [
     "error",
