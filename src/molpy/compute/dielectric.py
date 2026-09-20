@@ -79,21 +79,18 @@ def _orth_mic_dr(dr: np.ndarray, lengths: np.ndarray) -> np.ndarray:
     return dr - lengths * np.rint(dr / lengths)
 
 
+_DIELECTRIC_ROUTES = ("green-kubo", "einstein-helfand")
+
+
 def _normalize_dielectric_routes(routes: list[str]) -> list[str]:
-    """Map legacy aliases to physical route names."""
-    alias = {
-        "green-kubo": "green-kubo",
-        "einstein-helfand": "einstein-helfand",
-    }
+    """Validate route names and drop repeats, keeping the caller's order."""
     out: list[str] = []
     for r in routes:
-        key = r.strip().lower()
-        if key not in alias:
+        name = r.strip().lower()
+        if name not in _DIELECTRIC_ROUTES:
             raise ValueError(
-                f"unknown dielectric route {r!r}; expected one of "
-                f"{sorted(set(alias.values()) | set(alias))}"
+                f"unknown dielectric route {r!r}; expected one of {_DIELECTRIC_ROUTES}"
             )
-        name = alias[key]
         if name not in out:
             out.append(name)
     return out

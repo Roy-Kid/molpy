@@ -17,7 +17,7 @@ import pytest
 
 from molpy import ForceField, AtomType, BondType
 from molpy.data import get_forcefield_path
-from molpy.io.forcefield.xml import XMLForceFieldReader, read_xml_forcefield
+from molpy.io.forcefield.xml import XMLForceFieldWriter, read_xml_forcefield
 
 
 class TestXMLForceFieldReader:
@@ -148,9 +148,7 @@ class TestAngleUnitOption:
         This asserted degrees, which is what let the reader ship a 104.52 that
         molrs's LAMMPS writer then multiplied by 180/π into 5988.55.
         """
-        ff = XMLForceFieldReader(
-            get_forcefield_path("oplsaa.xml"), angle_unit="radian"
-        ).read()
+        ff = read_xml_forcefield(get_forcefield_path("oplsaa.xml"))
         theta0 = self._theta0_rad(ff)
         assert theta0 is not None
         assert 1.4 < theta0 < math.pi  # radians — the molrs internal unit
@@ -171,9 +169,9 @@ class TestAngleUnitOption:
             back = _angle_from_internal(internal, unit)
             assert abs(back - (1.91 if unit == "radian" else 109.5)) < 1e-9
 
-    def test_invalid_unit_raises(self):
+    def test_invalid_unit_raises(self, tmp_path):
         with pytest.raises(ValueError, match="angle_unit"):
-            XMLForceFieldReader(get_forcefield_path("oplsaa.xml"), angle_unit="grad")
+            XMLForceFieldWriter(tmp_path / "out.xml", angle_unit="grad")
 
 
 class TestAngleUnitDetection:

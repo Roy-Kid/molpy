@@ -116,32 +116,6 @@ def read_oplsaa_forcefield(
     return forcefield
 
 
-class XMLForceFieldReader:
-    """Deprecated shell: prefer :func:`read_xml_forcefield` (molrs)."""
-
-    def __init__(self, filepath: str | Path, *, angle_unit: str = "radian") -> None:
-        self._file = Path(filepath)
-        self._angle_unit = _check_angle_unit(angle_unit)
-
-    def read(
-        self,
-        forcefield: ForceField | None = None,
-        layer: int = 0,
-    ) -> ForceField:
-        return read_xml_forcefield(self._file, forcefield=forcefield, layer=layer)
-
-
-class OPLSAAForceFieldReader(XMLForceFieldReader):
-    """Deprecated shell: prefer :func:`read_oplsaa_forcefield` (molrs)."""
-
-    def read(
-        self,
-        forcefield: ForceField | None = None,
-        layer: int = 0,
-    ) -> ForceField:
-        return read_oplsaa_forcefield(self._file, forcefield=forcefield, layer=layer)
-
-
 class XMLForceFieldWriter:
     """Write a ForceField to OpenMM-style XML (via molrs)."""
 

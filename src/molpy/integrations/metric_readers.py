@@ -56,20 +56,19 @@ def _wanted(request: ReadRequest | None, record: dict[str, Any]) -> bool:
         return True
     if request.metric_type is not None and record.get("t") != request.metric_type:
         return False
-    keys = getattr(request, "keys", ())
-    return not (keys and record.get("k") not in keys)
+    return not (request.keys and record.get("k") not in request.keys)
 
 
 def _stride_of(request: ReadRequest | None) -> int:
-    return max(1, getattr(request, "stride", 1) or 1)
+    return 1 if request is None else max(1, request.stride)
 
 
 def _limit_of(request: ReadRequest | None) -> int | None:
-    return getattr(request, "limit", None) if request is not None else None
+    return None if request is None else request.limit
 
 
 def _since_of(request: ReadRequest | None) -> int:
-    return max(0, getattr(request, "since", 0) or 0)
+    return 0 if request is None else max(0, request.since)
 
 
 def _head(path: Path, size: int = _PROBE_BYTES) -> bytes:
@@ -198,7 +197,7 @@ class MrecReader:
 
         series: dict[str, Any] = {}
         for name in ("step", "time"):
-            values = getattr(trajectory, name, None)
+            values = getattr(trajectory, name)
             if values is not None and len(values):
                 series[name] = values
 

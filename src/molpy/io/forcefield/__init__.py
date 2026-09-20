@@ -12,7 +12,7 @@ from typing import Any
 
 from .lammps import LAMMPSForceFieldWriter
 from .top import GromacsForceFieldWriter, GromacsTopReader
-from .xml import XMLForceFieldReader, XMLForceFieldWriter, read_xml_forcefield
+from .xml import XMLForceFieldWriter, read_xml_forcefield
 
 PathLike = str | Path
 
@@ -20,7 +20,6 @@ __all__ = [
     "GromacsForceFieldWriter",
     "GromacsTopReader",
     "LAMMPSForceFieldWriter",
-    "XMLForceFieldReader",
     "XMLForceFieldWriter",
     "read_lammps_forcefield",
     "write_lammps_forcefield",

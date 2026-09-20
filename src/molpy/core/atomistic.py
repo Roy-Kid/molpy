@@ -27,6 +27,7 @@ from molrs.views import (
 )
 
 from molpy.core.entity import Entities, Entity, Link
+from molpy.core import fields
 
 if TYPE_CHECKING:
     from molrs import Frame
@@ -108,8 +109,6 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         Reads the world component store by handle — does **not** intern ``Atom``
         views (see also :meth:`column` for dense numeric fields).
         """
-        from molpy.core import fields
-
         key = fields.ELEMENT
         return [str(self.get(h, key) or "") for h in self.entities()]
 

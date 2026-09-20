@@ -23,11 +23,8 @@ from ._proximity import (
 from ._random import RandomSelector
 from ._replicas import Replicas
 from ._residue_graph import (
-    linear_cgsmiles,
     linear_topology,
-    ring_cgsmiles,
     ring_topology,
-    star_cgsmiles,
     star_topology,
 )
 from ._cgsmiles_ir import CGSmilesBondIR, CGSmilesGraphIR, CGSmilesNodeIR
@@ -58,10 +55,7 @@ __all__ = [
     "CGSmilesBondIR",
     "CGSmilesGraphIR",
     "CGSmilesNodeIR",
-    "linear_cgsmiles",
     "linear_topology",
-    "ring_cgsmiles",
     "ring_topology",
-    "star_cgsmiles",
     "star_topology",
 ]
