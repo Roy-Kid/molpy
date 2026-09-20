@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 @lru_cache(maxsize=1)
 def _clp_molrs_typifier() -> OPLSAATypifier:
-    """Shared, stateless the native core SMARTS typifier over the CL&P overlay (compiling
+    """Shared, stateless native SMARTS typifier over the CL&P overlay (compiling
     the SMARTS engine once instead of per :class:`ClpTypifier` construction)."""
     # strict=False so molrs's own bonded matching never errors — only the
     # atom-level type/class it assigns via the CL&P SMARTS defs is harvested.
@@ -62,7 +62,7 @@ def _default_clp_params(strict: bool) -> ForceFieldParams:
 
 
 class ClpTypifier(Typifier[Atomistic]):
-    """CL&P ionic-liquid typifier — the native core SMARTS atom typing + molpy parameters.
+    """CL&P ionic-liquid typifier — native SMARTS atom typing + molpy parameters.
 
     Args:
         forcefield: The CL&P-over-OPLS overlay; the built-in one by default.

@@ -47,7 +47,7 @@ class TrajectoryReader(_MolrsTrajectoryReader):
     frame asked for. Beyond :meth:`read_frame` the cursor supports ``len()``,
     ``reader[i]`` (negative indices included), iteration, the ``.step`` /
     ``.time`` frame labels, and :meth:`has_block` — all inherited from the
-    the native core cursor.
+    the native cursor.
 
     Args:
         path: Filesystem path of the record store.

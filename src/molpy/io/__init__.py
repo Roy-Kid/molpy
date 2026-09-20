@@ -2,8 +2,9 @@
 MolPy I/O — the **only** public file I/O surface (``mp.io.read_*`` / ``write_*``).
 
 There is no package-root ``mp.read_*`` / ``mp.write_*``, and no ``MolStore`` /
-Zarr layer. Kernels and formats that the native core owns are reached through this
-module (thin wrappers / readers that call the native core); callers never ``import the native core``.
+Zarr layer. Kernels and formats the native core owns are reached through this module
+(thin wrappers / readers that call into it); callers never import the core
+extension themselves.
 
 Supports:
 - Data files (PDB, XYZ, LAMMPS, GROMACS, AMBER, …)

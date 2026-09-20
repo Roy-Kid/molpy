@@ -1,6 +1,6 @@
 """Pattern-derived receptive field for region typing.
 
-``TypeScope`` is the **system-side** synthesis of the native core syntax facts
+``TypeScope`` is the **system-side** synthesis of native syntax facts
 (``max_bond_depth``, ``ring_primitives``). the native core never names ``reach`` or
 ``TypeScope`` — iron law 2: the engine reports grammar; the force-field layer
 decides whether a finite neighbourhood exists and how large it is.
@@ -94,7 +94,7 @@ class TypeScope:
     def from_patterns(
         cls, patterns: Iterable[str | molrs.perceive.SmartsPattern]
     ) -> Self:
-        """Synthesise a scope from the native core syntax facts on each pattern.
+        """Synthesise a scope from native syntax facts on each pattern.
 
         Raises:
             UnboundedPatternSet: if any pattern uses an untyped ring primitive.

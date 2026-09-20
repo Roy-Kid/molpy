@@ -211,9 +211,9 @@ def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
     """
     Read a LAMMPS force-field include (``*.ff``) into a ForceField.
 
-    Delegates to the native the native core reader (``read_lammps_forcefield``),
-    which parses the include directly into a ``ForceField`` in the native core units
-    (Å, kcal/mol, radians, e): LAMMPS harmonic ``K`` → the native core ``k = 2K``, angle
+    Delegates to the native reader (``read_lammps_forcefield``),
+    which parses the include directly into a ``ForceField`` in the native store units
+    (Å, kcal/mol, radians, e): LAMMPS harmonic ``K`` → the native ``k = 2K``, angle
     and dihedral-phase values are converted degrees → radians, and
     ``dihedral_style fourier``
     maps to the native ``periodic`` kernel. AMBER 1-4 scaling is recorded on the
@@ -306,7 +306,7 @@ def read_lammps_trajectory(traj: PathLike) -> Any:
     Args:
         traj: Path to LAMMPS trajectory file
     Returns:
-        the native core ``TrajectoryReader`` object
+        the native ``TrajectoryReader`` object
     """
     import molrs.io
 
@@ -323,7 +323,7 @@ def read_xyz_trajectory(file: PathLike) -> Any:
         file: Path to XYZ trajectory file
 
     Returns:
-        the native core ``TrajectoryReader`` object
+        the native ``TrajectoryReader`` object
     """
     import molrs.io
 
@@ -351,7 +351,7 @@ def read_dcd_trajectory(file: PathLike) -> Any:
         file: Path to a ``.dcd`` file.
 
     Returns:
-        the native core ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -368,7 +368,7 @@ def read_trr_trajectory(file: PathLike) -> Any:
         file: Path to a ``.trr`` file.
 
     Returns:
-        the native core ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -385,7 +385,7 @@ def read_xtc_trajectory(file: PathLike) -> Any:
         file: Path to a ``.xtc`` file.
 
     Returns:
-        the native core ``TrajectoryReader`` object.
+        the native ``TrajectoryReader`` object.
     """
     import molrs.io
 
@@ -474,12 +474,12 @@ def write_smarts(
 ) -> str:
     """Encode the local topology around ``center`` as a SMARTS string.
 
-    Thin wrap of ``write_smarts``. Science flags match the the native core
+    Thin wrap of ``write_smarts``. Science flags match the native
     ``LocalSmartsOptions`` surface. This is an io entry — not a method on
     :class:`~molpy.core.atomistic.Atomistic`.
 
     Args:
-        mol: molpy :class:`~molpy.core.atomistic.Atomistic` (or the native core graph).
+        mol: molpy :class:`~molpy.core.atomistic.Atomistic` (or a native graph).
         center: Atom view (``.handle``) or integer handle.
         reach: Bond radius of the local ball (must be >= 1).
         atomic_number: Use ``[#Z]`` rather than elemental symbols.

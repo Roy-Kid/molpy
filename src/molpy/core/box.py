@@ -14,7 +14,7 @@ class Box(molrs.Box):
     """Simulation box — molpy front for the native spatial primitive.
 
     Inherits ``Box`` directly, so a ``molpy.Box`` instance is
-    accepted by every the native core API (``NeighborQuery``, ``RDF``, ``wrap``,
+    accepted by every native API (``NeighborQuery``, ``RDF``, ``wrap``,
     ``isin``, …) without conversion. molpy adds:
 
     - the ``Style`` enum (FREE / ORTHOGONAL / TRICLINIC),
@@ -46,7 +46,7 @@ class Box(molrs.Box):
     class Style(str, Enum):
         """Enumeration of simulation-box geometries.
 
-        Values are the canonical the native core style strings so a ``molpy.Box.Style``
+        Values are the canonical native style strings so a ``molpy.Box.Style``
         member compares equal to the string returned by ``style``
         (e.g. ``Box.Style.ORTHOGONAL == "orthogonal"``), letting ``frame.box``
         (a native box) interoperate with molpy style checks.

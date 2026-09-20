@@ -293,7 +293,7 @@ def write_xyz_trajectory(file: PathLike, frames: list) -> None:
 def write_trr(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS TRR trajectory (single precision).
 
-    Thin delegation to the native the native core writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native writer. Each frame needs ``x``/``y``/
     ``z`` (nm); optional ``vx``/``vy``/``vz`` and ``fx``/``fy``/``fz`` are
     written when present.
 
@@ -309,7 +309,7 @@ def write_trr(file: PathLike, frames: list) -> None:
 def write_xtc(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS XTC (compressed) trajectory.
 
-    Thin delegation to the native the native core writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native writer. Each frame needs ``x``/``y``/
     ``z`` (nm); quantization precision comes from ``frame.meta['precision']``
     when present, else 1000 (0.001 nm).
 

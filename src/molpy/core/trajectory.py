@@ -200,7 +200,7 @@ class FrameIntervalStrategy(SplitStrategy):
 class TimeIntervalStrategy(SplitStrategy):
     """Split a trajectory by simulation-time intervals.
 
-    Splits based on the trajectory's native per-frame ``time`` array (the the native core
+    Splits based on the trajectory's native per-frame ``time`` array (the native
     container's time representation, set via ``Trajectory(frames, time=...)``).
     A trajectory without a ``time`` array is left unsplit (single segment).
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from molrs import Frame
 
-from molpy.io.data.lammps import LammpsFieldFormatter
+from molpy.core.fields import LammpsFieldFormatter
 
 from .base import DataReader, DataWriter
 

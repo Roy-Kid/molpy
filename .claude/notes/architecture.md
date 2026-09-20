@@ -136,13 +136,16 @@ Per-package constraints from the same source:
 
 ### 1. 不硬编码字段名
 
-字段只有两个合法来源:`molrs.fields` 的正则表(经 `molpy.core.fields` 再导出),
-以及 molpy 在该模块里**自己注册的 `FieldSpec`**。
+字段只有两个合法来源:native 的 keys 正则表(经 `molpy.core.fields` 以**纯字符串常量**
+再导出,`fields.CHARGE == "charge"`),以及 `molpy/core/fields.py` 里 molpy 自己声明的
+规范字段(目前只有 `fields.SITE`)。
 
-- 允许:`atom[fields.CHARGE.key]`、`fields.SITE`
+- 允许:`atom[fields.CHARGE]`、`fields.SITE`
 - 禁止:`atom.get("charge")`、`site_field: str = "site"` 这类字符串旋钮、
   `element == "O"` 这类元素字面量
-- 新概念要一个字段 ⟹ 在 `molpy/core/fields.py` 注册一个 `FieldSpec`,不要开构造器参数
+- 新概念要一个字段 ⟹ 在 `molpy/core/fields.py` 加一个规范常量(照 `SITE` 的样子写明
+  语义与缺失含义),不要开构造器参数
+- 格式侧的列名翻译走 `FieldFormatter` 子类的 `_field_formatters`,不在调用点手写别名
 - 字段缺失是错误,不是回退:fail-fast,不 `getattr(..., default)`
 
 ### 2. 体系相关的操作留在 molpy,不下沉

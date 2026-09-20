@@ -5,7 +5,7 @@ function, the time-resolved generalization of the radial distribution function:
 ``G_s(r, t)`` is the probability that a particle has moved a distance ``r`` in
 time ``t`` (it integrates to the self-diffusion picture), while ``G_d(r, t)``
 tracks how the structure around a particle decorrelates. Thin shell over the
-the native core analysis-parity kernel; takes ``(frames)``.
+the native analysis-parity kernel; takes ``(frames)``.
 
 References
 ----------

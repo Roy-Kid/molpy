@@ -1,4 +1,4 @@
-"""XYZ file I/O — the native core backend with thin molpy column normalization.
+"""XYZ file I/O — the native backend with thin molpy column normalization.
 
 Parse/serialize: the native ``io`` module. After read, molpy may merge split multi-
 columns (``CS_1``+``CS_2``→``CS``), map ``species``→``element``, and fill

@@ -138,7 +138,7 @@ class AffectedRegion(_RegionMixin[Atom], Atomistic):
 
         Args:
             graph: The parent graph an edit just modified.
-            touched: Seed atoms (views or the native core handles) the edit reported.
+            touched: Seed atoms (views or native handles) the edit reported.
             reach: Neighbourhood radius, in bonds, that decides one atom's type.
 
         Returns:
@@ -172,7 +172,7 @@ class AffectedRegion(_RegionMixin[Atom], Atomistic):
         """Build the region around ``touched`` in ``parent``.
 
         ``touched`` are the seed atoms an edit reported — :class:`Atom` views or
-        raw the native core handles (as returned by ``apply``). ``parent``
+        raw native handles (as returned by ``apply``). ``parent``
         is not mutated: the region is an induced clone with its own atom views.
 
         Raises:

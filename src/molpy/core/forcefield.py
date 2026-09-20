@@ -1,4 +1,4 @@
-"""Force-field model — thin re-export of the native the native core hierarchy.
+"""Force-field model — thin re-export of the native hierarchy.
 
 the native core (the Rust extension) natively owns the entire force-field model:
 ``ForceField``, the ``Style`` tree, the ``Type`` tree and ``Parameters``.

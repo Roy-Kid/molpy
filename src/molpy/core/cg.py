@@ -1,7 +1,7 @@
 """Coarse-grained molecular structure as a handle-view over a native ``CoarseGrain``.
 
-Mirrors :mod:`molpy.core.atomistic`: ``CoarseGrain(_GraphViews, the native core.CoarseGrain)``
-IS a native world; :class:`Bead` / :class:`CGBond` are interned handle views.
+Mirrors :mod:`molpy.core.atomistic`: ``CoarseGrain`` mixes ``_GraphViews`` into
+the native ``CoarseGrain``, so it IS a native world; :class:`Bead` / :class:`CGBond` are interned handle views.
 
 Dict keys:
 
@@ -9,8 +9,8 @@ Dict keys:
   is the bead's **membership**, owned by the native ``CoarseGrain`` as opaque atom
   handles (not a scalar component) and resolved back to views through the source
   all-atom world. Drives :meth:`CoarseGrain.beads_of`.
-* ``bead["x"]`` / ``bead["y"]`` / ``bead["z"]`` — position (the native core columns).
-* ``bead["type"]`` / ``bead["mass"]`` / ``bead["charge"]`` — the native core columns.
+* ``bead["x"]`` / ``bead["y"]`` / ``bead["z"]`` — position (native columns).
+* ``bead["type"]`` / ``bead["mass"]`` / ``bead["charge"]`` — native columns.
 """
 
 from __future__ import annotations
@@ -152,7 +152,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     # ---------- reverse lookup ----------
     def beads_of(self, atom: "Atom") -> tuple[Bead, ...]:
-        """Beads whose membership includes ``atom`` (the native core reverse lookup)."""
+        """Beads whose membership includes ``atom`` (native reverse lookup)."""
         handles = molrs.CoarseGrain.beads_of_atom(self, atom.handle)
         return tuple(self._intern_node(h) for h in handles)  # type: ignore[misc]
 

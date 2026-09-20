@@ -1,4 +1,4 @@
-"""Selection sugar over the native core's native geometric regions."""
+"""Selection sugar over the native geometric regions."""
 
 from __future__ import annotations
 

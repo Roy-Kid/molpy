@@ -1,6 +1,6 @@
 """Dielectric susceptibility Compute classes.
 
-Thin glue layers bridging molpy `Trajectory` to the native core computational
+Thin glue layers bridging molpy `Trajectory` to the native computational
 kernels. The Python side does only data extraction (positions, charges)
 and vectorized NumPy assembly (dipole moment via `einsum`, minimum-image
 unwrap); all correlators and spectral physics live in the native core:

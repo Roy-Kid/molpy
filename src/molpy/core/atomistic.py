@@ -1,7 +1,8 @@
 """All-atom molecular structure as a handle-view over a native ``Atomistic``.
 
-``Atomistic(_GraphViews, the native core.Atomistic)`` IS a native world — it is accepted
-directly by every native ``system`` free function (no conversion bridge).
+``Atomistic`` mixes ``_GraphViews`` into the native ``Atomistic``, so it IS a
+native world — accepted directly by every native ``system`` free function (no
+conversion bridge).
 :class:`Atom` / :class:`Bond` / :class:`Angle` / :class:`Dihedral` /
 :class:`Improper` are handle views interned per stable handle.
 """
@@ -493,7 +494,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
     def from_frame(cls, frame: "Frame") -> "Atomistic":
         """Build a molpy ``Atomistic`` from a :class:`~molpy.Frame`.
 
-        The inverse of :meth:`to_frame`. the native core's inherited ``from_frame`` returns a
+        The inverse of :meth:`to_frame`. The inherited native ``from_frame`` returns a
         bare native graph; this override adopts it so the result is a molpy
         ``Atomistic`` — the call site never needs a second ``adopt``.
         """

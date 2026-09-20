@@ -1,4 +1,4 @@
-"""Python argument shaping for the native core's native CL&Pol scaleLJ transform."""
+"""Python argument shaping for the native CL&Pol scaleLJ transform."""
 
 from __future__ import annotations
 

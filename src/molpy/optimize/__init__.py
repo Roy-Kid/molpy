@@ -4,7 +4,7 @@
 takes the ``Potentials`` compiled from a force field for the
 frame under study (``forcefield.to_potentials(frame)``); ``run(frame)``
 returns ``(frame, OptReport)``. Composition — typify, compile, relax — is the
-caller's, exactly as with any other the native core primitive.
+caller's, exactly as with any other native primitive.
 """
 
 from molrs.optimize import LBFGS, OptReport

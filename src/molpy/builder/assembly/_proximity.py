@@ -234,7 +234,7 @@ class ProximitySelector(Selector):
     def _components(graph: Atomistic) -> dict[int, int]:
         """Connected-component root per atom handle.
 
-        One the native core bond-graph traversal (``topo_distances``) per component, so
+        One native bond-graph traversal (``topo_distances``) per component, so
         the whole world is walked once, in Rust.
         """
         root: dict[int, int] = {}

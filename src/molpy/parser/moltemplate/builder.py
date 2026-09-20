@@ -452,7 +452,7 @@ _DEGREE_PARAMS = frozenset({"theta0", "phi0", "chi0", "phase"})
 
 
 def _to_internal_units(params: dict[str, float]) -> dict[str, float]:
-    """Normalize a parsed ``*_coeff`` parameter set to the native core units."""
+    """Normalize a parsed ``*_coeff`` parameter set to the native store units."""
     return {
         name: math.radians(value)
         if name in _DEGREE_PARAMS and isinstance(value, (int, float))
@@ -467,7 +467,7 @@ def _call_def_type(
     """Invoke ``style.def_type`` with positional params mapped to keywords.
 
     ``args`` ends with a ``list[float]`` of numeric params; everything before
-    it is AtomTypes. the native core ``def_type`` accepts params only as keyword args, so
+    it is AtomTypes. the native ``def_type`` accepts params only as keyword args, so
     the positional coefficient tail is mapped onto the canonical names for the
     owning ``(kind, style.name)`` kernel. If ``type_name`` is set it's passed
     as the ``name=`` kwarg.

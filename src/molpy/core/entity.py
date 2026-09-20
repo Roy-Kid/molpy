@@ -26,7 +26,7 @@ __all__ = [
 
 
 class NotPublic:
-    """Class attribute that hides a native the native core builder behind its ``def_*`` door.
+    """Class attribute that hides a native builder behind its ``def_*`` door.
 
     Reading the attribute raises ``AttributeError`` naming the public method;
     every other attribute lookup on the class is untouched.

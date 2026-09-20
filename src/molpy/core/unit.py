@@ -1,4 +1,4 @@
-"""Python unit-system sugar over the native core's native unit engine."""
+"""Python unit-system sugar over the native unit engine."""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Geometric distribution functions (ADF / DDF / distance-DF, CDF) — native-backed.
 
-Thin ``Compute`` shells over ``the native core`` analysis-parity geometric distributions.
+Thin ``Compute`` shells over the native analysis-parity geometric distributions.
 Each forwards verbatim to the Rust kernel and returns the native native result.
 Each takes ``(frames)`` only. The atom tuples to histogram are read from each
 frame's core topology blocks — ``bonds`` (pairs) for distances, ``angles``

@@ -2,7 +2,7 @@
 
 Stacks (do not cross-call):
 - **XML read** (OpenMM/OPLS): the native core — :func:`read_xml_forcefield`.
-- **XML write**: molpy :class:`XMLForceFieldWriter` (no the native core writer yet).
+- **XML write**: molpy :class:`XMLForceFieldWriter` (no native writer yet).
 - **LAMMPS** (``*.ff``): the native core — thin wrappers around
   ``read_lammps_forcefield`` / ``write_lammps_forcefield``.
 """
@@ -59,7 +59,7 @@ def write_lammps_forcefield(
 
     Args:
         path: Destination ``*.ff`` path.
-        forcefield: Force field in the native core store units.
+        forcefield: Force field in native store units.
         precision: Decimal places for floating coefficients.
         skip_pair_style: Omit ``pair_style`` and ``special_bonds`` when True.
         skip_units: Omit the ``units`` line when True (include after the input

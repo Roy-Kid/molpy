@@ -1,6 +1,6 @@
 """Dimensionality reduction + clustering ML primitives — native-backed.
 
-- ``Pca`` (alias for the native core ``Pca2``): 2-component PCA over a list of
+- ``Pca`` (alias for the native ``Pca2``): 2-component PCA over a list of
   ``DescriptorRow`` objects.
 - ``KMeans``: k-means clustering over a ``PcaResult``.
 

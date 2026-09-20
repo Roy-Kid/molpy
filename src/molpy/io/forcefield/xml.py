@@ -106,7 +106,7 @@ def read_oplsaa_forcefield(
     forcefield: ForceField | None = None,
     layer: int = 0,
 ) -> ForceField:
-    """Read OPLS-AA / OpenMM XML with the native core OPLS unit conversion."""
+    """Read OPLS-AA / OpenMM XML with the native OPLS unit conversion."""
     path = _resolve_forcefield_path(filepath)
     loaded = _mff.read_opls_xml(str(path))
     _tag_layer(loaded, layer)

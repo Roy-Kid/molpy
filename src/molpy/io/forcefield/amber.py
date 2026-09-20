@@ -1,4 +1,4 @@
-"""AMBER prmtop I/O — thin the native core façade.
+"""AMBER prmtop I/O — thin native façade.
 
 * Structure: the native ``read_amber_prmtop``
 * Force field: the native ``read_amber_prmtop_ff`` (LAMMPS form map)

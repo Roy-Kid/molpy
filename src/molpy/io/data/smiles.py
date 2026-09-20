@@ -5,7 +5,7 @@ itself, so :class:`SmilesReader` does not extend :class:`DataReader`; it keeps
 the same ``.read()`` idiom and — like every other data reader — defaults to a
 :class:`~molpy.Frame`.
 
-Parsing is the native core (``SmilesIR``) and open valences are filled
+Parsing is native (``SmilesIR``) and open valences are filled
 by :meth:`molpy.core.perceive.Perceive.find_hydrogens`. A SMILES string
 carries no coordinates, so none are invented here: 3D embedding is a
 separate conformer step (:class:`molpy.conformer.Conformer`) the caller
@@ -119,7 +119,7 @@ class SmilesReader:
         )
 
     def _read_atomistic(self) -> "Atomistic":
-        """Parse with the native core, fill open valences, optionally name atoms."""
+        """Parse natively, fill open valences, optionally name atoms."""
         from molpy.core.perceive import Perceive
 
         out = self._parse_graph()
@@ -143,7 +143,7 @@ class SmilesReader:
         if smiles.lstrip().startswith("{"):
             raise ValueError(
                 "molpy does not parse BigSMILES / CGSmiles brace notation. Use "
-                "plain SMILES with the native core.io.SmilesIR, or build polymer topology "
+                "plain SMILES with this reader, or build polymer topology "
                 "via molpy.builder.assembly (linear_topology / PolymerBuilder)."
             )
 

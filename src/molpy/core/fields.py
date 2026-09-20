@@ -1,11 +1,20 @@
-"""Canonical field registry — re-exported from the native core (single source of truth).
+"""Canonical field names and I/O name translation (single source of truth).
 
-The canonical field names and :class:`FieldSpec`/:class:`FieldFormatter` types now
-live in the native ``fields`` module, whose keys are sourced from the Rust ``keys``
-constants. molpy re-exports them wholesale so existing
-``from molpy.core.fields import …`` call sites keep resolving, and adds only the
-force-field-specific :class:`ForceFieldFormatter` on top (until FF I/O is sunk
-into the native I/O).
+Canonical column names are **plain strings** sourced from the native ``keys``
+table and re-exported here one by one (``fields.CHARGE == "charge"``), so an
+annotation dict unpacks as ``update(**kwargs)`` and ``d["type"]`` keeps working.
+
+Name translation at a format boundary is :class:`FieldFormatter`, also native:
+a subclass maps ``{format_key: canonical_key}`` in ``_field_formatters`` and
+applies it with ``canonicalize``/``localize`` (per Block) or the ``*_frame``
+variants; ``register_field`` adds a mapping at runtime and ``__init_subclass__``
+keeps each subclass's registry isolated. The formatters for the formats the core
+parses (LAMMPS, GRO, MOL2, PDB, XYZ) are native and re-exported here; a format
+molpy parses itself declares its own subclass in its I/O module.
+
+molpy adds exactly two things: the assembly-owned field :data:`SITE`, and
+:class:`ForceFieldFormatter`, which extends the field mapping with a Style →
+serializer registry (until force-field I/O is sunk into the native I/O).
 """
 
 from __future__ import annotations

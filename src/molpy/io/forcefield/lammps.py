@@ -10,9 +10,8 @@ from pathlib import Path
 from typing import TextIO
 
 from molpy.core.forcefield import ForceField
-from molpy.core.fields import ForceFieldFormatter
+from molpy.core.fields import ForceFieldFormatter, LammpsFieldFormatter
 from molpy.core.forcefield import PairCoulTTStyle, PairTholeStyle
-from molpy.io.data.lammps import LammpsFieldFormatter
 
 
 def _format_pair_thole(typ) -> list[float]:
@@ -31,8 +30,18 @@ def _format_pair_coul_tt(typ) -> list[float]:
     return [kwargs.get("b", 4.5), kwargs.get("order", 4), kwargs.get("c", 1.0)]
 
 
-class LammpsForceFieldFormatter(LammpsFieldFormatter, ForceFieldFormatter):
-    """Parameter formatters for LAMMPS pair styles beyond the AMBER/GAFF set."""
+class LammpsForceFieldFormatter(ForceFieldFormatter):
+    """Parameter formatters for LAMMPS pair styles beyond the AMBER/GAFF set.
+
+    Carries the LAMMPS column map by value from the one home
+    (``LammpsFieldFormatter``, native) rather than by inheritance: the lint
+    environment does not install the native package, so a base list mixing a
+    native class with a molpy one is unorderable to ``ty``. The map is
+    incidental here anyway — a ``*.ff`` include carries parameters, not atom
+    columns; the registry below is what this class exists for.
+    """
+
+    _field_formatters = dict(LammpsFieldFormatter._field_formatters)
 
     _param_formatters = {
         PairTholeStyle: _format_pair_thole,
@@ -72,7 +81,7 @@ class LAMMPSForceFieldWriter:
         skip_units: bool = False,
         units: str | None = None,
     ) -> None:
-        """Write ``forcefield`` (the native core store units) as a LAMMPS include.
+        """Write ``forcefield`` (native store units) as a LAMMPS include.
 
         Args:
             forcefield: Force field to write.

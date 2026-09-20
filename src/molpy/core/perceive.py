@@ -22,7 +22,7 @@ __all__ = ["Perceive"]
 
 
 class Perceive(molrs.perceive.Perceive):
-    """the native core's perception builder, handing back molpy graphs.
+    """The native perception builder, handing back molpy graphs.
 
     Non-mutating throughout: each method returns a new graph and leaves its
     argument untouched.

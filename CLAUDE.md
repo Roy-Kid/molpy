@@ -249,32 +249,38 @@ another was deleted, not kept.
 
 ### Pattern: Formatter Hierarchy (`core.fields`)
 
-Canonical field names and I/O boundary translation are defined in `core/fields.py`:
+Canonical field names and I/O boundary translation reach molpy through
+`core/fields.py`:
 
 ```
-FieldSpec                              — canonical field definition (key, dtype, shape, doc)
-    ↓
-FieldFormatter                         — data field mapping: {format_key: FieldSpec}
-    ↓                                     canonicalize() / localize() on Block
-ForceFieldFormatter(FieldFormatter)    — inherits field mapping + param formatters: {StyleType: Callable}
+fields.CHARGE, fields.MOL_ID, …      — canonical column names, plain `str`
+    (native keys table, re-exported; `fields.SITE` is the molpy-owned one)
+
+FieldFormatter                        — native; data field mapping: {format_key: canonical_key}
+    ↓                                   canonicalize() / localize() on Block, *_frame() on Frame
+ForceFieldFormatter(FieldFormatter)   — molpy; inherits field mapping, adds param
+                                        formatters: {StyleType: Callable}
 ```
 
-**Per-format subclasses live in their own I/O module** (not centralized):
+The per-format `FieldFormatter` subclasses for the formats the native core
+parses (LAMMPS, GRO, MOL2, PDB, XYZ) are native too, re-exported by
+`core/fields.py`; they are not redefined in the I/O modules. **A format molpy
+parses itself owns its subclass in its own I/O module** (not centralized):
 
 ```python
-# io/data/lammps.py
-class LammpsFieldFormatter(FieldFormatter):
-    _field_formatters = {"q": CHARGE, "mol": MOL_ID}
+# io/data/ac.py
+class AcFieldFormatter(FieldFormatter):
+    _field_formatters = {"q": CHARGE}
 
-# io/forcefield/lammps.py
+# io/forcefield/lammps.py — molpy-side param formatters on a native field map
 class LammpsForceFieldFormatter(LammpsFieldFormatter, ForceFieldFormatter):
-    _param_formatters = {BondHarmonicStyle: _format_bond_harmonic, ...}
+    _param_formatters = {PairTholeStyle: _format_pair_thole, ...}
 ```
 
 - Readers call `_formatter.canonicalize(block)` at exit (format → canonical)
 - Writers call `_formatter.localize_frame(frame)` at entry (canonical → format, on a copy)
-- `__init_subclass__` isolates registries per subclass
-- `register_field()` / `register_param_formatter()` for runtime extension
+- `__init_subclass__` isolates both registries per subclass
+- `register_field()` (native) / `register_param_formatter()` (molpy) for runtime extension
 
 **Canonical atom fields**: `charge` (not `q`), `mol_id` (not `mol`), `id`, `type`, `mass`, `x`/`y`/`z`, `element`, `symbol`, etc.
 

@@ -6,25 +6,10 @@ from pathlib import Path
 import numpy as np
 
 from molrs import Frame
-from molpy.core.fields import CHARGE, MOL_ID, FieldFormatter
+from molpy.core.fields import LammpsFieldFormatter
 from molpy.core.forcefield import ForceField
 
 from .base import DataReader, DataWriter
-
-
-class LammpsFieldFormatter(FieldFormatter):
-    """LAMMPS-specific field name translation.
-
-    Maps LAMMPS atom_style column names to canonical field names::
-
-        "q"   → "charge"
-        "mol" → "mol_id"
-    """
-
-    _field_formatters = {
-        "q": CHARGE,
-        "mol": MOL_ID,
-    }
 
 
 def _is_int_type_token(value: object) -> bool:
@@ -179,7 +164,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         )
 
     def _type_labels_from_meta(self, frame: Frame) -> dict[str, dict[int, str]]:
-        """Parse the native core ``*_type_labels`` meta (``id:label,...``) into maps."""
+        """Parse the native ``*_type_labels`` meta (``id:label,...``) into maps."""
         out: dict[str, dict[int, str]] = {}
         for kind, meta_key in (
             ("atom", "atom_type_labels"),
@@ -239,11 +224,11 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
         frame: Frame,
         type_labels: dict[str, dict[int, str]],
     ) -> None:
-        """Post-process the native core Frame for molpy surface compatibility.
+        """Post-process the native Frame for molpy surface compatibility.
 
         - Expose ``type`` (string labels when a Type Labels section exists,
           else numeric ``type_id``).
-        - Drop columns the requested ``atom_style`` does not carry (the native core
+        - Drop columns the requested ``atom_style`` does not carry (the core
           auto-detects style from the file and may keep extra fields).
         """
         style = self.atom_style.lower().split("/")[0]
@@ -284,7 +269,7 @@ class LammpsDataReader(DataReader[LammpsDataResult]):
 
 
 class LammpsDataWriter(DataWriter):
-    """Structure-only LAMMPS data writer (thin the native core façade).
+    """Structure-only LAMMPS data writer (thin native façade).
 
     Structure emission is the native ``write_lammps_data``. the native core resolves
     atom ``id`` (1..N when absent), ``type`` / ``type_id`` numbering, Masses
@@ -372,7 +357,7 @@ class LammpsDataWriter(DataWriter):
             self._prepend_drude_comment(drude_flags)
 
     def _seed_type_label_meta(self, frame: Frame) -> None:
-        """Pack constructor ``type_labels`` into frame meta for the native core merge.
+        """Pack constructor ``type_labels`` into frame meta for the native merge.
 
         the native core unions these labels with string ``type`` columns on the Frame
         and assigns dense 1-based ids after numeric-aware sort. Empty labels
@@ -401,7 +386,7 @@ class LammpsDataWriter(DataWriter):
         path.write_text(header + path.read_text())
 
     def _ordered_atom_type_names(self, frame: Frame) -> list[str]:
-        """Sorted atom type names matching the native core Type Labels order."""
+        """Sorted atom type names matching the native Type Labels order."""
         names: set[str] = set()
         if "atoms" in frame and frame["atoms"].nrows > 0 and "type" in frame["atoms"]:
             names.update(str(t) for t in np.asarray(frame["atoms"]["type"]).flat)
@@ -474,7 +459,7 @@ def write_lammps_data_coeffs(
         path: Path to a data file already written by :class:`LammpsDataWriter`.
         frame: Frame whose type columns define the id space (call
             ``forcefield.map_type(frame)`` first when needed).
-        forcefield: Force field in the native core store units.
+        forcefield: Force field in native store units.
         units: LAMMPS ``units`` style for numeric conversion (``real`` /
             ``metal`` / ``lj``).
         precision: Decimal places for floating coefficients.

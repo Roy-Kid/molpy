@@ -1,6 +1,6 @@
 """Parsing façade — SMILES / SMARTS from the native core; moltemplate stays local.
 
-Chemistry notation is parsed by ``the native core`` only, and it is parsed by **types**,
+Chemistry notation is parsed by the native core only, and it is parsed by **types**,
 not by helper functions:
 
 * ``SmilesIR`` — ``SmilesIR("CCO")`` parses; ``.to_atomistic()`` /
