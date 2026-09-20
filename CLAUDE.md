@@ -13,12 +13,11 @@ mol_project:
   specs_path: .claude/specs
   notes_path: .claude/notes/notes.md
   build:
-    install: pip install -e ".[dev]"
-    format: ruff format src tests
-    check: ruff check src tests && ty check src/molpy/
-    test: pytest tests/ -v
-    test_single: pytest {path} -v
-    coverage: pytest --cov=src/molpy tests/ -v --cov-report=html
+    install: uv sync --extra dev
+    format: uv run ruff format src tests
+    check: uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+    test: uv run --extra dev python -m pytest tests/ -n auto
+    test_single: uv run --extra dev python -m pytest {path}
 ---
 
 # CLAUDE.md
@@ -92,7 +91,7 @@ leaving rot you already saw.
   than one coherent responsibility.
 - **All-in-one façade APIs.** No public `run_everything` /
   `compute_all` / `pipeline` that hides multi-step work. Composition
-  is the **caller's** job (scripts, docs examples, `regressions/`).
+  is the **caller's** job (scripts, docs examples).
   The library exposes primitives only.
 
 ### Shape check (before adding a public symbol)
@@ -107,9 +106,12 @@ leaving rot you already saw.
 
 - Unit tests **only** under `tests/`, path mirrors source
   (`src/foo/boo.py` → `tests/test_foo/test_boo.py`), types mirror
-  (`FooClass` → `TestFooClass`). Single-function tests — no e2e under
-  `tests/`. Public-API scenarios → `regressions/` with **hard-coded**
-  goldens (no live third-party oracles). Details: `tester` agent.
+  (`FooClass` → `TestFooClass`). One behaviour per test, hand-written
+  inputs; no end-to-end scenarios, no goldens captured from another
+  program, no source-text gates, no regression directory. Fixture
+  files are small and committed under `tests/tests-data/` (read through
+  the `TEST_DATA_DIR` fixture), never inlined as literals. Details:
+  `.claude/notes/testing.md`.
 
 ## Default workflow
 
@@ -148,31 +150,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Quick Development Commands
 
 ```bash
-# Setup
+# Setup (uv resolves molcrafts-molrs from the sibling checkout named in
+# [tool.uv.sources]; the Rust toolchain builds it)
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-pip install -e ".[dev]"
-prek install
+uv sync --extra dev
+pre-commit install --hook-type pre-commit --hook-type pre-push
 
-# Run tests
-pytest tests/ -v                    # All local tests
-pytest tests/test_core/ -v                             # Single module
-pytest tests/test_core/test_atomistic.py::test_atom -v # Single test
-pytest -k "pattern" -v                                 # Tests matching pattern
-pytest --cov=src/molpy tests/ -v --cov-report=html    # With coverage
+# Run tests (the CI command; no third-party scientific software needed)
+uv run --extra dev python -m pytest tests/ -n auto
+uv run --extra dev python -m pytest tests/test_core/                    # one directory
+uv run --extra dev python -m pytest tests/test_core/test_atomistic.py   # one file
+uv run --extra dev python -m pytest -k "pattern"                        # by name
 
-# Code quality
-ruff format --check src tests     # Check formatting
-ruff format src tests             # Auto-format
-ruff check src tests              # Lint
-ty check src/molpy/               # Type check
-prek run --all-files             # Run all hooks (prek reads .pre-commit-config.yaml)
+# After changing molrs (Rust), rebuild the wheel uv installed
+uv sync --extra dev --reinstall-package molcrafts-molrs
+
+# Code quality (the pre-commit hook runs exactly this)
+uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+pre-commit run --all-files
 
 # Documentation (built with Zensical; configured by zensical.toml)
-pip install -e ".[doc]"
-zensical serve                       # Local preview at http://localhost:8000
-zensical build                       # Build static site into site/
-python scripts/render_notebooks.py   # Re-render user-guide notebooks → Markdown
+uv sync --extra doc
+uv run zensical serve                       # Local preview at http://localhost:8000
+uv run zensical build                       # Build static site into site/
+uv run python scripts/render_notebooks.py   # Re-render user-guide notebooks → Markdown
 ```
 
 ## Architecture Overview
@@ -198,12 +200,23 @@ MolPy is a computational chemistry toolkit with explicit data flow and minimal m
 | `engine` | MD abstractions: LAMMPS, CP2K, OpenMM |
 | `wrapper` | External CLIs: Antechamber, Prepgen, Parmchk2, TLeap |
 | `adapter` | Optional in-memory bridge: RDKit (worked example only) |
+| `md`, `optimize`, `potential` | Re-exports of the molrs engines (`VelocityVerlet`, `LBFGS`, kernels); molpy adds nothing |
+| `data` | Bundled force-field files (`oplsaa.xml`, `clp.xml`, `tip3p.xml`, `alpha.ff`) and `get_forcefield_path` |
+| `integrations` | Metric readers the molexp platform consumes (LAMMPS log, mrec series) |
+| `cli` | `molpy moltemplate …` |
 
 > **Hard runtime dependency**: `molcrafts-molrs` (Rust extension) is required,
 > pinned to the same **minor** line in `pyproject.toml`
 > (`>=0.14.0,<0.15`). Import-time `check_molrs_version` enforces major.minor
 > only. Public molrs symbols are re-exported on the molpy facade
 > (`molpy.Frame is molrs.Frame`); application code imports `molpy`, not `molrs`.
+
+Import direction (full table in `.claude/notes/architecture.md`): `core` imports
+nothing from molpy; `io` may be imported by `builder`, `pack`, `engine` and
+`typifier` (packaged force fields are read through it); `wrapper` imports `core`
+only and never `io`; `builder` may drive `wrapper` (AmberTools); `conformer` is
+used by `builder` and `typifier`; nothing imports the package root (`import
+molpy as mp`) from inside `src/`.
 
 ### Data Model Layer
 
@@ -257,19 +270,20 @@ For integrating external libraries (RDKit, LAMMPS, …):
 
 ### Pattern: ForceField I/O
 
-All force-field readers/writers inherit from base classes in `io.forcefield.base`:
+Readers are functions over molrs parsers — `read_xml_forcefield`,
+`read_lammps_forcefield`, `read_top`, `read_amber` — plus the class readers
+`AmberPrmtopReader`, `GromacsTopReader` and `MolTemplateReader`. Writers
+subclass `ForceFieldWriter` (`io.forcefield.base`):
 
 ```
-ForceFieldReader (ABC)
-  ├─ LAMMPSForceFieldReader
-  ├─ XMLForceFieldReader
-  └─ AmberPrmtopReader (reads AMBER prmtop/inpcrd)
-
 ForceFieldWriter (ABC)
   ├─ LAMMPSForceFieldWriter
   ├─ XMLForceFieldWriter
-  └─ ...
+  └─ GromacsForceFieldWriter
 ```
+
+There are no deprecated shells around these; a reader that only forwarded to
+another was deleted, not kept.
 
 ### Pattern: Formatter Hierarchy (`core.fields`)
 
@@ -328,39 +342,44 @@ core `Atomistic`/`Struct`/`Frame` methods behave.
 
 ## Testing Guidelines
 
-MolPy targets **80%+ code coverage**. All new code must have tests.
+Every behaviour of every module has one unit test; there is no coverage
+number, no end-to-end suite and no golden files.
 
 ### Test Structure
 
-Tests live in `tests/` mirroring `src/molpy/`:
+Tests live in `tests/` mirroring `src/molpy/` (`src/molpy/io/data/gro.py` →
+`tests/test_io/test_data/test_gro.py`). There is **no `__init__.py`** under
+`tests/`; pytest runs with `--import-mode=importlib`, so the four
+`test_lammps.py` files resolve by path.
 
 ```
 tests/
+├─ conftest.py             # TEST_DATA_DIR + mollog capture
+├─ tests-data/             # committed fixture files, by format (xyz/, mol2/, gro/, …)
 ├─ test_core/              # Data structures
-├─ test_io/                # File I/O
-├─ test_parser/            # Parsing
-├─ test_builder/           # Assembly kernel, selectors, builders
+├─ test_io/                # File I/O (test_data/, test_forcefield/, test_log/, test_trajectory/, test_emit/)
+├─ test_parser/            # moltemplate
+├─ test_builder/           # test_assembly/, test_polymer/, test_nanostructure/, crystal, symmetry
 ├─ test_typifier/          # Typifiers
-├─ test_compute/           # Analysis
-├─ test_wrapper/           # External tools
-└─ test_engine/            # MD engines
+├─ test_compute/           # Analysis (pure-numpy modules only; molrs pass-throughs are tested in molrs)
+├─ test_pack/  test_engine/  test_wrapper/  test_adapter/  test_conformer/  test_md/  test_potential/  test_integrations/
 ```
 
 ### No third-party scientific software in the test gate
 
-The gate (`pytest tests/` + `pip install -e ".[dev]"`) must pass **without**
+The gate (`uv run --extra dev python -m pytest tests/ -n auto`) must pass **without**
 RDKit, AmberTools, freud, OpenMM, LAMMPS, Packmol, or any other third-party
 scientific package/executable. `dev` extras deliberately omit them. Optional
-backends (e.g. `pip install -e ".[rdkit]"`) are for users and docs notebooks only.
+backends (e.g. `uv sync --extra rdkit`) are for users and docs notebooks only.
 
 - Unit-test wrappers and engines with **mocks** and **script literals** — never
   launch a real binary.
 - There is **no** `@pytest.mark.external` marker and no dual suite. If it needs
   a binary, it does not belong in `tests/`.
-- Doc blocks that would shell out use `# docs: skip — <reason>` (see
-  `tests/test_docs/test_all_doc_blocks.py`).
+- Doc blocks are not executed by the test gate; ones that would shell out
+  still carry `# docs: skip — <reason>` for readers.
 
-Run tests with: `pytest tests/`
+Run tests with: `uv run --extra dev python -m pytest tests/ -n auto`
 
 ### Common Test Patterns
 
@@ -381,6 +400,15 @@ def test_helper_does_not_mutate_input():
     result = some_helper(original)        # helper does original.copy() internally
     assert result is not original         # independent object
     assert len(list(original.atoms)) == 1 # input untouched
+```
+
+**Fixture files** (readers, writers): the input is a small file under
+`tests/tests-data/<format>/`, read through the `TEST_DATA_DIR` fixture; an
+edge case (missing newline, corrupted token) is derived from it into `tmp_path`:
+```python
+def test_short_atom_record_raises(TEST_DATA_DIR):
+    with pytest.raises(OSError, match="too short"):
+        mp.io.read_gro(TEST_DATA_DIR / "gro" / "truncated_record.gro")
 ```
 
 **Adapter integration**:
@@ -433,7 +461,15 @@ def test_adapter_fallback():
 
 - Polymer builders: sequence generation, placement, crosslinking
 - AmberTools integration: prepare molecules, run Antechamber, tleap
-- All builders follow consistent factory/builder pattern
+- Construction is a method on the owning type (`Lattice.build`, `PolymerBuilder.build`,
+  `GraphAssembler.assemble`); there are no free `build_*` / `create_*` factories
+
+### `optimize`, `md`, `potential`, `io.log`
+
+- Pure re-exports of molrs: `molpy.optimize.LBFGS is molrs.optimize.LBFGS`,
+  `molpy.io.read_lammps_log` returns the molrs `LammpsLog`. molpy keeps no
+  Python re-implementation and no dataclass mirror of a molrs structure; if a
+  structure is missing on the Python side it is added in molrs.
 
 ## Code Quality Standards
 
@@ -454,12 +490,12 @@ From `docs/developer/coding-style.md`:
 - [ ] Public APIs have type hints and docstrings
 - [ ] Helpers don't mutate caller-owned structures unexpectedly (`.copy()` when needed)
 - [ ] No hardcoded values (use config or constants)
-- [ ] Hooks pass: `prek run --all-files`
+- [ ] Hooks pass: `pre-commit run --all-files`
 
 ## Common Gotchas
 
 1. **Optional imports**: If adding a new external tool, follow the adapter pattern and test graceful fallback.
-2. **Notebook output in git**: Pre-commit uses `nbstripout` to strip output; don't commit notebook output.
+2. **Fixture bytes are data**: the pre-commit whitespace fixers skip `tests/tests-data/`, so a fixture with ragged spacing or no final newline stays exactly as written.
 3. **External tools**: mock wrappers/engines in unit tests; put offline recipes under docs with `# docs: skip`.
 4. **Formatter registration**: Custom styles need `_param_formatters` registered on the format's `ForceFieldFormatter` subclass. Custom data fields need `_field_formatters` on the `FieldFormatter` subclass.
 5. **Identity vs equality**: `Entity` and `Link` use identity-based hashing (`id(self)`), not value-based.
@@ -468,8 +504,10 @@ From `docs/developer/coding-style.md`:
 
 ## Debugging Tips
 
-- **Import errors in tests**: Reinstall with `pip install -e ".[dev]"` to ensure editable mode
-- **Notebook doc build fails**: Run `pip install -e ".[doc]"` for doc deps
+- **Import errors in tests**: `uv sync --extra dev`; after a molrs change,
+  `uv sync --extra dev --reinstall-package molcrafts-molrs` (uv does not see
+  Rust edits by itself)
+- **Notebook doc build fails**: `uv sync --extra doc`
 - **Type checking**: Run locally with `ty check src/molpy/` (Astral's `ty`, also run in CI); config under `[tool.ty]` in `pyproject.toml`
 
 ---

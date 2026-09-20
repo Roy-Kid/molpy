@@ -1,5 +1,8 @@
 # Specs
 
+> Spec files are deleted on completion (CLAUDE.md: specs are alive, not archived);
+> the rows below are the history. The 12 files listed were removed 2026-09-20.
+
 ## Active
 
 

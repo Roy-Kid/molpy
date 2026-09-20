@@ -77,7 +77,7 @@ layers cannot import from higher layers; **`core/` imports nothing from molpy**.
 ALLOWED (→ = may be imported by):
   core/              → everything inside molpy
   parser/            → io, typifier, builder
-  io/                → builder, pack, engine
+  io/                → builder, pack, engine, typifier
   typifier/          → builder
   compute/           → (application code only)
   builder/           → pack
@@ -85,6 +85,9 @@ ALLOWED (→ = may be imported by):
   engine/            → (application code only)
   wrapper/, adapter/ → builder, pack, engine
   conformer/         → builder, typifier
+  data/              → everything (packaged files + get_forcefield_path)
+  md/ optimize/ potential/ → application code only (pure molrs re-exports)
+  integrations/ cli/ → application code only (they import io / parser)
 ```
 
 Per-package constraints from the same source:
@@ -92,15 +95,18 @@ Per-package constraints from the same source:
 - `potential/` may import only `core` and numpy.
 - `parser/` must not import from io, compute, builder, wrapper.
 - `io/` readers/writers must not import from builder, compute, engine, wrapper.
-- `builder/` may import core, parser, io, typifier; not compute, engine, wrapper
-  (except specific adapters).
+- `builder/` may import core, parser, io, typifier, wrapper (AmberTools drives
+  antechamber / tleap through `wrapper/`); not compute, engine.
+- `wrapper/` imports `core` only — never `io`; a wrapper takes and returns
+  paths, and the caller reads the files.
+- `typifier/` may read the packaged force fields through `io` (an acyclic,
+  downward edge; `io` never imports `typifier`).
 - `adapter/` does data sync only (no subprocess); `wrapper/` does subprocess only.
 - No `from module import *` outside `__init__.py`; no module-level side effects
   beyond imports and class definitions; circular imports (A→B→A) are violations.
 
-> Caveat: this table predates the `conformer`, `optimize`, `op`, `legacy`, `cli`,
-> and `data` packages (see "Layer roles" above for their stage placement) — extend
-> rather than blindly enforce when those packages are involved.
+> Verified against the tree on 2026-09-20 (grep of every `from molpy.` import);
+> the only TYPE_CHECKING-time edge is `typifier/ambertools.py` → `builder`.
 
 ## 设计铁律 (2026-07-10, 由 graph-assembler 链引出)
 
@@ -196,13 +202,11 @@ O(N²) 伪装成正常;一个 `get("symbol", "C")` 会把缺失的元素伪装�
 - 需要提醒但不该中断的(例如 `select` 产出 0 个 binding、conversion 未达标提前收敛)
   → `warnings.warn` / `logger.warning`,带上数字。
 
-截至 2026-07-10 已知的实例(graph-assembler 链逐一消除):
-`core/affected_region.py:49`、`builder/polymer/core.py:239`、`reacter/base.py:610-612`、
-`typifier/region.py:205,253`、`builder/crosslink/_crosslinker.py:45,257,346`、
-`builder/polymer/placer.py:124-125`。
-
-> `_crosslinker.py:257` 的 `_find_component` 在 map_number 不属于任何反应物组分时 `return 0`
-> —— 一个畸形 SMIRKS 会被静默当成"位点在第 0 个组分上"。这是**现存 bug**,不是风格问题。
+2026-07-10 列出的实例(`reacter/`、`builder/crosslink/`、`polymer/core.py`、`placer.py`)
+所在的模块已被 graph-assembler 链删除;`GraphAssembler._find_component` 对未知 map number
+`raise`(有单测)。2026-09-20 的清理又消除了 `lt_writer` 的 `charge/x/y/z = 0` 默认、
+`net_charges.get(label, 0)`、`monomer_mass.get(m, 0.0)`、`distances.get(h, 0)` 与全部
+`except Exception: pass`(moltemplate builder、XML layer 标记、四个 emitter 的占位文件)。
 
 #### 铁律 5 的例外:无先验的初值可以猜 —— 但只能猜数值,不能猜身份
 
@@ -271,3 +275,37 @@ re-export 不是包装层 —— `molpy.Reaction is molrs.Reaction` 为真,没�
   Python caller can reasonably handle. molrs should validate `cutoff` against the
   box and return an error. Found by `tests/test_builder/test_assembly.py`
   (which now uses a sane cutoff — the bug is *avoided*, not worked around).
+
+## Graph sink decisions (2026-07-11, locked; merged from graph-sink-decisions.md)
+
+### A — `copy()` = molrs handle-preserving clone
+
+- Canonical: `MolGraph` / leaf `Clone` (and Python `molrs.Atomistic.copy`).
+- **Handles are preserved** in the clone (same generational keys).
+- molpy must **not** re-implement copy via `def_atom` + re-spawn (that invents new handles).
+- After copy, molpy intern tables start empty; views are re-interned lazily against the new world.
+- Callers that held views into the *old* world keep pointing at the old world — never silently rebound.
+
+### B — `merge()` = molrs structural merge (handle remap)
+
+- Canonical: `MolGraph::merge` — nodes/relations transferred; **all handles remapped**.
+- molpy must **not** keep identity-preserving merge (`_detach` + re-spawn same Python objects) as the public `merge`.
+- Cross-graph identity is **handle-based**, not Python object identity. Code that needs “the same atom after merge” must use a returned `old_handle → new_handle` map (add to molrs API if missing) or re-query topology.
+- No `merge_identity` shim (iron law 3). If a caller breaks, fix the caller to track handles.
+
+### C — API split: molrs primitives / molpy `def_*`
+
+| Layer | Owns | Does not own |
+|---|---|---|
+| **molrs** | Storage, ECS get/set/spawn/despawn/add_relation, domain leaves, graph algorithms (`extract_*`, topology, spatial, `copy`/`merge`, chemistry kernels) | Python pending-Entity lifecycle, `def_atom` sugar |
+| **molpy** | Thin subclass + `def_atom` / `def_bond` / …, `Atom`/`Bond`/… views, interning for `bond.itom is atom` | Re-implementing graph algorithms in Python |
+
+- molrs public surface: handle + `get`/`set`/`has`/`delete` (+ relation equivalents), builders like `add_atom_bare` / `add_bond`.
+- molpy public surface: `mol.def_atom(element="C", xyz=[…])` etc., built **on top of** those primitives.
+- End-state thickness target: `atomistic.py` / `cg.py` each ≲ 200 LOC of sugar + adopt/from_frame wrappers.
+
+## Non-goals (unchanged)
+
+- Do not sink ForceField, AffectedRegion, assembler policy, typifier strategy.
+- Do not require pure re-export (`molpy.Atomistic is molrs.Atomistic`) in the first cut — subclass + `def_*` is intentional.
+- Do not implement pyo3-native Entity views until path B is thin and stable.

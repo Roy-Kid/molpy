@@ -28,10 +28,9 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: pip install -e ".[dev]"
+      - uses: astral-sh/setup-uv@v9.0.0
       - name: Unit tests
-        run: pytest tests/ -n auto
+        run: uv run --extra dev python -m pytest tests/ -n auto
 
   release:
     needs: test

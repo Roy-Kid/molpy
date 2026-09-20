@@ -93,27 +93,20 @@ AmberTools (GAFF charges).
 ```bash
 git clone https://github.com/MolCrafts/molpy.git
 cd molpy
-pip install -e ".[dev]"   # includes tox (gate driver)
-prek install
-# optional manual gates (same as prek/CI):
-#   uv run --extra dev tox -e lint
-#   uv run --extra dev tox -e py
-pytest tests/
+uv sync --extra dev
+pre-commit install --hook-type pre-commit --hook-type pre-push
+# the two gates (same as the hooks / CI):
+uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint
+uv run --extra dev python -m pytest tests/ -n auto
 ```
 
-`pip install -e ".[dev]"` pulls the published `molcrafts-molrs` wheel from
-PyPI. To develop molpy against a **local molrs checkout** (e.g. when changing
-the Rust core), build molrs editable first — molrs ships its Python bindings as
-a [maturin](https://www.maturin.rs/) project that needs the Rust toolchain via
-[`rustup`](https://rustup.rs/):
+`[tool.uv.sources]` points `molcrafts-molrs` at the sibling checkout
+`../molrs/molrs-python`, so `uv sync` builds the Rust core with your toolchain
+([`rustup`](https://rustup.rs/)). After editing molrs, rebuild what uv
+installed:
 
 ```bash
-git clone https://github.com/MolCrafts/molrs.git
-cd molrs
-pip install maturin
-maturin develop -m molrs-python/Cargo.toml --release   # installs `molrs` editable
-cd ../molpy
-pip install -e ".[dev]"                                # resolves molrs from the local build
+uv sync --extra dev --reinstall-package molcrafts-molrs
 ```
 
 See [docs/developer/development-setup](https://docs.molcrafts.org/molpy/developer/development-setup/)

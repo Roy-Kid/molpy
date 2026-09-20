@@ -34,8 +34,8 @@ and the `optimizer` agent. Migrated from the former local `molpy-perf` skill and
 ## Algorithm complexity
 
 - Neighbor search: O(N) cell lists or KD-tree, never O(N²) all-pairs for large N.
-- Topology/graph algorithms: use igraph, do not hand-roll traversals; avoid
-  redundant topology traversals (cache them).
+- Topology/graph algorithms: use the molrs graph kernels (`Atomistic` topology,
+  `NeighborQuery`), do not hand-roll traversals; cache repeated traversals.
 - Avoid repeated sorts; maintain sorted invariants or cache sort results.
 - Document complexity in docstrings: O(N), O(N²), etc.
 
@@ -46,7 +46,10 @@ and the `optimizer` agent. Migrated from the former local `molpy-perf` skill and
 
 ## Discipline
 
-- Never sacrifice correctness for speed; benchmark before and after every change.
+- Never sacrifice correctness for speed. There is no benchmark harness in this
+  repo (the benchmark/regression system is being redesigned); a performance
+  change is verified for correctness by the unit suite and its speed claim is
+  recorded here as owed, not asserted.
 
 ## Profiling commands
 
@@ -55,3 +58,29 @@ python -m cProfile -o profile.out script.py
 kernprof -l -v script.py                      # pip install line_profiler
 python -m memory_profiler script.py           # pip install memory_profiler
 ```
+
+## Owed (2026-09-20)
+
+Hot-path findings from the 0.14 cleanup, recorded rather than fixed:
+
+- `builder/assembly/_proximity.py` — without a cutoff the site pairing is an
+  O(N_a×N_b) Python double loop, `xyz` is read with three PyO3 calls per atom,
+  and adjacency / connected components are hand-rolled although molrs has them.
+- `builder/assembly/_placer.py` — every `place()` rescans `RES_ID` over the
+  whole world and reads three coordinates per atom through PyO3.
+- `builder/assembly/_assembler.py` — `_total_charge` is a per-atom Python scan
+  twice per `assemble()`. Blocked on molrs: `Atomistic.column(name)` fills a
+  missing component with 0 instead of failing, so a column read cannot tell
+  "no charge column" from "all zero".
+- `core/atomistic.py` — `symbols` reads per atom; `def_*s` call Rust once per
+  element (needs a molrs batch entry); `select` / `get_neighbors` scan O(E).
+- `adapter/rdkit.py` — ≥ 12 full passes over `atomistic.atoms`, two of them
+  nested (optional dependency; not exercised by the gate).
+- `typifier/clp.py` — `clp.xml` (364 KB) is parsed twice at first use (once by
+  ElementTree to strip bonded sections for the molrs SMARTS typifier, once by
+  molrs for the force field); one-time cost behind `lru_cache`.
+- `pack/constraint.py` — `InsideBoxConstraint` / sphere `dpenalty` return a
+  push direction, not the gradient the base class documents;
+  `MinDistanceConstraint` now returns the gradient.
+- `compute/dielectric.py` — `DielectricSusceptibility` prints progress from
+  library code.

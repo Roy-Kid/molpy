@@ -13,9 +13,9 @@
 
 ## Local workflows (commands used in CI)
 
-- Install (dev): `pip install -e ".[dev]"`
-- Format check: `black --check src/ tests/`
-- Tests: `pytest tests/ -v`
+- Install (dev): `uv sync --extra dev`
+- Lint gate: `uv run --no-project --with 'tox>=4.23' --with ruff==0.16.1 --with ty==0.0.65 tox -e lint`
+- Tests: `uv run --extra dev python -m pytest tests/ -n auto`
 - Release is tag-driven (`v*`) and validates `src/molpy/version.py` matches the tag.
 
 ## Project-specific patterns
