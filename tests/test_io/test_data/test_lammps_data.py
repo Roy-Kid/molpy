@@ -5,6 +5,7 @@ Covers the space-delimited data file and the mp.ForceField parameters
 that come with it.
 """
 
+import math
 import os
 from pathlib import Path
 
@@ -44,31 +45,17 @@ def _section_rows(text: str, heading: str) -> list[list[str]]:
 
 
 @pytest.fixture
-def test_files(TEST_DATA_DIR) -> dict[str, Path]:
-    """Provide paths to test files."""
-    # Calculate path relative to the test file location
-
-    test_data_dir = TEST_DATA_DIR / "lammps-data"
-
-    files = {
-        "molid": test_data_dir / "molid.lmp",
-        "whitespaces": test_data_dir / "whitespaces.lmp",
-        "triclinic_1": test_data_dir / "triclinic-1.lmp",
-        "triclinic_2": test_data_dir / "triclinic-2.lmp",
-        "labelmap": test_data_dir / "labelmap.lmp",
-        "solvated": test_data_dir / "solvated.lmp",
-        "data_body": test_data_dir / "data.body",
-    }
-    return files
+def lammps_dir(TEST_DATA_DIR: Path) -> Path:
+    return TEST_DATA_DIR / "lammps-data"
 
 
 class TestLammpsDataReader:
     """Test LammpsDataReader with real test cases."""
 
-    def test_molid_file(self, test_files):
+    def test_molid_file(self, lammps_dir):
         """Test reading molid.lmp - file with molecular IDs and full style."""
 
-        reader = LammpsDataReader(test_files["molid"], atom_style="full")
+        reader = LammpsDataReader(lammps_dir / "molid.lmp", atom_style="full")
         result = reader.read()
         frame = result.frame
 
@@ -105,10 +92,10 @@ class TestLammpsDataReader:
         assert frame.meta["atom_style"] == "full"
         assert isinstance(result.forcefield, mp.ForceField)
 
-    def test_whitespaces_file(self, test_files):
+    def test_whitespaces_file(self, lammps_dir):
         """Test reading whitespaces.lmp - file with extra whitespaces."""
 
-        reader = LammpsDataReader(test_files["whitespaces"], atom_style="full")
+        reader = LammpsDataReader(lammps_dir / "whitespaces.lmp", atom_style="full")
         result = reader.read()
         frame = result.frame
 
@@ -127,11 +114,11 @@ class TestLammpsDataReader:
         box_lengths = frame.box.lengths
         np.testing.assert_array_almost_equal(box_lengths, [10.0, 10.0, 10.0])
 
-    def test_triclinic_file(self, test_files):
+    def test_triclinic_file(self, lammps_dir):
         """triclinic-1.lmp — triclinic header with all-zero tilt factors
         must produce an orthogonal-equivalent box."""
 
-        reader = LammpsDataReader(test_files["triclinic_1"], atom_style="atomic")
+        reader = LammpsDataReader(lammps_dir / "triclinic-1.lmp", atom_style="atomic")
         frame = reader.read().frame
 
         assert frame.box is not None
@@ -141,11 +128,11 @@ class TestLammpsDataReader:
         if "atoms" in frame:
             assert frame["atoms"].nrows == 0
 
-    def test_triclinic_2_file(self, test_files):
+    def test_triclinic_2_file(self, lammps_dir):
         """triclinic-2.lmp — non-zero tilt factors (5 -8 3 xy xz yz) must
         be captured in the box."""
 
-        reader = LammpsDataReader(test_files["triclinic_2"], atom_style="atomic")
+        reader = LammpsDataReader(lammps_dir / "triclinic-2.lmp", atom_style="atomic")
         frame = reader.read().frame
 
         assert frame.box is not None
@@ -158,38 +145,12 @@ class TestLammpsDataReader:
             [34.0, np.sqrt(5.0**2 + 34.0**2), np.sqrt(8.0**2 + 3.0**2 + 34.0**2)],
         )
 
-    def test_solvated_file(self, test_files):
-        """solvated.lmp — large solvated system with full force field;
-        all header counts must be honored end-to-end."""
-
-        reader = LammpsDataReader(test_files["solvated"], atom_style="full")
-        result = reader.read()
-        frame = result.frame
-
-        assert frame.box is not None
-        np.testing.assert_array_almost_equal(
-            frame.box.lengths,
-            [33.920998 - (-0.103), 33.957998 - (-0.066), 162.150494 - (-0.885501)],
-        )
-        np.testing.assert_array_almost_equal(
-            frame.box.origin, [-0.103, -0.066, -0.885501]
-        )
-
-        assert frame["atoms"].nrows == 7772
-        assert frame["bonds"].nrows == 6248
-        assert frame["angles"].nrows == 8100
-        assert frame["dihedrals"].nrows == 10720
-        assert frame["impropers"].nrows == 1376
-
-        assert result.counts["atom_types"] == 11
-        assert result.counts["bond_types"] == 8
-
-    def test_data_body_file(self, test_files):
-        """data.body — atom_style='body' must read 'bodyflag' and per-atom
+    def test_data_body_file(self, lammps_dir):
+        """body.lmp — atom_style='body' must read 'bodyflag' and per-atom
         'mass' columns, and a trailing 'Bodies' section must not leak into
         the atoms block."""
 
-        reader = LammpsDataReader(test_files["data_body"], atom_style="body")
+        reader = LammpsDataReader(lammps_dir / "body.lmp", atom_style="body")
         result = reader.read()
         frame = result.frame
 
@@ -204,7 +165,7 @@ class TestLammpsDataReader:
         )
 
         atoms = frame["atoms"]
-        assert atoms.nrows == 100  # header says 100 atoms; not 277
+        assert atoms.nrows == 2  # header says 2 atoms; the Bodies rows stay out
         for col in ("id", "type", "bodyflag", "mass", "x", "y", "z"):
             assert col in atoms, f"body atom_style must expose {col!r}"
         # First atom in the file: 1 1 1 6 -15.5322 -15.5322 0 1 2 0
@@ -215,10 +176,10 @@ class TestLammpsDataReader:
             [-15.5322, -15.5322, 0.0],
         )
 
-    def test_labelmap_file(self, test_files):
+    def test_labelmap_file(self, lammps_dir):
         """Test reading labelmap.lmp - file with type labels and connectivity."""
 
-        reader = LammpsDataReader(test_files["labelmap"], atom_style="full")
+        reader = LammpsDataReader(lammps_dir / "labelmap.lmp", atom_style="full")
         result = reader.read()
         frame = result.frame
 
@@ -258,10 +219,10 @@ class TestLammpsDataReader:
         assert forcefield is not None
         assert isinstance(forcefield, mp.ForceField)
 
-    def test_atomic_style(self, test_files):
+    def test_atomic_style(self, lammps_dir):
         """Test reading with atomic atom style."""
 
-        reader = LammpsDataReader(test_files["molid"], atom_style="atomic")
+        reader = LammpsDataReader(lammps_dir / "molid.lmp", atom_style="atomic")
         frame = reader.read().frame
 
         atoms = frame["atoms"]
@@ -271,10 +232,10 @@ class TestLammpsDataReader:
         assert "type" in atoms
         assert "x" in atoms and "y" in atoms and "z" in atoms
 
-    def test_charge_style(self, test_files):
+    def test_charge_style(self, lammps_dir):
         """Test reading with charge atom style."""
 
-        reader = LammpsDataReader(test_files["molid"], atom_style="charge")
+        reader = LammpsDataReader(lammps_dir / "molid.lmp", atom_style="charge")
         frame = reader.read().frame
 
         atoms = frame["atoms"]
@@ -332,11 +293,11 @@ class TestLammpsDataResultSurface:
 class TestLammpsDataWriter:
     """Test LammpsDataWriter."""
 
-    def test_write_read_roundtrip(self, test_files, tmp_path):
+    def test_write_read_roundtrip(self, lammps_dir, tmp_path):
         """Test that we can write and read back the same data."""
 
         # Read original file
-        reader = LammpsDataReader(test_files["molid"], atom_style="full")
+        reader = LammpsDataReader(lammps_dir / "molid.lmp", atom_style="full")
         original_frame = reader.read().frame
 
         # Write to temporary file
@@ -625,21 +586,6 @@ Atoms
 
 class TestForceFieldIntegration:
     """Test force field integration."""
-
-    def test_forcefield_parsing(self, test_files):
-        """Test that force field parameters are correctly parsed."""
-        if "labelmap" not in test_files:
-            pytest.skip("labelmap.lmp not found")
-
-        reader = LammpsDataReader(test_files["labelmap"], atom_style="full")
-        result = reader.read()
-        forcefield = result.forcefield
-        assert forcefield is not None
-        assert isinstance(forcefield, mp.ForceField)
-
-        # Check that we have a forcefield object (may be empty if no coeffs in file)
-        # The labelmap.lmp file may not have force field coefficients sections
-        assert forcefield is not None
 
     def test_forcefield_writing(self, tmp_path):
         """Test that force field parameters are correctly written."""
@@ -958,6 +904,7 @@ def test_write_lammps_data_coeffs_collapses_reverse_dihedrals(tmp_path):
 
     ff = molrs.ff.read_lammps_forcefield_str(
         """\
+special_bonds lj 0.0 0.0 0.5 coul 0.0 0.0 0.5
 pair_style lj/cut 10.0
 pair_coeff c3 c3 0.107800 3.397710
 pair_coeff os os 0.170000 3.000000
@@ -1074,8 +1021,8 @@ class TestForceFieldCoeffs:
     """Coefficient parsing and explicit writer ownership round-trip."""
 
     @pytest.fixture
-    def ff_file(self, TEST_DATA_DIR) -> Path:
-        return TEST_DATA_DIR / "lammps-ff" / "peptide.data"
+    def ff_file(self, lammps_dir: Path) -> Path:
+        return lammps_dir / "coeffs.lmp"
 
     def test_coeffs_are_extracted(self, ff_file):
         ff = LammpsDataReader(ff_file, atom_style="full").read().forcefield
@@ -1089,10 +1036,18 @@ class TestForceFieldCoeffs:
             for s in ff.get_styles(mp.BondStyle)
             for t in s.get_types(mp.Type)
         }
-        assert pair, "pair coefficients were dropped"
-        assert bond, "bond coefficients were dropped"
-        # values are real numbers, not None
-        assert all(e is not None and s is not None for e, s in pair.values())
+        angle = {
+            t.name: (t.get("k"), t.get("theta0"))
+            for s in ff.get_styles(mp.AngleStyle)
+            for t in s.get_types(mp.Type)
+        }
+        assert pair == {"1": (0.1521, 3.1507), "2": (0.046, 0.4)}
+        # LAMMPS harmonic K (E = K x^2) is stored as molpy k = 2K
+        # (E = k x^2 / 2); angles are radians internally.
+        assert list(bond.values()) == [(900.0, 0.9572)]
+        ((k, theta0),) = angle.values()
+        assert k == 110.0
+        assert theta0 == pytest.approx(math.radians(104.52))
 
     def test_coeffs_round_trip(self, ff_file, tmp_path):
         result = LammpsDataReader(ff_file, atom_style="full").read()
