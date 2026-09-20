@@ -44,10 +44,13 @@ RDKIT_TO_BOND_TYPE: dict[Chem.BondType, int] = {
 
 #: The localized number a class implies. Aromatic implies none — the Kekulé
 #: phase is a separate fact, and RDKit keeps its own.
+# Localized integer order per bond type; aromatic and unknown bonds carry none.
 _IMPLIED_NUMBER: dict[int, int] = {
+    BOND_TYPE_UNKNOWN: 0,
     BOND_TYPE_SINGLE: 1,
     BOND_TYPE_DOUBLE: 2,
     BOND_TYPE_TRIPLE: 3,
+    BOND_TYPE_AROMATIC: 0,
 }
 
 
@@ -481,7 +484,7 @@ class RDKitAdapter(Adapter[Atomistic, Chem.Mol]):
                 created[begin_idx],
                 created[end_idx],
                 bond_type=bond_type,
-                bond_number=_IMPLIED_NUMBER.get(bond_type, 0),
+                bond_number=_IMPLIED_NUMBER[bond_type],
             )
 
         return atomistic
@@ -607,7 +610,7 @@ class RDKitAdapter(Adapter[Atomistic, Chem.Mol]):
                     itom,
                     jtom,
                     bond_type=bond_type,
-                    bond_number=_IMPLIED_NUMBER.get(bond_type, 0),
+                    bond_number=_IMPLIED_NUMBER[bond_type],
                 )
 
         # Rebuild atom mapper after updating atomistic (new atoms may have been added)

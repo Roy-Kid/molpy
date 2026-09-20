@@ -285,7 +285,13 @@ class AmberTools:
                 m = re.search(r"\[#([A-Za-z0-9_]+)\]\|(\d+)", str(cgsmiles))
                 if m:
                     labels = [m.group(1)] * int(m.group(2))
-            target = float(sum(int(net_charges.get(lab, 0)) for lab in labels))
+            undeclared = sorted({lab for lab in labels if lab not in net_charges})
+            if undeclared:
+                raise KeyError(
+                    f"net_charges declares no charge for monomer(s) {undeclared}; "
+                    "declare every label (0 for a neutral one) or pass no net_charges"
+                )
+            target = float(sum(int(net_charges[lab]) for lab in labels))
         _neutralize(result.frame, target)
         return AmberResult(
             result.frame,

@@ -107,7 +107,7 @@ def _render_data_masses(ff: ForceField) -> list[str]:
         return []
     lines = ['  write_once("Data Masses") {']
     for at in atom_types:
-        mass = at.get("mass", 0.0)
+        mass = at["mass"]
         lines.append(f"    @atom:{at.name} {_fmt(mass)}")
     lines.append("  }")
     lines.append("")
@@ -118,15 +118,13 @@ def _render_data_charges(ff: ForceField) -> list[str]:
     atom_types = [
         t
         for t in _collect_atomtypes(ff)
-        if t.get("charge", 0.0) and not _is_synthetic(t.name)
+        if t.get("charge") and not _is_synthetic(t.name)
     ]
     if not atom_types:
         return []
     lines = ['  write_once("In Charges") {']
     for at in atom_types:
-        lines.append(
-            f"    set type @atom:{at.name} charge {_fmt(at.get('charge', 0.0))}"
-        )
+        lines.append(f"    set type @atom:{at.name} charge {_fmt(at['charge'])}")
     lines.append("  }")
     lines.append("")
     return lines
@@ -284,11 +282,11 @@ def _render_data_atoms(atomistic: Atomistic) -> list[str]:
     lines = ['  write("Data Atoms") {']
     for atom in atoms:
         aid = names[id(atom)]
-        atype = atom.get("type") or ""
-        charge = float(atom.get("charge", 0.0))
-        x = float(atom.get("x", 0.0))
-        y = float(atom.get("y", 0.0))
-        z = float(atom.get("z", 0.0))
+        atype = atom["type"]
+        charge = float(atom["charge"])
+        x = float(atom["x"])
+        y = float(atom["y"])
+        z = float(atom["z"])
         lines.append(
             f"    $atom:{aid} $mol:. @atom:{atype} {_fmt(charge)} "
             f"{_fmt(x)} {_fmt(y)} {_fmt(z)}"

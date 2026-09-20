@@ -360,7 +360,12 @@ class AmberPolymerBuilder:
 
         for label in labels:
             monomer = self.library[label]
-            net_charge = self.net_charges.get(label, 0)
+            if self.net_charges and label not in self.net_charges:
+                raise KeyError(
+                    f"net_charges declares no charge for monomer {label!r}; "
+                    "declare every label (0 for a neutral one) or pass no net_charges"
+                )
+            net_charge = self.net_charges[label] if self.net_charges else 0
             monomer_dir = work_dir / "monomers" / label
             monomer_dir.mkdir(parents=True, exist_ok=True)
             variants = recipes[label]

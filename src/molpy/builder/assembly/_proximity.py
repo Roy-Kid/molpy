@@ -337,4 +337,4 @@ class SpacingSelector(ProximitySelector):
         # Chain end = lowest-degree atom (deterministic tie-break on handle).
         end = min(molecule_atoms, key=lambda h: (len(adjacency.get(h, [])), h))
         distances = {h: d for h, d in graph.topo_distances(end)}
-        return sorted(site_handles, key=lambda h: (distances.get(h, 0), h))
+        return sorted(site_handles, key=lambda h: (distances[h], h))
