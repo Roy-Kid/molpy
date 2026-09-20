@@ -144,18 +144,13 @@ filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
 
-# Until molcrafts-molrs 0.14 is on PyPI, uv (CI + local) installs the 0.14
-# line from git. The published PyPI pin in [project] dependencies is unchanged.
-# Local editable checkout, by operator ruling (2026-09-18): nothing is pushed,
-# development happens against the sibling working trees.
-#
-# This has to be here and not only in a downstream's pyproject: uv honours a path
-# dependency's *own* sources for its transitive deps, so while this said `git` a
-# downstream that pointed molpy at this directory still got molrs from the remote
-# — and `rev = "dev"` resolves to cfb3c03, which has no `molrs.io.mrec`. That made
-# `molpy.io.mrec` unimportable from molhub even with molpy local.
-[tool.uv.sources]
-molcrafts-molrs = { path = "../molrs/molrs-python", editable = true }
+# No [tool.uv.sources] override: molcrafts-molrs 0.14.0 is on PyPI, so the pin in
+# [project] dependencies resolves everywhere, including a CI runner, which has no
+# sibling checkout to point at. Do not reintroduce a path or git source without
+# removing it again before the next release: it silently disables
+# .pre-commit/check_molrs_pin_on_pypi.py, and uv honours a path dependency's own
+# sources transitively, so a downstream that points at this directory inherits
+# them (that is how molhub once got a molrs without `molrs.io.mrec`).
 
 [tool.tox]
 requires = ["tox>=4.23"]
