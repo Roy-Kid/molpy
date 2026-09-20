@@ -99,33 +99,6 @@ class PersistResult(TimeSeriesResult):
 
 
 @dataclass
-class ACFResult(TimeSeriesResult):
-    """Autocorrelation function result.
-
-    Attributes:
-        time: Time lag values (in ps)
-        acf: Autocorrelation values at each time lag, shape (n_lags,)
-        n_lags: Number of time lags
-    """
-
-    acf: NDArray[np.float64] = field(default_factory=lambda: np.array([]))
-    n_lags: int = 0
-
-
-@dataclass
-class SpectralResult(Result):
-    """Frequency-domain spectrum result.
-
-    Attributes:
-        frequency: Angular frequency grid omega, shape (n_freq,), units rad/ps.
-        spectrum: Spectral density at each frequency, shape (n_freq,).
-    """
-
-    frequency: NDArray[np.float64] = field(default_factory=lambda: np.array([]))
-    spectrum: NDArray[np.float64] = field(default_factory=lambda: np.array([]))
-
-
-@dataclass
 class DielectricResult(Result):
     """Single-route dielectric susceptibility result.
 

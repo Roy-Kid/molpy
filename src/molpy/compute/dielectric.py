@@ -24,23 +24,16 @@ from molrs.compute.spectroscopy import GreenKuboSpectrum as _MolrsGreenKuboSpect
 from molrs.compute.transport import DebyeRelaxation as _MolrsDebyeRelaxation
 from molrs.compute.transport import EinsteinConductivity as _MolrsEinsteinConductivity
 from molrs.compute.transport import GreenKuboConductivity as _MolrsGreenKuboConductivity
-from molrs.signal import acf_fft, apply_window, frequency_grid
 from ..core.box import Box
 from .base import Compute
 from .result import (
-    ACFResult,
     ConductivityResult,
     DielectricResult,
     DielectricSusceptibilityResult,
-    SpectralResult,
 )
 
 if TYPE_CHECKING:
     from ..core.trajectory import Trajectory
-
-# Treat ACF lag-0 values below this threshold as numerical zero (would
-# otherwise blow up the normalization step in ACFAnalyzer).
-_ACF_ZERO_LAG_EPSILON = 1e-30
 
 # SI constants for the Einstein-Helfand conductivity unit prefactor (CODATA
 # 2018), matching molrs::units::constants used by the legacy Rust kernel.
@@ -78,107 +71,6 @@ def _unwrap_inplace(coords: np.ndarray, frames: list) -> None:
             box = Box.from_box(rs_box)
             cache[key] = box
         coords[i] = coords[i - 1] + box.diff_dr(coords[i] - coords[i - 1])
-
-
-class ACFAnalyzer(Compute):
-    """Compute autocorrelation function from trajectory data.
-
-    Extracts per-atom columns from each frame, optionally unwraps coordinates
-    via Box.diff_dr, delegates to molrs.signal.acf_fft(), normalizes the
-    ACF (divides by zero-lag value), and returns an ACFResult.
-    """
-
-    def __init__(
-        self,
-        columns: list[str],
-        max_lag: int,
-        *,
-        unwrap: bool = True,
-        **config_kwargs,
-    ):
-        super().__init__(
-            columns=columns, max_lag=max_lag, unwrap=unwrap, **config_kwargs
-        )
-        self.columns = columns
-        self.max_lag = max_lag
-        self.unwrap = unwrap
-
-    def __call__(self, trajectory: Trajectory) -> ACFResult:
-        # Materialize once: trajectories may be one-shot iterators.
-        frames = list(trajectory)
-        n_frames = len(frames)
-        if n_frames < 2:
-            raise ValueError(f"Need at least 2 frames, got {n_frames}")
-
-        frame0 = frames[0]
-        if self.unwrap and (frame0.box is None or frame0.box.is_free):
-            raise ValueError(
-                "Trajectory frames must have a non-free Box when unwrap=True"
-            )
-        for col in self.columns:
-            if col not in frame0["atoms"]:
-                raise ValueError(f"Missing column '{col}' in atoms block")
-
-        n_dim = len(self.columns)
-        n_atoms = len(frame0["atoms"]["x"])
-        dt = frame0.metadata.get("dt", 1.0)
-
-        data = np.empty((n_frames, n_atoms, n_dim), dtype=np.float64)
-        for i, frame in enumerate(frames):
-            for d, col in enumerate(self.columns):
-                data[i, :, d] = frame["atoms"][col]
-
-        # Unwrap via minimum-image convention (only meaningful for 3-component
-        # columns). Shared helper caches the box wrap across frames.
-        if self.unwrap and n_dim == 3:
-            _unwrap_inplace(data, frames)
-
-        # Compute ACF per dimension, average, normalize.
-        max_lag = min(self.max_lag, n_frames - 1)
-        acf_sum = np.zeros(max_lag + 1)
-        for d in range(n_dim):
-            col_data = data[:, :, d].mean(axis=1)  # (n_frames,) average over atoms
-            acf_sum += acf_fft(col_data, max_lag)
-        acf_sum /= n_dim
-        if acf_sum[0] > _ACF_ZERO_LAG_EPSILON:
-            acf_sum /= acf_sum[0]
-
-        lag_times = np.arange(max_lag + 1, dtype=np.float64) * dt
-        return ACFResult(time=lag_times, acf=acf_sum, n_lags=max_lag + 1)
-
-
-class SpectralAnalyzer(Compute):
-    """Convert time-domain ACF to frequency-domain spectrum.
-
-    Applies a window function, generates the frequency grid, and performs
-    the time→frequency conversion. All computation delegated to molrs.signal.
-    """
-
-    def __init__(
-        self,
-        dt: float,
-        *,
-        window_type: str = "hann",
-        **config_kwargs,
-    ):
-        super().__init__(dt=dt, window_type=window_type, **config_kwargs)
-        self.dt = dt
-        self.window_type = window_type
-
-    def __call__(self, acf_result: ACFResult) -> SpectralResult:
-        acf = acf_result.acf
-        n_lags = len(acf)
-
-        # Apply window via molrs.signal
-        windowed = apply_window(acf, self.window_type, axis=0)
-
-        # Generate frequency grid via molrs.signal
-        n_fft = 2 * (n_lags - 1)
-        freq = frequency_grid(n_fft, self.dt)
-
-        # Windowed ACF — the actual time→frequency FT happens downstream
-        # in molrs.dielectric.{einstein_helfand,green_kubo}_spectrum.
-        return SpectralResult(frequency=freq, spectrum=windowed)
 
 
 def _orth_mic_dr(dr: np.ndarray, lengths: np.ndarray) -> np.ndarray:

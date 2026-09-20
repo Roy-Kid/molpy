@@ -1,4 +1,4 @@
-"""Dielectric kernels — static ε, dipole assembly, acf_fft."""
+"""Dielectric kernels — static ε and dipole assembly."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from molpy.compute import Dielectric
-from molpy.compute.dielectric import acf_fft
 
 
 def test_static_dielectric_constant_finite():
@@ -24,9 +23,3 @@ def test_dipole_moment_assembly():
     m = Dielectric.compute_dipole_moment(charges, pos)
     assert m.shape == (3,)
     assert m[0] == pytest.approx(1.0)
-
-
-def test_acf_fft_length():
-    x = np.random.default_rng(0).standard_normal(64)
-    c = acf_fft(x, 10)
-    assert len(c) == 11

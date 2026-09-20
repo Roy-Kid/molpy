@@ -20,10 +20,8 @@ from .base import Compute
 from .cluster import Cluster, ClusterCenters, ClusterProperties
 from .decomposition import DescriptorRow, KMeans, Pca
 from .dielectric import (
-    ACFAnalyzer,
     DielectricSusceptibility,
     IonicConductivity,
-    SpectralAnalyzer,
 )
 from molrs.compute.dielectric import Dielectric
 from molrs.compute.fitting import CumulativeTrapezoid, LinearFit
@@ -43,7 +41,6 @@ from .persist import Persist
 from .pmsd import EinsteinConductivity
 from .rdf import RDF
 from .result import (
-    ACFResult,
     ConductivityResult,
     DebyeSpectrumFit,
     DielectricResult,
@@ -53,7 +50,6 @@ from .result import (
     PersistResult,
     PMSDResult,
     Result,
-    SpectralResult,
     TimeSeriesResult,
 )
 from .shape import (
@@ -123,8 +119,6 @@ __all__ = [
     "OnsagerResult",
     "JACFResult",
     "PersistResult",
-    "ACFResult",
-    "SpectralResult",
     "DielectricResult",
     "DielectricSusceptibilityResult",
     "ConductivityResult",
@@ -136,8 +130,6 @@ __all__ = [
     "Dielectric",
     "DielectricSusceptibility",
     "IonicConductivity",
-    "ACFAnalyzer",
-    "SpectralAnalyzer",
     "DebyeRelaxation",
     "DebyeFit",
     "EinsteinHelfandSpectrum",
