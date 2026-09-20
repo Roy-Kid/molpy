@@ -120,12 +120,9 @@ class SmilesReader:
 
     def _read_atomistic(self) -> "Atomistic":
         """Parse with molrs, fill open valences, optionally name atoms."""
-        import molrs
-
-        from molpy.core.atomistic import Atomistic
         from molpy.core.perceive import Perceive
 
-        out = self._parse_graph(Atomistic, molrs)
+        out = self._parse_graph()
         if self.add_hydrogens:
             out = Perceive().find_hydrogens(out)
         if self.gen_topo:
@@ -136,8 +133,12 @@ class SmilesReader:
                     atom["name"] = f"{atom.get('element', 'X')}{idx}"
         return out
 
-    def _parse_graph(self, Atomistic: type, molrs: object) -> "Atomistic":
+    def _parse_graph(self) -> "Atomistic":
         """Build a 2D graph Atomistic via molrs; never touches RDKit or Lark."""
+        import molrs
+
+        from molpy.core.atomistic import Atomistic
+
         smiles = self.smiles
         if smiles.lstrip().startswith("{"):
             raise ValueError(
@@ -147,7 +148,7 @@ class SmilesReader:
             )
 
         ir = molrs.io.SmilesIR(smiles)
-        n_comp = getattr(ir, "n_components", 1)
+        n_comp = ir.n_components
         if n_comp != 1:
             raise ValueError(
                 "SmilesReader expects a single-component SMILES string; "

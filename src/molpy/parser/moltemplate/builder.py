@@ -22,13 +22,11 @@ from __future__ import annotations
 import math
 
 import re
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from molpy.core.atomistic import Atom, Atomistic, Bond, Angle, Dihedral, Improper
+from molpy.core.atomistic import Atom, Atomistic
 from molpy.core.forcefield import (
-    AtomStyle,
     AtomType,
     ForceField,
     Style,
@@ -41,7 +39,6 @@ from .ir import (
     Document,
     ImportStmt,
     NewStmt,
-    RandomChoice,
     ReplaceStmt,
     Transform,
     WriteBlock,
@@ -139,7 +136,7 @@ def _moltemplate_ff_search_paths() -> list[Path]:
 
     dirs: list[Path] = []
     try:
-        import moltemplate  # type: ignore
+        import moltemplate
 
         root = Path(moltemplate.__file__).parent
         ff_dir = root / "force_fields"

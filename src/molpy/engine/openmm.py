@@ -34,7 +34,6 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from molpy.core.script import Script
 
 from .base import Engine
 

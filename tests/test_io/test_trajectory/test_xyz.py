@@ -12,7 +12,6 @@ import numpy as np
 
 import molrs
 
-import molpy
 from molpy.io import read_xyz_trajectory, write_xyz_trajectory
 
 

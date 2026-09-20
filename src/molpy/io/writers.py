@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from .data.lammps_bond_react import BondReactTemplate
 
 PathLike = str | Path
 
@@ -378,7 +379,7 @@ def write_lammps_bond_react_system(
     workdir: PathLike,
     frame: Any,
     forcefield: Any,
-    templates: "dict[str, Any] | Sequence[Any]",
+    templates: "dict[str, BondReactTemplate] | Sequence[BondReactTemplate]",
 ) -> None:
     """Write a complete LAMMPS fix bond/react system.
 
@@ -412,12 +413,15 @@ def write_lammps_bond_react_system(
     workdir_path.mkdir(parents=True, exist_ok=True)
 
     # Normalise templates to {name: template} dict
-    if not isinstance(templates, dict):
-        templates = {f"rxn{i + 1}": t for i, t in enumerate(templates)}
+    by_name: dict[str, BondReactTemplate] = (
+        templates
+        if isinstance(templates, dict)
+        else {f"rxn{i + 1}": t for i, t in enumerate(templates)}
+    )
 
     # -- Collect template frames --
-    tpl_frames: list[tuple[str, Any, Any, Any]] = []
-    for name, tpl in templates.items():
+    tpl_frames: list[tuple[str, BondReactTemplate, Any, Any]] = []
+    for name, tpl in by_name.items():
         # Assign 1-based atom IDs before converting to frames
         tpl.assign_atom_ids()
         tpl_frames.append((name, tpl, tpl.pre.to_frame(), tpl.post.to_frame()))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from molpy.builder._finalize import Finalization, StructureFinalizer
+from molpy.builder._finalize import StructureFinalizer
 
 
 @dataclass(frozen=True)

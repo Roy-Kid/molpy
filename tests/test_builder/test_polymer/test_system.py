@@ -7,7 +7,6 @@ Tests cover:
 - SystemPlanner (top layer)
 """
 
-import random
 import numpy as np
 
 import pytest
@@ -129,7 +128,6 @@ class TestPolydisperseChainGenerator:
             distribution=dp_dist,
         )
 
-        rng = np.random.default_rng(42)
         dps = [chain_gen.sample_dp(np.random.default_rng(i)) for i in range(100)]
 
         # Average DP should be approximately mean_dp = 15

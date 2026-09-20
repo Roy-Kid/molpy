@@ -16,11 +16,11 @@ from __future__ import annotations
 from molrs.ff import Potentials
 
 from . import angle, bond, dihedral, improper, pair
-from .angle import *  # noqa: F401,F403
-from .bond import *  # noqa: F401,F403
-from .dihedral import *  # noqa: F401,F403
-from .improper import *  # noqa: F401,F403
-from .pair import *  # noqa: F401,F403
+from .angle import *  # noqa: F403
+from .bond import *  # noqa: F403
+from .dihedral import *  # noqa: F403
+from .improper import *  # noqa: F403
+from .pair import *  # noqa: F403
 
 __all__ = [
     "angle",

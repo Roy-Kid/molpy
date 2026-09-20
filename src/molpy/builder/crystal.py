@@ -230,10 +230,9 @@ class Lattice:
             :meth:`Lattice.supercell`, which the caller sets on ``frame.box`` when
             the structure becomes a simulation.
         """
-        if region is None and repeats is None:
-            raise ValueError("Provide `region`, `repeats`, or both.")
-
         if repeats is None:
+            if region is None:
+                raise ValueError("Provide `region`, `repeats`, or both.")
             repeats = _infer_repeats(self, region.bounds)
 
         nx, ny, nz = (int(r) for r in repeats)

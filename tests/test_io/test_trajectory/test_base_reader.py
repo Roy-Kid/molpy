@@ -19,8 +19,6 @@ import pytest
 
 import molrs
 
-import molpy as mp
-
 
 def _make_frame(n_atoms: int, element: str) -> molrs.Frame:
     """Build a tiny, identifiable Frame with ``n_atoms`` atoms of ``element``."""

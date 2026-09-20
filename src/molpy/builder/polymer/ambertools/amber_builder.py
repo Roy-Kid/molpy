@@ -19,7 +19,6 @@ from molpy.builder.assembly import Finalization, PolymerBuilder
 from molpy.builder.assembly._topology import TopologySelector
 from molpy.core import fields
 from molpy.core.atomistic import Atomistic
-from molpy.io.readers import read_amber
 from molpy.builder.assembly._cgsmiles_ir import CGSmilesGraphIR
 from molpy.builder.assembly._residue_graph import linear_topology
 
@@ -685,7 +684,6 @@ class AmberPolymerBuilder:
         # tleap still writes under output/; we then promote into chains/.
         prmtop_tmp = output_dir / f"{output_prefix}.prmtop"
         inpcrd_tmp = output_dir / f"{output_prefix}.inpcrd"
-        pdb = output_dir / f"{output_prefix}.pdb"  # optional debug only; not written
 
         tleap = TLeapWrapper(
             name="tleap", workdir=work_dir, env=self.env, env_manager=self.env_manager

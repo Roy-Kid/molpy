@@ -27,7 +27,7 @@ class Wrapper(ABC):
 
     name: str
     exe: str
-    workdir: str | Path | None = None
+    workdir: Path | None = None  # a str is accepted and coerced in __post_init__
     env_vars: dict[str, str] = field(default_factory=dict)
     env: str | Path | None = None
     env_manager: str | None = None

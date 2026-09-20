@@ -14,7 +14,6 @@ import types
 from unittest.mock import Mock
 
 import pytest
-import molrs
 
 import molpy as mp
 from molpy.typifier.affected_region import AffectedRegion

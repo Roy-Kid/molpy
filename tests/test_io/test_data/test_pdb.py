@@ -1,7 +1,6 @@
 """Unit tests for PDB writer focusing on required fields and None handling."""
 
 import importlib
-from pathlib import Path
 
 import numpy as np
 import pytest

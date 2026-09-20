@@ -27,7 +27,6 @@ from molrs.compute.dielectric import Dielectric
 from molrs.compute.fitting import CumulativeTrapezoid, LinearFit
 from molrs.compute.spectroscopy import EinsteinHelfandSpectrum, GreenKuboSpectrum
 from molrs.compute.transport import DebyeFit, DebyeRelaxation
-from molrs.signal import acf_fft, apply_window, frequency_grid
 from .density import GaussianDensity, LocalDensity
 from .diffraction import StaticStructureFactorDebye
 from .environment import BondOrder

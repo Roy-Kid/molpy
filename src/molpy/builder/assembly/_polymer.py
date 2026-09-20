@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 import molrs
 from molpy.builder.assembly._assembler import GraphAssembler
 from molpy.builder.assembly._cgsmiles_ir import CGSmilesGraphIR
-from molpy.builder.assembly._finalize import Finalization
+from molpy.builder._finalize import Finalization
 from molpy.builder.assembly._library import MonomerLibrary
 from molpy.builder.assembly._residue_graph import (
     linear_topology,

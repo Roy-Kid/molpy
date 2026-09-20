@@ -350,12 +350,13 @@ class Box(molrs.Box):
         return float(self.matrix[2, 2])
 
     @property
-    def l(self) -> np.ndarray:
+    def diag(self) -> np.ndarray:
+        """The diagonal of the cell matrix (``lx, ly, lz``)."""
         return self.matrix.diagonal().copy()
 
     @property
-    def l_inv(self) -> np.ndarray:
-        l = self.l
+    def diag_inv(self) -> np.ndarray:
+        l = self.diag
         with np.errstate(divide="ignore"):
             return np.where(l != 0.0, 1.0 / np.where(l == 0.0, 1.0, l), 0.0)
 

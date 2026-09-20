@@ -61,7 +61,7 @@ def test_tleap_wrapper_run_from_script_default_name(tmp_path: Path):
 
     with (
         patch("subprocess.run") as mock_run,
-        patch("pathlib.Path.write_text") as mock_write,
+        patch("pathlib.Path.write_text"),
     ):
         mock_run.return_value.returncode = 0
         wrapper.run_from_script(script_text=script_text)

@@ -12,23 +12,65 @@ from __future__ import annotations
 
 from typing import Callable
 
-import numpy as np
 
-from molrs.fields import *  # noqa: F401,F403  (re-export the formatters)
-from molrs.fields import FieldFormatter, __all__ as _MOLRS_FIELDS_ALL
 from molrs import keys as _keys
+from molrs.fields import (
+    FieldFormatter,
+    GroFieldFormatter,
+    LammpsFieldFormatter,
+    Mol2FieldFormatter,
+    PdbFieldFormatter,
+    XyzFieldFormatter,
+)
 
 # Canonical column names come from molrs — one table, projected. Re-exported
 # as plain strings so annotation dicts unpack as ``update(**kwargs)`` and
 # ``d["type"]`` keeps working. ``molrs.keys.Key`` is still accepted as a
-# Block / Atom column address; it is not a valid Python keyword name.
-globals().update(
-    {
-        _n: getattr(getattr(_keys, _n), "key", getattr(_keys, _n))
-        for _n in dir(_keys)
-        if _n.isupper()
-    }
-)
+# Block / Atom column address; it is not a valid Python keyword name. The
+# list is spelled out (not built from ``dir(molrs.keys)``) so a type checker
+# can resolve ``fields.CHARGE``.
+ATOMI = _keys.ATOMI.key
+ATOMIC_NUMBER = _keys.ATOMIC_NUMBER.key
+ATOMJ = _keys.ATOMJ.key
+ATOMK = _keys.ATOMK.key
+ATOML = _keys.ATOML.key
+BEAD_TYPE = _keys.BEAD_TYPE.key
+BOND_NUMBER = _keys.BOND_NUMBER.key
+BOND_TYPE = _keys.BOND_TYPE.key
+CHARGE = _keys.CHARGE.key
+ELEMENT = _keys.ELEMENT.key
+EXCLUDE_14 = _keys.EXCLUDE_14.key
+ID = _keys.ID.key
+IS_14 = _keys.IS_14.key
+IX = _keys.IX.key
+IY = _keys.IY.key
+IZ = _keys.IZ.key
+MASS = _keys.MASS.key
+MOL_ID = _keys.MOL_ID.key
+MUX = _keys.MUX.key
+MUY = _keys.MUY.key
+MUZ = _keys.MUZ.key
+NAME = _keys.NAME.key
+QUATI = _keys.QUATI.key
+QUATJ = _keys.QUATJ.key
+QUATK = _keys.QUATK.key
+QUATW = _keys.QUATW.key
+RES_ID = _keys.RES_ID.key
+RES_NAME = _keys.RES_NAME.key
+TYPE = _keys.TYPE.key
+TYPE_ID = _keys.TYPE_ID.key
+VX = _keys.VX.key
+VY = _keys.VY.key
+VZ = _keys.VZ.key
+X = _keys.X.key
+Y = _keys.Y.key
+Z = _keys.Z.key
+# Column groups (plain lists of names), not single keys.
+COORDS = _keys.COORDS
+DIPOLE = _keys.DIPOLE
+ENDPOINTS = _keys.ENDPOINTS
+QUAT = _keys.QUAT
+VELOCITIES = _keys.VELOCITIES
 
 # ===================================================================
 #                    molpy-owned canonical fields
@@ -187,4 +229,13 @@ class ForceFieldFormatter(FieldFormatter):
         )
 
 
-__all__ = [*_MOLRS_FIELDS_ALL, "ForceFieldFormatter", "SITE"]
+__all__ = [
+    "FieldFormatter",
+    "GroFieldFormatter",
+    "LammpsFieldFormatter",
+    "Mol2FieldFormatter",
+    "PdbFieldFormatter",
+    "XyzFieldFormatter",
+    "ForceFieldFormatter",
+    "SITE",
+]

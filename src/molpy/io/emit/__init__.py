@@ -65,10 +65,10 @@ def emit(
 
 
 # Register built-in emitters on import
-from .gromacs import GromacsEmitter  # noqa: E402
-from .lammps import LammpsEmitter  # noqa: E402
-from .openmm import OpenMMEmitter  # noqa: E402
-from .xml import XMLEmitter  # noqa: E402
+from .gromacs import GromacsEmitter
+from .lammps import LammpsEmitter
+from .openmm import OpenMMEmitter
+from .xml import XMLEmitter
 
 register("lammps", LammpsEmitter())
 register("openmm", OpenMMEmitter())

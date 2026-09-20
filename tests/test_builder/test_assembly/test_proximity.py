@@ -13,7 +13,6 @@ from molpy.builder.assembly import (
     SpacingSelector,
 )
 from molpy.builder.assembly._proximity import Candidate
-from molpy.core import fields
 
 
 def _context(*, count: int = 3, gap: float = 1.0) -> MatchContext:

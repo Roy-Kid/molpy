@@ -7,7 +7,6 @@ Acceptance criteria covered:
 """
 
 import numpy as np
-import pytest
 
 import molpy
 import molrs

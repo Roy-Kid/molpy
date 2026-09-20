@@ -9,7 +9,9 @@ explicit independent stage.
 
 from ._assembler import GraphAssembler
 from ._context import MatchContext
-from ._finalize import AssemblyFinalizer, Finalization
+from molpy.builder._finalize import Finalization
+
+from ._finalize import AssemblyFinalizer
 from ._library import MonomerLibrary
 from ._placer import Placer, ResiduePlacer
 from ._polymer import PolymerBuilder

@@ -19,7 +19,6 @@ Usage:
 
 from collections.abc import Iterator
 from importlib.resources import as_file, files
-from importlib.resources.abc import Traversable
 from pathlib import Path
 
 

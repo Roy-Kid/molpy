@@ -12,7 +12,7 @@ unwrap); all correlators and spectral physics live in molrs:
 from __future__ import annotations
 
 from collections.abc import Sized
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -308,8 +308,7 @@ class DielectricSusceptibility(Compute):
 
         use_velocity_current = False
         prev_unwrapped: np.ndarray | None = None
-        prev_wrapped: np.ndarray | None = None
-        prev_box = None
+        prev_box: Any = None  # the previous frame's molrs box, set each iteration
         box_obj: Box | None = None
         orth_lengths: np.ndarray | None = None  # fast MIC path
         n_frames = 0
@@ -526,7 +525,7 @@ class IonicConductivity(Compute):
         pos = np.empty((0, 3))
         prev_pos = np.empty((0, 3))
         unwrapped = np.empty((0, 3))
-        prev_box = None
+        prev_box: Any = None  # the previous frame's molrs box, set each iteration
         box_cache: dict[bytes, Box] = {}
         dipoles: list[np.ndarray] = []
         n_frames = 0

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from molpy.core import fields
-from molpy.core.atomistic import Atom, Atomistic, Bond, DrudeParticle, MasslessSite
+from molpy.core.atomistic import Atom, Atomistic, DrudeParticle, MasslessSite
 
 # 4*pi*eps0 in e^2 / (kJ/mol * A), per paduagroup/clandpol polarizer.
 FOUR_PI_EPS0 = 0.0007197587

@@ -239,16 +239,9 @@ def test_region_impropers_match_whole_graph_on_sp2_carbonyl():
     assert len(snapshot.impropers) >= 1
 
     # Whole-graph impropers whose endpoints are all interior of the region
-    interior = {atom.handle for atom in region.interior}
-    region_atoms = list(region.atoms)
-    pos_of = {atom.handle: index for index, atom in enumerate(region_atoms)}
-    canon = region.canonical_order()
-    canon_of_pos = {pos_of[handle]: index for index, handle in enumerate(canon)}
 
     def whole_interior_impropers() -> set[tuple[tuple[int, ...], str | None]]:
         out: set[tuple[tuple[int, ...], str | None]] = set()
-        whole_atoms = list(whole.atoms)
-        handle_of_pos = {index: atom.handle for index, atom in enumerate(whole_atoms)}
         # whole and graph share topology; handles may differ after typify copy —
         # match by coordinates/element instead
         return out

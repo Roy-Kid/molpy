@@ -10,7 +10,7 @@ import pytest
 from molpy.wrapper import Wrapper
 
 
-class MockWrapper(Wrapper):  # noqa: D101
+class MockWrapper(Wrapper):
     """Mock implementation of Wrapper for testing."""
 
     def __init__(self, name: str = "test", exe: str = "test_exe", **kwargs):

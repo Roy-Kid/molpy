@@ -28,10 +28,8 @@ from typing import TYPE_CHECKING
 
 import molrs
 from molpy.builder.assembly._context import MatchContext
-from molpy.builder.assembly._finalize import (
-    AssemblyFinalizer,
-    Finalization,
-)
+from molpy.builder._finalize import Finalization
+from molpy.builder.assembly._finalize import AssemblyFinalizer
 from molpy.builder.assembly._selector import Binding, Selector
 from molpy.core import fields
 from molpy.core.atomistic import Atomistic

@@ -7,11 +7,9 @@ import math
 import numpy as np
 import pytest
 
-import molpy.io as molpy_io
 import molrs.io
 from molpy import AngleType, AtomType, BondType
-from molpy.io import read_amber
-from molpy.io.forcefield.amber import CHARGE_CONVERSION_FACTOR, AmberPrmtopReader
+from molpy.io.forcefield.amber import AmberPrmtopReader
 from molrs import Frame
 
 # LiTFSI POINTERS (first 31 integers in the fixture)

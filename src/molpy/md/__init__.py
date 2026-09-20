@@ -5,4 +5,4 @@ their ``molrs.md`` counterparts.
 """
 
 from molrs.md import *  # noqa: F403
-from molrs.md import __all__ as __all__  # noqa: F401
+from molrs.md import __all__ as __all__

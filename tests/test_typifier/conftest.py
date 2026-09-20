@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pytest
 
-import molpy as mp
 from molpy.core.atomistic import Atomistic
 from molpy.typifier import ClpTypifier, MMFFTypifier
 

@@ -19,7 +19,7 @@ class TestBoxConstruction:
         assert b1.style == Box.Style.ORTHOGONAL
         assert b1.lx == b1.ly == b1.lz == 5.0
         b2 = Box.orth([2, 3, 4])
-        npt.assert_allclose(b2.l, [2, 3, 4])
+        npt.assert_allclose(b2.diag, [2, 3, 4])
 
     def test_triclinic_basic(self):
         lengths = [2, 3, 4]
@@ -32,24 +32,23 @@ class TestBoxConstruction:
         box = Box.from_bounds(points)
         assert box.style == Box.Style.ORTHOGONAL
         npt.assert_allclose(box.origin, [0.0, -1.0, 0.0])
-        npt.assert_allclose(box.l, [2.0, 4.0, 4.0])
+        npt.assert_allclose(box.diag, [2.0, 4.0, 4.0])
         assert not box.periodic
 
     def test_from_bounds_scalar_padding(self):
         points = np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]])
         box = Box.from_bounds(points, padding=1.5)
         npt.assert_allclose(box.origin, [-1.5, -1.5, -1.5])
-        npt.assert_allclose(box.l, [4.0, 5.0, 6.0])
+        npt.assert_allclose(box.diag, [4.0, 5.0, 6.0])
 
     def test_from_bounds_per_axis_padding_and_pbc(self):
         points = np.array([[0.0, 0.0, 0.0], [10.0, 10.0, 10.0]])
         box = Box.from_bounds(points, padding=[1.0, 2.0, 3.0], pbc=[True, True, False])
-        npt.assert_allclose(box.l, [12.0, 14.0, 16.0])
+        npt.assert_allclose(box.diag, [12.0, 14.0, 16.0])
         npt.assert_allclose(box.origin, [-1.0, -2.0, -3.0])
         npt.assert_array_equal(box.pbc, [True, True, False])
 
     def test_from_bounds_rejects_bad_shape(self):
-        import pytest
 
         with pytest.raises(ValueError):
             Box.from_bounds(np.zeros((0, 3)))
@@ -63,7 +62,7 @@ class TestBoxProperties:
         npt.assert_allclose(box.lx, 2)
         npt.assert_allclose(box.ly, 4)
         npt.assert_allclose(box.lz, 5)
-        npt.assert_allclose(box.l_inv, [0.5, 0.25, 0.2])
+        npt.assert_allclose(box.diag_inv, [0.5, 0.25, 0.2])
         # tilts come back exactly as constructed (xy=1, xz=0, yz=0)
         npt.assert_allclose(box.tilts, [1, 0, 0])
         # Box is immutable post-molrs-inheritance — construct a new Box to change xy.

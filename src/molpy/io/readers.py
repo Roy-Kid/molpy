@@ -237,7 +237,7 @@ def read_lammps_forcefield(scripts: PathLike | list[PathLike]) -> Any:
 
 
 # Identity re-export onto molpy.io only (no package-root mp.read_*).
-from .forcefield.xml import read_xml_forcefield as read_xml_forcefield  # noqa: E402
+from .forcefield.xml import read_xml_forcefield as read_xml_forcefield
 
 
 def read_amber(
