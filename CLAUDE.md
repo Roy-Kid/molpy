@@ -50,8 +50,8 @@ Full text: `.claude/notes/law.md`. Outranks scope, minimal-diff, and
 convenience. There are no overridable defaults — a carve-out exists only if the
 operator wrote one into `law.md` naming the subsystem. An agent never grants
 itself one. CLAUDE.md carries **one line per law**; it is an index, not the
-rulebook. The detailed annex — the six 设计铁律, the family→verb table and its
-declared-debt list — is `.claude/notes/architecture.md` § 设计铁律.
+rulebook. The detailed annex — the six design laws, the family→verb table and
+its declared-debt list — is `.claude/notes/architecture.md` § Design laws.
 
 - **Conceptual integrity.** One problem, one coherent model — never parallel abstractions for the same concept.
 - **Architecture first.** Simple shape before local convenience — never a layer only for later or unmeasured performance.
@@ -177,7 +177,7 @@ molpy as mp`) from inside `src/`.
 
 Transformation verbs: one verb per transformation family, decided by
 input→output (not by class name); the binding table (families, members,
-declared debt, owning sub-spec) is `.claude/notes/architecture.md` § 设计铁律 4.
+declared debt, owning sub-spec) is `.claude/notes/architecture.md` § Design laws 4.
 Do not restate verbs here.
 
 ### Data Model Layer
@@ -430,7 +430,7 @@ def test_adapter_fallback():
 - Polymer builders: sequence generation, placement, crosslinking
 - AmberTools integration: prepare molecules, run Antechamber, tleap
 - Construction and transformation verbs: look them up in the family→verb table
-  (`.claude/notes/architecture.md` § 设计铁律 4), which also records the declared
+  (`.claude/notes/architecture.md` § Design laws 4), which also records the declared
   debt and its owning sub-spec
 
 ### `optimize`, `md`, `potential`, `io.log`
@@ -493,7 +493,7 @@ testing.md, docs-style.md, ci.md).
 
 ```bash
 # Implementation workflow
-/mol:spec "natural language need"   # NL → spec + binding acceptance contract (中文/English)
+/mol:spec "natural language need"   # NL → spec + binding acceptance contract
 /mol:impl <spec>                    # TDD implementation from an approved spec (spec → tests → code → verify)
 /mol:litrev "method or topic"       # Literature review before implementing physical models
 
@@ -524,7 +524,7 @@ invoked through skills like `/mol:review`; release gating is handled by `/mol:sh
 /mol:spec "Add Morse bond potential"   # then: /mol:impl <spec>
 
 # Start from vague requirements
-/mol:spec "需要一个支持周期性边界条件的RDF计算器"
+/mol:spec "an RDF calculator that supports periodic boundary conditions"
 
 # Pre-PR validation
 /mol:review

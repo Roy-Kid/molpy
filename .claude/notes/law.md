@@ -326,7 +326,7 @@ show which law they serve.
 # IX. molpy invariants
 
 Project laws under the same template. Their detailed annex is
-`.claude/notes/architecture.md` § 设计铁律 (六条硬约束, the family→verb table,
+`.claude/notes/architecture.md` § Design laws (six hard constraints, the family→verb table,
 the `__call__` policy and the declared-debt list); that annex explains, this
 file binds.
 
@@ -354,7 +354,7 @@ OOP.
 - Never extract a helper for one call site; inline until the second real
   use.
 - Never give two members of one transformation family two verbs; the
-  binding table is `architecture.md` § 设计铁律 4.
+  binding table is `architecture.md` § Design laws 4.
 
 **Derived guidance.** Shape check before a public symbol: owning type? →
 method; more than one user-visible step? → split; one in-tree call site? →

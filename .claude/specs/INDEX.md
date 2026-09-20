@@ -18,7 +18,7 @@ callable `compute.base.Compute` shells versus the molrs `Compute` Protocol
 | Slug | Status |
 |---|---|
 
-**api-verb-unification chain — closed 2026-09-20.** All four sub-specs landed on `ci/precommit-uv-parity` (commits 128dc7e, 1bbad0c, ce3981b and the 04 commit): verb table + `__call__` policy in architecture.md § 铁律 4; compute shells expose `compute()` with `Compute` the molrs Protocol; `molpy.pack` removed; `GraphAssembler.apply`. Routed follow-ups live in the verb table's debt list (Selector name collision, free `emit`/`build_*` functions, `_polymer.py` boundary signal, dielectric recipe classes + `from_dipole_series`, 26 forwarding shells, `/mol:map` and `/mol:bootstrap` re-runs).
+**api-verb-unification chain — closed 2026-09-20.** All four sub-specs landed on `ci/precommit-uv-parity` (commits 128dc7e, 1bbad0c, ce3981b and the 04 commit): verb table + `__call__` policy in architecture.md § Design laws 4; compute shells expose `compute()` with `Compute` the molrs Protocol; `molpy.pack` removed; `GraphAssembler.apply`. Routed follow-ups live in the verb table's debt list (Selector name collision, free `emit`/`build_*` functions, `_polymer.py` boundary signal, dielectric recipe classes + `from_dipole_series`, 26 forwarding shells, `/mol:map` and `/mol:bootstrap` re-runs).
 
 | Slug | Status |
 |---|---|

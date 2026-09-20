@@ -13,7 +13,7 @@ See `.claude/notes/release.md`.
 ## Verbs
 
 molpy's family→verb table lives in molpy `.claude/notes/architecture.md`
-§ 设计铁律 4. Rows and members marked `molrs:` there **describe** molrs and do
+§ Design laws 4. Rows and members marked `molrs:` there **describe** molrs and do
 not bind it: molpy adopts molrs verbs (`build`, `apply`, `compute`, `typify`,
 `generate`, `run`); the reverse never holds (sink direction).
 

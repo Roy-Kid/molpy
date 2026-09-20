@@ -55,7 +55,7 @@ _Verified against the tree: 16 packages, 166 `.py` files under `src/molpy/`._
 ### Style summary
 
 - **Naming** — snake_case modules/functions, PascalCase classes; `<Format>Reader` / `<Format>Writer` classes with `read_*` / `write_*` module functions as the io entry points; private modules under a package use a leading underscore (`builder/assembly/_assembler.py`); internal helpers are `_`-prefixed.
-- **Verbs** — one verb per transformation family, bound by input→output. The single home for the family→verb table, the `__call__` policy and the declared verb debt is `.claude/notes/architecture.md` § 设计铁律 4; this block deliberately does not restate any of it.
+- **Verbs** — one verb per transformation family, bound by input→output. The single home for the family→verb table, the `__call__` policy and the declared verb debt is `.claude/notes/architecture.md` § Design laws 4; this block deliberately does not restate any of it.
 - **Construction** — direct class instantiation is the only constructor story; alternate constructors only with distinct semantics. No `make_*` / `get_*` factory aliases on the public surface. Native types are obtained by identity re-export first, subclass second (`Box`, `Atomistic`, `CoarseGrain`, `Trajectory`, `UnitSystem`, `Perceive`, `Conformer`), forwarding façade never.
 - **Error-handling** — fail-fast at the native boundary (non-representable Block column → `BlockDtypeError`/`TypeError`; missing field → `KeyError`; unknown element → `KeyError`). Optional dependencies are the one guarded import (`adapter/__init__.py` `_HAS_RDKIT`, which narrows to `ModuleNotFoundError`). Import-time `check_molrs_version` enforces the major.minor pin. Unknown emitter name → `KeyError` listing the registered names.
 - **Mutation** — core data-model API mutates in place and returns `self` (or the created view) for chaining; `.copy()` is the explicit opt-in for an independent object; higher-level helpers in `builder`/`core.ops` copy first rather than surprise a caller.
@@ -130,219 +130,360 @@ Per-package constraints from the same source:
 > Verified against the tree on 2026-09-20 (grep of every `from molpy.` import);
 > the only TYPE_CHECKING-time edge is `typifier/ambertools.py` → `builder`.
 
-## 设计铁律 (2026-07-10, 由 graph-assembler 链引出)
+## Design laws (2026-07-10, arising from the graph-assembler chain)
 
-六条硬约束,适用于全仓库,优先于任何 spec 的局部方便。
+Six hard constraints. They hold repo-wide and outrank any spec's local convenience.
 
-### 1. 不硬编码字段名
+### 1. Do not hard-code field names
 
-字段只有两个合法来源:native 的 keys 正则表(经 `molpy.core.fields` 以**纯字符串常量**
-再导出,`fields.CHARGE == "charge"`),以及 `molpy/core/fields.py` 里 molpy 自己声明的
-规范字段(目前只有 `fields.SITE`)。
+A field has exactly two legal sources: the native keys table, re-exported through
+`molpy.core.fields` as **plain string constants** (`fields.CHARGE == "charge"`),
+and the canonical fields molpy declares for itself in `molpy/core/fields.py`
+(today only `fields.SITE`).
 
-- 允许:`atom[fields.CHARGE]`、`fields.SITE`
-- 禁止:`atom.get("charge")`、`site_field: str = "site"` 这类字符串旋钮、
-  `element == "O"` 这类元素字面量
-- 新概念要一个字段 ⟹ 在 `molpy/core/fields.py` 加一个规范常量(照 `SITE` 的样子写明
-  语义与缺失含义),不要开构造器参数
-- 格式侧的列名翻译走 `FieldFormatter` 子类的 `_field_formatters`,不在调用点手写别名
-- 字段缺失是错误,不是回退:fail-fast,不 `getattr(..., default)`
+- Allowed: `atom[fields.CHARGE]`, `fields.SITE`
+- Forbidden: `atom.get("charge")`, string knobs such as `site_field: str = "site"`,
+  element literals such as `element == "O"`
+- A new concept needs a field ⟹ add a canonical constant to `molpy/core/fields.py`
+  (spelled like `SITE`, stating its meaning and what a missing value means); do not
+  open a constructor parameter
+- Format-side column renaming goes through a `FieldFormatter` subclass's
+  `_field_formatters`; never hand-write an alias at the call site
+- A missing field is an error, not a fallback: fail fast, no `getattr(..., default)`
 
-### 2. 体系相关的操作留在 molpy,不下沉
+### 2. System-level operations stay in molpy; they do not sink
 
-molrs 拥有**引擎原语**:SMARTS 匹配、SMIRKS 图编辑、WL 哈希、canonical order、
-邻居搜索、列存储与字段正则表。它可以回答**语法/结构事实**。
+molrs owns the **engine primitives**: SMARTS matching, SMIRKS graph editing, WL
+hashing, canonical order, neighbour search, columnar storage and the field keys
+table. It can answer **syntactic / structural facts**.
 
-molpy 拥有**体系判断**:力场语义、局域性判据、区域所有权、电荷守恒、装配编排。
+molpy owns **system-level judgement**: force-field semantics, locality criteria,
+region ownership, charge conservation, assembly orchestration.
 
-判据是"这个决定是否需要知道**化学/力场**":
+The test is "does this decision need to know **chemistry / force field**":
 
-- molrs 回答"这条编译好的 SMARTS 的最大键深是多少、它用了哪些环谓词"(语法事实)
-- molpy 决定"这个模式集因此有界吗、`reach` 是多少、无界就 `TypeError`"(体系判断)
+- molrs answers "what is this compiled SMARTS's maximum bond depth, which ring
+  predicates does it use" (a syntactic fact)
+- molpy decides "is this pattern set therefore bounded, what is `reach`, and
+  `TypeError` when it is not" (a system-level judgement)
 
-不要把 `TypeScope` / 力场策略推进 Rust 换取"编译期"的名义。
+Do not push `TypeScope` / force-field policy into Rust in the name of "compile time".
 
-> 与 `opls-typifier-downsink`(把 OPLS 分型整体下沉 molrs)存在张力 —— 那条 spec 目前
-> BLOCKED,重启前须按本条重新裁决。
+> In tension with `opls-typifier-downsink` (sinking OPLS typing into molrs
+> wholesale) — that spec is BLOCKED today and must be re-adjudicated against this
+> law before it restarts.
 
-### 3. experimental 阶段不背向后兼容
+### 3. No backward compatibility while experimental
 
-反应 / 交联 / 装配的公开 API 可以重新设计。不留 deprecated shim,不留双构造器
-(`connector=` 或 `reacter=` 二选一那种),不留 `last_regions` 之类的兼容侧信道。
-breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无手写 CHANGELOG）。
+The public API of reaction / crosslinking / assembly may be redesigned. No
+deprecated shim, no twin constructors (the "`connector=` or `reacter=`, pick one"
+kind), no compatibility side channel such as `last_regions`. A breaking change is
+recorded in the version number / git tag / GitHub Release, and then we move on (no
+hand-written CHANGELOG).
 
-### 4. OOP,且是真 OOP
+### 4. OOP, and real OOP
 
-- 模块级 `def`(自由函数)不是公开面。行为挂在拥有数据的类上。
-- 但**禁止假 OOP**:只为消灭自由函数而造的命名空间类、单次使用的抽象、
-  二次封装外部类型的门面 —— 一律不要(见 `feedback_no_wrapper_layers_oop`)。
-  一个类必须携带数据或承担分派。
-- 同族变换用**同一个动词**。不要一个类叫 `build`、一个叫 `apply`、一个叫 `run`。
-  族与动词的绑定表、`__call__` 政策与已声明的债见本节下方「变换族 → 动词」。
-- 工作流拼装(`crosslink_gel(...)` 这种把几个类串起来的自由函数)属于**文档**,不属于库。
+- A module-level `def` (a free function) is not a public surface. Behaviour hangs
+  on the class that owns the data.
+- But **fake OOP is forbidden**: namespace classes invented only to kill free
+  functions, single-use abstractions, facades that wrap an external type a second
+  time — none of them (see `feedback_no_wrapper_layers_oop`). A class must carry
+  data or take a dispatch decision.
+- One family of transformations, **one verb**. Not one class called `build`,
+  another `apply`, another `run`. The family→verb binding table, the `__call__`
+  policy and the declared debt are under "Transformation family → verb" below.
+- Workflow assembly (a free function like `crosslink_gel(...)` that strings a few
+  classes together) belongs in **documentation**, not in the library.
 
-**门面 vs 真类 —— 别把这条用反了。** 判据不是"它内部调用了别的类",而是
-**它自己拥有数据吗?它做决定吗?**
+**Facade vs real class — do not read this backwards.** The test is not "does it
+call other classes internally", it is **does it own data? does it decide anything?**
 
 | | `crosslink_gel(struct, linker, ...)` | `PolymerBuilder(library, reaction).build(cgsmiles)` |
 |---|---|---|
-| 拥有数据 | 无(实参都是造好的对象) | 单体库 |
-| 做决定 | 无(按顺序调一遍) | 记号 → 世界 + 配对 的翻译 |
-| 结论 | **门面,删** | **真类,留** |
+| Owns data | none (every argument is an already-built object) | the monomer library |
+| Decides | nothing (calls things in order) | notation → world + pairing |
+| Verdict | **facade, delete** | **real class, keep** |
 
-**"实现上可以合并"不等于"API 上必须拆开"。** 三个 builder 在内核层面收敛成一个,
-不意味着用户要自己把 `MonomerLibrary` + `TopologySelector` + `GraphAssembler` 串起来。
-让用户手工穿线、还要求他知道 `CGSmilesIR.base_graph` 这种 IR 内部属性,是把内部分解
-泄漏成了公开 API。
+**"It can be merged in the implementation" does not mean "it must be split in the
+API".** Three builders converging on one kernel does not mean the user has to
+string `MonomerLibrary` + `TopologySelector` + `GraphAssembler` together.
+Making the user wire it by hand, and requiring them to know an IR-internal
+attribute such as `CGSmilesIR.base_graph`, leaks the internal decomposition into
+the public API.
 
-> 边界切错的信号:**同一份数据穿过两个对象传了两次**
-> (`expand(topology)` 与 `TopologySelector(topology)`)。看到这个就回去重切。
+> The signal that a boundary was cut wrong: **the same data is passed twice,
+> through two objects** (`expand(topology)` and `TopologySelector(topology)`). When
+> you see it, go back and re-cut.
 
-#### 同族变换用**同一个动词**——变换族 → 动词表(2026-09-20,api-verb-unification 链)
+#### One family, **one verb** — transformation family → verb table (2026-09-20, api-verb-unification chain)
 
-**族的边界只由「输入 → 输出」决定,与类名/后缀无关;本表不改任何类名。**
-`VirtualSiteBuilder`(`builder/virtualsite.py:61`)、`DrudeBuilder`(`:92`)、`Tip4pBuilder`(`:173`)顶着 `Builder`
-后缀,但它们吃一个已有的 `Atomistic`、吐一个被改写的 `Atomistic`——**图变换族**,动词 `apply`;
-`GrapheneBuilder`(`nanostructure/graphene.py:15`)、`CarbonTubeBuilder`(`carbon_tube.py:15`)吃参数、吐新结构——
-**构造族**,动词 `build`。同一个后缀落在两族里,正说明后缀不是判据。下一次改名照「输入 → 输出」判,不照名字判。
+**A family's boundary is decided by "input → output" alone, never by the class name
+or its suffix; this table renames no class.** `VirtualSiteBuilder`
+(`builder/virtualsite.py:61`), `DrudeBuilder` (`:92`) and `Tip4pBuilder` (`:173`)
+wear the `Builder` suffix, yet they eat an existing `Atomistic` and hand back a
+rewritten one — **graph-transformation family**, verb `apply`; `GrapheneBuilder`
+(`nanostructure/graphene.py:15`) and `CarbonTubeBuilder` (`carbon_tube.py:15`) eat
+parameters and hand back a new structure — **construction family**, verb `build`.
+The same suffix landing in two families is exactly why the suffix is not the test.
+Judge the next rename by "input → output", not by the name.
 
-`molrs:` 前缀 = 对 molrs 现状的描述,不约束 molrs;molpy 沿用 molrs 的动词,反向不成立(sink direction)。
+A `molrs:` prefix = a description of molrs as it stands; it does not constrain
+molrs. molpy adopts molrs's verbs, never the reverse (sink direction).
 
-| 变换族 | 输入 → 输出 | 动词 | 成员 | 状态 | 依据 |
+| Family | Input → output | Verb | Members | Status | Basis |
 |---|---|---|---|---|---|
-| 构造 | 配方/IR/参数 → 新结构 | `build` | `PolymerBuilder.build(topology)`(`builder/assembly/_polymer.py:87`)、`Lattice.build(region)`(`builder/crystal.py:210`)、`GrapheneBuilder.build`(`nanostructure/graphene.py:56`)、`CarbonTubeBuilder.build`(`nanostructure/carbon_tube.py:65`)、`AmberPolymerBuilder.build`(`polymer/ambertools/amber_builder.py:166`) | 已成立 | `molrs:` 侧已是 `build`(`molrs.builder.*`、`NeighborList.build`);molpy 永不改写 molrs 的动词(sink direction) |
-| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | 已成立(2026-09-20,sub-spec 04):GraphAssembler.apply | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
-| 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(不继承任何基类,靠结构满足 molrs Protocol;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | 已成立(2026-09-20,sub-spec 02):molpy 拥有的分析入口动词是 `compute`;残余债 `dielectric.py from_dipole_series` 见债务清单 | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
-| 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | 已成立(2026-09-20,sub-spec 03):molpy.pack 已整包删除,打包归 molpack | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
-| 分型 | 图 → 带类型的图 | `typify` | `molrs:Typifier`;`typifier/base.py:99` 是参考范式(继承 molrs 基类、保留动词、加一个 hook,`typify` 在 `:106`) | 已成立 | molrs 所有(描述性) |
-| 3D 生成 | 图 → 坐标 | `generate` | `Conformer.generate`(`conformer/__init__.py:42`)——**仅此一个**,其余同词干的名字见脚注 1 | 已成立 | `molrs:molrs.conformer.Conformer` 所有(描述性) |
-| 外部进程 | 文件/体系 → 文件/轨迹 | `run` | `Wrapper.run`(`wrapper/base.py:74`)、`Engine.run`(`engine/base.py:212`)、`molrs:LBFGS.run` | 已成立 | 「跑一个东西」,不是数据变换;不动 |
-| 发射 | Frame → 引擎输入 | `emit` | `Emitter.emit`(`io/emit/__init__.py:32`)及各格式实现(`io/emit/{lammps,gromacs,openmm,xml}.py`) | 已成立(自由函数形态的债见债务清单) | 不动 |
-| 读写 | 路径 ↔ 对象 | `read` / `write` | `io` | 已成立 | 不动 |
-| 选择 | context/struct → 子集 | `select` | 入口动词 `select`:`Selector.select`(`builder/assembly/_selector.py:35`)、`VirtualSiteBuilder.select`(`builder/virtualsite.py:78`)、`Atomistic.select`(`core/atomistic.py:270`) / `CoarseGrain.select`(`core/cg.py:189`)(核心数据模型上的两处只作描述,其命名归 § Graph sink decisions,本表不授权改名);`MaskPredicate.mask(block) -> ndarray`(`core/selector.py:24`)是**生产者 hook**,不是第二个入口动词 | 已成立(名字撞车的债见债务清单) | 不动 |
-| 放置 | struct → 就地坐标 | `place` | `Placer.place`(`builder/assembly/_placer.py:46`)、`ResiduePlacer.place`(`:75`);经 `builder/assembly/__init__.py:16` 与 `builder/__init__.py:42,44` 导出 | 已成立 | 领域动词,不在两族之内,见脚注 6 |
+| Construction | recipe / IR / parameters → new structure | `build` | `PolymerBuilder.build(topology)` (`builder/assembly/_polymer.py:87`), `Lattice.build(region)` (`builder/crystal.py:210`), `GrapheneBuilder.build` (`nanostructure/graphene.py:56`), `CarbonTubeBuilder.build` (`nanostructure/carbon_tube.py:65`), `AmberPolymerBuilder.build` (`polymer/ambertools/amber_builder.py:166`) | settled | the `molrs:` side is already `build` (`molrs.builder.*`, `NeighborList.build`); molpy never rewrites a molrs verb (sink direction) |
+| Graph transformation | existing graph → rewritten graph | `apply` | `StructureFinalizer.apply` (`builder/_finalize.py:43`), `VirtualSiteBuilder.apply` (`builder/virtualsite.py:69`, covering `DrudeBuilder` / `Tip4pBuilder` — the suffix is not the test, see footnote 6), `GraphAssembler.apply`, `molrs:Reaction.apply` | settled (2026-09-20, sub-spec 04): GraphAssembler.apply | identical signature shape; `molrs:Reaction.apply` is a pre-existing member (descriptive) |
+| Analysis | frames / arrays → Result | `compute` | every analysis class under `molpy.compute` that implements `compute()` (inheriting no base class, satisfying the molrs Protocol structurally; for the count see footnote 5, do not hard-code it) + every `molrs:` kernel | settled (2026-09-20, sub-spec 02): the analysis entry verb molpy owns is `compute`; the residual debt `dielectric.py from_dipole_series` is in the debt list | `molrs:molrs.compute.protocol.Compute` recognises `compute` only; the `protocol.py` module docstring states outright that `__call__` / `dump()` are not part of the contract |
+| Packing | targets → Frame | `pack` | external `molpack` (`docs/api/pack.md`) | settled (2026-09-20, sub-spec 03): molpy.pack is deleted wholesale, packing belongs to molpack | zero consumers in molpy and every sibling repo; the docs point at molpack |
+| Typing | graph → typed graph | `typify` | `molrs:Typifier`; `typifier/base.py:99` is the reference pattern (inherit the molrs base, keep the verb, add one hook; `typify` at `:106`) | settled | owned by molrs (descriptive) |
+| 3D generation | graph → coordinates | `generate` | `Conformer.generate` (`conformer/__init__.py:42`) — **this one only**; other names sharing the stem are in footnote 1 | settled | owned by `molrs:molrs.conformer.Conformer` (descriptive) |
+| External process | files / system → files / trajectory | `run` | `Wrapper.run` (`wrapper/base.py:74`), `Engine.run` (`engine/base.py:212`), `molrs:LBFGS.run` | settled | "run a thing", not a data transformation; untouched |
+| Emission | Frame → engine input | `emit` | `Emitter.emit` (`io/emit/__init__.py:32`) and the per-format implementations (`io/emit/{lammps,gromacs,openmm,xml}.py`) | settled (the free-function form is in the debt list) | untouched |
+| Read / write | path ↔ object | `read` / `write` | `io` | settled | untouched |
+| Selection | context / struct → subset | `select` | entry verb `select`: `Selector.select` (`builder/assembly/_selector.py:35`), `VirtualSiteBuilder.select` (`builder/virtualsite.py:78`), `Atomistic.select` (`core/atomistic.py:270`) / `CoarseGrain.select` (`core/cg.py:189`) (the two on the core data model are descriptive only; their naming belongs to § Graph sink decisions and this table authorises no rename there); `MaskPredicate.mask(block) -> ndarray` (`core/selector.py:24`) is a **producer hook**, not a second entry verb | settled (the name collision is in the debt list) | untouched |
+| Placement | struct → in-place coordinates | `place` | `Placer.place` (`builder/assembly/_placer.py:46`), `ResiduePlacer.place` (`:75`); exported through `builder/assembly/__init__.py:16` and `builder/__init__.py:42,44` | settled | a domain verb, outside both families, see footnote 6 |
 
-**`Compute` 归属裁定。** 仓里同时活着两个 `Compute` 概念——`molpy.compute.base.Compute`(`compute/base.py:18`,一个以 `__call__` 为抽象方法的 ABC)与 `molrs.compute.protocol.Compute`(只认 `compute`)。**唯一的 `Compute` 是 molrs 那个**,sub-spec 02 落地后用户经 identity re-export 以 `molpy.compute.Compute` 取得(铁律 6 的第一档手段;今天 `compute/__init__.py:19` 还是 `from .base import Compute`)。molpy 的 ABC 并非空壳——它带 `__init__(**config)`(`compute/base.py:41-48`)与 `dump()`(`:65-71`),按铁律 6 的三档表那本该是「继承」档;本链**裁定不继承而是删除**:`dump()` 在 `src/`、`tests/` 中零调用(唯一引用是 `docs/developer/extending-compute.md:69`),`**config` 只喂 `dump()`,二者都是没有消费者的公开面。这是 **sub-spec 02 名下的一次 breaking change**(`dump()` 与 `**config` 从公开面消失,`extending-compute.md` 随之改写),不是无损再导出;02 的 ac-003 记录它。不留 `__call__` 糖、不留转发壳。`.claude/specs/INDEX.md` 把这件事记为 release-0-14 遗留的 open decision("the callable `compute.base.Compute` shells versus the molrs `Compute` Protocol (verb unification)")——**本链就是它的关闭动作**,sub-spec 02 落地后该条从 open 转 closed。
+**`Compute` ownership ruling.** Two `Compute` concepts were alive in the repo at
+once — `molpy.compute.base.Compute` (`compute/base.py:18`, an ABC whose abstract
+method was `__call__`) and `molrs.compute.protocol.Compute` (which recognises
+`compute` only). **The one `Compute` is the molrs one**; once sub-spec 02 landed
+the user obtains it through an identity re-export as `molpy.compute.Compute` (the
+first tier of law 6; at the time of writing `compute/__init__.py:19` still read
+`from .base import Compute`). molpy's ABC was not an empty shell — it carried
+`__init__(**config)` (`compute/base.py:41-48`) and `dump()` (`:65-71`), which by
+the three-tier table of law 6 would have put it in the "inherit" tier; this chain
+**ruled deletion rather than inheritance**: `dump()` had zero callers in `src/` and
+`tests/` (its only reference was `docs/developer/extending-compute.md:69`) and
+`**config` fed nothing but `dump()`, so both were public surface without a
+consumer. That is **a breaking change under sub-spec 02** (`dump()` and `**config`
+leave the public surface, and `extending-compute.md` is rewritten accordingly), not
+a lossless re-export; 02's ac-003 records it. No `__call__` sugar, no forwarding
+shell. `.claude/specs/INDEX.md` recorded this as an open decision left over from
+release-0-14 ("the callable `compute.base.Compute` shells versus the molrs
+`Compute` Protocol (verb unification)") — **this chain is the closing action**, and
+once sub-spec 02 landed that entry went from open to closed.
 
-**一族一动词,不是一类一动词。** 一个类可以在它参与的**每一个**族里各有一个动词——`PolymerBuilder` 自己有 `build`(构造族,`_polymer.py:87`),并从 `GraphAssembler` 继承 `apply`(图变换族)。被禁止的是**同一族里两个动词**,不是一个类上有两个动词。
+**One verb per family, not one verb per class.** A class may carry one verb for
+**each** family it takes part in — `PolymerBuilder` has its own `build`
+(construction family, `_polymer.py:87`) and inherits `apply` from `GraphAssembler`
+(graph-transformation family). What is forbidden is two verbs **within one family**,
+not two verbs on one class.
 
-**`assemble → apply` 裁定。** `GraphAssembler.assemble` → `apply` 而非 `build`:`PolymerBuilder(GraphAssembler)`(`_polymer.py:38`)已有 `build(topology)`(`:87`,在 `:94` 调 `self.apply`),父类再挂 `build(world, selector)` 会撞签名(LSP,`ty` 报错);而 `assemble` 吃一个已有的 world、吐一个被改写的 world——图 → 图,本就属 `apply` 族。
+**`assemble → apply` ruling.** `GraphAssembler.assemble` became `apply`, not
+`build`: `PolymerBuilder(GraphAssembler)` (`_polymer.py:38`) already has
+`build(topology)` (`:87`, calling `self.apply` at `:94`), so hanging
+`build(world, selector)` on the parent would collide on signature (LSP; `ty`
+errors). And `assemble` eats an existing world and hands back a rewritten one —
+graph → graph, which is the `apply` family to begin with.
 
-**脚注:**
+**Footnotes:**
 
-1. 本表约束的是变换的**入口动词**;抽象模板 hook 与描述性方法名不在族内,保留原名:`VirtualSiteBuilder.build_sites`(`builder/virtualsite.py:82`/`:126`/`:205`)、`engine/openmm.py:303 generate_inputs`、`builder/polymer/sequences.py:34`/`:74`/`:138`/`:182 generate_sequence`、`adapter/rdkit.py:105 generate_3d`。(`pack` 侧的 `generate_input_*` 随 sub-spec 03 整包消失,不必单独裁决。)
-2. **`build_*` 全树普查。** 同词干的一行捷径,保留:`PolymerBuilder.build_sequence`/`build_linear`/`build_ring`/`build_star`(`_polymer.py:96`/`:100`/`:110`/`:114`)、`builder/ambertools.py:241 build_polymer`、`builder/polymer/system.py:146 build_chain`。模板 hook,保留:`build_sites`(见脚注 1)。**债**:`parser/moltemplate/builder.py:551 build_forcefield` 与 `:967 build_system` 是自由函数形态的工厂,正撞 CLAUDE.md § Forbid「Factory functions as the primary constructor story」与铁律 4「自由函数不是公开面」——见债务清单,单独 `/mol:refactor`,不属本链。
-3. `DistributionIR.build()`(`builder/polymer/distributions.py:28`)不吃数据——它是 factory 式构造器,不是变换族成员;改名或删除是另一次 `/mol:refactor`(维护者裁定 OQ-3 记为「只留脚注」)。
-4. **`__call__` 政策。** 一族一个动词;`__call__` 只出现在「这个对象**就是**一个函数」的地方。本链全部落地后,唯一豁免是 `core/selector.py` 的 `MaskPredicate.__call__(block) -> Block`(`:26`)与 `mask(block) -> ndarray`(`:24`)并存——返回类型不同,且谓词要用 `& | ~` 组合(`:30`–`:40`)。其余把 `__call__` 当作同一操作第二个名字的,一律删(均已落地 2026-09-20):(a) 全部 compute 壳,由 sub-spec 02 改名为 `compute`;(b) 原 `Packer.__call__` 与 `Packmol.__call__`,随 sub-spec 03 **整包删除**——删除集为 `src/molpy/pack/` 全包(`Packmol`、`Packer`、`Target`、全部 `*Constraint`)、`tests/test_pack/`、以及 `src/molpy/__init__.py:29`/`:48`/`:317` 三处 facade 登记,并**改写**(不是删除)两处会悬空的 docstring 交叉引用 `src/molpy/builder/assembly/_replicas.py:3` 与 `src/molpy/adapter/__init__.py:6-7`。02 与 03 均已落地,「唯一豁免」自 2026-09-20 起为真。
-5. **不写死计数。** 本表不记「N 个 compute 壳」这类会腐烂的数字;需要时现场数,按动词而不按基类:`rg -n 'def compute\(' src/molpy/compute`(02 落地前该命令给 0——那时壳还叫 `__call__`,用 `rg -n 'class \w+\(Compute\)' src/molpy/compute` 数基类形式,2026-09-20 给 34 行,其中 33 行是真实子类,另一行是 `compute/base.py:27` docstring 里的示例——**读 grep 输出要减掉 doctest**)。
-6. **族的边界只由「输入 → 输出」决定,与类名/后缀无关,本表也不改任何类名;核心数据模型 API 整体在两族之外。** 边界样例:`VirtualSiteBuilder`(`builder/virtualsite.py:61`)、`DrudeBuilder`(`:92`)、`Tip4pBuilder`(`:173`)带 `Builder` 后缀却属**图变换族**;`GrapheneBuilder`(`nanostructure/graphene.py:15`)、`CarbonTubeBuilder`(`carbon_tube.py:15`)属**构造族**。另有一类是**领域动词**,既不是构造族入口、也不是图变换族入口,因此不受本表约束、保留原名:`MonomerLibrary.expand(topology)`(`builder/assembly/_library.py:57`)、`Replicas.grid`/`.times`(`builder/assembly/_replicas.py:40`/`:89`)与 `Placer.place`/`ResiduePlacer.place`。**判据**(不是例子清单):`Atomistic`/`CoarseGrain`/`Frame` 的核心数据模型 API——`def_*`/`del_*`/`copy`/`merge`(`core/atomistic.py:462`)/`move`/`rotate`/`scale`/`align`(`:534`)/`replicate`(`:559`)/`extract_subgraph`(`:377`)/`to_frame`——虽然也是「已有图 → 改写后的图」,但它们是数据模型自身的动作,由 § Graph sink decisions(锁定)与 CLAUDE.md § What must never change casually 管辖,**不属于图变换族**;图变换族只收「以整张图为输入、产出新图的领域变换入口」(finalize、virtual sites、assembly、reaction)。
+1. This table constrains the **entry verb** of a transformation; abstract template
+   hooks and descriptive method names are outside the families and keep their
+   names: `VirtualSiteBuilder.build_sites` (`builder/virtualsite.py:82` / `:126` /
+   `:205`), `engine/openmm.py:303 generate_inputs`,
+   `builder/polymer/sequences.py:34` / `:74` / `:138` / `:182 generate_sequence`,
+   `adapter/rdkit.py:105 generate_3d`. (The `generate_input_*` names on the pack
+   side vanished with sub-spec 03's wholesale deletion and needed no separate
+   ruling.)
+2. **Repo-wide `build_*` census.** One-line shortcuts sharing the stem, kept:
+   `PolymerBuilder.build_sequence` / `build_linear` / `build_ring` / `build_star`
+   (`_polymer.py:96` / `:100` / `:110` / `:114`), `builder/ambertools.py:241
+   build_polymer`, `builder/polymer/system.py:146 build_chain`. Template hooks,
+   kept: `build_sites` (see footnote 1). **Debt**:
+   `parser/moltemplate/builder.py:551 build_forcefield` and `:967 build_system` are
+   factories in free-function form, squarely against CLAUDE.md § Forbid ("Factory
+   functions as the primary constructor story") and law 4 ("a free function is not
+   a public surface") — see the debt list; a separate `/mol:refactor`, not part of
+   this chain.
+3. `DistributionIR.build()` (`builder/polymer/distributions.py:28`) eats no data —
+   it is a factory-style constructor, not a member of a transformation family;
+   renaming or deleting it is another `/mol:refactor` (the maintainer's ruling on
+   OQ-3 was "footnote only").
+4. **`__call__` policy.** One verb per family; `__call__` appears only where the
+   object **is** a function. With this chain fully landed, the single exemption is
+   `core/selector.py`'s `MaskPredicate.__call__(block) -> Block` (`:26`) coexisting
+   with `mask(block) -> ndarray` (`:24`) — different return types, and the
+   predicates have to compose under `& | ~` (`:30`–`:40`). Everything else that used
+   `__call__` as a second name for the same operation is deleted (all landed
+   2026-09-20): (a) every compute shell, renamed to `compute` by sub-spec 02;
+   (b) the former `Packer.__call__` and `Packmol.__call__`, removed with sub-spec
+   03's **wholesale deletion** — the deletion set was all of `src/molpy/pack/`
+   (`Packmol`, `Packer`, `Target`, every `*Constraint`), `tests/test_pack/`, and the
+   three facade registrations at `src/molpy/__init__.py:29` / `:48` / `:317`, plus a
+   **rewrite** (not a deletion) of the two docstring cross-references that would
+   otherwise dangle, `src/molpy/builder/assembly/_replicas.py:3` and
+   `src/molpy/adapter/__init__.py:6-7`. 02 and 03 both landed, so "the single
+   exemption" has been true since 2026-09-20.
+5. **Do not hard-code counts.** This table records no "N compute shells" figure,
+   because such a number rots; count on the spot when you need it, and count by verb
+   rather than by base class: `rg -n 'def compute\(' src/molpy/compute` (before 02
+   landed that command returned 0 — the shells were still called `__call__`, and you
+   counted the base-class form with `rg -n 'class \w+\(Compute\)' src/molpy/compute`,
+   which returned 34 lines on 2026-09-20, of which 33 were real subclasses and one
+   was the example inside the `compute/base.py:27` docstring — **when you read grep
+   output, subtract the doctest**).
+6. **A family's boundary is decided by "input → output" alone, never by the class
+   name or suffix, and this table renames no class; the core data-model API sits
+   outside both families altogether.** Boundary examples: `VirtualSiteBuilder`
+   (`builder/virtualsite.py:61`), `DrudeBuilder` (`:92`) and `Tip4pBuilder`
+   (`:173`) carry the `Builder` suffix yet belong to the **graph-transformation
+   family**; `GrapheneBuilder` (`nanostructure/graphene.py:15`) and
+   `CarbonTubeBuilder` (`carbon_tube.py:15`) belong to the **construction family**.
+   A third kind is the **domain verb**, which is neither a construction entry nor a
+   graph-transformation entry, is therefore unconstrained by this table, and keeps
+   its name: `MonomerLibrary.expand(topology)` (`builder/assembly/_library.py:57`),
+   `Replicas.grid` / `.times` (`builder/assembly/_replicas.py:40` / `:89`) and
+   `Placer.place` / `ResiduePlacer.place`. **The test** (not the example list): the
+   core data-model API of `Atomistic` / `CoarseGrain` / `Frame` — `def_*` / `del_*`
+   / `copy` / `merge` (`core/atomistic.py:462`) / `move` / `rotate` / `scale` /
+   `align` (`:534`) / `replicate` (`:559`) / `extract_subgraph` (`:377`) /
+   `to_frame` — is also "existing graph → rewritten graph", but these are the data
+   model's own actions, governed by § Graph sink decisions (locked) and CLAUDE.md
+   § What must never change casually, and they are **not** in the
+   graph-transformation family. That family admits only "domain transformation
+   entries that take a whole graph and produce a new one" (finalize, virtual sites,
+   assembly, reaction).
 
-**本表尚未兑现的部分(已声明的债):**
+**What this table has not yet delivered (declared debt):**
 
-| 债 | 位置 | 归属 |
+| Debt | Location | Owner |
 |---|---|---|
-| 分析族残余:`DielectricSusceptibility.from_dipole_series(M, …)` 是返回结果的实例方法——同一个类上的第二个分析入口(`from_*` 名字误用) | `src/molpy/compute/dielectric.py`(`from_dipole_series`) | 随删除两个一体化配方类的 `/mol:refactor` 折进 primitive,**不在本链** |
-| `Selector` 一名两义:`core/selector.py:43 Selector = MaskPredicate`(掩码谓词)与 `builder/assembly/_selector.py:26 class Selector(ABC)`(装配选择器)是两个无关的类型 | 同左 | 单独 `/mol:refactor`,**不在本链** |
-| 模块级自由函数 `emit(name, …)` 注册表 dispatcher 与 `emit_python`,违铁律 4「自由函数不是公开面」 | `io/emit/__init__.py:51`、`parser/moltemplate/py_emitter.py:42` | 单独 `/mol:refactor`,**不在本链** |
-| 自由 `build_*` 工厂(见脚注 2) | `parser/moltemplate/builder.py:551`/`:967` | 单独 `/mol:refactor`,**不在本链** |
-| § 4「边界切错的信号」在 `_polymer.py:93-94` 上仍在鸣响:`expand(topology)` 之后又 `TopologySelector(topology)`,同一份数据穿两个对象 | `builder/assembly/_polymer.py:93-94` | 单独裁决(让 `MonomerLibrary.expand` 连同配对规则一起产出,或 `TopologySelector` 从展开后的 world 推导),**不在本链**;sub-spec 04 已记为 found-not-fixed |
+| Analysis-family residue: `DielectricSusceptibility.from_dipole_series(M, …)` is an instance method that returns a result — a second analysis entry on the same class (a misused `from_*` name) | `src/molpy/compute/dielectric.py` (`from_dipole_series`) | folded into the primitive by the `/mol:refactor` that deletes the two all-in-one recipe classes, **not this chain** |
+| `Selector` means two things: `core/selector.py:43 Selector = MaskPredicate` (a mask predicate) and `builder/assembly/_selector.py:26 class Selector(ABC)` (an assembly selector) are unrelated types | as listed | a separate `/mol:refactor`, **not this chain** |
+| The module-level free functions `emit(name, …)` (a registry dispatcher) and `emit_python` break law 4, "a free function is not a public surface" | `io/emit/__init__.py:51`, `parser/moltemplate/py_emitter.py:42` | a separate `/mol:refactor`, **not this chain** |
+| Free `build_*` factories (see footnote 2) | `parser/moltemplate/builder.py:551` / `:967` | a separate `/mol:refactor`, **not this chain** |
+| § 4's "signal that a boundary was cut wrong" still sounds at `_polymer.py:93-94`: `expand(topology)` followed by `TopologySelector(topology)`, the same data through two objects | `builder/assembly/_polymer.py:93-94` | a separate ruling (either `MonomerLibrary.expand` produces the pairing rule along with the expansion, or `TopologySelector` derives itself from the expanded world), **not this chain**; sub-spec 04 recorded it as found-not-fixed |
 
-本清单是**记账与路由**,不是放行:每一行要么有承载 sub-spec、要么有明确的下一次 `/mol:refactor` / `/mol:bootstrap` / `/mol:map`;不得把任何一行读作「本表允许的例外」。
+This list is **bookkeeping and routing**, not a permit: every row either has a
+sub-spec carrying it or a named next `/mol:refactor` / `/mol:bootstrap` /
+`/mol:map`. No row may be read as "an exception this table allows".
 
-2026-09-20 `/mol:map` 与 `/mol:bootstrap` 已重跑:managed 块的 Style summary 只以一行指向本节,CLAUDE.md 不再复述动词;这两笔债已退役。
+2026-09-20: `/mol:map` and `/mol:bootstrap` have been re-run; the managed block's
+Style summary points at this section in a single line and CLAUDE.md no longer
+restates the verbs, so those two debts are retired.
 
-### 5. 不 fallback,不静默失败
+### 5. No fallback, no silent failure
 
-**契约被违反 ⟹ 立刻 raise。可疑但合法 ⟹ warning。永远不要悄悄换一条路走。**
+**A violated contract ⟹ raise immediately. Suspicious but legal ⟹ warn. Never
+quietly take a different road.**
 
-静默回退的代价不是"行为不对",是"行为不对且没人知道"。一个退化到全图分型的分支会把
-O(N²) 伪装成正常;一个 `get("symbol", "C")` 会把缺失的元素伪装成碳。
+The cost of a silent fallback is not "the behaviour is wrong", it is "the behaviour
+is wrong and nobody knows". A branch that degrades to whole-graph typing disguises
+O(N²) as normal; a `get("symbol", "C")` disguises a missing element as carbon.
 
-禁止的形态:
+Forbidden shapes:
 
-| 形态 | 例子 |
+| Shape | Example |
 |---|---|
-| 能力嗅探 + 退化路径 | `if hasattr(typifier, "typify_region"): ... else: 全图分型` |
-| `getattr` 带默认值当契约 | `getattr(typifier, "context_radius", 0) or 0` → `_FLOOR = 4` |
-| 数据字段带默认值 | `atom.get("charge", 0.0)`、`atom.get("symbol", "C")` |
-| `or` 强制转换掩盖 `None` | `sum(a.get("charge", 0.0) or 0.0 ...)` |
-| 查找失败返回哨兵 | `_find_component(...)` 找不到 map_number 时 `return 0` |
-| 缺前置条件返回中性值 | `_pair_distance` 无坐标时 `return 0.0`,cutoff 排序静默失效 |
-| 吞异常 | `except Exception: pass` / `except KeyError: return None` |
-| 守卫依赖可选属性 | `if getattr(x, "strict", False): raise ...` —— `x` 没有该属性时守卫永不触发 |
+| Capability sniffing + a degraded path | `if hasattr(typifier, "typify_region"): ... else: whole-graph typing` |
+| `getattr` with a default standing in for a contract | `getattr(typifier, "context_radius", 0) or 0` → `_FLOOR = 4` |
+| A data field with a default | `atom.get("charge", 0.0)`, `atom.get("symbol", "C")` |
+| `or` coercion masking `None` | `sum(a.get("charge", 0.0) or 0.0 ...)` |
+| A lookup failure returning a sentinel | `_find_component(...)` returning `0` when the map_number is not found |
+| A missing precondition returning a neutral value | `_pair_distance` returning `0.0` without coordinates, silently disabling the cutoff ordering |
+| Swallowing an exception | `except Exception: pass` / `except KeyError: return None` |
+| A guard that depends on an optional attribute | `if getattr(x, "strict", False): raise ...` — the guard never fires when `x` lacks the attribute |
 
-**取而代之:**
+**Instead:**
 
-- 能力差异用**类型**表达(`isinstance(t, LocalTypifier)`),在**构造时**拒绝,不在运行时嗅探。
-- 字段缺失 → `KeyError`(见铁律 1)。查找失败 → `raise`,不返回 `0` / `None` / `""`。
-- 真正可选的东西用**显式的、有名字的模式**(`typifier=None` = 纯拓扑装配),
-  并在 docstring 里说明它是一个**模式**,不是一个**回退**。
-- 需要提醒但不该中断的(例如 `select` 产出 0 个 binding、conversion 未达标提前收敛)
-  → `warnings.warn` / `logger.warning`,带上数字。
+- Express a capability difference as a **type** (`isinstance(t, LocalTypifier)`) and
+  refuse it **at construction**, not by sniffing at run time.
+- A missing field → `KeyError` (see law 1). A failed lookup → `raise`, never a
+  return of `0` / `None` / `""`.
+- Something genuinely optional gets an **explicit, named mode** (`typifier=None` =
+  pure-topology assembly), and the docstring says it is a **mode**, not a
+  **fallback**.
+- Something that warrants a notice but not an abort (`select` yielding 0 bindings,
+  a conversion converging early below target) → `warnings.warn` /
+  `logger.warning`, carrying the numbers.
 
-2026-07-10 列出的实例(`reacter/`、`builder/crosslink/`、`polymer/core.py`、`placer.py`)
-所在的模块已被 graph-assembler 链删除;`GraphAssembler._find_component` 对未知 map number
-`raise`(有单测)。2026-09-20 的清理又消除了 `lt_writer` 的 `charge/x/y/z = 0` 默认、
-`net_charges.get(label, 0)`、`monomer_mass.get(m, 0.0)`、`distances.get(h, 0)` 与全部
-`except Exception: pass`(moltemplate builder、XML layer 标记、四个 emitter 的占位文件)。
+The instances listed on 2026-07-10 (`reacter/`, `builder/crosslink/`,
+`polymer/core.py`, `placer.py`) lived in modules the graph-assembler chain has since
+deleted; `GraphAssembler._find_component` raises on an unknown map number (with a
+unit test). The 2026-09-20 cleanup removed the rest: `lt_writer`'s
+`charge/x/y/z = 0` defaults, `net_charges.get(label, 0)`,
+`monomer_mass.get(m, 0.0)`, `distances.get(h, 0)` and every `except Exception: pass`
+(the moltemplate builder, the XML layer marker, the four emitters' placeholder
+files).
 
-#### 铁律 5 的例外:无先验的初值可以猜 —— 但只能猜数值,不能猜身份
+#### The exception to law 5: an initial value with no prior may be guessed — but only a number, never an identity
 
-有一类"魔数"和"似是而非"是**允许**的:当某个量**根本没有先验可查**,先给一个差不多的数,
-靠下游把它拉回来。单体放置时用共价半径之和当初始键长,就是这类 —— 我们并不知道这根新键
-在这个化学环境里的平衡长度(那要力场说了算),但 `LBFGS` 会把它优化回去。
+One class of "magic number" and "near enough" **is** allowed: when a quantity has
+**no prior to look up at all**, put down something approximate and let downstream
+pull it back. Using the sum of covalent radii as the initial bond length when
+placing a monomer is this case — we do not know that new bond's equilibrium length
+in this chemical environment (only the force field can say), but `LBFGS` will
+optimise it back.
 
-三条同时满足才算合法初值:
+Three conditions must hold together for a guess to be legal:
 
-1. **连续量**:几何、坐标、初始键长/键角、优化的起点。不是离散身份。
-2. **确实无先验**:不是"懒得查表",是查不到 —— 力场未指派、参数尚未拟合。
-3. **同一条流水线里有收敛它的下游**:`minimize` / 平衡化 / 参数拟合。
-   且**收敛失败必须报错**(优化不收敛 → raise),不能默默留着猜测值。
+1. **A continuous quantity**: geometry, coordinates, an initial bond length or
+   angle, the starting point of an optimisation. Not a discrete identity.
+2. **Genuinely no prior**: not "could not be bothered to look it up" but
+   unlookupable — the force field has not assigned it, the parameter is not fitted
+   yet.
+3. **A downstream in the same pipeline converges it**: `minimize` / equilibration /
+   parameter fitting. And **failure to converge must raise** (optimisation does not
+   converge → raise); the guessed value may never be left in silently.
 
-形式上还要求:写成**有名字的常量**,docstring 注明"初始猜测,由 X 收敛";
-**不得**写成 `.get(key, default)` 藏在取值点 —— 那样读代码的人分不清它是初值还是回退。
+Formally it must also be written as a **named constant** whose docstring says
+"initial guess, converged by X"; it may **not** be written as `.get(key, default)`
+hidden at the point of use — that way the reader cannot tell a starting value from
+a fallback.
 
-**永远不许猜的是身份**:`element`、原子类型、力场类型、组分索引、map number、
-键级、字段存不存在。它们是离散的,没有任何下游过程会把猜错的身份收敛回来 ——
-猜错就一路错到底,而且悄无声息。
+**Identity may never be guessed**: `element`, atom type, force-field type,
+component index, map number, bond order, whether a field exists. These are
+discrete, and no downstream process will converge a wrong identity back — a wrong
+guess stays wrong all the way through, silently.
 
-> 一句话:**可以猜数值,不能猜身份。** 判据是"有没有一个下游过程会把这个猜测收敛掉"。
+> In one line: **guess a number, never an identity.** The test is "is there a
+> downstream process that will converge this guess away".
 
-因此 `placer.py:124` 的 `left_anchor.get("symbol", "C")` 依然是违规:`symbol` 是**身份**,
-缺了就 `KeyError`。但同一个 `Placer` 用共价半径之和作为初始放置距离是**合法的**,
-因为紧跟着的几何优化会把它拉回平衡值 —— 前提是那个常量有名字、有 docstring、
-且优化不收敛时会报错。
+So `placer.py:124`'s `left_anchor.get("symbol", "C")` is still a violation:
+`symbol` is an **identity**, and its absence is a `KeyError`. But the same `Placer`
+using the sum of covalent radii as its initial placement distance is **legal**,
+because the geometry optimisation right behind it pulls that back to equilibrium —
+provided the constant has a name, has a docstring, and a non-converging
+optimisation raises.
 
-### 6. molrs 是实现细节 —— 用户永远不该知道它存在
+### 6. molrs is an implementation detail — the user must never know it exists
 
-`import molpy as mp` **不允许**出现在任何用户会读、会抄、会运行的地方:
-`docs/user-guide/`、`docs/api/`、`docs/developer/` 里的**扩展示例**、`examples/`、notebook。
-用户需要的每一个 molrs 符号,都必须能从 `molpy` 拿到。
+`import molrs` is **not allowed** anywhere a user reads, copies or runs:
+`docs/user-guide/`, `docs/api/`, the **extension examples** in `docs/developer/`,
+`examples/`, notebooks. Every molrs symbol a user needs must be reachable from
+`molpy`.
 
-三档手段,按优先级:
+Three tiers, in order of preference:
 
-| 手段 | 何时用 | 例 |
+| Tier | When | Example |
 |---|---|---|
-| **re-export** | 默认。molpy 不加任何行为 | `from molpy import Reaction` → `molpy.Reaction` |
-| **继承** | molpy 有**真实增补**(新方法/新约束) | `class Box(molrs.Box)` |
-| **转发门面** | **永不** | ~~`class Reaction: def __init__(s): s._inner = molrs.Reaction(s)`~~ |
+| **re-export** | the default; molpy adds no behaviour | `from molpy import Reaction` → `molpy.Reaction` |
+| **inheritance** | molpy has a **real addition** (a new method or constraint) | `class Box(molrs.Box)` |
+| **forwarding facade** | **never** | ~~`class Reaction: def __init__(s): s._inner = molrs.Reaction(s)`~~ |
 
-这条与 `feedback_no_wrapper_layers_oop`(禁止二次封装)**不冲突,而是它的同一面**:
-re-export 不是包装层 —— `molpy.Reaction is molrs.Reaction` 为真,没有新类、没有转发、
-没有 `_inner`。真正被禁止的是那个只持有一个 molrs 对象并把每个方法转发出去的壳。
-**"包裹"的意思是命名空间上的包裹,不是对象上的包裹。**
+This does **not** conflict with `feedback_no_wrapper_layers_oop` (no wrapping an
+external type a second time) — it is the same coin: a re-export is not a wrapper
+layer, because `molpy.Reaction is molrs.Reaction` holds, with no new class, no
+forwarding, no `_inner`. What is forbidden is the shell that holds one molrs object
+and forwards every method to it. **"Wrapping" here means wrapping a namespace, not
+wrapping an object.**
 
-`src/molpy/` 内部随便 `import molpy as mp` —— molpy **就是**那层包裹。
-`docs/developer/molrs-backend.md` 是唯一可以正面讨论 molrs 的文档,因为它讲的就是后端本身。
+Inside `src/molpy/`, import molrs freely — molpy **is** that wrapping layer.
+`docs/developer/molrs-backend.md` is the one document allowed to discuss molrs head
+on, because the backend itself is its subject.
 
-判据:把一段用户代码原样贴进解释器,若它需要用户先装明白 molrs 是什么、从哪 import,
-那这段代码就违规。用户的世界里只有 `molpy`。
+The test: paste a piece of user code into an interpreter as is; if it requires the
+user to first understand what molrs is and where to import it from, that code is in
+violation. In the user's world there is only `molpy`.
 
-> 已落地：`molpy/__init__.py` **手写** identity re-export（禁止对 `molrs.__all__`
-> 动态发现）。`core/` 公开符号全部挂在包根（`molpy.Atomistic`，不是
-> `molpy.core.Atomistic`）。molpy 自有子类/包（`Atomistic`/`Box`/`CoarseGrain`/
-> `Trajectory`/`Conformer`/`Region`，以及 `io`/`compute`/`typifier`）不从 molrs
-> 盖写。`molpy.Frame is molrs.Frame`；用户代码只 import molpy。
+> Landed: `molpy/__init__.py` spells the identity re-exports **by hand** (dynamic
+> discovery over `molrs.__all__` is forbidden). Every public `core/` symbol hangs at
+> the package root (`molpy.Atomistic`, not `molpy.core.Atomistic`). molpy's own
+> subclasses and packages (`Atomistic` / `Box` / `CoarseGrain` / `Trajectory` /
+> `Conformer` / `Region`, plus `io` / `compute` / `typifier`) are not overwritten
+> from molrs. `molpy.Frame is molrs.Frame`; user code imports molpy only.
 
 ## molrs bugs found from molpy (report upstream, do not work around)
 
