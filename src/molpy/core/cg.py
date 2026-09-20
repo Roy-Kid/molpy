@@ -24,7 +24,7 @@ import molrs
 
 from molrs.views import Bead, CGBond, _GraphViews
 
-from molpy.core.entity import Entities, Entity, Link
+from molpy.core.entity import Entities, Entity, Link, NotPublic
 
 if TYPE_CHECKING:
     from molrs import Frame
@@ -41,13 +41,8 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     _node_cls = Bead
     _relation_classes = {"bonds": CGBond}
-    _hidden_native_builders = frozenset({"add_bead", "add_bond"})
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in object.__getattribute__(self, "_hidden_native_builders"):
-            target = "def_bead" if name == "add_bead" else "def_cgbond"
-            raise AttributeError(f"{name} is not public; use {target} instead")
-        return super().__getattribute__(name)
+    add_bead = NotPublic("def_bead")
+    add_bond = NotPublic("def_cgbond")
 
     def __init__(self, **props: Any) -> None:
         _GraphViews.__init__(self, **props)

@@ -26,7 +26,7 @@ from molrs.views import (
     _GraphViews,
 )
 
-from molpy.core.entity import Entities, Entity, Link
+from molpy.core.entity import Entities, Entity, Link, NotPublic
 from molpy.core import fields
 
 if TYPE_CHECKING:
@@ -62,14 +62,11 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         "dihedrals": Dihedral,
         "impropers": Improper,
     }
-    _hidden_native_builders = frozenset(
-        {"add_atom", "add_bond", "add_angle", "add_dihedral", "add_improper"}
-    )
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in object.__getattribute__(self, "_hidden_native_builders"):
-            raise AttributeError(f"{name} is not public; use def_{name[4:]} instead")
-        return super().__getattribute__(name)
+    add_atom = NotPublic("def_atom")
+    add_bond = NotPublic("def_bond")
+    add_angle = NotPublic("def_angle")
+    add_dihedral = NotPublic("def_dihedral")
+    add_improper = NotPublic("def_improper")
 
     def __init__(self, **props: Any) -> None:
         _GraphViews.__init__(self, **props)
