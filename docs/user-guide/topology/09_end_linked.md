@@ -15,7 +15,7 @@ strand = builder.build_sequence(["CAPA"] + ["EO"] * 5 + ["CAPB"])
 mark_residue_crosslink_sites(strand, {"CAPA", "CAPB"}, site="x", leaving="h")
 melt = Replicas(strand).times(6, spacing=5.0)
 
-gel = GraphAssembler(mp.Reaction(XLINK)).assemble(
+gel = GraphAssembler(mp.Reaction(XLINK)).apply(
  melt,
  ExhaustiveSelector(cutoff=8.0, exclude_same_molecule=True),
 )

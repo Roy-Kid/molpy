@@ -105,7 +105,7 @@ conserved because nothing charged was removed** — not because a correction ter
 the loss afterwards. Conservation stops being a heuristic and becomes an accounting identity.
 
 MolPy will not paper over a template you forgot to freeze. If the reaction is about to delete
-a charged atom, `assemble` raises and says so:
+a charged atom, `apply` raises and says so:
 
 ```python
 import pytest
@@ -239,7 +239,7 @@ from molpy.builder import GraphAssembler, RandomSelector, Replicas
 
 melt = Replicas(chain).grid(3, spacing=9.5, jitter=1.0, seed=7)
 
-gel = GraphAssembler(ether, typifier=gaff, reach=2).assemble(
+gel = GraphAssembler(ether, typifier=gaff, reach=2).apply(
     melt, RandomSelector(conversion=0.8, cutoff=6.0, seed=1)
 )
 ```
@@ -273,7 +273,7 @@ box = InsideBoxRestraint([0.0, 0.0, 0.0], [80.0, 80.0, 80.0])
 targets = [Target(c, count=1).with_restraint(box) for c in chains]
 melt = Molpack().with_seed(1).pack(targets, max_loops=200)
 
-gel = GraphAssembler(ether, typifier=gaff, reach=2).assemble(
+gel = GraphAssembler(ether, typifier=gaff, reach=2).apply(
     melt, RandomSelector(conversion=0.8, cutoff=6.0, seed=1)
 )
 
@@ -302,7 +302,7 @@ black box's receptive field. If a typifier uses genuinely non-local information 
 unbounded ring membership, it is not valid for local compilation; run it later as an explicit
 whole-graph operation instead.
 
-Hand it two reaction sites that share an atom and `assemble` raises, rather than applying one
+Hand it two reaction sites that share an atom and `apply` raises, rather than applying one
 edit on top of handles the other already invalidated.
 
 Hand it a repeat unit whose caps still carry charge — you forgot to `freeze` — and it raises

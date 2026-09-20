@@ -17,10 +17,8 @@ callable `compute.base.Compute` shells versus the molrs `Compute` Protocol
 
 | Slug | Status |
 |---|---|
-| [api-verb-unification-04-assembler](api-verb-unification-04-assembler.md) | **approved** — `GraphAssembler.assemble`→`apply` + 迁移页动词表；depends_on 01 |
 
-**api-verb-unification chain — five rulings approved by the maintainer 2026-09-20; 01–03 landed (verb table; compute shells on `compute()`; molpy.pack removed), 04 in progress:**
-(1) `assemble → apply`（不是 `build`）；(2) 整包删除 `molpy.pack`（含 `constraint.py`/`target.py`）；(3) compute 壳不留 `__call__` 糖、`dump()`/`**config` 随基类消失（breaking）；(4) voronoi 两壳改 identity re-export 而非改名；(5) `tests/test_compute/test_dielectric.py` 保留并路由（不删）。全部裁定即 `/mol:impl-all api-verb-unification`；任何一项改判则先 `/mol:spec` supersede 对应 sub-spec。
+**api-verb-unification chain — closed 2026-09-20.** All four sub-specs landed on `ci/precommit-uv-parity` (commits 128dc7e, 1bbad0c, ce3981b and the 04 commit): verb table + `__call__` policy in architecture.md § 铁律 4; compute shells expose `compute()` with `Compute` the molrs Protocol; `molpy.pack` removed; `GraphAssembler.apply`. Routed follow-ups live in the verb table's debt list (Selector name collision, free `emit`/`build_*` functions, `_polymer.py` boundary signal, dielectric recipe classes + `from_dipole_series`, 26 forwarding shells, `/mol:map` and `/mol:bootstrap` re-runs).
 
 | Slug | Status |
 |---|---|

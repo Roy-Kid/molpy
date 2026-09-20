@@ -68,7 +68,7 @@ def main() -> None:
     print(f"[1-2] {mol} PEO chains from SMILES {CHAIN_SMILES!r}: {n_atoms0} atoms")
 
     # 3. Crosslink across chains, then relax the new (over-stretched) bonds with
-    gel = GraphAssembler(mp.Reaction(CROSSLINK)).assemble(
+    gel = GraphAssembler(mp.Reaction(CROSSLINK)).apply(
         system,
         RandomSelector(
             conversion=1.0,

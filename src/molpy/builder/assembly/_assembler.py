@@ -2,7 +2,7 @@
 
 Growing a chain, crosslinking a melt and closing a macrocycle differ only in
 which sites pair up. That difference is a :class:`~molpy.builder.assembly._selector.Selector`
-handed to :meth:`GraphAssembler.assemble`; everything else is this one code path.
+handed to :meth:`GraphAssembler.apply`; everything else is this one code path.
 
 The reaction is applied to the intact world **once**, as a batch, and only then
 is each junction cut out and typed. Order is the whole design. A region cut
@@ -113,7 +113,7 @@ class GraphAssembler:
 
     # -- the verb ------------------------------------------------------------
 
-    def assemble(self, world: Atomistic, selector: Selector) -> Atomistic:
+    def apply(self, world: Atomistic, selector: Selector) -> Atomistic:
         """Return a new graph with the selector's bindings reacted.
 
         ``world`` is never mutated.
@@ -202,7 +202,7 @@ class GraphAssembler:
             f"of this reaction (patterns carry {sorted(set().union(*label_sets))})"
         )
 
-    # -- per-assemble helpers ------------------------------------------------
+    # -- per-apply helpers ---------------------------------------------------
 
     def _labels(self, graph: Atomistic) -> dict[int, str]:
         """``{handle: label}`` for the ``%LABEL`` predicates, from ``label_field``.

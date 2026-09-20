@@ -299,7 +299,7 @@ def test_assembler_asserts_molrs_reports_the_forming_bond_endpoints():
 
     assembler = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]"))
     # the real molrs return value satisfies the contract
-    out = assembler.assemble(cloud, ExhaustiveSelector(cutoff=2.0))
+    out = assembler.apply(cloud, ExhaustiveSelector(cutoff=2.0))
     assert isinstance(out, mp.Atomistic)
 
     # a molrs that dropped an endpoint would be caught, not silently absorbed

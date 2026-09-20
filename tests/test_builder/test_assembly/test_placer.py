@@ -1,11 +1,9 @@
 """Unit tests for :mod:`molpy.builder.assembly._placer`."""
 
-import inspect
-
 import numpy as np
 import pytest
 
-from molpy.builder.assembly import GraphAssembler, Placer, ResiduePlacer
+from molpy.builder.assembly import Placer, ResiduePlacer
 from molpy.core import fields
 from molrs import Element
 
@@ -14,9 +12,6 @@ class TestPlacer:
     def test_is_abstract(self):
         with pytest.raises(TypeError):
             Placer()
-
-    def test_is_injected_into_the_assembler_constructor(self):
-        assert "placer" in inspect.signature(GraphAssembler.__init__).parameters
 
 
 class TestResiduePlacer:

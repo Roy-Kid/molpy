@@ -363,7 +363,7 @@ def test_assembler_types_every_region_it_builds():
 
     out = GraphAssembler(
         mp.Reaction("[N:1].[O:2]>>[N:1][O:2]"), typifier=_ElementTypifier(), reach=2
-    ).assemble(_nitrogen_oxygen_cloud(), ExhaustiveSelector(cutoff=2.0))
+    ).apply(_nitrogen_oxygen_cloud(), ExhaustiveSelector(cutoff=2.0))
 
     assert isinstance(out, mp.Atomistic)
     assert len(list(out.bonds)) == 3
@@ -379,7 +379,7 @@ def test_assembler_without_a_typifier_builds_no_region():
     """
     from molpy.builder.assembly import ExhaustiveSelector, GraphAssembler
 
-    out = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).assemble(
+    out = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).apply(
         _nitrogen_oxygen_cloud(), ExhaustiveSelector(cutoff=2.0)
     )
 

@@ -1,4 +1,4 @@
-"""N8 — Dual network: two assemble steps, two SITE namespaces.
+"""N8 — Dual network: two apply steps, two SITE namespaces.
 
 Guide: docs/user-guide/topology/10_dual_network.md
 Run:   python topology/10_dual_network.py
@@ -24,7 +24,7 @@ def main() -> None:
     melt = Replicas(strand).grid(2, spacing=5.5, jitter=0.5, seed=1)
     n0 = melt.n_atoms
 
-    net1 = GraphAssembler(mp.Reaction(XLINK)).assemble(
+    net1 = GraphAssembler(mp.Reaction(XLINK)).apply(
         melt,
         RandomSelector(
             conversion=0.4,
@@ -50,7 +50,7 @@ def main() -> None:
     # After the first network percolates, bond-components are one "molecule",
     # so exclude_same_molecule would forbid every pair. The second pass allows
     # same-component pairs and relies on SITE y/k + cutoff only.
-    net2 = GraphAssembler(mp.Reaction(XLINK2)).assemble(
+    net2 = GraphAssembler(mp.Reaction(XLINK2)).apply(
         net1,
         ExhaustiveSelector(cutoff=7.0, exclude_same_molecule=False),
     )

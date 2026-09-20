@@ -128,7 +128,7 @@ gel = GraphAssembler(
     mp.Reaction(XLINK),
     typifier=typifier,
     reach=2,
-).assemble(
+).apply(
     box,
     ExhaustiveSelector(cutoff=6.5, exclude_same_molecule=True, exclude_same_match=True),
 )

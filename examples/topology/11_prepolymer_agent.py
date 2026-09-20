@@ -29,7 +29,7 @@ def main() -> None:
         world.merge(a)
 
     n0 = world.n_atoms
-    cured = GraphAssembler(mp.Reaction(ETHER)).assemble(
+    cured = GraphAssembler(mp.Reaction(ETHER)).apply(
         world,
         ExhaustiveSelector(cutoff=10.0, exclude_same_molecule=True),
     )

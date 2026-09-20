@@ -2,7 +2,7 @@
 
 ``PolymerBuilder`` **is** a :class:`~molpy.builder.assembly._assembler.GraphAssembler`.
 It owns a monomer library and turns residue architecture into a world plus a
-pairing rule. The **only** expand + assemble entry is :meth:`build`; the
+pairing rule. The **only** expand + apply entry is :meth:`build`; the
 ``build_*`` helpers only build a topology and call :meth:`build`.
 
 Topology is a
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 class PolymerBuilder(GraphAssembler):
     """Stamp out repeat units and bond the adjacent ones.
 
-    **Sole assembly entry:** :meth:`build` (topology → expand → assemble).
+    **Sole assembly entry:** :meth:`build` (topology → expand → apply).
 
     **Shortcuts** (build topology, then call :meth:`build`):
 
@@ -88,10 +88,10 @@ class PolymerBuilder(GraphAssembler):
         """Expand ``topology`` over the library and bond adjacent residues.
 
         This is the **only** path that expands the monomer library and runs
-        :meth:`assemble`. All ``build_*`` helpers end here.
+        :meth:`apply`. All ``build_*`` helpers end here.
         """
         world = self._library.expand(topology)
-        return self.assemble(world, TopologySelector(topology))
+        return self.apply(world, TopologySelector(topology))
 
     def build_sequence(self, labels: Sequence[str]) -> Atomistic:
         """Linear path from library labels — shortcut for :meth:`build`."""

@@ -108,6 +108,44 @@ Python `UFFTypifier`) do not exist. `typify()` returns a new graph.
 - `GraphAssembler` raises on an unknown component map number instead of
   silently skipping it.
 
+## Verb table
+
+One kind of transformation, one method name. Which family a method belongs to
+is decided by what goes in and what comes out, not by what the class is called,
+and 0.14 lands three renames that follow from that rule. Read *graph* below as
+the molecular structure itself — the atoms plus the bonds between them, an
+`Atomistic` — so a graph → graph transform reads a structure you already have
+and hands back a rewritten copy, leaving the one you passed in untouched.
+
+| 0.13 | 0.14 | Family |
+|------|------|--------|
+| `GraphAssembler.assemble(world, selector)` | `GraphAssembler.apply(world, selector)` | graph → graph: `apply` |
+| an analysis object called like a function, `RDF(n_bins=100, r_max=10.0)(frames, neighbors)` | `RDF(n_bins=100, r_max=10.0).compute(frames, neighbors)` | frames/arrays → result: `compute` |
+| `molpy.pack` — `Packmol`, `Packer`, `Target`, the `*Constraint` types | removed; packing is [molpack](https://docs.molcrafts.org/molpack/) | targets → `Frame`: `pack`, and it now lives outside molpy |
+
+`apply` is a rename only. The arguments keep their meaning — `world` is the
+structure to edit, `selector` is the rule that decides which marked reaction
+sites pair up — and so do the warning on an empty selection and the checks that
+refuse overlapping edits or a net-charge change. The old name is gone outright:
+there is no alias and no deprecation window. The point of the new spelling is
+that the two other graph → graph entries already wore it:
+`StructureFinalizer.apply`, which generates the angle and dihedral terms of a
+finished structure, and `VirtualSiteBuilder.apply`, which adds virtual sites
+(massless points that carry charge or polarizability but no mass). Reading any
+of the three, you know the same contract holds: new structure out, input
+untouched.
+
+The compute row restates the § Compute rule above: an analysis class is
+constructed with its measurement parameters and then asked for numbers through
+`compute` — as with the radial distribution function (RDF), which measures how
+the density of neighbours around an atom varies with distance. Packing, meaning
+the placement of whole molecules into a simulation cell without overlaps, left
+molpy altogether; § Packing below has the replacement.
+
+What did *not* change: `PolymerBuilder.build(topology)` and its `build_*`
+shortcuts. Those turn a recipe into a structure that did not exist before, which
+is the `build` family, not the `apply` one.
+
 ## Packing
 
 The whole `molpy.pack` package is removed in 0.14 — the Packmol subprocess

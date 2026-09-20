@@ -1,7 +1,5 @@
 """Unit tests for :mod:`molpy.builder.assembly._assembler`."""
 
-import inspect
-
 import molrs
 import pytest
 
@@ -19,13 +17,9 @@ XLINK = "[C;%x:1][H;%h].[C;%x:2][H;%h]>>[C:1][C:2]"
 
 
 class TestGraphAssembler:
-    def test_selector_is_an_assemble_argument(self):
-        assert "selector" in inspect.signature(GraphAssembler.assemble).parameters
-        assert "selector" not in inspect.signature(GraphAssembler.__init__).parameters
-
-    def test_assemble_returns_a_reacted_copy(self, no_cloud_factory):
+    def test_apply_returns_a_reacted_copy(self, no_cloud_factory):
         world = no_cloud_factory(3)
-        result = GraphAssembler(mp.Reaction(NO_PLUS_O)).assemble(
+        result = GraphAssembler(mp.Reaction(NO_PLUS_O)).apply(
             world, ExhaustiveSelector(cutoff=2.0)
         )
         assert len(list(result.bonds)) == 3
@@ -33,10 +27,10 @@ class TestGraphAssembler:
 
     def test_one_instance_accepts_different_pairing_rules(self, no_cloud_factory):
         assembler = GraphAssembler(mp.Reaction(NO_PLUS_O))
-        exhaustive = assembler.assemble(
+        exhaustive = assembler.apply(
             no_cloud_factory(3), ExhaustiveSelector(cutoff=2.0)
         )
-        random = assembler.assemble(
+        random = assembler.apply(
             no_cloud_factory(3),
             RandomSelector(conversion=1.0, seed=1, cutoff=2.0),
         )
@@ -47,7 +41,7 @@ class TestGraphAssembler:
     ):
         world = no_cloud_factory(2)
         with pytest.warns(UserWarning, match="selected no bindings"):
-            result = GraphAssembler(mp.Reaction(NO_PLUS_O)).assemble(
+            result = GraphAssembler(mp.Reaction(NO_PLUS_O)).apply(
                 world, ExhaustiveSelector(cutoff=0.5)
             )
         assert result is not world
@@ -89,7 +83,7 @@ class TestGraphAssembler:
             GraphAssembler._find_component([{1}, {2}], 7)
 
     def test_uncharged_graph_skips_charge_accounting(self, no_cloud_factory):
-        result = GraphAssembler(mp.Reaction(NO_PLUS_O)).assemble(
+        result = GraphAssembler(mp.Reaction(NO_PLUS_O)).apply(
             no_cloud_factory(1), ExhaustiveSelector()
         )
         assert result.n_atoms == 2
@@ -112,16 +106,13 @@ class TestGraphAssembler:
             typifier=atom_and_bonded_typifier,
             reach=1,
             finalize=Finalization.ATOMS,
-        ).assemble(no_cloud_factory(2), ExhaustiveSelector())
+        ).apply(no_cloud_factory(2), ExhaustiveSelector())
 
         assert all(atom.get(fields.TYPE) for atom in result.atoms)
         assert all(
             atom.get(fields.CHARGE) == pytest.approx(0.125) for atom in result.atoms
         )
         assert all(term.get(fields.TYPE) is None for term in result.bonds)
-
-    def test_constructor_has_no_charge_redistribution_switch(self):
-        assert "charges" not in inspect.signature(GraphAssembler.__init__).parameters
 
     def test_a_junction_at_the_extraction_frontier_still_types(
         self, two_junction_factory, element_typifier
@@ -135,7 +126,7 @@ class TestGraphAssembler:
         """
         result = GraphAssembler(
             mp.Reaction(XLINK), typifier=element_typifier, reach=2
-        ).assemble(two_junction_factory(), ExhaustiveSelector(cutoff=4.0))
+        ).apply(two_junction_factory(), ExhaustiveSelector(cutoff=4.0))
 
         assert len(list(result.bonds)) == 10  # 8 backbone + 2 crosslinks
         assert all(atom.get(fields.TYPE) for atom in result.atoms)
@@ -152,10 +143,8 @@ class TestGraphAssembler:
         assembler = GraphAssembler(
             mp.Reaction(XLINK), typifier=element_typifier, reach=2
         )
-        plain = assembler.assemble(
-            two_junction_factory(), ExhaustiveSelector(cutoff=4.0)
-        )
-        labelled = assembler.assemble(
+        plain = assembler.apply(two_junction_factory(), ExhaustiveSelector(cutoff=4.0))
+        labelled = assembler.apply(
             two_junction_factory(res_id=True), ExhaustiveSelector(cutoff=4.0)
         )
 

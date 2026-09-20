@@ -9,8 +9,8 @@ rule, so there is one kernel and one variation point.
 
 | Symbol | Summary | Preferred for |
 |--------|---------|---------------|
-| `GraphAssembler` | The kernel: `assemble(world, selector)` | Crosslinking an existing graph |
-| `PolymerBuilder` | Library + reaction; `.build(topology)` is the sole expand + assemble path; `.build_*` only build that topology | Ruled polymer topologies |
+| `GraphAssembler` | The kernel: `apply(world, selector)` | Crosslinking an existing graph |
+| `PolymerBuilder` | Library + reaction; `.build(topology)` is the sole expand + apply path; `.build_*` only build that topology | Ruled polymer topologies |
 | `Finalization` | `ATOMS`, `TOPOLOGY` (default), or `BONDED` | Choosing when topology is materialized |
 | `StructureFinalizer` | Run the shared topology/bonded tail later | Deferred MD export for large systems |
 | `AssemblyFinalizer` | Assembly finalizer with aromaticity perception | Molecular reaction products |
@@ -124,7 +124,7 @@ for i in range(4):
     melt.def_atom(element="N", x=float(i), y=0.0, z=0.0)
     melt.def_atom(element="O", x=float(i), y=1.0, z=0.0)
 
-gel = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).assemble(
+gel = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).apply(
     melt, RandomSelector(conversion=1.0, seed=1, cutoff=2.0)
 )
 assert len(list(gel.bonds)) == 4
@@ -179,7 +179,7 @@ class FirstPairSelector(Selector):
         yield {**a_sites[0], **b_sites[0]}
 
 
-one = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).assemble(
+one = GraphAssembler(mp.Reaction("[N:1].[O:2]>>[N:1][O:2]")).apply(
     melt, FirstPairSelector()
 )
 assert len(list(one.bonds)) == 1

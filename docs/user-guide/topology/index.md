@@ -22,7 +22,7 @@ python topology/01_linear.py
 | [Exhaustive gel](07_gel_exhaustive.md) | `examples/topology/07_gel_exhaustive.py` | Distance mesh |
 | [Random gel](08_gel_random.md) | `examples/topology/08_gel_random.py` | Conversion + seed |
 | [End-linked](09_end_linked.md) | `examples/topology/09_end_linked.py` | Ends only |
-| [Dual network](10_dual_network.md) | `examples/topology/10_dual_network.py` | Two assemble steps |
+| [Dual network](10_dual_network.md) | `examples/topology/10_dual_network.py` | Two apply steps |
 | [Prepolymer + agent](11_prepolymer_agent.md) | `examples/topology/11_prepolymer_agent.py` | Agent cure |
 
 Shared chemistry: `examples/topology/eo_kit.py` · examples index:
@@ -45,9 +45,9 @@ Whatever architecture you want, MolPy asks for the same three answers.
 
 1. **Which atoms may react** — `fields.SITE` via `SiteMap`
 2. **What the reaction does** — `mp.Reaction(...)` (Daylight reaction SMARTS)
-3. **Which sites pair** — a `Selector` (chosen for you by `build_*`, or passed to `assemble`)
+3. **Which sites pair** — a `Selector` (chosen for you by `build_*`, or passed to `apply`)
 
-**`PolymerBuilder.build(topology)` is the only expand + assemble entry**, where
+**`PolymerBuilder.build(topology)` is the only expand + apply entry**, where
 `topology` is a `CGSmilesGraphIR`.
 `build_linear`, `build_sequence`, `build_ring`, and `build_star` only build that
 topology and call `build`.
@@ -127,9 +127,9 @@ SiteMap(eo).label_elements("O", "a", "b")
 | Kind | Entry | Pairing |
 |------|-------|---------|
 | Linear, block, ring, star, comb, telechelic | `PolymerBuilder.build` / `build_*` | `TopologySelector` (residue edges) |
-| Gel, end-link, dual net, agent cure | `GraphAssembler.assemble` | Proximity selectors |
+| Gel, end-link, dual net, agent cure | `GraphAssembler.apply` | Proximity selectors |
 
-Complex materials are **stacks** of these edits (build → mark → `Replicas` → assemble → …), not new builder classes.
+Complex materials are **stacks** of these edits (build → mark → `Replicas` → apply → …), not new builder classes.
 
 ## Production GAFF gel
 

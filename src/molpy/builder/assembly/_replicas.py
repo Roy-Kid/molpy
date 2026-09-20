@@ -25,7 +25,7 @@ class Replicas:
     Example::
 
         melt = Replicas(strand).grid(3, spacing=9.5, jitter=1.0, seed=7)
-        gel = GraphAssembler(xlink).assemble(
+        gel = GraphAssembler(xlink).apply(
             melt, ExhaustiveSelector(cutoff=6.5, exclude_same_molecule=True)
         )
     """

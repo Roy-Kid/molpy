@@ -185,7 +185,7 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 | 变换族 | 输入 → 输出 | 动词 | 成员 | 状态 | 依据 |
 |---|---|---|---|---|---|
 | 构造 | 配方/IR/参数 → 新结构 | `build` | `PolymerBuilder.build(topology)`(`builder/assembly/_polymer.py:87`)、`Lattice.build(region)`(`builder/crystal.py:210`)、`GrapheneBuilder.build`(`nanostructure/graphene.py:56`)、`CarbonTubeBuilder.build`(`nanostructure/carbon_tube.py:65`)、`AmberPolymerBuilder.build`(`polymer/ambertools/amber_builder.py:166`) | 已成立 | `molrs:` 侧已是 `build`(`molrs.builder.*`、`NeighborList.build`);molpy 永不改写 molrs 的动词(sink direction) |
-| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | **部分**:`GraphAssembler` 现名 `assemble`(`builder/assembly/_assembler.py:116`),改名由 **sub-spec 04**(`api-verb-unification-04-assembler`)兑现;**04 落地时必须把本格改为「已成立」并删除债务清单中「图变换族入口仍叫 `assemble`」那一行** | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
+| 图变换 | 已有图 → 被改写的图 | `apply` | `StructureFinalizer.apply`(`builder/_finalize.py:43`)、`VirtualSiteBuilder.apply`(`builder/virtualsite.py:69`,含 `DrudeBuilder`/`Tip4pBuilder`——后缀不是判据,见脚注 6)、`GraphAssembler.apply`、`molrs:Reaction.apply` | 已成立(2026-09-20,sub-spec 04):GraphAssembler.apply | 签名形状相同;`molrs:Reaction.apply` 是既有成员(描述性) |
 | 分析 | frames/arrays → Result | `compute` | `molpy.compute` 下每一个实现 `compute()` 的分析类(不继承任何基类,靠结构满足 molrs Protocol;计数见脚注 5,勿写死)+ `molrs:` 每个 kernel | 已成立(2026-09-20,sub-spec 02):molpy 拥有的分析入口动词是 `compute`;残余债 `dielectric.py from_dipole_series` 见债务清单 | `molrs:molrs.compute.protocol.Compute` 只认 `compute`;`protocol.py` 模块 docstring 明说 `__call__` / `dump()` 不在契约内 |
 | 装填 | targets → Frame | `pack` | 外部 `molpack`(`docs/api/pack.md`) | 已成立(2026-09-20,sub-spec 03):molpy.pack 已整包删除,打包归 molpack | molpy 及全部兄弟仓零消费者,文档已指向 molpack |
 | 分型 | 图 → 带类型的图 | `typify` | `molrs:Typifier`;`typifier/base.py:99` 是参考范式(继承 molrs 基类、保留动词、加一个 hook,`typify` 在 `:106`) | 已成立 | molrs 所有(描述性) |
@@ -200,7 +200,7 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 
 **一族一动词,不是一类一动词。** 一个类可以在它参与的**每一个**族里各有一个动词——`PolymerBuilder` 自己有 `build`(构造族,`_polymer.py:87`),并从 `GraphAssembler` 继承 `apply`(图变换族)。被禁止的是**同一族里两个动词**,不是一个类上有两个动词。
 
-**`assemble → apply` 裁定。** `GraphAssembler.assemble` → `apply` 而非 `build`:`PolymerBuilder(GraphAssembler)`(`_polymer.py:38`)已有 `build(topology)`(`:87`,在 `:94` 调 `self.assemble`),父类再挂 `build(world, selector)` 会撞签名(LSP,`ty` 报错);而 `assemble` 吃一个已有的 world、吐一个被改写的 world——图 → 图,本就属 `apply` 族。
+**`assemble → apply` 裁定。** `GraphAssembler.assemble` → `apply` 而非 `build`:`PolymerBuilder(GraphAssembler)`(`_polymer.py:38`)已有 `build(topology)`(`:87`,在 `:94` 调 `self.apply`),父类再挂 `build(world, selector)` 会撞签名(LSP,`ty` 报错);而 `assemble` 吃一个已有的 world、吐一个被改写的 world——图 → 图,本就属 `apply` 族。
 
 **脚注:**
 
@@ -216,7 +216,6 @@ breaking change 记进版本号 / git tag / GitHub Release,然后往前走（无
 | 债 | 位置 | 归属 |
 |---|---|---|
 | 分析族残余:`DielectricSusceptibility.from_dipole_series(M, …)` 是返回结果的实例方法——同一个类上的第二个分析入口(`from_*` 名字误用) | `src/molpy/compute/dielectric.py`(`from_dipole_series`) | 随删除两个一体化配方类的 `/mol:refactor` 折进 primitive,**不在本链** |
-| 图变换族入口仍叫 `assemble` | `builder/assembly/_assembler.py:116` | **sub-spec 04** `api-verb-unification-04-assembler` |
 | `Selector` 一名两义:`core/selector.py:43 Selector = MaskPredicate`(掩码谓词)与 `builder/assembly/_selector.py:26 class Selector(ABC)`(装配选择器)是两个无关的类型 | 同左 | 单独 `/mol:refactor`,**不在本链** |
 | 模块级自由函数 `emit(name, …)` 注册表 dispatcher 与 `emit_python`,违铁律 4「自由函数不是公开面」 | `io/emit/__init__.py:51`、`parser/moltemplate/py_emitter.py:42` | 单独 `/mol:refactor`,**不在本链** |
 | 自由 `build_*` 工厂(见脚注 2) | `parser/moltemplate/builder.py:551`/`:967` | 单独 `/mol:refactor`,**不在本链** |
