@@ -58,13 +58,6 @@ from .shape import (
     InertiaTensor,
     RadiusOfGyration,
 )
-from .workflow import (
-    Workflow,
-    WorkflowCycleError,
-    WorkflowDuplicateNodeError,
-    WorkflowError,
-    WorkflowMissingInputError,
-)
 
 from .distribution import (
     AngleDistribution,
@@ -102,7 +95,7 @@ from .voronoi import (
     voronoi_domains,
     voronoi_voids,
 )
-from .spectra import (
+from molrs.compute.spectroscopy import (
     IRSpectrum,
     PowerSpectrum,
     RamanSpectrum,
@@ -148,11 +141,6 @@ __all__ = [
     "DescriptorRow",
     "Pca",
     "KMeans",
-    "Workflow",
-    "WorkflowCycleError",
-    "WorkflowDuplicateNodeError",
-    "WorkflowError",
-    "WorkflowMissingInputError",
     "Steinhardt",
     "Hexatic",
     "Nematic",

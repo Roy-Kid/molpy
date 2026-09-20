@@ -137,7 +137,6 @@ nav = [
       { "Signal" = "compute/signal.md" },
     ] },
     { "Workflow" = [
-      { "Workflow" = "compute/workflow.md" },
     ] },
   ] },
 

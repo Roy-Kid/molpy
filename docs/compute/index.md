@@ -247,7 +247,6 @@ The pages are grouped the way the questions group, not the way the classes do.
 | What is $\varepsilon^*(\omega)$? | [Dielectric](dielectric.md) | `Dielectric`, EH/GK spectra, fits |
 | Vibrational, IR, or Raman spectrum? | [Spectra](spectra.md) | `PowerSpectrum`, `IRSpectrum`, `RamanSpectrum`, … |
 | How do I window, transform, and correlate a signal? | [Signal](signal.md) | `signal.acf_fft`, `apply_window` |
-| How do I chain several analyses together? | [Workflow](workflow.md) | `Workflow` |
 
 ## Where the figures come from
 

@@ -64,7 +64,6 @@ see the [MSD](../compute/msd.md) and [VACF](../compute/vacf.md) guides.
 | `dielectric` | dielectric raw/fit helpers | [Dielectric](../compute/dielectric.md) |
 | `spectra` | VDOS / IR / Raman / VCD / ROA | [Spectra](../compute/spectra.md) |
 | `signal` | `acf_fft`, windows, frequency grid | [Signal](../compute/signal.md) |
-| `workflow` | `Workflow` | [Workflow](../compute/workflow.md) |
 
 ---
 

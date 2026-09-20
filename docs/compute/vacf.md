@@ -240,7 +240,7 @@ returns wavenumbers in cm⁻¹ paired with intensities:
 ```python
 from molpy.compute import PowerSpectrum
 
-vdos = PowerSpectrum()(result.acf, dt_fs=10.0)
+vdos = PowerSpectrum().fit(result.acf, dt_fs=10.0)
 print(sorted(vdos))
 # -> ['frequencies_cm1', 'intensities', 'n_frames', 'resolution']
 ```
