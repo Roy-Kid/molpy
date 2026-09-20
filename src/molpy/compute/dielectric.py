@@ -148,7 +148,6 @@ class DielectricSusceptibility(Compute):
             routes or ["einstein-helfand", "green-kubo"]
         )
         self._volume = volume
-        self.progress_every = int(config_kwargs.get("progress_every", 200_000))
 
     def _need_velocity_current(self) -> bool:
         return "green-kubo" in self.routes
@@ -281,16 +280,7 @@ class DielectricSusceptibility(Compute):
         )
 
     def __call__(self, trajectory: Trajectory) -> DielectricSusceptibilityResult:
-        import time as _time
-
-        t_phase0 = _time.time()
         n_known = len(trajectory) if isinstance(trajectory, Sized) else None
-        if n_known is not None:
-            print(
-                f"[DielectricSusceptibility] index/scan: n_frames={n_known} "
-                f"({_time.time() - t_phase0:.1f}s)",
-                flush=True,
-            )
 
         want_j = self._need_velocity_current()
         charges: np.ndarray | None = None
@@ -313,8 +303,6 @@ class DielectricSusceptibility(Compute):
         orth_lengths: np.ndarray | None = None  # fast MIC path
         n_frames = 0
         volume_sum = 0.0
-        t_stream = _time.time()
-        prog = max(self.progress_every, 1)
 
         def _ensure_cap(need: int) -> None:
             nonlocal dipole_moments, jden, cap
@@ -401,22 +389,6 @@ class DielectricSusceptibility(Compute):
                 jden[n_frames] = (charges @ vel) / vol_f
 
             n_frames += 1
-            if n_frames % prog == 0:
-                elapsed = _time.time() - t_stream
-                rate = n_frames / max(elapsed, 1e-9)
-                if n_known:
-                    eta = (n_known - n_frames) / max(rate, 1e-9)
-                    print(
-                        f"[DielectricSusceptibility] stream {n_frames}/{n_known} "
-                        f"({100 * n_frames / n_known:.1f}%) {rate:.0f} fr/s "
-                        f"ETA {eta / 60:.1f} min",
-                        flush=True,
-                    )
-                else:
-                    print(
-                        f"[DielectricSusceptibility] stream {n_frames} {rate:.0f} fr/s",
-                        flush=True,
-                    )
 
         if n_frames < 2:
             raise ValueError(f"Need at least 2 frames, got {n_frames}")
@@ -432,13 +404,6 @@ class DielectricSusceptibility(Compute):
             else None
         )
 
-        print(
-            f"[DielectricSusceptibility] stream done: n_frames={n_frames} "
-            f"in {(_time.time() - t_stream) / 60:.2f} min; "
-            f"gk_current={'velocity' if use_velocity_current else 'Mdot'}; "
-            f"mic={'orth-numpy' if orth_lengths is not None else 'box.diff_dr'}",
-            flush=True,
-        )
         return self._spectra_from_series(
             dipole_moments,
             jden_arr,

@@ -61,71 +61,106 @@ class OrConstraint(Constraint):
 
 
 class InsideBoxConstraint(Constraint):
+    """Points must lie inside an axis-aligned box: ``penalty = Σ |r - box|²``.
+
+    A point outside pays the squared distance to the nearest face(s); the
+    penalty and its gradient are smooth, so a minimiser walks a stray point
+    back in.
+    """
+
     def __init__(self, length, origin=np.array([0, 0, 0])):
         length = np.asarray(length, dtype=float)
         if length.ndim == 0:  # scalar edge -> cube
             length = np.full(3, float(length))
         self.region = BoxRegion(length, origin)
         self.lengths = np.array(length)
-        self.origin = np.array(origin)
+        self.origin = np.array(origin, dtype=float)
         self.upper = self.origin + self.lengths
 
+    def _excess(self, points: np.ndarray) -> np.ndarray:
+        """Per-axis signed overshoot past the nearest face (0 inside)."""
+        points = np.asarray(points, dtype=float)
+        return np.minimum(points - self.origin, 0.0) + np.maximum(
+            points - self.upper, 0.0
+        )
+
     def penalty(self, points: np.ndarray) -> float:
-        return float(np.sum(~self.region.isin(points)))
+        return float(np.sum(self._excess(points) ** 2))
 
     def dpenalty(self, points: np.ndarray) -> np.ndarray:
-        not_in = ~self.region.isin(points)
-        grad = np.zeros_like(points)
-        lower_mask = points < self.origin
-        upper_mask = points > self.origin + self.lengths
-        grad[lower_mask & not_in[:, None]] = 1
-        grad[upper_mask & not_in[:, None]] = -1
-        return grad
+        return 2.0 * self._excess(points)
 
     def __invert__(self):
         return OutsideBoxConstraint(self.origin, self.upper - self.origin)
 
 
 class OutsideBoxConstraint(Constraint):
+    """Points must lie outside an axis-aligned box: ``penalty = Σ d_in²``.
+
+    A point inside pays the squared distance to the nearest face (the shortest
+    way out); the gradient points inward, so descending it leaves the box.
+    """
+
     def __init__(self, origin, lengths):
         self.region = BoxRegion(lengths, origin)
-        self.origin = np.array(origin)
-        self.upper = self.origin + np.array(lengths)
+        self.origin = np.array(origin, dtype=float)
+        self.upper = self.origin + np.array(lengths, dtype=float)
+
+    def _depth(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """``(inside, depth, axis)``: the shortest exit per interior point."""
+        points = np.asarray(points, dtype=float)
+        to_lower = points - self.origin
+        to_upper = self.upper - points
+        inside = np.all(to_lower > 0.0, axis=1) & np.all(to_upper > 0.0, axis=1)
+        gap = np.minimum(to_lower, to_upper)  # (n, 3): distance to each face pair
+        axis = np.argmin(gap, axis=1)
+        depth = gap[np.arange(len(points)), axis]
+        return inside, depth, axis
 
     def penalty(self, points: np.ndarray) -> float:
-        return float(np.sum(self.region.isin(points)))
+        inside, depth, _ = self._depth(points)
+        return float(np.sum(depth[inside] ** 2))
 
     def dpenalty(self, points: np.ndarray) -> np.ndarray:
-        is_in = self.region.isin(points)
+        points = np.asarray(points, dtype=float)
+        inside, depth, axis = self._depth(points)
         grad = np.zeros_like(points)
-        lower_mask = points > self.origin
-        upper_mask = points < self.upper
-        grad[lower_mask & is_in[:, None]] = -1
-        grad[upper_mask & is_in[:, None]] = 1
-
+        rows = np.flatnonzero(inside)
+        # d(depth²)/dr along the exit axis: +2·depth if the nearest face is the
+        # lower one (moving up deepens), −2·depth if it is the upper one.
+        centre = 0.5 * (self.origin + self.upper)
+        sign = np.where(points[rows, axis[rows]] < centre[axis[rows]], 1.0, -1.0)
+        grad[rows, axis[rows]] = 2.0 * depth[rows] * sign
         return grad
 
     def __invert__(self):
-        return InsideBoxConstraint(self.origin, self.upper - self.origin)
+        return InsideBoxConstraint(self.upper - self.origin, self.origin)
 
 
 class InsideSphereConstraint(Constraint):
+    """Points must lie inside a sphere: ``penalty = Σ max(0, |r - c| - R)²``."""
+
     def __init__(self, radius, center):
         self.region = SphereRegion(radius, center)
-        self.radius = radius
+        self.radius = float(radius)
         self.center = np.array(center, dtype=np.float64)
 
+    def _overshoot(
+        self, points: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        diff = np.asarray(points, dtype=float) - self.center
+        dist = np.linalg.norm(diff, axis=1)
+        return diff, dist, np.maximum(0.0, dist - self.radius)
+
     def penalty(self, points: np.ndarray) -> float:
-        # Check how many points are outside the sphere (should be inside)
-        return float(np.sum(~self.region.isin(points)))
+        _, _, over = self._overshoot(points)
+        return float(np.sum(over**2))
 
     def dpenalty(self, points: np.ndarray) -> np.ndarray:
-        diff = points - self.center
-        dist = np.linalg.norm(diff, axis=1)
-        not_in = dist > self.radius
-        grad = np.zeros_like(points)
-        # For points outside, gradient should point toward center (negative direction)
-        grad[not_in] = -diff[not_in] / (dist[not_in, np.newaxis] + 1e-8)
+        diff, dist, over = self._overshoot(points)
+        grad = np.zeros_like(diff)
+        out = over > 0.0
+        grad[out] = (2.0 * over[out] / dist[out])[:, None] * diff[out]
         return grad
 
     def __invert__(self):
@@ -133,22 +168,29 @@ class InsideSphereConstraint(Constraint):
 
 
 class OutsideSphereConstraint(Constraint):
+    """Points must lie outside a sphere: ``penalty = Σ max(0, R - |r - c|)²``."""
+
     def __init__(self, radius, center):
         self.region = SphereRegion(radius, center)
-        self.radius = radius
+        self.radius = float(radius)
         self.center = np.array(center, dtype=np.float64)
 
+    def _penetration(
+        self, points: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        diff = np.asarray(points, dtype=float) - self.center
+        dist = np.linalg.norm(diff, axis=1)
+        return diff, dist, np.maximum(0.0, self.radius - dist)
+
     def penalty(self, points: np.ndarray) -> float:
-        return float(np.sum(self.region.isin(points)))
+        _, _, depth = self._penetration(points)
+        return float(np.sum(depth**2))
 
     def dpenalty(self, points: np.ndarray) -> np.ndarray:
-        diff = points - self.center
-        dist = np.linalg.norm(diff, axis=1)
-        is_in = dist <= self.radius
-        grad = np.zeros_like(points)
-        # For points inside the sphere, push them outward
-        mask = is_in & (dist > 1e-8)  # Avoid division by zero
-        grad[mask] = -diff[mask] / dist[mask, np.newaxis]
+        diff, dist, depth = self._penetration(points)
+        grad = np.zeros_like(diff)
+        inside = (depth > 0.0) & (dist > 1e-12)
+        grad[inside] = (-2.0 * depth[inside] / dist[inside])[:, None] * diff[inside]
         return grad
 
     def __invert__(self):

@@ -13,8 +13,8 @@ hand them to :class:`~molpy.typifier.forcefield.ForceFieldParams` — exactly th
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING, override
 
 from molrs.ff.typifier import OPLSAATypifier
@@ -30,26 +30,6 @@ if TYPE_CHECKING:
     from molpy.core.forcefield import ForceField
     from molpy.typifier.base import Annotation
 
-# clp.xml sections the molrs OPLS *potential* reader understands. Its bonded
-# sections use CL&P/foyer spellings (``<PeriodicTorsionForce>`` etc.) that the
-# molrs OPLS reader rejects, and they are irrelevant to atom typing anyway — the
-# bonded parameters are read from the overlay ForceField by ForceFieldParams.
-_ATOMTYPE_SECTIONS = frozenset({"AtomTypes", "NonbondedForce"})
-
-
-@lru_cache(maxsize=1)
-def _clp_atomtypes_xml() -> str:
-    """CL&P ``clp.xml`` reduced to the ``<AtomTypes>``/``<NonbondedForce>`` the
-    molrs OPLS-AA typifier needs for SMARTS atom typing (bonded sections dropped)."""
-    from molpy.data import get_forcefield_path
-
-    root = ET.parse(get_forcefield_path("clp.xml")).getroot()
-    reduced = ET.Element(root.tag, root.attrib)
-    for child in root:
-        if child.tag in _ATOMTYPE_SECTIONS:
-            reduced.append(child)
-    return ET.tostring(reduced, encoding="unicode")
-
 
 @lru_cache(maxsize=1)
 def _clp_molrs_typifier() -> OPLSAATypifier:
@@ -57,7 +37,11 @@ def _clp_molrs_typifier() -> OPLSAATypifier:
     the SMARTS engine once instead of per :class:`ClpTypifier` construction)."""
     # strict=False so molrs's own bonded matching never errors — only the
     # atom-level type/class it assigns via the CL&P SMARTS defs is harvested.
-    return OPLSAATypifier(_clp_atomtypes_xml(), strict=False)
+    from molpy.data import get_forcefield_path
+
+    return OPLSAATypifier(
+        Path(get_forcefield_path("clp.xml")).read_text(encoding="utf-8"), strict=False
+    )
 
 
 @lru_cache(maxsize=1)
