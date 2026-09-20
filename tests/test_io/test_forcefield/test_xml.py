@@ -20,32 +20,6 @@ from molpy.data import get_forcefield_path
 from molpy.io.forcefield.xml import XMLForceFieldReader, read_xml_forcefield
 
 
-_PF6_XML = """<ForceField>
- <AtomTypes>
-  <Type name="P" class="P" element="P" mass="30.9738" def="P" desc="phosphorous"/>
-  <Type name="F1" class="F1" element="F" mass="18.9984" def="FP(F)(F)(F)(F)F" desc="fluorine"/>
- </AtomTypes>
- <NonbondedForce coulomb14scale="1.0" lj14scale="1.0">
-  <Atom type="P" charge="0.442" sigma="0.3740" epsilon="0.962"/>
-  <Atom type="F1" charge="-0.207" sigma="0.3118" epsilon="0.298"/>
- </NonbondedForce>
- <HarmonicBondForce>
-  <Bond class1="P" class2="F1" length="0.16" k="3347.2"/>
- </HarmonicBondForce>
- <HarmonicAngleForce>
-  <Angle class1="F1" class2="P" class3="F1" angle="3.141592" k="1673.6"/>
- </HarmonicAngleForce>
-</ForceField>
-"""
-
-
-def _pf6_file(tmp_path: Path) -> Path:
-    """A two-type PF6 force field in OpenMM XML, written where the test can read it."""
-    path = tmp_path / "pf6.xml"
-    path.write_text(_PF6_XML, encoding="utf-8")
-    return path
-
-
 class TestXMLForceFieldReader:
     """Test suite for XML force field reader."""
 
@@ -54,16 +28,22 @@ class TestXMLForceFieldReader:
         with pytest.raises(FileNotFoundError):
             read_xml_forcefield("nonexistent_forcefield.xml")
 
-    def test_read_xml_forcefield_convenience_function(self, tmp_path: Path) -> None:
-        ff = read_xml_forcefield(_pf6_file(tmp_path))
+    def test_read_xml_forcefield_convenience_function(
+        self, TEST_DATA_DIR: Path
+    ) -> None:
+        ff = read_xml_forcefield(TEST_DATA_DIR / "xml" / "pf6.xml")
         assert isinstance(ff, ForceField)
-        assert {t.name for t in ff.get_types(AtomType)} == {"P", "F1"}
+        assert {t.name for t in ff.get_types(AtomType)} == {"P", "F1", "F2", "F3"}
 
-    def test_read_xml_forcefield_with_existing_forcefield(self, tmp_path: Path) -> None:
+    def test_read_xml_forcefield_with_existing_forcefield(
+        self, TEST_DATA_DIR: Path
+    ) -> None:
         existing_ff = ForceField(name="test", units="real")
-        ff = read_xml_forcefield(_pf6_file(tmp_path), forcefield=existing_ff)
+        ff = read_xml_forcefield(
+            TEST_DATA_DIR / "xml" / "pf6.xml", forcefield=existing_ff
+        )
         assert ff is existing_ff
-        assert len(ff.get_types(AtomType)) == 2
+        assert len(ff.get_types(AtomType)) == 4
 
     def test_parse_bond_with_class_only_creates_wildcard_atomtypes(
         self, tmp_path: Path
