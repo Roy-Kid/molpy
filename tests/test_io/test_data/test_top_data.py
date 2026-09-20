@@ -12,146 +12,64 @@ import molpy as mp
 from molpy.io.data.top import TopReader, TopWriter
 
 
+@pytest.fixture
+def top_dir(TEST_DATA_DIR: Path) -> Path:
+    return TEST_DATA_DIR / "top"
+
+
 class TestTopReader:
-    """Tests for TopReader parsing GROMACS topology files."""
+    """TopReader parses a GROMACS topology into per-section blocks.
 
-    def test_read_benzene_atoms(self, TEST_DATA_DIR: Path) -> None:
-        """TopReader should parse [atoms] section correctly."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
+    Fixtures: benzene.top (12 atoms, 12 bonds, an #include the reader must
+    skip) and chain.top (four atoms with bonds, pairs, angles, dihedrals).
+    """
 
-        reader = TopReader(top_file)
-        frame = reader.read()
+    def test_atoms_section_columns_and_values(self, top_dir: Path) -> None:
+        atoms = TopReader(top_dir / "benzene.top").read()["atoms"]
+        assert atoms.nrows == 12
+        for key in ("id", "type", "charge", "mass", "name"):
+            assert key in atoms
+        first = atoms[0]
+        assert int(first["id"]) == 1
+        assert str(first["type"]) == "opls_145"
+        assert str(first["name"]) == "C"
+        assert float(first["charge"]) == pytest.approx(-0.115)
+        assert float(first["mass"]) == pytest.approx(12.011)
+        assert list(atoms["type"][6:]) == ["opls_146"] * 6
 
-        assert "atoms" in frame
-        atoms = frame["atoms"]
-        assert atoms.nrows == 12  # 6 C + 6 H in benzene
-
-    def test_read_benzene_bonds(self, TEST_DATA_DIR: Path) -> None:
-        """TopReader should parse [bonds] section correctly."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
-
-        reader = TopReader(top_file)
-        frame = reader.read()
-
-        assert "bonds" in frame
-        bonds = frame["bonds"]
+    def test_bond_indices_stay_one_based(self, top_dir: Path) -> None:
+        bonds = TopReader(top_dir / "benzene.top").read()["bonds"]
         assert bonds.nrows == 12
+        assert int(bonds[0]["atomi"]) == 1
+        assert int(bonds[0]["atomj"]) == 2
+        assert bonds["atomi"].min() == 1
 
-    def test_atom_fields(self, TEST_DATA_DIR: Path) -> None:
-        """Atom block should contain expected fields."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
+    def test_every_bonded_section_is_read(self, top_dir: Path) -> None:
+        frame = TopReader(top_dir / "chain.top").read()
+        assert frame["atoms"].nrows == 4
+        assert frame["bonds"].nrows == 3
+        assert frame["pairs"].nrows == 1
+        assert frame["angles"].nrows == 2
+        assert frame["dihedrals"].nrows == 1
+        dihedral = frame["dihedrals"][0]
+        assert [int(dihedral[k]) for k in ("atomi", "atomj", "atomk", "atoml")] == [
+            1,
+            2,
+            3,
+            4,
+        ]
 
-        frame = TopReader(top_file).read()
-        atoms = frame["atoms"]
-
-        assert "id" in atoms
-        assert "type" in atoms
-        assert "charge" in atoms
-        assert "mass" in atoms
-        assert "name" in atoms
-
-    def test_first_atom_values(self, TEST_DATA_DIR: Path) -> None:
-        """First atom should have correct values from benzene.top."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
-
-        frame = TopReader(top_file).read()
-        atom = frame["atoms"][0]
-
-        assert int(atom["id"]) == 1
-        assert str(atom["type"]) == "opls_145"
-        assert pytest.approx(float(atom["charge"]), abs=1e-4) == -0.115
-        assert pytest.approx(float(atom["mass"]), abs=1e-3) == 12.011
-
-    def test_bond_indices_one_based(self, TEST_DATA_DIR: Path) -> None:
-        """Bond indices should be stored as 1-based integers from file."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
-
-        frame = TopReader(top_file).read()
-        bonds = frame["bonds"]
-        first_bond = bonds[0]
-
-        # First bond in benzene.top: 1 2 1
-        assert int(first_bond["atomi"]) == 1
-        assert int(first_bond["atomj"]) == 2
-
-    def test_read_bromobutane_all_sections(self, TEST_DATA_DIR: Path) -> None:
-        """1-bromobutane has atoms, bonds, pairs, angles, and dihedrals."""
-        top_file = TEST_DATA_DIR / "top/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("1-bromobutane.top test data not available")
-
-        frame = TopReader(top_file).read()
-
-        assert "atoms" in frame
-        assert "bonds" in frame
-        assert "pairs" in frame
-        assert "angles" in frame
-        assert "dihedrals" in frame
-
-    def test_bromobutane_atom_count(self, TEST_DATA_DIR: Path) -> None:
-        """1-bromobutane has 14 atoms."""
-        top_file = TEST_DATA_DIR / "top/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("1-bromobutane.top test data not available")
-
-        frame = TopReader(top_file).read()
-        assert frame["atoms"].nrows == 14
-
-    def test_bromobutane_bond_count(self, TEST_DATA_DIR: Path) -> None:
-        """1-bromobutane has 13 bonds."""
-        top_file = TEST_DATA_DIR / "top/1-bromobutane.top"
-        if not top_file.exists():
-            pytest.skip("1-bromobutane.top test data not available")
-
-        frame = TopReader(top_file).read()
-        assert frame["bonds"].nrows == 13
-
-    def test_section_normalization_spaces(self, tmp_path: Path) -> None:
-        """Reader handles both `[ atoms ]` and `[atoms]` section styles."""
-        # Write file with spacing-less headers
-        top_content = """; test
-[moleculetype]
-MOL  3
-
-[atoms]
-1  CT  1  MOL  C  1  -0.1  12.011
-
-[bonds]
-"""
-        top_file = tmp_path / "test_nospaces.top"
-        top_file.write_text(top_content)
-
-        frame = TopReader(top_file).read()
-        assert "atoms" in frame
-        assert frame["atoms"].nrows == 1
+    def test_section_headers_without_spaces_are_accepted(self, tmp_path: Path) -> None:
+        top_file = tmp_path / "nospaces.top"
+        top_file.write_text(
+            "[moleculetype]\nMOL  3\n\n[atoms]\n1  CT  1  MOL  C  1  -0.1  12.011\n"
+        )
+        assert TopReader(top_file).read()["atoms"].nrows == 1
 
     def test_empty_frame_when_no_sections(self, tmp_path: Path) -> None:
-        """Reader returns an empty frame for a file with no known sections."""
         top_file = tmp_path / "empty.top"
         top_file.write_text("; just a comment\n")
-        frame = TopReader(top_file).read()
-        assert "atoms" not in frame
-
-    def test_via_factory_function(self, TEST_DATA_DIR: Path) -> None:
-        """mp.io.read_top with a frame argument reads topology data."""
-        top_file = TEST_DATA_DIR / "top/benzene.top"
-        if not top_file.exists():
-            pytest.skip("benzene.top test data not available")
-
-        # read_top reads into a ForceField (forcefield reader)
-        # For data, use TopReader directly
-        frame = TopReader(top_file).read()
-        assert "atoms" in frame
+        assert "atoms" not in TopReader(top_file).read()
 
 
 class TestTopWriter:
