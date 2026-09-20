@@ -262,7 +262,6 @@ were guessed.
 # docs: skip — full gel workflow (molpack + write_lammps); pack unit-tested elsewhere
 import molpy as mp
 from molpack import InsideBoxRestraint, Molpack, Target
-from molpy.optimize import LBFGS, ForceFieldPotential
 
 # `neutral` above, not the deliberately-unfrozen `eo` — that one exists to
 # demonstrate the net-charge guard, and would trip it here.
@@ -279,7 +278,8 @@ gel = GraphAssembler(ether, typifier=gaff, reach=2).assemble(
 )
 
 frame = gel.to_frame()
-LBFGS(ForceFieldPotential(gaff.forcefield)).run(frame, fmax=0.05, steps=200)
+opt = mp.LBFGS(gaff.forcefield.to_potentials(frame), fmax=0.05, max_steps=200)
+frame, report = opt.run(frame)
 mp.io.write_lammps_system("gel", frame, gaff.forcefield)
 ```
 

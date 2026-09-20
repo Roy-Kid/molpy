@@ -1,32 +1,24 @@
 # Optimization
 
-Geometry optimization using potential energy functions.
+Geometry optimization with the molrs L-BFGS minimizer.
 
 ## Quick reference
 
 | Symbol | Summary | Preferred for |
 |--------|---------|---------------|
-| `Optimizer` | Base class driving any `calc_energy(frame)` / `calc_forces(frame)` potential | Custom optimizers |
-| `OptimizationResult` | Result record (final frame, energy, convergence info) | Inspecting outcomes |
-| `LBFGS` | Limited-memory BFGS optimizer | Geometry relaxation of small/medium structures |
-| `ForceFieldPotential` | Wraps a `ForceField` (via `ff.to_potentials(frame)`) as an optimizer potential | Optimizing with force-field energies/forces |
+| `LBFGS` | Limited-memory BFGS over the `molrs.ff.Potentials` compiled for a frame | Geometry relaxation of small/medium structures |
+| `OptReport` | Outcome record: `converged`, `final_energy`, `final_fmax`, `n_steps` | Inspecting why a run stopped |
+
+Both are molrs types re-exported unchanged; see the
+[user guide](../user-guide/08_geometry_optimization.md) for the composition
+(typify → `to_potentials` → `run`).
 
 ## Related
 
-- [Potential](potential.md) -- energy/force implementations used by optimizers
+- [Potential](potential.md) -- energy/force implementations the optimizer drives
 
 ---
 
 ## Full API
 
-### Base
-
-::: molpy.optimize.base
-
-### LBFGS
-
-::: molpy.optimize.lbfgs
-
-### ForceField Potential
-
-::: molpy.optimize.forcefield_potential
+::: molpy.optimize
