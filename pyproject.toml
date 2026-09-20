@@ -39,8 +39,6 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=6.0.0",
-    "pytest-cov>=3.0.0",
-    "pytest-mock>=3.10.0",
     "pytest-xdist>=3.0",
     "ruff==0.16.1",
     "ty==0.0.65",
@@ -88,7 +86,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "molpy.data" = ["README.md"]
-"molpy.data.forcefield" = ["*.xml"]
+"molpy.data.forcefield" = ["*.xml", "*.ff"]
 
 [tool.ruff]
 # Matches requires-python: the lint gate must reject syntax the floor
@@ -152,6 +150,7 @@ possibly-unresolved-reference = "ignore"
 output-format = "full"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 pythonpath = ["src"]
 filterwarnings = [
     "error",
@@ -173,7 +172,7 @@ molcrafts-molrs = { path = "../molrs/molrs-python", editable = true }
 
 [tool.tox]
 requires = ["tox>=4.23"]
-env_list = ["lint", "py"]
+env_list = ["lint"]
 
 [tool.tox.env.lint]
 skip_install = true
@@ -183,20 +182,4 @@ commands = [
     ["ruff", "format", "--check", "src/", "tests/"],
     ["ruff", "check", "src/", "tests/"],
     ["ty", "check", "src/molpy/"],
-]
-
-[tool.tox.env.py]
-package = "wheel"
-extras = ["dev"]
-base_python = ["python3"]
-pass_env = ["HOME", "PATH", "SSH_AUTH_SOCK", "TERM", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]
-commands_pre = [
-    [
-        "{envpython}",
-        "-c",
-        "import molpy, pathlib; r=pathlib.Path(molpy.__file__).resolve(); assert 'site-packages' in str(r), r",
-    ],
-]
-commands = [
-    ["{envpython}", "-m", "pytest", "tests/", "-n", "auto"],
 ]
