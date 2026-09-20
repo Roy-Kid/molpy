@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+
+import molrs
 from numpy.typing import ArrayLike
 
 from molpy.core.atomistic import Atomistic
@@ -255,20 +257,38 @@ class Lattice:
             carts = carts[mask]
             site_tiled = site_tiled[mask]
 
-        for xyz, site in zip(carts, site_tiled):
-            attrs = dict(site.attrs or {})
-            # Canonical lattice fields win over optional annotations.
-            x, y, z = (float(component) for component in xyz)
-            attrs.update(
-                x=x,
-                y=y,
-                z=z,
-                element=site.species,
-                charge=site.charge,
-                label=site.label,
-            )
-            out.def_atom(**attrs)
-        return out
+        if len(carts) == 0:
+            return out
+
+        # One Frame, one molrs call — not one def_atom per lattice point.
+        # Canonical lattice fields win over optional site annotations, and every
+        # site must declare the same annotation keys: a Frame has no "absent"
+        # cell, and a filled-in default would be a guess.
+        keys: set[str] = set()
+        for site in self.basis:
+            keys.update(site.attrs or {})
+        for site in self.basis:
+            missing = keys - set(site.attrs or {})
+            if missing:
+                raise ValueError(
+                    f"site {site.label!r} lacks annotation(s) {sorted(missing)} "
+                    "that other sites declare"
+                )
+        columns: dict[str, np.ndarray] = {
+            key: np.array([site.attrs[key] for site in site_tiled])
+            for key in sorted(keys)
+        }
+        columns.update(
+            x=np.ascontiguousarray(carts[:, 0]),
+            y=np.ascontiguousarray(carts[:, 1]),
+            z=np.ascontiguousarray(carts[:, 2]),
+            element=np.array([site.species for site in site_tiled]),
+            charge=np.array([site.charge for site in site_tiled], dtype=float),
+            label=np.array([site.label for site in site_tiled]),
+        )
+        frame = molrs.Frame()
+        frame["atoms"] = columns
+        return Atomistic.from_frame(frame)
 
 
 def _cell_grid(nx: int, ny: int, nz: int) -> np.ndarray:
