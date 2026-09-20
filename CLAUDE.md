@@ -44,74 +44,32 @@ users never import molrs directly.
 - Claude Code runtime config (agents, skills, hooks, settings):
   `.claude/agents/`, `.claude/skills/`, `.claude/hooks/`, `.claude/settings.json`
 
-## Design preferences (default)
+## Law (never violated)
 
-**Default for all MolCrafts projects.** Apply unless the operator
-**explicitly** requires a functional (or other) style for a named
-subsystem — then capture the exception with `/mol:note` and scope it.
-Do **not** invent a functional style on your own.
+Full text: `.claude/notes/law.md`. Outranks scope, minimal-diff, and
+convenience. There are no overridable defaults — a carve-out exists only if the
+operator wrote one into `law.md` naming the subsystem. An agent never grants
+itself one. CLAUDE.md carries **one line per law**; it is an index, not the
+rulebook. The detailed annex — the six 设计铁律, the family→verb table and its
+declared-debt list — is `.claude/notes/architecture.md` § 设计铁律.
 
-### Iron law — no silent debt (all projects)
-
-Discover anti-pattern / failing test / broken invariant / clear bug
-in the surface you touch or depend on → **prioritize or hard-stop**:
-
-1. **Do not ignore** ("pre-existing, leave it"), skip-mark, weaken
-   asserts, or land features on known rot.
-2. **Fix now** if local + stage-allowed; else **stop**, report
-   path:line, route `/mol:fix` / `/mol:refactor` / supersede.
-3. **Name it** in the summary (found / fixed / blocking). Silence = process failure.
-
-Outranks "stay in scope" / "minimal diff" when those mean knowingly
-leaving rot you already saw.
-
-### Prefer
-
-- **OOP by default.** Domain concepts are types with methods
-  (`NeighborList.build`, `ForceField.energy`), not free-floating
-  helpers. Module-level functions only for true free operations (pure
-  math with no natural owner) or thin package re-exports.
-- **Primitive, single-responsibility public APIs.** Callers compose:
-  construct → configure → one concern → read result. Each public
-  method does one named thing.
-- **Inline until the second real use.** A helper used in exactly one
-  place stays inline (or a private method on the owning type). Extract
-  only at a second call site, or when a unit test must target that unit.
-
-### Forbid
-
-- **Factory functions as the primary constructor story.** No
-  `make_foo` / `build_bar` / `create_*` wrappers around construction.
-  Prefer `Foo(...)`. Explicit alternate constructors only when they
-  have distinct semantics (`Foo.from_file`, `Foo.empty`) — not
-  `make_foo` aliases of `__init__`.
-- **God data structures.** No mega-dict / mega-struct / ambient
-  "context" blob every layer reaches into. Pass the few fields a call
-  needs, or a narrow typed view. Split types that accumulate more
-  than one coherent responsibility.
-- **All-in-one façade APIs.** No public `run_everything` /
-  `compute_all` / `pipeline` that hides multi-step work. Composition
-  is the **caller's** job (scripts, docs examples).
-  The library exposes primitives only.
-
-### Shape check (before adding a public symbol)
-
-1. Natural owning type? → method on that type, not a free function.
-2. More than one user-visible step? → split into primitives.
-3. Only one in-tree call site? → do not extract.
-4. Tempted to hang another field on a "context" bag? → new parameter
-   or smaller type instead.
-
-### Tests (default)
-
-- Unit tests **only** under `tests/`, path mirrors source
-  (`src/foo/boo.py` → `tests/test_foo/test_boo.py`), types mirror
-  (`FooClass` → `TestFooClass`). One behaviour per test, hand-written
-  inputs; no end-to-end scenarios, no goldens captured from another
-  program, no source-text gates, no regression directory. Fixture
-  files are small and committed under `tests/tests-data/` (read through
-  the `TEST_DATA_DIR` fixture), never inlined as literals. Details:
-  `.claude/notes/testing.md`.
+- **Conceptual integrity.** One problem, one coherent model — never parallel abstractions for the same concept.
+- **Architecture first.** Simple shape before local convenience — never a layer only for later or unmeasured performance.
+- **Earn complexity.** Every extra concept is paid for by demonstrated pressure.
+- **Locality of change.** A local requirement requires a local change — never lockstep, never cycles.
+- **Hide decisions, expose contracts.** Never leak representation or lifecycle across a boundary.
+- **Dependencies follow policy.** Mechanism depends on policy, never the reverse.
+- **Primitive public surface.** Orthogonal primitives; composition is the caller's job.
+- **Explicit flow.** Required ordering and ownership are enforceable — never a ritual the caller can skip.
+- **One home per fact.** Authority is unique. Representation may be copied; authority may not.
+- **No silent debt.** A conscious exception is debt; an invisible one becomes architecture.
+- **Tests verify owned behavior.** Tests belong to the owner of the behavior; unit-only by default.
+- **OOP by default, and real OOP.** Domain concepts are types with methods; no factory aliases, god-context bags, all-in-one façades, one-call-site helpers or wrappers over object access; one verb per transformation family.
+- **Native facade.** Application code imports `molpy` only; native types are identity re-exports (`molpy.Frame is molrs.Frame`) or real subclasses, never forwarding façades; shared capability sinks into the native core; the pin is one minor line.
+- **Canonical fields, in-place mutation.** Field names come from `molpy.core.fields`; `frame.box` is the only cell field; core mutation is in place with explicit `.copy()`; never guess an identity or fall back silently — raise.
+- **I/O and force-field file contracts.** On-disk formats never change without a migration note.
+- **Release with molrs.** The native core tags and publishes first; molpy bumps the minor pin after.
+- **Unit-only test gate.** No third-party scientific software or captured numbers in the gate; fixtures live in `tests/tests-data/`; no `regressions/`, no source-text gates; bindings smoke the seam only.
 
 ## Default workflow
 
@@ -120,15 +78,6 @@ For non-trivial work, prefer:
 2. implement (`/mol:impl` or `/mol:fix`)
 3. review (`/mol:review`)
 4. capture decisions (`/mol:note` — harness sync, not append-only)
-
-## What must never change casually
-
-- Identity re-exports: `molpy.Frame is molrs.Frame` (and Block/Element); no second Python storage layer
-- Hard dependency on `molcrafts-molrs` minor line (`>=X.Y.0,<X.(Y+1)`); users never `import molrs`
-- Canonical field names (`charge`, `mol_id`) and `FieldFormatter` boundary translation
-- Core data-model mutation semantics (in-place + `.copy()` opt-in)
-- `frame.box` as the only simulation-cell field on the Python surface
-- On-disk I/O formats and force-field file contracts without an explicit migration
 
 <!-- mol:bootstrap:managed end -->
 

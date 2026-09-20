@@ -22,15 +22,15 @@ callable `compute.base.Compute` shells versus the molrs `Compute` Protocol
 
 | Slug | Status |
 |---|---|
-| [lammps-ff-p0-single-boundary](lammps-ff-p0-single-boundary.md) | **done** (implemented) — single boundary + Frame sovereignty + `map_type` + data_coeffs R/W |
+| `lammps-ff-p0-single-boundary` | **done** (implemented) — single boundary + Frame sovereignty + `map_type` + data_coeffs R/W |
 
 ## release-0-12-molpy
 
 | Slug | Status |
 |---|---|
-| [release-0-12-molpy-compute-sink](release-0-12-molpy-compute-sink.md) | **done** |
-| [release-0-12-molpy-01-api-cleanup](release-0-12-molpy-01-api-cleanup.md) | **done** |
-| [release-0-12-molpy-05-docs-harness](release-0-12-molpy-05-docs-harness.md) | **done** (ac-005 doc-blocks: run when env has molrs) |
+| `release-0-12-molpy-compute-sink` | **done** |
+| `release-0-12-molpy-01-api-cleanup` | **done** |
+| `release-0-12-molpy-05-docs-harness` | **done** (ac-005 doc-blocks: run when env has molrs) |
 
 **Superseded / do not implement as written:**
 

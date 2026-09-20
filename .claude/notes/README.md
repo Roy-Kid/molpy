@@ -2,6 +2,7 @@
 
 Passive project knowledge — kept across features, consumed by agents during spec/impl/review.
 
+- `law.md` — the constitution: 11 default laws + molpy invariants, one `mol:law:id` each; CLAUDE.md indexes one line per law
 - `notes.md` — evolving decisions captured by `/mol:note`
 - `architecture.md` — project blueprint, populated by `/mol:map`, consumed by `librarian` during `/mol:spec`
 - `open-questions.md` — things uncertain during bootstrap; fill over time
