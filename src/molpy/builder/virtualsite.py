@@ -39,7 +39,7 @@ def load_polarizability(path: str | Path | None = None) -> dict[str, dict[str, f
     A^3, dimensionless). Comment lines (``#``) and blanks are skipped.
     """
     if path is None:
-        from molpy.data.forcefield import get_forcefield_path
+        from molpy.data import get_forcefield_path
 
         path = get_forcefield_path("alpha.ff")
     table: dict[str, dict[str, float]] = {}

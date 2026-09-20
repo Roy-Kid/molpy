@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 from molpy.builder.polymer.distributions import (
+    DistributionIR,
     DPDistribution,
     FlorySchulzPolydisperse,
     MassDistribution,
     PoissonPolydisperse,
     SchulzZimmPolydisperse,
     UniformPolydisperse,
-    create_polydisperse_from_ir,
 )
 
 
@@ -182,47 +182,39 @@ class TestSchulzZimmPolydisperse:
         )
 
 
-# ---- Factory Tests ----
+# ---- DistributionIR.build ----
 
 
-class TestCreatePolydisperseFromIR:
-    def _make_ir(self, name: str, params: dict):
-        """Create a mock DistributionIR."""
-
-        class MockIR:
-            pass
-
-        ir = MockIR()
-        ir.name = name
-        ir.params = params
-        return ir
+class TestDistributionIRBuild:
+    def _make_ir(self, name: str, params: dict) -> DistributionIR:
+        return DistributionIR(name=name, params=params)
 
     def test_uniform(self):
         ir = self._make_ir("uniform", {"p0": "5", "p1": "15"})
-        dist = create_polydisperse_from_ir(ir)
+        dist = ir.build()
         assert isinstance(dist, UniformPolydisperse)
 
     def test_poisson(self):
         ir = self._make_ir("poisson", {"p0": "10.0"})
-        dist = create_polydisperse_from_ir(ir)
+        dist = ir.build()
         assert isinstance(dist, PoissonPolydisperse)
 
     def test_flory_schulz(self):
         ir = self._make_ir("flory_schulz", {"p0": "0.5"})
-        dist = create_polydisperse_from_ir(ir)
+        dist = ir.build()
         assert isinstance(dist, FlorySchulzPolydisperse)
 
     def test_schulz_zimm(self):
         ir = self._make_ir("schulz_zimm", {"p0": "1000", "p1": "2000"})
-        dist = create_polydisperse_from_ir(ir)
+        dist = ir.build()
         assert isinstance(dist, SchulzZimmPolydisperse)
 
     def test_unknown_type_raises(self):
         ir = self._make_ir("unknown", {})
         with pytest.raises(ValueError, match="Unsupported distribution"):
-            create_polydisperse_from_ir(ir)
+            ir.build()
 
     def test_missing_params_raises(self):
         ir = self._make_ir("uniform", {"p0": "5"})
         with pytest.raises(ValueError, match="requires"):
-            create_polydisperse_from_ir(ir)
+            ir.build()

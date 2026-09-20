@@ -13,7 +13,7 @@ import pytest
 
 from molpy.core.atomistic import Angle, Dihedral
 from molpy.core.forcefield import AtomType
-from molpy.data.forcefield import get_forcefield_path, list_forcefields
+from molpy.data import get_forcefield_path, list_forcefields
 from molpy.io.forcefield.xml import read_xml_forcefield
 from molpy.typifier import ClpTypifier, OPLSAATypifier
 

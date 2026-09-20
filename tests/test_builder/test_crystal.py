@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from molpy import Atomistic, Box
-from molpy.builder import BoxRegion, Lattice, Site, SphereRegion, build_crystal
+from molpy.builder import BoxRegion, Lattice, Site, SphereRegion
 
 
 class TestSite:
@@ -34,7 +34,7 @@ class TestSite:
             fractional=(0.0, 0.0, 0.0),
             attrs={"domain": "wall"},
         )
-        structure = build_crystal(Lattice(np.eye(3), [site]), repeats=(1, 1, 1))
+        structure = Lattice(np.eye(3), [site]).build(repeats=(1, 1, 1))
         assert structure.atoms[0].get("domain") == "wall"
 
     def test_site_is_frozen(self):
@@ -162,7 +162,7 @@ class TestLattice:
 class TestBuildCrystalRepeats:
     def test_sc_repeats(self):
         lat = Lattice.sc(a=2.0, species="Cu")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert isinstance(structure, Atomistic)
         assert len(list(structure.atoms)) == 8
@@ -170,21 +170,21 @@ class TestBuildCrystalRepeats:
 
     def test_bcc_repeats(self):
         lat = Lattice.bcc(a=2.0, species="Fe")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert len(list(structure.atoms)) == 16
         assert all(s == "Fe" for s in structure.symbols)
 
     def test_fcc_repeats(self):
         lat = Lattice.fcc(a=3.52, species="Ni")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert len(list(structure.atoms)) == 32
         assert all(s == "Ni" for s in structure.symbols)
 
     def test_rocksalt_repeats(self):
         lat = Lattice.rocksalt(a=5.64, species_a="Na", species_b="Cl")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert len(list(structure.atoms)) == 64
         na = sum(1 for s in structure.symbols if s == "Na")
@@ -194,7 +194,7 @@ class TestBuildCrystalRepeats:
 
     def test_empty_basis(self):
         lat = Lattice(cell=np.eye(3))
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert isinstance(structure, Atomistic)
         assert len(list(structure.atoms)) == 0
@@ -209,13 +209,13 @@ class TestBuildCrystalRepeats:
     def test_the_cell_is_never_written_onto_the_structure(self):
         """A structure is topology and chemistry; the cell lives on ``frame.box``."""
         lat = Lattice.sc(a=3.0, species="Cu")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         assert "box" not in structure.props
 
     def test_positions(self):
         lat = Lattice.sc(a=2.0, species="Cu")
-        structure = build_crystal(lat, repeats=(2, 2, 2))
+        structure = lat.build(repeats=(2, 2, 2))
 
         positions = structure.xyz
         expected = np.array(
@@ -239,7 +239,7 @@ class TestBuildCrystalRepeats:
 class TestBuildCrystalRegion:
     def test_box_region_infers_repeats(self):
         lat = Lattice.sc(a=2.0, species="Cu")
-        structure = build_crystal(lat, BoxRegion(lengths=[3.0, 3.0, 3.0]))
+        structure = lat.build(BoxRegion(lengths=[3.0, 3.0, 3.0]))
 
         # cells inferred = ceil(3/2)=2 along each axis → 8 atoms generated,
         # all inside the [0,3]³ region (positions ∈ {0, 2}).
@@ -249,16 +249,13 @@ class TestBuildCrystalRegion:
         lat = Lattice.sc(a=2.0, species="Cu")
         # Force a 3-cell tile but clip to a 3 Å box: corner atoms at x=4 etc.
         # are filtered out.
-        structure = build_crystal(
-            lat, BoxRegion(lengths=[3.0, 3.0, 3.0]), repeats=(3, 3, 3)
-        )
+        structure = lat.build(BoxRegion(lengths=[3.0, 3.0, 3.0]), repeats=(3, 3, 3))
 
         assert len(list(structure.atoms)) == 8
 
     def test_sphere_region(self):
         lat = Lattice.sc(a=1.0, species="Cu")
-        structure = build_crystal(
-            lat,
+        structure = lat.build(
             SphereRegion(radius=1.5, center=[1.5, 1.5, 1.5]),
             repeats=(4, 4, 4),
         )
@@ -275,7 +272,7 @@ class TestBuildCrystalRegion:
         cube = BoxRegion(lengths=[3.0, 3.0, 3.0])
         sphere = SphereRegion(radius=1.5, center=[1.5, 1.5, 1.5])
         # Intersection: atoms in both.
-        structure = build_crystal(lat, cube & sphere, repeats=(4, 4, 4))
+        structure = lat.build(cube & sphere, repeats=(4, 4, 4))
 
         positions = structure.xyz
         center = np.array([1.5, 1.5, 1.5])
@@ -286,9 +283,9 @@ class TestBuildCrystalRegion:
     def test_requires_region_or_repeats(self):
         lat = Lattice.sc(a=1.0, species="Cu")
         with pytest.raises(ValueError, match="region.*repeats"):
-            build_crystal(lat)
+            lat.build()
 
     def test_rejects_non_positive_repeats(self):
         lat = Lattice.sc(a=1.0, species="Cu")
         with pytest.raises(ValueError, match="repeats must be positive"):
-            build_crystal(lat, repeats=(0, 1, 1))
+            lat.build(repeats=(0, 1, 1))

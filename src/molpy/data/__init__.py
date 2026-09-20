@@ -5,8 +5,7 @@ This module provides a unified interface for accessing built-in data files
 such as force field parameters, molecule templates, and other resources.
 
 Usage:
-    from molpy.data import get_path, list_files
-    from molpy.data.forcefield import get_forcefield_path
+    from molpy.data import get_forcefield_path, get_path, list_files
 
     # Get path to a data file
     path = get_path("forcefield/oplsaa.xml")

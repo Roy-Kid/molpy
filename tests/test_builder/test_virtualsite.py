@@ -13,7 +13,7 @@ import pytest
 from molpy import Atomistic
 from molpy.builder import DrudeBuilder, Tip4pBuilder, VirtualSiteBuilder
 from molpy.builder.virtualsite import FOUR_PI_EPS0, K_DRUDE, load_polarizability
-from molpy.data.forcefield import get_forcefield_path
+from molpy.data import get_forcefield_path
 from molpy.typifier import ClpTypifier
 
 # ---------------------------------------------------------------------------

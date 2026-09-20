@@ -41,7 +41,7 @@ _ATOMTYPE_SECTIONS = frozenset({"AtomTypes", "NonbondedForce"})
 def _clp_atomtypes_xml() -> str:
     """CL&P ``clp.xml`` reduced to the ``<AtomTypes>``/``<NonbondedForce>`` the
     molrs OPLS-AA typifier needs for SMARTS atom typing (bonded sections dropped)."""
-    from molpy.data.forcefield import get_forcefield_path
+    from molpy.data import get_forcefield_path
 
     root = ET.parse(get_forcefield_path("clp.xml")).getroot()
     reduced = ET.Element(root.tag, root.attrib)
@@ -63,7 +63,7 @@ def _clp_molrs_typifier() -> OPLSAATypifier:
 @lru_cache(maxsize=1)
 def _load_clp_forcefield() -> ForceField:
     """Parse ``oplsaa.xml`` + ``clp.xml`` once via molrs (OPLS unit path + merge)."""
-    from molpy.data.forcefield import get_forcefield_path
+    from molpy.data import get_forcefield_path
     from molpy.io.forcefield.xml import read_xml_forcefield
 
     ff = read_xml_forcefield(get_forcefield_path("oplsaa.xml"))

@@ -25,6 +25,55 @@ class DistributionIR:
     name: str
     params: dict[str, float] = field(default_factory=dict)
 
+    def build(self) -> "DPDistribution | MassDistribution":
+        """The distribution this IR names, constructed from its parameters.
+
+        Returns:
+            Distribution instance.
+
+        Raises:
+            ValueError: If distribution type is not supported or parameters are invalid.
+        """
+        dist_name = self.name
+        params = self.params
+
+        if dist_name == "schulz_zimm":
+            if "p0" not in params or "p1" not in params:
+                raise ValueError(
+                    f"schulz_zimm requires 'p0' (Mn) and 'p1' (Mw) parameters, got {params}"
+                )
+            return SchulzZimmPolydisperse(
+                Mn=float(params["p0"]), Mw=float(params["p1"])
+            )
+
+        if dist_name == "uniform":
+            if "p0" not in params or "p1" not in params:
+                raise ValueError(
+                    f"uniform requires 'p0' (min_dp) and 'p1' (max_dp) parameters, got {params}"
+                )
+            return UniformPolydisperse(
+                min_dp=int(params["p0"]), max_dp=int(params["p1"])
+            )
+
+        if dist_name == "poisson":
+            if "p0" not in params:
+                raise ValueError(
+                    f"poisson requires 'p0' (lambda) parameter, got {params}"
+                )
+            return PoissonPolydisperse(lambda_param=float(params["p0"]))
+
+        if dist_name == "flory_schulz":
+            if "p0" not in params:
+                raise ValueError(
+                    f"flory_schulz requires 'p0' (a) parameter, got {params}"
+                )
+            return FlorySchulzPolydisperse(a=float(params["p0"]))
+
+        raise ValueError(
+            f"Unsupported distribution type: {dist_name}. "
+            "Supported types: schulz_zimm, uniform, poisson, flory_schulz"
+        )
+
 
 __all__ = [
     "DistributionIR",
@@ -34,7 +83,6 @@ __all__ = [
     "PoissonPolydisperse",
     "FlorySchulzPolydisperse",
     "SchulzZimmPolydisperse",
-    "create_polydisperse_from_ir",
 ]
 
 
@@ -278,50 +326,3 @@ class FlorySchulzPolydisperse:
 # ============================================================================
 # Factory
 # ============================================================================
-
-
-def create_polydisperse_from_ir(
-    distribution_ir: DistributionIR,
-) -> DPDistribution | MassDistribution:
-    """Create a distribution instance from a parsed DistributionIR.
-
-    Args:
-        distribution_ir: DistributionIR from parser.
-
-    Returns:
-        Distribution instance.
-
-    Raises:
-        ValueError: If distribution type is not supported or parameters are invalid.
-    """
-    dist_name = distribution_ir.name
-    params = distribution_ir.params
-
-    if dist_name == "schulz_zimm":
-        if "p0" not in params or "p1" not in params:
-            raise ValueError(
-                f"schulz_zimm requires 'p0' (Mn) and 'p1' (Mw) parameters, got {params}"
-            )
-        return SchulzZimmPolydisperse(Mn=float(params["p0"]), Mw=float(params["p1"]))
-
-    if dist_name == "uniform":
-        if "p0" not in params or "p1" not in params:
-            raise ValueError(
-                f"uniform requires 'p0' (min_dp) and 'p1' (max_dp) parameters, got {params}"
-            )
-        return UniformPolydisperse(min_dp=int(params["p0"]), max_dp=int(params["p1"]))
-
-    if dist_name == "poisson":
-        if "p0" not in params:
-            raise ValueError(f"poisson requires 'p0' (lambda) parameter, got {params}")
-        return PoissonPolydisperse(lambda_param=float(params["p0"]))
-
-    if dist_name == "flory_schulz":
-        if "p0" not in params:
-            raise ValueError(f"flory_schulz requires 'p0' (a) parameter, got {params}")
-        return FlorySchulzPolydisperse(a=float(params["p0"]))
-
-    raise ValueError(
-        f"Unsupported distribution type: {dist_name}. "
-        "Supported types: schulz_zimm, uniform, poisson, flory_schulz"
-    )

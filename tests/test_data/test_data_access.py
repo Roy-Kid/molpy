@@ -90,13 +90,3 @@ class TestDataModuleImport:
         assert hasattr(molpy.data, "exists")
         assert hasattr(molpy.data, "get_forcefield_path")
         assert hasattr(molpy.data, "list_forcefields")
-
-    def test_import_data_forcefield_submodule(self):
-        """Test importing the forcefield submodule."""
-        from molpy.data.forcefield import get_forcefield_path, list_forcefields
-
-        path = get_forcefield_path("oplsaa.xml")
-        assert Path(path).exists()
-
-        forcefields = list_forcefields()
-        assert len(forcefields) > 0
