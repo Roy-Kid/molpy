@@ -1,4 +1,4 @@
-"""Python unit-system sugar over molrs' native unit engine."""
+"""Python unit-system sugar over the native core's native unit engine."""
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ class UnitSystem(molrs.UnitRegistry):
     """Native unit registry with LAMMPS presets and LJ construction sugar.
 
     Parsing, definitions, dimensional arithmetic, and conversion all execute in
-    molrs. ``base_units`` only records the user's chosen working units.
+    the native core. ``base_units`` only records the user's chosen working units.
     """
 
     def __new__(cls, *, base_units: Mapping[str, str] | None = None) -> "UnitSystem":

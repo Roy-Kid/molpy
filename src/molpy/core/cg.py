@@ -1,16 +1,16 @@
-"""Coarse-grained molecular structure as a handle-view over a molrs ``CoarseGrain``.
+"""Coarse-grained molecular structure as a handle-view over a native ``CoarseGrain``.
 
-Mirrors :mod:`molpy.core.atomistic`: ``CoarseGrain(_GraphViews, molrs.CoarseGrain)``
-IS a molrs world; :class:`Bead` / :class:`CGBond` are interned handle views.
+Mirrors :mod:`molpy.core.atomistic`: ``CoarseGrain(_GraphViews, the native core.CoarseGrain)``
+IS a native world; :class:`Bead` / :class:`CGBond` are interned handle views.
 
 Dict keys:
 
 * ``bead["atoms"]`` — ``tuple[Atom, ...]`` of atom views this bead groups. This
-  is the bead's **membership**, owned by the molrs ``CoarseGrain`` as opaque atom
+  is the bead's **membership**, owned by the native ``CoarseGrain`` as opaque atom
   handles (not a scalar component) and resolved back to views through the source
   all-atom world. Drives :meth:`CoarseGrain.beads_of`.
-* ``bead["x"]`` / ``bead["y"]`` / ``bead["z"]`` — position (molrs columns).
-* ``bead["type"]`` / ``bead["mass"]`` / ``bead["charge"]`` — molrs columns.
+* ``bead["x"]`` / ``bead["y"]`` / ``bead["z"]`` — position (the native core columns).
+* ``bead["type"]`` / ``bead["mass"]`` / ``bead["charge"]`` — the native core columns.
 """
 
 from __future__ import annotations
@@ -32,9 +32,9 @@ if TYPE_CHECKING:
 
 
 class CoarseGrain(molrs.CoarseGrain, _GraphViews):
-    """Coarse-grained molecular structure backed by a molrs ``CoarseGrain``.
+    """Coarse-grained molecular structure backed by a native ``CoarseGrain``.
 
-    Base order: the pyo3 native ``molrs.CoarseGrain`` must be first (see the note
+    Base order: the pyo3 native ``CoarseGrain`` must be first (see the note
     on :class:`molpy.core.atomistic.Atomistic`).
     """
 
@@ -97,7 +97,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     # ---------- bead → atom membership (molrs-owned handle store) ----------
     def _set_bead_atoms(self, bead: Bead, atoms: tuple["Atom", ...]) -> None:
-        """Record a bead's atom membership in the molrs world (by handle)."""
+        """Record a bead's atom membership in the native world (by handle)."""
         handles: list[int] = []
         for a in atoms:
             world = a.world
@@ -152,7 +152,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     # ---------- reverse lookup ----------
     def beads_of(self, atom: "Atom") -> tuple[Bead, ...]:
-        """Beads whose membership includes ``atom`` (molrs reverse lookup)."""
+        """Beads whose membership includes ``atom`` (the native core reverse lookup)."""
         handles = molrs.CoarseGrain.beads_of_atom(self, atom.handle)
         return tuple(self._intern_node(h) for h in handles)  # type: ignore[misc]
 
@@ -215,7 +215,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     # ---------- copy / merge ----------
     def copy(self) -> Self:
-        """Independent deep copy. **Handles are preserved** (molrs clone)."""
+        """Independent deep copy. **Handles are preserved** (native clone)."""
         bare = molrs.CoarseGrain.copy(self)
         new = type(self)()
         molrs.CoarseGrain.adopt(new, bare)
@@ -224,7 +224,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
         return new
 
     def merge(self, other: "CoarseGrain") -> Self:
-        """Structural merge of ``other`` into ``self`` (molrs).
+        """Structural merge of ``other`` into ``self`` (native).
 
         Handles are remapped; ``other`` is emptied. View identity is not preserved.
         """
@@ -239,7 +239,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
 
     @staticmethod
     def adopt(graph: molrs.CoarseGrain) -> "CoarseGrain":
-        """Zero-copy take ownership of a molrs-produced ``CoarseGrain`` graph."""
+        """Zero-copy take ownership of a native-produced ``CoarseGrain`` graph."""
         struct = CoarseGrain()
         molrs.CoarseGrain.adopt(struct, graph)
         return struct
@@ -316,7 +316,7 @@ class CoarseGrain(molrs.CoarseGrain, _GraphViews):
     def to_frame(self, bead_fields: list[str] | None = None) -> "Frame":
         """Export to a tabular :class:`Frame` (``beads`` + ``cgbonds`` blocks).
 
-        Delegates straight to the molrs world's native ``to_frame``: the Rust
+        Delegates straight to the native world's native ``to_frame``: the Rust
         column store yields dense numpy columns and applies the CG-domain block /
         column labels (``beads`` / ``cgbonds`` / ``ibead`` / ``jbead``) itself, so
         there is zero Python-side conversion. ``bead_fields`` optionally restricts

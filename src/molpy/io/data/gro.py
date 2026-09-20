@@ -1,6 +1,6 @@
-"""GROMACS .gro file I/O — thin molrs wrappers.
+"""GROMACS .gro file I/O — thin the native core wrappers.
 
-Parse/serialize live in :mod:`molrs.io`. :class:`GroFieldFormatter` documents
+Parse/serialize live in the native ``io`` module. :class:`GroFieldFormatter` documents
 format-native names for the FieldFormatter hierarchy (no separate Python parser).
 """
 
@@ -26,7 +26,7 @@ class GroFieldFormatter(FieldFormatter):
 
 
 class GroReader(DataReader):
-    """Read GRO via molrs (first frame if multi-frame)."""
+    """Read GRO natively (first frame if multi-frame)."""
 
     _formatter = GroFieldFormatter()
 
@@ -42,7 +42,7 @@ class GroReader(DataReader):
 
 
 class GroWriter(DataWriter):
-    """Write GRO via molrs."""
+    """Write GRO natively."""
 
     _formatter = GroFieldFormatter()
 

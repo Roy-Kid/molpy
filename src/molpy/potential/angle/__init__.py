@@ -1,4 +1,4 @@
-"""Angle potential styles (facade over molrs)."""
+"""Angle potential styles (facade over the native core)."""
 
 from molpy.core.forcefield import (
     AngleClass2BondAngleStyle,

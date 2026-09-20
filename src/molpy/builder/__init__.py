@@ -2,7 +2,7 @@
 
 Polymer construction composes the real engine classes directly (there is
 no ``polymer()`` dispatcher): prepare monomers with
-:class:`molrs.io.SmilesIR` / :func:`molpy.io.read_smiles`,
+``SmilesIR`` / :func:`molpy.io.read_smiles`,
 mark the atoms that may react with ``fields.SITE``, then
 :meth:`PolymerBuilder.build` a CGSmiles string. Crosslinking is the same
 kernel with a different :class:`Selector`. Polydisperse systems drive

@@ -1,4 +1,4 @@
-"""Antechamber (AC) file reader (molrs-backed)."""
+"""Antechamber (AC) file reader (native-backed)."""
 
 from pathlib import Path
 
@@ -17,7 +17,7 @@ class AcFieldFormatter(FieldFormatter):
 
 
 class AcReader(DataReader):
-    """Reader for Antechamber .ac format files (via molrs)."""
+    """Reader for Antechamber .ac format files (natively)."""
 
     def __init__(self, file: str | Path):
         super().__init__(Path(file))

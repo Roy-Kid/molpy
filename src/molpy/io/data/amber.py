@@ -1,6 +1,6 @@
-"""AMBER ASCII inpcrd / restrt I/O (molrs-backed).
+"""AMBER ASCII inpcrd / restrt I/O (native-backed).
 
-Parse lives in :func:`molrs.io.read_amber_inpcrd`. This module is a thin
+Parse lives in the native ``read_amber_inpcrd``. This module is a thin
 façade that keeps the historical :class:`AmberInpcrdReader` surface, including
 optional merge of coordinates into an existing Frame.
 """
@@ -35,7 +35,7 @@ class AmberInpcrdReader(DataReader):
                 block, only coordinates (and velocities, if present) are
                 replaced in place and non-coordinate columns are preserved.
                 Atom count must match. When ``None`` or without atoms, a new
-                Frame from molrs is returned.
+                Frame from the native core is returned.
 
         Returns:
             The populated Frame.

@@ -1,10 +1,10 @@
-"""Spatial neighbor list — molrs-backed.
+"""Spatial neighbor list — native-backed.
 
-Returns ``molrs.NeighborList`` directly (no molpy wrapper). Coordinates are
+Returns ``NeighborList`` directly (no molpy wrapper). Coordinates are
 stacked once via ``frame["atoms"][["x", "y", "z"]]`` (the only unavoidable
 copy, internal to ``Block.__getitem__(list)``); from that point through to
 the returned indices/distances the path is zero-copy borrowed views into
-the molrs Rust buffers.
+the native Rust buffers.
 
 References
 ----------

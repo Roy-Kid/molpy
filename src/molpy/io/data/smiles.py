@@ -3,9 +3,9 @@
 Unlike the file readers in this package the *source* is the notation string
 itself, so :class:`SmilesReader` does not extend :class:`DataReader`; it keeps
 the same ``.read()`` idiom and — like every other data reader — defaults to a
-:class:`~molrs.Frame`.
+:class:`~molpy.Frame`.
 
-Parsing is molrs (:class:`molrs.io.SmilesIR`) and open valences are filled
+Parsing is the native core (``SmilesIR``) and open valences are filled
 by :meth:`molpy.core.perceive.Perceive.find_hydrogens`. A SMILES string
 carries no coordinates, so none are invented here: 3D embedding is a
 separate conformer step (:class:`molpy.conformer.Conformer`) the caller
@@ -27,11 +27,11 @@ _AsKind = type | Literal["frame", "atomistic"] | str
 class SmilesReader:
     """Turn a SMILES (or BigSMILES ``{...}`` monomer) string into a structure.
 
-    - Plain SMILES → :class:`molrs.io.SmilesIR` → graph
+    - Plain SMILES → ``SmilesIR`` → graph
     - Leading ``{`` → rejected (use assembly topology helpers)
     - ``add_hydrogens`` → :meth:`~molpy.core.perceive.Perceive.find_hydrogens`
 
-    :meth:`read` returns a tabular :class:`~molrs.Frame` (same default as
+    :meth:`read` returns a tabular :class:`~molpy.Frame` (same default as
     :class:`~molpy.io.data.base.DataReader`). For the rich molecular graph
     use :meth:`read_as` with :class:`~molpy.core.atomistic.Atomistic`.
 
@@ -57,7 +57,7 @@ class SmilesReader:
         self.name_atoms = name_atoms
 
     def read(self) -> "Frame":
-        """Parse and return a tabular :class:`~molrs.Frame`.
+        """Parse and return a tabular :class:`~molpy.Frame`.
 
         Matches the :class:`~molpy.io.data.base.DataReader` contract used by
         XYZ / PDB / … readers. For the graph form see :meth:`read_as`.
@@ -119,7 +119,7 @@ class SmilesReader:
         )
 
     def _read_atomistic(self) -> "Atomistic":
-        """Parse with molrs, fill open valences, optionally name atoms."""
+        """Parse with the native core, fill open valences, optionally name atoms."""
         from molpy.core.perceive import Perceive
 
         out = self._parse_graph()
@@ -134,7 +134,7 @@ class SmilesReader:
         return out
 
     def _parse_graph(self) -> "Atomistic":
-        """Build a 2D graph Atomistic via molrs; never touches RDKit or Lark."""
+        """Build a 2D graph Atomistic natively; never touches RDKit or Lark."""
         import molrs
 
         from molpy.core.atomistic import Atomistic
@@ -143,7 +143,7 @@ class SmilesReader:
         if smiles.lstrip().startswith("{"):
             raise ValueError(
                 "molpy does not parse BigSMILES / CGSmiles brace notation. Use "
-                "plain SMILES with molrs.io.SmilesIR, or build polymer topology "
+                "plain SMILES with the native core.io.SmilesIR, or build polymer topology "
                 "via molpy.builder.assembly (linear_topology / PolymerBuilder)."
             )
 

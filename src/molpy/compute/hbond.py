@@ -1,10 +1,10 @@
-"""Hydrogen-bond detection — molrs-backed.
+"""Hydrogen-bond detection — native-backed.
 
 ``HBonds`` detects geometric hydrogen bonds per frame from explicit donor
 ``(D, H)`` pairs and acceptor atoms, using the :class:`HBondCriterion`
 (donor-acceptor distance and D-H...A angle). Pair these counts with the
 :class:`~molpy.compute.persist.Persist` survival analysis for hydrogen-bond
-lifetime dynamics. Thin shell over the molrs analysis-parity kernel; takes
+lifetime dynamics. Thin shell over the native analysis-parity kernel; takes
 ``(frames)``.
 
 References

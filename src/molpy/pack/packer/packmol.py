@@ -382,9 +382,9 @@ class Packmol(Packer):
         Build the packed frame by replicating each target's topology to its copy
         count and stamping in the optimized coordinates.
 
-        Every source column is materialised from the molrs Block **once per
+        Every source column is materialised from the native Block **once per
         target** and then tiled with numpy (``np.tile`` for values, ``np.repeat``
-        for per-copy index offsets).  The earlier implementation copied the molrs
+        for per-copy index offsets).  The earlier implementation copied the the native core
         Block once *per instance* (e.g. 20 chains + 108 ions = 128×) and re-read
         its string columns each time; on a ~30k-atom system that O(copies) string
         re-materialisation dominated wall-clock (tens of minutes).  Materialising
@@ -398,7 +398,7 @@ class Packmol(Packer):
         """
 
         def materialize(block) -> dict:
-            """Read every column of a molrs Block into numpy exactly once."""
+            """Read every column of a native Block into numpy exactly once."""
             return {k: np.asarray(block[k]) for k in block.keys()}
 
         atoms_parts: list[dict] = []

@@ -1,6 +1,6 @@
-"""GROMACS topology structure I/O (molrs-backed).
+"""GROMACS topology structure I/O (native-backed).
 
-Read/write go through :func:`molrs.io.read_top` / :func:`molrs.io.write_top`.
+Read/write go through the native ``read_top`` / the native ``write_top``.
 Structure only (``[ atoms ]``, bonds/pairs/angles/dihedrals) — not force-field
 parameter tables (see :mod:`molpy.io.forcefield.top`).
 
@@ -30,7 +30,7 @@ class TopReader(DataReader):
 
         Args:
             file: Path to GROMACS .top file
-            **open_kwargs: Accepted for API parity; unused (molrs opens the path).
+            **open_kwargs: Accepted for API parity; unused (the native core opens the path).
         """
         super().__init__(file, **open_kwargs)
         self._file = Path(file)
@@ -39,7 +39,7 @@ class TopReader(DataReader):
         """Read GROMACS topology file.
 
         Args:
-            frame: Accepted for API parity; ignored (molrs always returns a
+            frame: Accepted for API parity; ignored (the native core always returns a
                 new Frame).
 
         Returns:
@@ -60,7 +60,7 @@ class TopReader(DataReader):
 
 
 class TopWriter(DataWriter):
-    """Write a Frame as a minimal GROMACS topology structure file (molrs)."""
+    """Write a Frame as a minimal GROMACS topology structure file (native)."""
 
     def __init__(self, file: PathLike, **open_kwargs):
         super().__init__(file, **open_kwargs)

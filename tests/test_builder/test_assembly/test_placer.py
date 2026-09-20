@@ -59,10 +59,11 @@ class TestResiduePlacer:
             assert rotation @ source == pytest.approx(target, abs=1e-9)
 
     def test_unknown_element_is_not_guessed(self, eo_factory):
-        atom = eo_factory().atoms[0]
+        graph = eo_factory()
+        atom = graph.atoms[0]
         del atom[fields.ELEMENT]
         with pytest.raises(KeyError, match="covalent radius"):
-            ResiduePlacer._radius(atom)
+            ResiduePlacer._radius(graph, atom.handle)
 
     @staticmethod
     def _minimum_separation(graph) -> float:

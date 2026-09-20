@@ -187,7 +187,7 @@ class DielectricResult(Result):
 class DebyeSpectrumFit:
     """Single-Debye parameters fitted from a frequency-domain spectrum.
 
-    Distinct from :class:`molrs.compute.transport.DebyeFit`, which fits the
+    Distinct from ``DebyeFit``, which fits the
     **time-domain** normalized ACF Φ(t). Prefer that Fit for compose pipelines.
 
     Attributes:

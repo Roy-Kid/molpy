@@ -66,7 +66,7 @@ Quick definitions for MolPy's core terminology. Each entry links to the page tha
 : A name (`fields.SITE`) on an atom that may react. Sites have no direction and no role — a linear chain, a branch point and a ring closure differ only in how many sites a monomer carries and how the topology pairs them.
 
 **Typifier**
-: Assigns force field types to atoms, bonds, angles, and dihedrals via SMARTS pattern matching. Subclasses: `OPLSAATypifier`, `ClpTypifier`, `MMFFTypifier`, `PairTypifier`. (GAFF atom types are *not* a Typifier — they come from AmberTools/antechamber; see [AmberTools Integration](../user-guide/13_ambertools_integration.md).) See [Force Field Typification](../user-guide/06_typifier.md).
+: Assigns force field types to atoms, bonds, angles, and dihedrals via SMARTS pattern matching. Subclasses: `OPLSAATypifier`, `MMFFTypifier`, `ClpTypifier`, `AmberToolsTypifier`, `SmartsTypifier`. (GAFF atom types are *not* a Typifier — they come from AmberTools/antechamber; see [AmberTools Integration](../user-guide/13_ambertools_integration.md).) See [Force Field Typification](../user-guide/06_typifier.md).
 
 **Selector**
 : A composable predicate that filters atoms in a `Block` by element, type, coordinate range, or distance. Combinable with `&`, `|`, `~`. See [Selector](06_selector.md).

@@ -1,7 +1,7 @@
-"""Geometric distribution functions (ADF / DDF / distance-DF, CDF) — molrs-backed.
+"""Geometric distribution functions (ADF / DDF / distance-DF, CDF) — native-backed.
 
-Thin ``Compute`` shells over ``molrs`` analysis-parity geometric distributions.
-Each forwards verbatim to the Rust kernel and returns the molrs native result.
+Thin ``Compute`` shells over ``the native core`` analysis-parity geometric distributions.
+Each forwards verbatim to the Rust kernel and returns the native native result.
 Each takes ``(frames)`` only. The atom tuples to histogram are read from each
 frame's core topology blocks — ``bonds`` (pairs) for distances, ``angles``
 (triplets) for angles, ``dihedrals`` (quadruplets) for dihedrals — so no separate

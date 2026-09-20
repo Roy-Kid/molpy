@@ -9,7 +9,7 @@ Path doors for in-memory :class:`~molpy.Frame` and :class:`~molpy.Trajectory`:
   iteration, ``.step`` / ``.time`` labels, ``has_block``)
 * :class:`SequenceSchema` / :class:`TrajectoryWriter` — pin a schema and write
   a run frame by frame, without holding it all in memory
-* :mod:`molrs.io.mrec.schema` re-exported as :mod:`molpy.io.mrec.schema`
+* the native ``mrec.schema`` re-exported as :mod:`molpy.io.mrec.schema`
 
 There is no :class:`molpy.Record` and no :mod:`molpy.io.zarr`.
 """
@@ -47,7 +47,7 @@ class TrajectoryReader(_MolrsTrajectoryReader):
     frame asked for. Beyond :meth:`read_frame` the cursor supports ``len()``,
     ``reader[i]`` (negative indices included), iteration, the ``.step`` /
     ``.time`` frame labels, and :meth:`has_block` — all inherited from the
-    molrs cursor.
+    the native core cursor.
 
     Args:
         path: Filesystem path of the record store.

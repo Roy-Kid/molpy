@@ -1,7 +1,7 @@
-"""Potential of mean force and torque — molrs-backed.
+"""Potential of mean force and torque — native-backed.
 
 ``PMFTXY`` accumulates the 2-D potential of mean force in the local (x, y)
-frame of each particle. Thin shell over ``molrs.compute.pmft.PMFTXY``; takes
+frame of each particle. Thin shell over ``PMFTXY``; takes
 ``(frames, nlists)``. When the frames carry an ``orientations`` topology block,
 every bond is rotated into each query particle's local frame (the per-particle
 angle is ``atan2`` of its ``head - tail`` axis); otherwise it works in the lab

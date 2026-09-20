@@ -1,4 +1,4 @@
-"""Radical (Laguerre) Voronoi tessellation, domains, voids & integration — molrs-backed.
+"""Radical (Laguerre) Voronoi tessellation, domains, voids & integration — native-backed.
 
 The **radical** (power / Laguerre) Voronoi tessellation partitions space by
 radius-weighted planes, so atoms of different size get cells proportional to
@@ -12,7 +12,7 @@ of the tessellation:
   yield per-molecule charges and dipoles (Voronoi/atomic-charge partitioning),
   the basis for predicting infrared spectra from *ab initio* MD.
 
-Thin shells over the molrs analysis-parity kernels.
+Thin shells over the native analysis-parity kernels.
 
 References
 ----------

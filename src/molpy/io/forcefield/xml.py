@@ -1,7 +1,7 @@
-"""OpenMM / OPLS XML force-field I/O (molrs-backed).
+"""OpenMM / OPLS XML force-field I/O (native-backed).
 
-Read: :func:`molrs.ff.read_forcefield_xml` / :func:`molrs.ff.read_opls_xml`.
-Write: :func:`molrs.ff.write_forcefield_xml`.
+Read: the native ``read_forcefield_xml`` / the native ``read_opls_xml``.
+Write: the native ``write_forcefield_xml``.
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ def read_xml_forcefield(
     forcefield: ForceField | None = None,
     layer: int = 0,
 ) -> ForceField:
-    """Read an OpenMM/OPLS XML force field (molrs)."""
+    """Read an OpenMM/OPLS XML force field (native)."""
     path = _resolve_forcefield_path(filepath)
     loaded = _mff.read_forcefield_xml(str(path))
     _tag_layer(loaded, layer)
@@ -106,7 +106,7 @@ def read_oplsaa_forcefield(
     forcefield: ForceField | None = None,
     layer: int = 0,
 ) -> ForceField:
-    """Read OPLS-AA / OpenMM XML with molrs OPLS unit conversion."""
+    """Read OPLS-AA / OpenMM XML with the native core OPLS unit conversion."""
     path = _resolve_forcefield_path(filepath)
     loaded = _mff.read_opls_xml(str(path))
     _tag_layer(loaded, layer)
@@ -117,7 +117,7 @@ def read_oplsaa_forcefield(
 
 
 class XMLForceFieldWriter:
-    """Write a ForceField to OpenMM-style XML (via molrs)."""
+    """Write a ForceField to OpenMM-style XML (natively)."""
 
     def __init__(
         self, filepath: str | Path, precision: int = 6, *, angle_unit: str = "radian"

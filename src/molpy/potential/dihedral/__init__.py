@@ -1,4 +1,4 @@
-"""Dihedral potential styles (facade over molrs)."""
+"""Dihedral potential styles (facade over the native core)."""
 
 from molpy.core.forcefield import (
     DihedralCharmmStyle,

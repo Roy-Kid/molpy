@@ -16,7 +16,7 @@ the one that completes it — see
 because every region is, by construction, a cut.
 
 The pipeline is generic over the graph: an :class:`~molpy.core.atomistic.Atomistic`
-and a :class:`~molpy.core.cg.CoarseGrain` are both ``molrs.Graph`` leaves, and a
+and a :class:`~molpy.core.cg.CoarseGrain` are both ``Graph`` leaves, and a
 concrete typifier specialises ``G`` to the one it types. Nothing here knows what
 a bond, an angle or a dihedral is — that is a fact about a *force field*, and it
 lives in :mod:`molpy.typifier.forcefield`.

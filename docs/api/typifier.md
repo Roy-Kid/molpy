@@ -16,7 +16,7 @@ class Typifier[G: MolGraph](ABC):
 ```
 
 The pipeline is generic over the graph. An `Atomistic` and a `CoarseGrain` are
-both molrs graph leaves, and a concrete typifier specialises `G` to the one it
+both native graph leaves, and a concrete typifier specialises `G` to the one it
 understands. Nothing in the contract mentions bonds, angles or dihedrals: that
 decomposition belongs to a force field, not to typification.
 
@@ -29,14 +29,14 @@ component, `ForceFieldParams`.
 | Symbol | Summary | Preferred for |
 |--------|---------|---------------|
 | `Typifier` | The contract: one abstract `match` | Writing your own |
-| `OPLSAATypifier` | Full OPLS-AA typing pipeline re-exported from `molrs.ff.typifier` | OPLS-AA all-atom force fields |
-| `MMFFTypifier` | Full MMFF94 typing pipeline re-exported from `molrs.ff.typifier` | MMFF all-atom force fields |
-| `ClpTypifier` | CL&P ionic-liquid overlay: molrs SMARTS types + MolPy parameters | Ionic-liquid force fields |
+| `OPLSAATypifier` | Full OPLS-AA typing pipeline (native) | OPLS-AA all-atom force fields |
+| `MMFFTypifier` | Full MMFF94 typing pipeline (native) | MMFF all-atom force fields |
+| `ClpTypifier` | CL&P ionic-liquid overlay: native SMARTS types + MolPy parameters | Ionic-liquid force fields |
 | `AmberToolsTypifier` | GAFF atom types via antechamber; accumulates the force field it discovers | GAFF / AmberTools |
 | `ForceFieldParams` | **Not a typifier.** Annotates pair and bonded terms from node types | A graph whose types are already known |
 
-UFF lives in molrs (Rust / WASM `UFFTypifier`); MolPy re-exports it when the
-published molrs minor exposes a Python binding.
+UFF typing exists in the native core (Rust / WASM) but has no Python binding
+yet; MolPy re-exports it once one is published.
 
 ## Canonical example
 
@@ -62,7 +62,7 @@ frame = typed_mol.to_frame()
   `RegionTypes.of`, which caps every region it types because every region is a cut
 - A term the force field does not parameterise is left **undecided**, never
   stamped with `None`
-- SMARTS matching is implemented in molrs; MolPy no longer carries a matcher
+- SMARTS matching is native; MolPy carries no matcher of its own
 
 ## Writing a typifier
 

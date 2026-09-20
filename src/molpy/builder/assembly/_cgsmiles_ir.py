@@ -2,7 +2,7 @@
 
 These are pure dataclasses — no grammar. Topology is built by
 :mod:`molpy.builder.assembly._residue_graph` constructors, not by parsing a
-chemistry notation string; molrs owns SMILES/SMARTS.
+chemistry notation string; the native core owns SMILES/SMARTS.
 """
 
 from __future__ import annotations

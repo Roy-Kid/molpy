@@ -9,7 +9,7 @@ turning the reacter's O(N²) whole-graph retype pass into O(#distinct junction
 environments).
 
 A hash bucket holds ``(region, types)`` pairs so a rare hash collision is
-resolved by ``region == cached_region`` — which is the molrs graph-equality
+resolved by ``region == cached_region`` — which is the native graph-equality
 (``is_isomorphic``) check, not identity. On a hit the cached snapshot came from a
 *different* but isomorphic region; :meth:`apply` lines its canonical positions up
 against the new region's own :meth:`canonical_order` and reaches the parent atoms

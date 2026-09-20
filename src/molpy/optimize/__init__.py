@@ -1,10 +1,10 @@
-"""Geometry optimization: the molrs L-BFGS minimizer.
+"""Geometry optimization: the native L-BFGS minimizer.
 
 ``LBFGS(potentials, *, fmax=0.05, max_steps=500, max_step=0.2, memory=8)``
-takes the :class:`molrs.ff.Potentials` compiled from a force field for the
+takes the ``Potentials`` compiled from a force field for the
 frame under study (``forcefield.to_potentials(frame)``); ``run(frame)``
 returns ``(frame, OptReport)``. Composition — typify, compile, relax — is the
-caller's, exactly as with any other molrs primitive.
+caller's, exactly as with any other the native core primitive.
 """
 
 from molrs.optimize import LBFGS, OptReport

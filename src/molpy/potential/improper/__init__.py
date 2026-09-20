@@ -1,4 +1,4 @@
-"""Improper dihedral potential styles (facade over molrs)."""
+"""Improper dihedral potential styles (facade over the native core)."""
 
 from molpy.core.forcefield import (
     ImproperClass2Style,

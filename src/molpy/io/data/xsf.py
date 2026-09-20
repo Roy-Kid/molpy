@@ -1,6 +1,6 @@
-"""XSF (XCrySDen Structure File) I/O — molrs-backed.
+"""XSF (XCrySDen Structure File) I/O — native-backed.
 
-Read/write go through :func:`molrs.io.read_xsf` / :func:`molrs.io.write_xsf`.
+Read/write go through the native ``read_xsf`` / the native ``write_xsf``.
 Atoms carry ``atomic_number``, ``element``, and ``x``/``y``/``z``; crystal
 structures attach a periodic box, molecules a free box.
 """
@@ -15,7 +15,7 @@ from .base import DataReader, DataWriter
 
 
 class XsfReader(DataReader):
-    """Read an XSF file into a :class:`~molpy.Frame` via molrs."""
+    """Read an XSF file into a :class:`~molpy.Frame` natively."""
 
     def __init__(self, file: str | Path) -> None:
         super().__init__(Path(file))
@@ -25,7 +25,7 @@ class XsfReader(DataReader):
         """Read the XSF path.
 
         Args:
-            frame: Accepted for API parity; ignored (molrs always returns a
+            frame: Accepted for API parity; ignored (the native core always returns a
                 new Frame).
 
         Returns:
@@ -47,7 +47,7 @@ class XsfReader(DataReader):
 
 
 class XsfWriter(DataWriter):
-    """Write a Frame to an XSF file via molrs."""
+    """Write a Frame to an XSF file natively."""
 
     def __init__(self, file: str | Path) -> None:
         super().__init__(Path(file))

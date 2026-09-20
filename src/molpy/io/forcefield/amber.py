@@ -1,9 +1,9 @@
-"""AMBER prmtop I/O — thin molrs façade.
+"""AMBER prmtop I/O — thin the native core façade.
 
-* Structure: :func:`molrs.io.read_amber_prmtop`
-* Force field: :func:`molrs.ff.read_amber_prmtop_ff` (LAMMPS form map)
+* Structure: the native ``read_amber_prmtop``
+* Force field: the native ``read_amber_prmtop_ff`` (LAMMPS form map)
 * Table decode (POINTERS, bonds, angles, dihedrals, LJ, 20a4 names):
-  :mod:`molrs.io` ``prmtop_*`` helpers — call those directly; this module
+  the native ``io`` module ``prmtop_*`` helpers — call those directly; this module
   does **not** re-export or wrap them.
 """
 
@@ -18,7 +18,7 @@ CHARGE_CONVERSION_FACTOR = 18.2223
 
 
 class AmberPrmtopReader:
-    """Read AMBER prmtop structure + force field via molrs.
+    """Read AMBER prmtop structure + force field natively.
 
     Args:
         file: Path to a ``.prmtop`` / ``.parm7`` file.
@@ -32,7 +32,7 @@ class AmberPrmtopReader:
 
         Args:
             frame: Optional destination Frame; when given, structure blocks and
-                meta are copied into it. When ``None``, the molrs Frame is
+                meta are copied into it. When ``None``, the native Frame is
                 returned as-is.
 
         Returns:

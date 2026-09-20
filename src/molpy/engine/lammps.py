@@ -211,7 +211,7 @@ class LAMMPSEngine(Engine):
             timeout: Subprocess timeout in seconds.
 
         Returns:
-            A new :class:`~molrs.Frame` with relaxed coordinates.
+            A new :class:`~molpy.Frame` with relaxed coordinates.
 
         Raises:
             ValueError: If *frame* has no box.
@@ -274,7 +274,7 @@ class LAMMPSEngine(Engine):
             timeout: Subprocess timeout in seconds.
 
         Returns:
-            A new :class:`~molrs.Frame` with the post-MD coordinates.
+            A new :class:`~molpy.Frame` with the post-MD coordinates.
 
         Raises:
             ValueError: If *ensemble* is unknown or *frame* has no box.

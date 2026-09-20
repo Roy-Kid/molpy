@@ -1,6 +1,6 @@
-"""XYZ file I/O — molrs backend with thin molpy column normalization.
+"""XYZ file I/O — the native core backend with thin molpy column normalization.
 
-Parse/serialize: :mod:`molrs.io`. After read, molpy may merge split multi-
+Parse/serialize: the native ``io`` module. After read, molpy may merge split multi-
 columns (``CS_1``+``CS_2``→``CS``), map ``species``→``element``, and fill
 ``atomic_number`` when missing.
 """
@@ -20,7 +20,7 @@ from .base import DataReader, DataWriter
 
 
 def _normalize_xyz_frame(frame: Frame) -> Frame:
-    """Apply molpy column conventions on a molrs XYZ Frame (in place)."""
+    """Apply molpy column conventions on a native XYZ Frame (in place)."""
     for block_name in list(frame.keys()):
         block = frame[block_name]
         keys = set(block.keys())
@@ -49,7 +49,7 @@ def _normalize_xyz_frame(frame: Frame) -> Frame:
 
 
 class XYZReader(DataReader):
-    """Read XYZ via molrs + :func:`_normalize_xyz_frame`."""
+    """Read XYZ natively + :func:`_normalize_xyz_frame`."""
 
     def __init__(self, path: str | Path, **kwargs: object) -> None:
         super().__init__(Path(path), **kwargs)
@@ -60,7 +60,7 @@ class XYZReader(DataReader):
 
 
 class XYZWriter(DataWriter):
-    """Write XYZ via molrs."""
+    """Write XYZ natively."""
 
     def __init__(self, path: str | Path, **kwargs: object) -> None:
         super().__init__(Path(path), **kwargs)

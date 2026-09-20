@@ -8,7 +8,7 @@ pairing rule. The **only** expand + assemble entry is :meth:`build`; the
 Topology is a
 :class:`~molpy.builder.assembly._cgsmiles_ir.CGSmilesGraphIR` built by
 :mod:`~molpy.builder.assembly._residue_graph` constructors. SMILES for monomers
-is :class:`molrs.io.SmilesIR` via the rest of molpy.
+is ``SmilesIR`` via the rest of molpy.
 """
 
 from __future__ import annotations

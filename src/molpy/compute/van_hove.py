@@ -1,11 +1,11 @@
-"""Van Hove correlation function G(r, t) — molrs-backed.
+"""Van Hove correlation function G(r, t) — native-backed.
 
 ``VanHove`` computes the self and distinct parts of the Van Hove correlation
 function, the time-resolved generalization of the radial distribution function:
 ``G_s(r, t)`` is the probability that a particle has moved a distance ``r`` in
 time ``t`` (it integrates to the self-diffusion picture), while ``G_d(r, t)``
 tracks how the structure around a particle decorrelates. Thin shell over the
-molrs analysis-parity kernel; takes ``(frames)``.
+the native core analysis-parity kernel; takes ``(frames)``.
 
 References
 ----------

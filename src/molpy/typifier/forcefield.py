@@ -164,7 +164,7 @@ class _PairMatcher:
     Unlike a bonded term, these are keyed by the type alone: no pattern, no
     direction, no specificity contest. A lookup, not a match.
 
-    molrs OPLS keeps charge/mass on the AtomType and LJ (ε/σ) on the PairType;
+    the native core OPLS keeps charge/mass on the AtomType and LJ (ε/σ) on the PairType;
     this matcher merges both so annotate produces a complete nonbonded view.
     """
 

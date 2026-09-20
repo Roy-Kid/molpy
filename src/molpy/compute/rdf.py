@@ -1,6 +1,6 @@
-"""Radial distribution function g(r) — molrs-backed.
+"""Radial distribution function g(r) — native-backed.
 
-Returns ``molrs.compute.density.RDFResult`` directly (no molpy wrapper).
+Returns ``RDFResult`` directly (no molpy wrapper).
 The result is finalized eagerly inside ``RDF.compute``, so ``result.rdf``
 is the normalized g(r) and not the raw histogram.
 

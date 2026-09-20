@@ -42,7 +42,7 @@ ForceField
     └── PairType "HC"  (epsilon=0.030, sigma=2.50)
 ```
 
-A `Style` defines an interaction family — harmonic bonds, OPLS dihedrals, Lennard-Jones pairs — and its parameter contract. A `Type` is one concrete parameter record inside that family. The `Potentials` evaluator is the numerical realization, produced from the complete model and run against a typed `Frame`. The kernels themselves live in the molrs Rust extension.
+A `Style` defines an interaction family — harmonic bonds, OPLS dihedrals, Lennard-Jones pairs — and its parameter contract. A `Type` is one concrete parameter record inside that family. The `Potentials` evaluator is the numerical realization, produced from the complete model and run against a typed `Frame`. The kernels themselves live in the native Rust core.
 
 The progression is always: define styles → fill in types → evaluate as potentials.
 
@@ -129,7 +129,7 @@ Evaluation is the first strict integrity test of the model. `ff.to_potentials()`
 returns a *deferred* `Potentials` — it carries no frame yet (`len() == 0`, not
 iterable). To compute numbers you pass a typed `Frame`: an `atoms` block with
 coordinates plus a bonded block (`bonds`, `angles`, …) carrying a `type` column.
-The numerical kernels run in the molrs Rust extension.
+The numerical kernels run in the native Rust core.
 
 ```python
 import numpy as np
@@ -194,7 +194,7 @@ XMLForceFieldWriter("system.xml", precision=6).write(ff)
 
 ## When to move beyond built-in styles
 
-Real projects eventually need interaction forms not covered by built-in styles — Morse bonds, Buckingham pairs, custom torsion profiles. The numerical kernel for a new form is added in the molrs Rust extension; on the Python side you expose a thin named `Style` and register parameter formatters for each export backend.
+Real projects eventually need interaction forms not covered by built-in styles — Morse bonds, Buckingham pairs, custom torsion profiles. The numerical kernel for a new form is added in the native Rust core; on the Python side you expose a thin named `Style` and register parameter formatters for each export backend.
 
 See [Extending Force Field](../developer/extending-forcefield.md) for the full extension recipe.
 

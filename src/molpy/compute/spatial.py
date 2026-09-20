@@ -1,10 +1,10 @@
-"""Spatial distribution function (SDF) — molrs-backed.
+"""Spatial distribution function (SDF) — native-backed.
 
 ``SpatialDistribution`` accumulates the density of *target* atoms on a body-fixed
 3-D grid, after Kabsch-aligning each reference molecule to a template geometry.
 This is the orientation-resolved generalization of the radial distribution
 function: it reveals *where* around a molecule its neighbours sit, not just how
-far. Thin shell over the molrs analysis-parity kernel; takes ``(frames)``.
+far. Thin shell over the native analysis-parity kernel; takes ``(frames)``.
 
 References
 ----------

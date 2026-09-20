@@ -11,9 +11,9 @@ simulation — or to compare energies meaningfully — you minimize the geometry
 the forces drop below a tolerance.
 
 **`LBFGS` moves atoms downhill on a set of potentials until the maximum force
-falls under `fmax`.** The minimizer is molrs's limited-memory quasi-Newton
+falls under `fmax`.** The minimizer is the native limited-memory quasi-Newton
 implementation, re-exported as `molpy.LBFGS` / `molpy.optimize.LBFGS`; it
-drives the `molrs.ff.Potentials` a force field compiles for your frame.
+drives the `Potentials` a force field compiles for your frame.
 
 ## Minimizing a structure
 
@@ -61,7 +61,7 @@ the structure.
 
 - **Not converged ≠ minimized.** A `False` `converged` means you stopped at
  the step cap.
-- **Units are molrs units:** energies in kcal/mol, forces in kcal/mol/Å,
+- **Units are the native units:** energies in kcal/mol, forces in kcal/mol/Å,
  lengths in Å. A threshold that is too tight for a coarse force field never
  converges; too loose leaves residual strain.
 - The potentials are compiled for one topology. Relaxing a frame whose bonds

@@ -207,7 +207,7 @@ class MinDistanceConstraint(Constraint):
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Pairs closer than ``dmin``: ``(i, j, displacement_ij, distance)``.
 
-        The molrs neighbour query is O(N) in the number of points; only the
+        The the native core neighbour query is O(N) in the number of points; only the
         pairs that can carry a penalty are ever materialised.
         """
         points = np.ascontiguousarray(points, dtype=np.float64)

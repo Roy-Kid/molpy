@@ -1,4 +1,4 @@
-"""Graphene sheet builder — thin facade over :class:`molrs.builder.GrapheneBuilder`."""
+"""Graphene sheet builder — thin facade over ``GrapheneBuilder``."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from molpy.typifier.forcefield import ForceFieldParams
 
 
 class GrapheneBuilder:
-    """Rectangular graphene (honeycomb) sheet via molrs.
+    """Rectangular graphene (honeycomb) sheet natively.
 
     ``nx × ny`` honeycomb unit cells → ``2·nx·ny`` carbons. Bonds wrap in
     *xy* when ``periodic_xy`` is true (default).
@@ -73,7 +73,7 @@ class GrapheneBuilder:
         return StructureFinalizer(Finalization(finalize), bonded).apply(graph)
 
     def cell(self, *, vacuum: float | None = None) -> Box:
-        """Return the molrs-generated simulation cell as a MolPy box."""
+        """Return the native-generated simulation cell as a MolPy box."""
         if vacuum is None:
             return Box.from_box(self._native.cell())
         vacuum = float(vacuum)

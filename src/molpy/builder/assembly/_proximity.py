@@ -139,12 +139,33 @@ class ProximitySelector(Selector):
     def _all_candidates(
         self, context: MatchContext, occ_a: list[Binding], occ_b: list[Binding]
     ) -> list[Candidate]:
+        """Every cross pairing; distances come from one vectorised evaluation.
+
+        The pairing itself is O(sites_a × sites_b) by definition. A site
+        without coordinates makes every pairing that touches it distance-free
+        (``None``), never ``0.0``.
+        """
+        coords_a = [self._xyz(context.world, oa[context.map_a]) for oa in occ_a]
+        coords_b = [self._xyz(context.world, ob[context.map_b]) for ob in occ_b]
+        distances: np.ndarray | None = None
+        if all(c is not None for c in coords_a) and all(
+            c is not None for c in coords_b
+        ):
+            points_a = np.asarray(coords_a, dtype=float)
+            points_b = np.asarray(coords_b, dtype=float)
+            distances = np.linalg.norm(
+                points_a[:, None, :] - points_b[None, :, :], axis=-1
+            )
         out: list[Candidate] = []
-        for oa in occ_a:
-            for ob in occ_b:
-                distance = self._pair_distance(
-                    context.world, oa[context.map_a], ob[context.map_b]
-                )
+        for i, oa in enumerate(occ_a):
+            has_a = coords_a[i] is not None
+            for j, ob in enumerate(occ_b):
+                if distances is not None:
+                    distance: float | None = float(distances[i, j])
+                elif has_a and coords_b[j] is not None:
+                    distance = math.dist(coords_a[i], coords_b[j])  # type: ignore[arg-type]
+                else:
+                    distance = None
                 out.append(Candidate(oa, ob, distance))
         return out
 
@@ -207,40 +228,26 @@ class ProximitySelector(Selector):
             return None
         return (float(x), float(y), float(z))
 
-    def _pair_distance(self, graph: Atomistic, ha: int, hb: int) -> float | None:
-        pa, pb = self._xyz(graph, ha), self._xyz(graph, hb)
-        if pa is None or pb is None:
-            return None
-        return math.dist(pa, pb)
-
     # -- topology ------------------------------------------------------------
 
     @staticmethod
-    def _adjacency(graph: Atomistic) -> tuple[list[int], dict[int, list[int]]]:
-        handles = [atom.handle for atom in graph.atoms]
-        adjacency: dict[int, list[int]] = {h: [] for h in handles}
-        for bond in graph.bonds:
-            i, j = bond.itom.handle, bond.jtom.handle
-            adjacency.setdefault(i, []).append(j)
-            adjacency.setdefault(j, []).append(i)
-        return handles, adjacency
+    def _components(graph: Atomistic) -> dict[int, int]:
+        """Connected-component root per atom handle.
 
-    def _components(self, graph: Atomistic) -> dict[int, int]:
-        """Connected-component root per atom handle (BFS over bonds)."""
-        handles, adjacency = self._adjacency(graph)
+        One the native core bond-graph traversal (``topo_distances``) per component, so
+        the whole world is walked once, in Rust.
+        """
         root: dict[int, int] = {}
-        for start in handles:
+        for start in graph.entities():
             if start in root:
                 continue
-            root[start] = start
-            stack = [start]
-            while stack:
-                current = stack.pop()
-                for neighbor in adjacency.get(current, ()):
-                    if neighbor not in root:
-                        root[neighbor] = start
-                        stack.append(neighbor)
+            for handle, _hops in graph.topo_distances(start):
+                root[handle] = start
         return root
+
+    @staticmethod
+    def _degree(graph: Atomistic, handle: int) -> int:
+        return len(graph.incident_relations(handle, "bonds"))
 
 
 class ExhaustiveSelector(ProximitySelector):
@@ -310,7 +317,6 @@ class SpacingSelector(ProximitySelector):
     def _regular_sites(self, context: MatchContext) -> set[int]:
         sites = {oa[context.map_a] for oa in context.occurrences[context.comp_a]}
         sites |= {ob[context.map_b] for ob in context.occurrences[context.comp_b]}
-        _, adjacency = self._adjacency(context.world)
         components = self._components(context.world)
 
         by_molecule: dict[int, list[int]] = {}
@@ -320,21 +326,21 @@ class SpacingSelector(ProximitySelector):
         keep: set[int] = set()
         for root, site_handles in by_molecule.items():
             ordered = self._backbone_order(
-                context.world, adjacency, components, root, site_handles
+                context.world, components, root, site_handles
             )
             keep.update(ordered[:: self._spacing])
         return keep
 
-    @staticmethod
+    @classmethod
     def _backbone_order(
+        cls,
         graph: Atomistic,
-        adjacency: dict[int, list[int]],
         components: dict[int, int],
         root: int,
         site_handles: Sequence[int],
     ) -> list[int]:
         molecule_atoms = [h for h, r in components.items() if r == root]
         # Chain end = lowest-degree atom (deterministic tie-break on handle).
-        end = min(molecule_atoms, key=lambda h: (len(adjacency.get(h, [])), h))
+        end = min(molecule_atoms, key=lambda h: (cls._degree(graph, h), h))
         distances = {h: d for h, d in graph.topo_distances(end)}
         return sorted(site_handles, key=lambda h: (distances[h], h))

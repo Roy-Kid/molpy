@@ -8,7 +8,7 @@ is still one frame — blocks, metadata, optional box. Time stacks snapshots; it
 does not replace them.
 
 What it is **not**: a lazy file cursor. Seekable readers live under
-`molpy.io` / molrs trajectory readers; construct a `Trajectory` when you want
+`molpy.io` trajectory readers; construct a `Trajectory` when you want
 an in-memory sequence with `len`, indexing, and slicing.
 
 ## Building a trajectory from a list

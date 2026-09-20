@@ -1,7 +1,7 @@
-"""Bond-orientational order operators — molrs-backed.
+"""Bond-orientational order operators — native-backed.
 
-Thin ``Compute`` shells over ``molrs.compute.order.*``. Each forwards verbatim
-to the Rust kernel and returns the molrs native result; molpy adds no wrapping
+Thin ``Compute`` shells over the native ``order`` kernels. Each forwards verbatim
+to the Rust kernel and returns the native native result; molpy adds no wrapping
 and copies nothing. Like ``compute.RDF``, these take two data inputs.
 
 References

@@ -24,8 +24,8 @@ rule, so there is one kernel and one variation point.
 | `ResiduePlacer` | Lays fresh template copies out in space | Building from templates |
 | `SystemPlanner` / `PolydisperseChainGenerator` | Sample a polydisperse chain plan | Bulk / MW-distributed systems |
 | `AmberPolymerBuilder` | GAFF-parameterised build via AmberTools | AMBER/LAMMPS-bound workflows |
-| `CarbonTubeBuilder` | `CarbonTubeBuilder(n, m, ...)` → `.build()` graph + `.cell()` box | Zigzag, armchair, and chiral nanotubes (molrs) |
-| `GrapheneBuilder` | `GrapheneBuilder(nx, ny, ...)` → `.build()` graph + `.cell()` box | Rectangular graphene honeycomb sheet (molrs) |
+| `CarbonTubeBuilder` | `CarbonTubeBuilder(n, m, ...)` → `.build()` graph + `.cell()` box | Zigzag, armchair, and chiral nanotubes |
+| `GrapheneBuilder` | `GrapheneBuilder(nx, ny, ...)` → `.build()` graph + `.cell()` box | Rectangular graphene honeycomb sheet |
 | `DrudeBuilder` / `Tip4pBuilder` / `VirtualSiteBuilder` | Virtual-site augmentation | Polarizable / 4-site models |
 
 ## Canonical example

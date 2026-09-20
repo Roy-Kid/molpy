@@ -1,7 +1,7 @@
-"""Local-environment observables — molrs-backed.
+"""Local-environment observables — native-backed.
 
 ``BondOrder`` histograms neighbor bond directions on a (theta, phi) grid.
-Thin shell over ``molrs.compute.environment.BondOrder``; takes
+Thin shell over ``BondOrder``; takes
 ``(frames, nlists)`` like ``RDF``.
 
 References

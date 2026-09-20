@@ -1,11 +1,11 @@
-"""Canonical field registry — re-exported from molrs (single source of truth).
+"""Canonical field registry — re-exported from the native core (single source of truth).
 
 The canonical field names and :class:`FieldSpec`/:class:`FieldFormatter` types now
-live in :mod:`molrs.fields`, whose keys are sourced from the Rust ``molrs.keys``
+live in the native ``fields`` module, whose keys are sourced from the Rust ``keys``
 constants. molpy re-exports them wholesale so existing
 ``from molpy.core.fields import …`` call sites keep resolving, and adds only the
 force-field-specific :class:`ForceFieldFormatter` on top (until FF I/O is sunk
-into molrs-io).
+into the native I/O).
 """
 
 from __future__ import annotations
@@ -166,7 +166,7 @@ class ForceFieldFormatter(FieldFormatter):
     def _resolve_formatter(self, style: object) -> Callable | None:
         """Resolve the registered formatter for *style*.
 
-        molrs returns styles as their base category class (``BondStyle``,
+        the native core returns styles as their base category class (``BondStyle``,
         ``PairStyle``, …) regardless of which named/specialized style was
         registered, so an exact ``type(style)`` match only catches the generic
         fallbacks. Specialized formatters are therefore also matched by the

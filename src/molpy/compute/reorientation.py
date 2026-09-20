@@ -1,4 +1,4 @@
-"""Legendre reorientational correlation functions — molrs-backed.
+"""Legendre reorientational correlation functions — native-backed.
 
 ``LegendreReorientation`` computes the first- and second-order Legendre
 reorientational time-correlation functions of bond (or molecular) vectors,
@@ -9,7 +9,7 @@ reorientational time-correlation functions of bond (or molecular) vectors,
 
 with ``P_1(x) = x`` and ``P_2(x) = (3x^2 - 1)/2``. ``C_2(t)`` is the quantity
 probed by NMR and dielectric relaxation; its decay time is the reorientational
-correlation time. Thin shell over the molrs analysis-parity kernel; takes
+correlation time. Thin shell over the native analysis-parity kernel; takes
 ``(frames)`` only. The ``(tail, head)`` endpoints of each tracked bond vector
 are read from each frame's core ``bonds`` topology block, so no separate
 endpoint-index array is passed.

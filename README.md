@@ -55,12 +55,12 @@ it, analyze or minimize it, then read and write it across formats.
 | Module | Capability |
 |---|---|
 | **`core`** | Explicit data model — editable `Atomistic` topology graph, `Frame`/`Block` columnar arrays, `ForceField`, `Box` |
-| **`parser`** | SMILES / SMARTS (via molrs types: `SmilesIR`, `SmartsPattern`); moltemplate `.lt` reader |
+| **`parser`** | SMILES / SMARTS (`SmilesIR`, `SmartsPattern`); moltemplate `.lt` reader |
 | **`builder`** | System assembly — polymers, crosslinking, polydispersity, virtual sites, AmberTools facade |
-| **`conformer`** | 3D coordinate generation (molrs ETKDG + MMFF cleanup) |
+| **`conformer`** | 3D coordinate generation (native ETKDG + MMFF cleanup) |
 | **`typifier`** | Atom typing — OPLS-AA, CL&P, MMFF, GAFF via AmberTools |
 | **`potential` · `optimize`** | Energy & force potentials with L-BFGS minimization |
-| **`compute`** | Analysis modules under `molpy.compute` — `rdf`/`msd`/`dielectric`/`spectra`/`order`/`voronoi`/… (molrs kernels) |
+| **`compute`** | Analysis modules under `molpy.compute` — `rdf`/`msd`/`dielectric`/`spectra`/`order`/`voronoi`/… (native kernels) |
 | **`pack`** | Packmol-based packing with density targets |
 | **`io`** | Read/write — PDB, GRO, LAMMPS data, XYZ, force fields, trajectories, … |
 | **`engine`** | MD input generation & run management — LAMMPS, CP2K, OpenMM |

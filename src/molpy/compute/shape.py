@@ -1,6 +1,6 @@
-"""Per-cluster shape descriptors — molrs-backed.
+"""Per-cluster shape descriptors — native-backed.
 
-Thin wrappers around ``molrs.compute.cluster``:
+Thin wrappers around ``cluster``:
 
 - ``CenterOfMass`` (frames, clusters) → mass-weighted centers
 - ``GyrationTensor`` (frames, clusters, centers) → 3×3 tensors per cluster

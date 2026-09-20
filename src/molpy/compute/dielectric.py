@@ -1,9 +1,9 @@
 """Dielectric susceptibility Compute classes.
 
-Thin glue layers bridging molpy `Trajectory` to molrs computational
+Thin glue layers bridging molpy `Trajectory` to the native core computational
 kernels. The Python side does only data extraction (positions, charges)
 and vectorized NumPy assembly (dipole moment via `einsum`, minimum-image
-unwrap); all correlators and spectral physics live in molrs:
+unwrap); all correlators and spectral physics live in the native core:
 
 * raw Computes: ``DebyeRelaxation``, ``GreenKuboConductivity``
 * Fits: ``EinsteinHelfandSpectrum``, ``GreenKuboSpectrum``
@@ -80,10 +80,10 @@ class DielectricSusceptibility(Compute):
 
     Single-pass over ``trajectory``: online MIC unwrap of positions, accumulate
     only the dipole series ``M(t)`` (shape ``(n_frames, 3)``), then run
-    Einstein–Helfand and/or Green–Kubo spectral routes in molrs. Does **not**
+    Einstein–Helfand and/or Green–Kubo spectral routes in the native core. Does **not**
     store the full ``(n_frames, n_atoms, 3)`` coordinate tensor.
 
-    Physics (molrs; LAMMPS *real* units on the kernels):
+    Physics (native; LAMMPS *real* units on the kernels):
 
     * EH: ``DebyeRelaxation`` → ``EinsteinHelfandSpectrum``
     * GK: velocity current density when present, else FD ``Ṁ`` →
@@ -421,8 +421,8 @@ class IonicConductivity(Compute):
     Builds the **ionic translational dipole** M_J(t) = sum_i q_i r_i(t) from the
     trajectory (minimum-image unwrapped, same as
     :class:`DielectricSusceptibility`), then composes the raw collective-dipole
-    MSD (:class:`molrs.EinsteinConductivity`) with the diffusive-window slope
-    (:class:`molrs.LinearFit`) and a ``slope / (6 V k_B T)`` S/m prefactor:
+    MSD (``EinsteinConductivity``) with the diffusive-window slope
+    (``LinearFit``) and a ``slope / (6 V k_B T)`` S/m prefactor:
 
         sigma = lim_{t->inf} (1 / (6 V k_B T)) d/dt <|M_J(t) - M_J(0)|^2>.
 

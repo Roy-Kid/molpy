@@ -1,4 +1,4 @@
-"""Diffraction observables — molrs-backed.
+"""Diffraction observables — native-backed.
 
 ``StaticStructureFactorDebye`` computes the static structure factor
 
@@ -8,7 +8,7 @@
             \\frac{\\sin(k r_{ij})}{k r_{ij}} \\right\\rangle
 
 via the Debye scattering equation. Thin shell over
-``molrs.compute.diffraction.StaticStructureFactorDebye``; takes ``(frames)``.
+``StaticStructureFactorDebye``; takes ``(frames)``.
 
 References
 ----------

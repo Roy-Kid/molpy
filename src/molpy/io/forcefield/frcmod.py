@@ -1,4 +1,4 @@
-"""AMBER FRCMOD I/O (molrs-backed)."""
+"""AMBER FRCMOD I/O (native-backed)."""
 
 from __future__ import annotations
 

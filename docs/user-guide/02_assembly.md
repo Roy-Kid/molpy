@@ -63,7 +63,7 @@ It is **not a port system**. There is no `<` and `>`, no head and tail, no conne
 deciding that a hydroxyl may meet a carboxyl. Sites are unordered and undirected, and the
 reaction SMARTS is the only place chemistry is written down.
 
-It is **not a typifier**. Every accepted implementation inherits the common `molrs.ff.Typifier`
+It is **not a typifier**. Every accepted implementation inherits the common `Typifier` base
 base; the assembler only compiles the bounded graph on which it is invoked.
 
 ## A repeat unit is a molecule with a few marked atoms

@@ -1,4 +1,4 @@
-"""Simulation log readers: the molrs structured LAMMPS log.
+"""Simulation log readers: the native structured LAMMPS log.
 
 ``read_lammps_log(path)`` returns a :class:`LammpsLog` — ``header``, one
 :class:`LammpsRun` per ``run`` (``thermo["Step"]`` is a float64 column),

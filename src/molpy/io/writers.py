@@ -29,7 +29,7 @@ def write_lammps_data(
 ) -> None:
     """Write a Frame to a LAMMPS data file (structure only).
 
-    Structure / topology / Masses / type labels go through molrs after the
+    Structure / topology / Masses / type labels go through the native core after the
     writer stamps ``type_id`` from Frame columns. Force-field ``* Coeffs`` are
     a separate step — use :func:`write_lammps_data_coeffs`.
 
@@ -58,7 +58,7 @@ def write_lammps_data_coeffs(
 ) -> None:
     """Insert ``* Coeffs`` into an existing LAMMPS data file.
 
-    Type ids come from the Frame; form map and units conversion live in molrs.
+    Type ids come from the Frame; form map and units conversion live in the native core.
     Typical composition::
 
         ff.map_type(frame)
@@ -71,28 +71,28 @@ def write_lammps_data_coeffs(
 
 
 def write_pdb(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a PDB file (molrs; canonical columns)."""
+    """Write a Frame to a PDB file (native; canonical columns)."""
     from .data.pdb import PDBWriter
 
     PDBWriter(Path(file)).write(frame)
 
 
 def write_gro(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a GROMACS GRO file (molrs)."""
+    """Write a Frame to a GROMACS GRO file (native)."""
     import molrs.io
 
     molrs.io.write_gro(str(file), frame)
 
 
 def write_xyz(file: PathLike, frame: Any) -> None:
-    """Write a Frame to an XYZ file (molrs)."""
+    """Write a Frame to an XYZ file (native)."""
     import molrs.io
 
     molrs.io.write_xyz(str(file), frame)
 
 
 def write_mol2(file: PathLike, frame: Any) -> None:
-    """Write a Frame to a Tripos MOL2 file (molrs)."""
+    """Write a Frame to a Tripos MOL2 file (native)."""
     from .data.mol2 import Mol2Writer
 
     Mol2Writer(Path(file)).write(frame)
@@ -227,7 +227,7 @@ def write_lammps_forcefield(
             artifacts from region parameterisation) does not emit a coeff for a
             type absent from the data file's labelmap (which LAMMPS rejects).
         units: LAMMPS ``units`` style for the written include (``real``,
-            ``metal``, or ``lj``). Conversion goes through molrs's lj hub.
+            ``metal``, or ``lj``). Conversion goes through the native core's lj hub.
     """
     from .forcefield.lammps import LAMMPSForceFieldWriter
 
@@ -246,7 +246,7 @@ def write_lammps_forcefield(
 def write_lammps_trajectory(
     file: PathLike, frames: list, atom_style: str = "full"
 ) -> None:
-    """Write frames to a LAMMPS dump trajectory (molrs).
+    """Write frames to a LAMMPS dump trajectory (native).
 
     Each frame must have ``box``. Optional ``frame.meta['timestep']`` is written
     as ITEM: TIMESTEP.
@@ -254,7 +254,7 @@ def write_lammps_trajectory(
     Args:
         file: Output file path.
         frames: Sequence of Frame objects.
-        atom_style: Accepted for API parity; ignored by molrs (columns from frame).
+        atom_style: Accepted for API parity; ignored by the native core (columns from frame).
     """
     from .trajectory.lammps import LammpsTrajectoryWriter
 
@@ -264,9 +264,9 @@ def write_lammps_trajectory(
 
 
 def write_lammps_dump_local(file: PathLike, frames: list) -> None:
-    """Write LAMMPS dump local (OVITO Load trajectory bonds) via molrs.
+    """Write LAMMPS dump local (OVITO Load trajectory bonds) natively.
 
-    Same door as :func:`molrs.io.write_lammps_dump_local`.
+    Same door as the native ``write_lammps_dump_local``.
     """
     from .trajectory.lammps import LammpsDumpLocalWriter
 
@@ -293,7 +293,7 @@ def write_xyz_trajectory(file: PathLike, frames: list) -> None:
 def write_trr(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS TRR trajectory (single precision).
 
-    Thin delegation to the native molrs writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native the native core writer. Each frame needs ``x``/``y``/
     ``z`` (nm); optional ``vx``/``vy``/``vz`` and ``fx``/``fy``/``fz`` are
     written when present.
 
@@ -309,7 +309,7 @@ def write_trr(file: PathLike, frames: list) -> None:
 def write_xtc(file: PathLike, frames: list) -> None:
     """Write frames to a GROMACS XTC (compressed) trajectory.
 
-    Thin delegation to the native molrs writer. Each frame needs ``x``/``y``/
+    Thin delegation to the native the native core writer. Each frame needs ``x``/``y``/
     ``z`` (nm); quantization precision comes from ``frame.meta['precision']``
     when present, else 1000 (0.001 nm).
 
@@ -323,7 +323,7 @@ def write_xtc(file: PathLike, frames: list) -> None:
 
 
 def write_dcd_trajectory(file: PathLike, frames: list) -> None:
-    """Write frames to a NAMD-compatible DCD trajectory (molrs).
+    """Write frames to a NAMD-compatible DCD trajectory (native).
 
     Args:
         file: Output ``.dcd`` path.
@@ -335,7 +335,7 @@ def write_dcd_trajectory(file: PathLike, frames: list) -> None:
 
 
 def write_cube(file: PathLike, frame: Any) -> None:
-    """Write a frame grid block to a Gaussian Cube file (molrs)."""
+    """Write a frame grid block to a Gaussian Cube file (native)."""
     import molrs.io
 
     molrs.io.write_cube(str(file), frame)

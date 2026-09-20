@@ -1,7 +1,7 @@
-"""LAMMPS dump trajectory write — molrs-backed.
+"""LAMMPS dump trajectory write — native-backed.
 
 Incremental :meth:`write_frame` buffers frames; :meth:`close` flushes via
-:func:`molrs.io.write_lammps_traj` / :func:`molrs.io.write_lammps_dump_local`
+the native ``write_lammps_traj`` / the native ``write_lammps_dump_local``
 (requires each frame to carry ``box``).
 """
 
@@ -17,7 +17,7 @@ from .base import TrajectoryWriter
 
 
 class LammpsTrajectoryWriter(TrajectoryWriter):
-    """Write a LAMMPS dump custom / atom trajectory (molrs)."""
+    """Write a LAMMPS dump custom / atom trajectory (native)."""
 
     def __init__(self, fpath: str | Path, atom_style: str = "full") -> None:
         super().__init__(fpath)
@@ -30,7 +30,7 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
     def write_frame(self, frame: Frame, timestep: int | None = None) -> None:
         if frame.box is None:
             raise ValueError(
-                "LAMMPS trajectory write requires frame.box (molrs needs a simbox)"
+                "LAMMPS trajectory write requires frame.box (the native core needs a simbox)"
             )
         if timestep is not None:
             frame.meta["timestep"] = int(timestep)
@@ -51,7 +51,7 @@ class LammpsTrajectoryWriter(TrajectoryWriter):
 
 
 class LammpsDumpLocalWriter(TrajectoryWriter):
-    """Write LAMMPS dump local (OVITO Load trajectory bonds) via molrs."""
+    """Write LAMMPS dump local (OVITO Load trajectory bonds) natively."""
 
     def __init__(self, fpath: str | Path) -> None:
         super().__init__(fpath)
@@ -63,7 +63,7 @@ class LammpsDumpLocalWriter(TrajectoryWriter):
     def write_frame(self, frame: Frame, timestep: int | None = None) -> None:
         if frame.box is None:
             raise ValueError(
-                "LAMMPS dump local write requires frame.box (molrs needs a simbox)"
+                "LAMMPS dump local write requires frame.box (the native core needs a simbox)"
             )
         if timestep is not None:
             frame.meta["timestep"] = int(timestep)

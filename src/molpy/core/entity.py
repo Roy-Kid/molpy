@@ -1,6 +1,6 @@
 from typing import Any
 
-"""Identity exports for the molrs-owned live graph view layer.
+"""Identity exports for the native-owned live graph view layer.
 
 Molrs exposes NodeRef / RelationRef / Refs only. MolPy keeps Entity / Link /
 Entities as **local** domain names (single definition site here).
@@ -26,7 +26,7 @@ __all__ = [
 
 
 class NotPublic:
-    """Class attribute that hides a native molrs builder behind its ``def_*`` door.
+    """Class attribute that hides a native the native core builder behind its ``def_*`` door.
 
     Reading the attribute raises ``AttributeError`` naming the public method;
     every other attribute lookup on the class is untouched.

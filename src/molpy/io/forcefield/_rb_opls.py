@@ -2,7 +2,7 @@
 
 Pure-Python format helper used by the XML/LAMMPS force-field I/O. This is an
 I/O-format concern (translating GROMACS RB coefficients to LAMMPS ``opls``
-``k1-k4``), not a force-field kernel — the kernels themselves live in molrs.
+``k1-k4``), not a force-field kernel — the kernels themselves live in the native core.
 """
 
 from __future__ import annotations

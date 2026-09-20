@@ -1,6 +1,6 @@
 """Chemical perception, returning molpy graphs.
 
-:class:`molrs.perceive.Perceive` is the owner of every perception step — rings,
+:class:`~molpy.core.perceive.Perceive` is the owner of every perception step — rings,
 aromaticity, hydrogens, stereo, rotatable bonds, bond types, equivalence
 classes — as a builder: graph in, graph out, nothing mutated. molpy adds one
 thing and only one: the graph that comes back is a molpy
@@ -22,7 +22,7 @@ __all__ = ["Perceive"]
 
 
 class Perceive(molrs.perceive.Perceive):
-    """molrs' perception builder, handing back molpy graphs.
+    """the native core's perception builder, handing back molpy graphs.
 
     Non-mutating throughout: each method returns a new graph and leaves its
     argument untouched.

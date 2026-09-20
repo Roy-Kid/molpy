@@ -2,7 +2,7 @@
 
 Core data structures (``Atom``, ``ForceField``, ``Frame``, …) are imported
 eagerly and exposed at the package root — users write ``import molpy as mp``
-then ``mp.Frame`` (never ``molpy.core.Frame`` or ``molrs.Frame``). Heavier
+then ``mp.Frame`` (never ``molpy.core.Frame`` or the engine's ``Frame``). Heavier
 subpackages (``io``, ``engine``, ``parser``, …) load lazily on first attribute
 access (PEP 562).
 """

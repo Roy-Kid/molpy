@@ -1,4 +1,4 @@
-"""Distance-based clustering — molrs-backed.
+"""Distance-based clustering — native-backed.
 
 ``Cluster`` takes (frames, nlists) or (frames, keys=...) and returns one
 ``ClusterResult`` per frame. ``ClusterCenters`` takes (frames, clusters)

@@ -1,7 +1,7 @@
-"""PDB file I/O — molrs-backed.
+"""PDB file I/O — native-backed.
 
-Read: :func:`molrs.io.read_pdb` plus undirected CONECT de-duplication.
-Write: :func:`molrs.io.write_pdb` on **canonical** columns. Thin prep only:
+Read: the native ``read_pdb`` plus undirected CONECT de-duplication.
+Write: the native ``write_pdb`` on **canonical** columns. Thin prep only:
 inject ``element`` from ``frame.meta['elements']`` when the column is absent.
 """
 
@@ -18,7 +18,7 @@ from .base import DataReader, DataWriter
 
 
 def _dedup_conect_bonds(frame: Frame) -> Frame:
-    """Keep one undirected bond per CONECT pair (molrs emits both directions)."""
+    """Keep one undirected bond per CONECT pair (the native core emits both directions)."""
     if "bonds" not in frame:
         return frame
     bonds = frame["bonds"]
@@ -70,7 +70,7 @@ def _ensure_element_column(frame: Frame) -> Frame:
 
 
 class PDBReader(DataReader):
-    """Read a PDB via molrs (first MODEL; use :func:`read_pdb_trajectory` for all)."""
+    """Read a PDB natively (first MODEL; use :func:`read_pdb_trajectory` for all)."""
 
     def __init__(self, file: str | Path, **kwargs: object) -> None:
         super().__init__(Path(file), **kwargs)
@@ -81,7 +81,7 @@ class PDBReader(DataReader):
 
 
 class PDBWriter(DataWriter):
-    """Write a PDB via molrs (canonical columns)."""
+    """Write a PDB natively (canonical columns)."""
 
     def __init__(self, path: str | Path) -> None:
         super().__init__(path=Path(path))

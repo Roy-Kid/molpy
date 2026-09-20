@@ -1,14 +1,14 @@
 """CL&P ionic-liquid force-field typifier.
 
-CL&P stays in molpy (OPLS-AA moved to molrs). It is an OPLS-AA *overlay*: the
+CL&P stays in molpy (OPLS-AA moved to the native core). It is an OPLS-AA *overlay*: the
 built-in force field is ``oplsaa.xml`` with ``clp.xml`` layered on top (layer 1),
 so CL&P atom types (imidazolium ring, alkyl chain, and the BF4/PF6/NTf2/FSI/dca
 anions) override the OPLS base while OPLS remains the fallback.
 
-Atom typing itself is SMARTS-based and that matcher is owned by molrs, so the
-only thing this typifier's ``match`` does is ask molrs for the atom types and
+Atom typing itself is SMARTS-based and that matcher is owned by the native core, so the
+only thing this typifier's ``match`` does is ask the native core for the atom types and
 hand them to :class:`~molpy.typifier.forcefield.ForceFieldParams` — exactly the
-"SMARTS owned by molrs, CL&P parameters stay a molpy overlay" split.
+"SMARTS owned by the native core, CL&P parameters stay a molpy overlay" split.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 @lru_cache(maxsize=1)
 def _clp_molrs_typifier() -> OPLSAATypifier:
-    """Shared, stateless molrs SMARTS typifier over the CL&P overlay (compiling
+    """Shared, stateless the native core SMARTS typifier over the CL&P overlay (compiling
     the SMARTS engine once instead of per :class:`ClpTypifier` construction)."""
     # strict=False so molrs's own bonded matching never errors — only the
     # atom-level type/class it assigns via the CL&P SMARTS defs is harvested.
@@ -46,7 +46,7 @@ def _clp_molrs_typifier() -> OPLSAATypifier:
 
 @lru_cache(maxsize=1)
 def _load_clp_forcefield() -> ForceField:
-    """Parse ``oplsaa.xml`` + ``clp.xml`` once via molrs (OPLS unit path + merge)."""
+    """Parse ``oplsaa.xml`` + ``clp.xml`` once natively (OPLS unit path + merge)."""
     from molpy.data import get_forcefield_path
     from molpy.io.forcefield.xml import read_xml_forcefield
 
@@ -62,7 +62,7 @@ def _default_clp_params(strict: bool) -> ForceFieldParams:
 
 
 class ClpTypifier(Typifier[Atomistic]):
-    """CL&P ionic-liquid typifier — molrs SMARTS atom typing + molpy parameters.
+    """CL&P ionic-liquid typifier — the native core SMARTS atom typing + molpy parameters.
 
     Args:
         forcefield: The CL&P-over-OPLS overlay; the built-in one by default.
@@ -87,7 +87,7 @@ class ClpTypifier(Typifier[Atomistic]):
         return self._params.match(graph, self._atom_types(graph))
 
     def _atom_types(self, graph: Atomistic) -> list[Mapping[str, Annotation]]:
-        """Ask molrs which CL&P type (and class) each atom carries."""
+        """Ask the native core which CL&P type (and class) each atom carries."""
         typed = self._smarts.typify(graph).to_frame()["atoms"]
         names = typed[fields.TYPE]
         classes = typed["class"] if "class" in typed else [None] * len(names)

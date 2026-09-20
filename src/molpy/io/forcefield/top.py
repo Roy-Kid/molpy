@@ -1,7 +1,7 @@
-"""GROMACS topology force-field I/O (molrs-backed).
+"""GROMACS topology force-field I/O (native-backed).
 
 Reader/writer unit conversion lives in
-:func:`molrs.ff.read_gromacs_top_ff` / :func:`molrs.ff.write_gromacs_top_ff`.
+the native ``read_gromacs_top_ff`` / the native ``write_gromacs_top_ff``.
 Structure-only topology is :mod:`molpy.io.data.top`.
 """
 
@@ -16,8 +16,8 @@ class GromacsTopReader:
     """Read a GROMACS ``.top`` / ``.itp`` into a :class:`~molpy.ForceField`.
 
     Structure tables are handled by :mod:`molpy.io.data.top` /
-    :func:`molrs.io.read_top`. This class owns the force-field half via
-    :func:`molrs.ff.read_gromacs_top_ff` (unit normalization at the boundary).
+    the native ``read_top``. This class owns the force-field half via
+    the native ``read_gromacs_top_ff`` (unit normalization at the boundary).
     """
 
     def __init__(self, file: str | Path, include: bool = False):
@@ -52,7 +52,7 @@ class GromacsTopReader:
 
 
 class GromacsForceFieldWriter:
-    """Write a ForceField to GROMACS ``.top`` / ``.itp`` (via molrs)."""
+    """Write a ForceField to GROMACS ``.top`` / ``.itp`` (natively)."""
 
     def __init__(self, filepath: str | Path, precision: int = 6) -> None:
         self._file = Path(filepath)

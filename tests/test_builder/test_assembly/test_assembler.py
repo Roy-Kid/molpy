@@ -62,7 +62,7 @@ class TestGraphAssembler:
             def typify(self, graph):
                 return graph
 
-        with pytest.raises(TypeError, match="is not a molrs.ff.Typifier"):
+        with pytest.raises(TypeError, match="is not a Typifier"):
             GraphAssembler(
                 mp.Reaction(NO_PLUS_O),
                 typifier=NotATypifier(),  # type: ignore[arg-type]

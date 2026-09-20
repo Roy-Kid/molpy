@@ -1,6 +1,6 @@
-"""Density-field operators — molrs-backed.
+"""Density-field operators — native-backed.
 
-Thin ``Compute`` shells over ``molrs.compute.density.*``, returning the molrs
+Thin ``Compute`` shells over the native ``density`` kernels, returning the the native core
 native results unchanged. ``LocalDensity`` takes ``(frames, nlists)`` (like
 ``RDF``); ``GaussianDensity`` takes ``(frames)`` only.
 

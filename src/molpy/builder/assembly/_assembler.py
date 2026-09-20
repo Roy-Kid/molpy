@@ -75,7 +75,7 @@ class GraphAssembler:
             )
         if typifier is not None and not isinstance(typifier, molrs.ff.Typifier):
             raise TypeError(
-                f"{type(typifier).__name__} is not a molrs.ff.Typifier and "
+                f"{type(typifier).__name__} is not a Typifier and "
                 "cannot compile a local product. There is no whole-graph fallback."
             )
         if typifier is not None and reach is None:
@@ -243,18 +243,29 @@ class GraphAssembler:
         missing = expected - set(touched)
         if missing:
             raise RuntimeError(
-                f"molrs.Reaction.apply omitted forming-bond endpoint(s) "
+                f"Reaction.apply omitted forming-bond endpoint(s) "
                 f"{sorted(missing)} from its touched set; the affected region "
                 "would be incomplete"
             )
 
     @staticmethod
     def _total_charge(graph: Atomistic) -> float | None:
-        """Net charge, or ``None`` when the graph carries no charge column."""
-        charges = [atom.get(fields.CHARGE) for atom in graph.atoms]
-        if all(q is None for q in charges):
+        """Net charge, or ``None`` when no atom carries a charge.
+
+        Atoms without the component contribute nothing; a column read only
+        happens when every atom has one (a hole is never read as zero).
+        """
+        key = fields.CHARGE
+        if key not in graph.columns():
             return None
-        return float(sum(q for q in charges if q is not None))
+        valid = graph.validity(key)
+        if not valid.any():
+            return None
+        if valid.all():
+            return float(graph.column(key).sum())
+        return float(
+            sum(graph.get(h, key) for h, ok in zip(graph.entities(), valid) if ok)
+        )
 
     def _assert_charge_conserved(self, graph: Atomistic, before: float | None) -> None:
         """Deleting a leaving group must not change the net charge.

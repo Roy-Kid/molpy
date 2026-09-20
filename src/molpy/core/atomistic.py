@@ -1,7 +1,7 @@
-"""All-atom molecular structure as a handle-view over a molrs ``Atomistic``.
+"""All-atom molecular structure as a handle-view over a native ``Atomistic``.
 
-``Atomistic(_GraphViews, molrs.Atomistic)`` IS a molrs world — it is accepted
-directly by every ``molrs.*`` system free function (no ``.to_molrs()`` bridge).
+``Atomistic(_GraphViews, the native core.Atomistic)`` IS a native world — it is accepted
+directly by every native ``system`` free function (no conversion bridge).
 :class:`Atom` / :class:`Bond` / :class:`Angle` / :class:`Dihedral` /
 :class:`Improper` are handle views interned per stable handle.
 """
@@ -46,9 +46,9 @@ __all__ = [
 
 
 class Atomistic(molrs.Atomistic, _GraphViews):
-    """All-atom molecular structure backed by a molrs ``Atomistic`` world.
+    """All-atom molecular structure backed by a native ``Atomistic`` world.
 
-    Note on base order: the pyo3 native ``molrs.Atomistic`` must be the first
+    Note on base order: the pyo3 native ``Atomistic`` must be the first
     base so the extension instance layout is initialised correctly (a pyo3
     ``extends`` class cannot sit behind a plain-Python base). ``_GraphViews``
     contributes only non-conflicting helpers, and the leaf's own methods win in
@@ -107,6 +107,10 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         views (see also :meth:`column` for dense numeric fields).
         """
         key = fields.ELEMENT
+        if key not in self.columns():
+            return [""] * len(self.entities())
+        if self.validity(key).all():
+            return [str(s) for s in self.column(key).tolist()]
         return [str(self.get(h, key) or "") for h in self.entities()]
 
     @property
@@ -307,7 +311,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
     ) -> "Atomistic":
         """Perceive angles/dihedrals/impropers from the bond graph **in place**.
 
-        All three run in the molrs Rust kernel via :meth:`generate_topology`;
+        All three run in the native Rust kernel via :meth:`generate_topology`;
         nothing is enumerated on the Python side. Mutates ``self`` and returns
         it for chaining — matching the core mutation contract (``.copy()`` is
         the explicit opt-in for an independent graph).
@@ -385,7 +389,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         radius only partly reaches is pulled in whole (together with anything
         fused or bridged to it), so the slice never contains a cut small ring.
         Larger rings are cut like any other path — see
-        :meth:`molrs.Atomistic.extract_subgraph` for why the bound is part of
+        :meth:`Atomistic.extract_subgraph` for why the bound is part of
         the claim rather than a tuning knob.
         """
         sub, boundary, _, _ = self._extract_mapped(
@@ -405,7 +409,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         """Induced radius-``radius`` ball plus a region-atom → parent-atom map.
 
         Delegates BFS + materialisation to
-        :meth:`molrs.Atomistic.extract_subgraph`. Returns
+        :meth:`Atomistic.extract_subgraph`. Returns
         ``(subgraph, boundary_atoms, {region_atom: parent_atom},
         {region_atom_handle: hops_from_nearest_center})``.
 
@@ -447,7 +451,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
 
     # ---------- copy / merge / adopt ----------
     def copy(self) -> Self:
-        """Independent deep copy. **Handles are preserved** (molrs clone)."""
+        """Independent deep copy. **Handles are preserved** (native clone)."""
         bare = molrs.Atomistic.copy(self)
         new = type(self)()
         molrs.Atomistic.adopt(new, bare)
@@ -456,7 +460,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         return new
 
     def merge(self, other: "Atomistic") -> Self:
-        """Structural merge of ``other`` into ``self`` (molrs).
+        """Structural merge of ``other`` into ``self`` (native).
 
         Every node of ``other`` is remapped to a fresh handle in ``self``.
         ``other`` is emptied and must not be used afterwards. Cross-graph
@@ -475,9 +479,9 @@ class Atomistic(molrs.Atomistic, _GraphViews):
 
     @staticmethod
     def adopt(graph: molrs.Atomistic) -> "Atomistic":
-        """Zero-copy take ownership of a molrs-produced ``Atomistic`` graph.
+        """Zero-copy take ownership of a native-produced ``Atomistic`` graph.
 
-        Uses the molrs zero-copy ``adopt`` to move ``graph``'s storage into a
+        Uses the native zero-copy ``adopt`` to move ``graph``'s storage into a
         fresh molpy ``Atomistic`` (``graph`` is left empty). Views over the
         adopted nodes/relations are interned lazily on access.
         """
@@ -487,10 +491,10 @@ class Atomistic(molrs.Atomistic, _GraphViews):
 
     @classmethod
     def from_frame(cls, frame: "Frame") -> "Atomistic":
-        """Build a molpy ``Atomistic`` from a :class:`molrs.Frame`.
+        """Build a molpy ``Atomistic`` from a :class:`~molpy.Frame`.
 
-        The inverse of :meth:`to_frame`. molrs' inherited ``from_frame`` returns a
-        bare molrs graph; this override adopts it so the result is a molpy
+        The inverse of :meth:`to_frame`. the native core's inherited ``from_frame`` returns a
+        bare native graph; this override adopts it so the result is a molpy
         ``Atomistic`` — the call site never needs a second ``adopt``.
         """
         return cls.adopt(molrs.Atomistic.from_frame(frame))
@@ -568,7 +572,7 @@ class Atomistic(molrs.Atomistic, _GraphViews):
         """Export to a tabular :class:`Frame` (atoms + bonds/angles/dihedrals/
         impropers blocks).
 
-        Delegates straight to the molrs world's native ``to_frame``: the Rust
+        Delegates straight to the native world's native ``to_frame``: the Rust
         column store already holds every component as a dense, row-aligned
         column, so each block is materialized as numpy with zero Python-side
         conversion. ``atom_fields`` optionally restricts the atoms block columns.

@@ -10,6 +10,7 @@ constructor argument, not a subclass.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -18,12 +19,20 @@ from molpy.core import fields
 from molrs import Element
 
 if TYPE_CHECKING:
-    from molpy.core.atomistic import Atom, Atomistic
+    from molpy.core.atomistic import Atomistic
 
 #: Extra separation (Å) beyond the summed covalent radii, so the two components
 #: start apart rather than exactly touching. An initial guess, converged by the
 #: geometry optimisation that follows.
 _BOND_BUFFER = 0.0
+
+
+@dataclass(frozen=True)
+class _Site:
+    """A bond endpoint as the placer sees it: its row and its covalent radius."""
+
+    row: int
+    radius: float
 
 
 class Placer(ABC):
@@ -68,50 +77,72 @@ class ResiduePlacer(Placer):
         if len(residues) < 2:
             return
         edges = self._residue_edges(world, bonds)
+        if not edges:
+            return
+        # One dense read of every coordinate, kept current as residues move; the
+        # three column views write each move straight back into the world.
+        xyz = world.xyz
+        x, y, z = (world.column(k) for k in (fields.X, fields.Y, fields.Z))
         placed: set[int] = set()
 
         for parent, child, parent_site, child_site in self._walk(edges, residues):
             if child in placed or child == parent:
                 continue
-            self._move_residue(
-                residues[child], residues[parent], parent_site, child_site
+            moved = self._move_residue(
+                xyz, residues[child], residues[parent], parent_site, child_site
             )
+            rows = residues[child]
+            xyz[rows] = moved
+            x[rows], y[rows], z[rows] = moved[:, 0], moved[:, 1], moved[:, 2]
             placed.add(child)
 
     # -- residue bookkeeping -------------------------------------------------
 
     @staticmethod
-    def _residues(world: Atomistic) -> dict[int, list[Atom]]:
-        out: dict[int, list[Atom]] = {}
-        for atom in world.atoms:
-            residue = atom.get(fields.RES_ID)
-            if residue is None:
-                continue
-            out.setdefault(int(residue), []).append(atom)
-        return out
+    def _residues(world: Atomistic) -> dict[int, np.ndarray]:
+        """Row indices per residue id; atoms without a residue are never moved."""
+        key = fields.RES_ID
+        if key not in world.columns():
+            return {}
+        valid = world.validity(key)
+        if valid.all():
+            rows = np.arange(valid.size)
+            res = np.asarray(world.column(key), dtype=np.int64)
+        else:
+            rows = np.flatnonzero(valid)
+            handles = world.entities()
+            res = np.array(
+                [int(world.get(handles[r], key)) for r in rows], dtype=np.int64
+            )
+        ids, inverse = np.unique(res, return_inverse=True)
+        order = np.argsort(inverse, kind="stable")
+        bounds = np.searchsorted(inverse[order], np.arange(ids.size + 1))
+        return {
+            int(r): rows[order[bounds[k] : bounds[k + 1]]] for k, r in enumerate(ids)
+        }
 
-    @staticmethod
     def _residue_edges(
-        world: Atomistic, bonds: list[tuple[int, int]]
-    ) -> list[tuple[int, int, Atom, Atom]]:
-        """``(residue_a, residue_b, endpoint_a, endpoint_b)`` per forming bond."""
-        edges: list[tuple[int, int, Atom, Atom]] = []
+        self, world: Atomistic, bonds: list[tuple[int, int]]
+    ) -> list[tuple[int, int, _Site, _Site]]:
+        """``(residue_a, residue_b, site_a, site_b)`` per forming bond."""
+        row_of = {h: i for i, h in enumerate(world.entities())}
+        edges: list[tuple[int, int, _Site, _Site]] = []
         for handle_a, handle_b in bonds:
-            atom_a = world._intern_node(handle_a)
-            atom_b = world._intern_node(handle_b)
-            res_a = atom_a.get(fields.RES_ID)
-            res_b = atom_b.get(fields.RES_ID)
+            res_a = world.get(handle_a, fields.RES_ID)
+            res_b = world.get(handle_b, fields.RES_ID)
             if res_a is None or res_b is None or int(res_a) == int(res_b):
                 continue
-            edges.append((int(res_a), int(res_b), atom_a, atom_b))
+            site_a = _Site(row_of[handle_a], self._radius(world, handle_a))
+            site_b = _Site(row_of[handle_b], self._radius(world, handle_b))
+            edges.append((int(res_a), int(res_b), site_a, site_b))
         return edges
 
     @staticmethod
     def _walk(
-        edges: list[tuple[int, int, Atom, Atom]], residues: dict[int, list[Atom]]
+        edges: list[tuple[int, int, _Site, _Site]], residues: dict[int, np.ndarray]
     ):
         """BFS the residue graph from the lowest id, yielding placement steps."""
-        adjacency: dict[int, list[tuple[int, Atom, Atom]]] = {r: [] for r in residues}
+        adjacency: dict[int, list[tuple[int, _Site, _Site]]] = {r: [] for r in residues}
         for ra, rb, sa, sb in edges:
             adjacency.setdefault(ra, []).append((rb, sa, sb))
             adjacency.setdefault(rb, []).append((ra, sb, sa))
@@ -131,38 +162,28 @@ class ResiduePlacer(Placer):
 
     def _move_residue(
         self,
-        child_atoms: list[Atom],
-        parent_atoms: list[Atom],
-        parent_site: Atom,
-        child_site: Atom,
-    ) -> None:
-        child_coords = self._coords(child_atoms)
-        parent_coords = self._coords(parent_atoms)
-        parent_pos = np.asarray(self._xyz(parent_site), dtype=float)
-        child_pos = np.asarray(self._xyz(child_site), dtype=float)
+        xyz: np.ndarray,
+        child_rows: np.ndarray,
+        parent_rows: np.ndarray,
+        parent_site: _Site,
+        child_site: _Site,
+    ) -> np.ndarray:
+        """New coordinates of ``child_rows`` after the rigid move."""
+        child_coords = xyz[child_rows]
+        parent_coords = xyz[parent_rows]
+        parent_pos = xyz[parent_site.row]
+        child_pos = xyz[child_site.row]
 
         outward = self._outward(parent_pos, parent_coords)
-        target = parent_pos + outward * self._bond_length(parent_site, child_site)
+        bond_length = parent_site.radius + child_site.radius + self._buffer
+        target = parent_pos + outward * bond_length
 
         # Aim the child's own outward direction back at the parent, then slide its
         # site atom onto the target. Rigid: the template's internal geometry is
         # untouched.
         child_outward = self._outward(child_pos, child_coords)
         rotation = self._align(child_outward, -outward)
-        moved = (child_coords - child_pos) @ rotation.T + target
-
-        for atom, position in zip(child_atoms, moved, strict=True):
-            atom[fields.X] = float(position[0])
-            atom[fields.Y] = float(position[1])
-            atom[fields.Z] = float(position[2])
-
-    @classmethod
-    def _coords(cls, atoms: list[Atom]) -> np.ndarray:
-        return np.array([cls._xyz(atom) for atom in atoms], dtype=float)
-
-    @staticmethod
-    def _xyz(atom: Atom) -> tuple[float, float, float]:
-        return (atom[fields.X], atom[fields.Y], atom[fields.Z])
+        return (child_coords - child_pos) @ rotation.T + target
 
     @staticmethod
     def _outward(site_pos: np.ndarray, residue_coords: np.ndarray) -> np.ndarray:
@@ -206,16 +227,13 @@ class ResiduePlacer(Placer):
         perpendicular = np.cross(vector, axis)
         return perpendicular / np.linalg.norm(perpendicular)
 
-    def _bond_length(self, a: Atom, b: Atom) -> float:
-        return self._radius(a) + self._radius(b) + self._buffer
-
     @staticmethod
-    def _radius(atom: Atom) -> float:
+    def _radius(world: Atomistic, handle: int) -> float:
         """Covalent radius (Å). An unknown element raises — never assume carbon."""
-        symbol = atom.get(fields.ELEMENT)
+        symbol = world.get(handle, fields.ELEMENT)
         if not symbol:
             raise KeyError(
-                f"atom {atom.handle} has no {fields.ELEMENT}; placement needs "
+                f"atom {handle} has no {fields.ELEMENT}; placement needs "
                 "the element to look up a covalent radius (it may not be guessed)"
             )
         return Element(str(symbol)).covalent

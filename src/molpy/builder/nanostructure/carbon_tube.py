@@ -1,4 +1,4 @@
-"""Carbon nanotube builder — thin facade over :class:`molrs.builder.CarbonTubeBuilder`."""
+"""Carbon nanotube builder — thin facade over ``CarbonTubeBuilder``."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from molpy.typifier.forcefield import ForceFieldParams
 
 
 class CarbonTubeBuilder:
-    """Exact single-wall carbon nanotube via molrs.
+    """Exact single-wall carbon nanotube natively.
 
     Lattice, seam, coordinates, bonds, and cell are built in Rust. This class
     only validates constructor kwargs and applies MolPy finalization.
@@ -82,7 +82,7 @@ class CarbonTubeBuilder:
         return StructureFinalizer(Finalization(finalize), bonded).apply(graph)
 
     def cell(self, *, vacuum: float = 10.0) -> Box:
-        """Return the molrs-generated simulation cell as a MolPy box."""
+        """Return the native-generated simulation cell as a MolPy box."""
         vacuum = float(vacuum)
         if not isfinite(vacuum) or vacuum < 0.0:
             raise ValueError("vacuum must be finite and non-negative")
