@@ -216,8 +216,8 @@ def write_lammps_forcefield(
         file: Output file path
         forcefield: ForceField object to write
         precision: Number of decimal places for floating point values
-        skip_pair_style: If True, omit the ``pair_style`` line so the calling
-            LAMMPS input script can set it independently (e.g. to switch between
+        skip_pair_style: If True, omit ``pair_style`` and ``special_bonds`` so the calling
+            LAMMPS input script can set them independently (e.g. to switch between
             ``lj/cut/coul/cut`` for minimisation and ``lj/cut/coul/long`` for MD).
         skip_units: If True, omit the ``units`` line so the include can follow
             ``units`` already set in the input script.
@@ -258,6 +258,18 @@ def write_lammps_trajectory(
     from .trajectory.lammps import LammpsTrajectoryWriter
 
     with LammpsTrajectoryWriter(Path(file), atom_style) as writer:
+        for frame in frames:
+            writer.write_frame(frame)
+
+
+def write_lammps_dump_local(file: PathLike, frames: list) -> None:
+    """Write LAMMPS dump local (OVITO Load trajectory bonds) via molrs.
+
+    Same door as :func:`molrs.io.write_lammps_dump_local`.
+    """
+    from .trajectory.lammps import LammpsDumpLocalWriter
+
+    with LammpsDumpLocalWriter(Path(file)) as writer:
         for frame in frames:
             writer.write_frame(frame)
 
@@ -316,9 +328,9 @@ def write_dcd_trajectory(file: PathLike, frames: list) -> None:
         file: Output ``.dcd`` path.
         frames: Frames with equal atom counts; box presence must be consistent.
     """
-    import molrs.io.raw as raw
+    import molrs.io
 
-    raw.write_dcd(str(file), list(frames))
+    molrs.io.write_dcd(str(file), list(frames))
 
 
 def write_cube(file: PathLike, frame: Any) -> None:

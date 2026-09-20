@@ -12,6 +12,7 @@ _SUNK = {
     "data/pdb.py": "molrs.io",
     "data/xyz.py": "molrs.io",
     "data/gro.py": "molrs.io",
+    "trajectory/lammps.py": "molrs.io",
 }
 
 # molpy-native extensions: molrs does not provide these on the Python surface.

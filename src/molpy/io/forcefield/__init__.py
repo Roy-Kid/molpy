@@ -62,7 +62,7 @@ def write_lammps_forcefield(
         path: Destination ``*.ff`` path.
         forcefield: Force field in molrs store units.
         precision: Decimal places for floating coefficients.
-        skip_pair_style: Omit the ``pair_style`` line when True.
+        skip_pair_style: Omit ``pair_style`` and ``special_bonds`` when True.
         skip_units: Omit the ``units`` line when True (include after the input
             script already set ``units``).
         units: LAMMPS ``units`` style for the file (``real``, ``metal``, ``lj``).

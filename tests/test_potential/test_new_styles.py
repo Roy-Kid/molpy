@@ -108,8 +108,8 @@ class TestDihedralStyles:
         astyle = _atom_types(ff)
         c, h, o, n = (astyle.get_type_by_name(x) for x in ("C", "H", "O", "N"))
         style = ff.def_style(DihedralCharmmStyle())
-        dt = style.def_type(c, h, o, n, k=1.0, n=3, d=0.0, w=0.5)
-        assert dt.get("n") == 3
+        dt = style.def_type(c, h, o, n, k=1.0, periodicity=3, phase=0.0, weight=0.5)
+        assert dt.get("periodicity") == 3
         assert dt.name in {t.name for t in style.get_types(DihedralType)}
 
     def test_dihedral_multi_harmonic(self, ff):
@@ -133,8 +133,8 @@ class TestImproperStyles:
         astyle = _atom_types(ff)
         c, h, o, n = (astyle.get_type_by_name(x) for x in ("C", "H", "O", "N"))
         style = ff.def_style(ImproperCvffStyle())
-        it = style.def_type(c, h, o, n, k=1.0, d=-1, n=2)
-        assert it.get("d") == -1
+        it = style.def_type(c, h, o, n, k=1.0, sign=-1, periodicity=2)
+        assert it.get("sign") == -1
 
 
 class TestPairStyles:
@@ -142,8 +142,8 @@ class TestPairStyles:
         astyle = _atom_types(ff)
         c, h = astyle.get_type_by_name("C"), astyle.get_type_by_name("H")
         style = ff.def_style(PairBuckStyle())
-        pt = style.def_type(c, h, A=1000.0, rho=0.3, C=50.0)
-        assert pt.get("A") == 1000.0
+        pt = style.def_type(c, h, a=1000.0, rho=0.3, c=50.0)
+        assert pt.get("a") == 1000.0
         assert pt.name in {t.name for t in style.get_types(PairType)}
 
     def test_pair_morse(self, ff):

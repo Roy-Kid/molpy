@@ -78,9 +78,11 @@ def test_lammps_forcefield_writer_full():
     )
 
     dihedralstyle = ff.def_style(DihedralStyle(name="opls"))
-    # OPLS dihedral coefficients are stored as c1-c4 (RB/OPLS convention).
+    # The OPLS quartet is `k1`..`k4` (spec ff-params-01); the `c1`..`c4`
+    # spelling is a GROMACS RB name the kernel never read, and defaulting each
+    # miss to 0.0 used to zero a whole torsion in silence.
     dihedralstyle.def_type(
-        atomtype_C, atomtype_H, atomtype_C, atomtype_H, c1=0.5, c2=1.0, c3=0.0, c4=0.0
+        atomtype_C, atomtype_H, atomtype_C, atomtype_H, k1=0.5, k2=1.0, k3=0.0, k4=0.0
     )
 
     pairstyle = ff.def_style(PairStyle(name="lj/cut"))
@@ -218,9 +220,10 @@ def test_bonded_coeffs_written_in_lammps_units(tmp_path):
 
     Ground-truth check on every bonded conversion. Params are built in the molrs
     internal convention -- harmonic ``k`` in the ``½k`` form (LAMMPS ``K = k/2``),
-    angles in radians, and a fourier dihedral under the ``k1``/``n1``/``d1``
-    keys the reader uses -- and the writer must invert each: halve the force
-    constant, convert angles to degrees, and keep the dihedral periodicity.
+    angles in radians, and a fourier dihedral under the canonical
+    ``k1``/``periodicity1``/``phase1`` keys (spec ff-params-01) -- and the
+    writer must invert each: halve the force constant, convert angles to
+    degrees, and keep the dihedral periodicity.
     """
     from molpy import AngleStyle, AtomStyle, BondStyle, DihedralStyle
 
@@ -235,7 +238,7 @@ def test_bonded_coeffs_written_in_lammps_units(tmp_path):
         c3, c3, oh, k=153.58, theta0=math.radians(109.66)
     )
     ff.def_style(DihedralStyle(name="fourier")).def_type(
-        c3, c3, oh, ho, k1=0.06, n1=3.0, d1=0.0
+        c3, c3, oh, ho, k1=0.06, periodicity1=3.0, phase1=0.0
     )
 
     out = tmp_path / "bonded.ff"

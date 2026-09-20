@@ -242,9 +242,7 @@ class TestXMLForceFieldReader:
                         or abs(r0 - expected["length"] * 10.0) < 1e-5
                     )
                 if expected["k"] is not None:
-                    k_got = found.params.kwargs.get(
-                        "k0", found.params.kwargs.get("k", 0)
-                    )
+                    k_got = found.params.kwargs.get("k", 0)
                     k_kcal = expected["k"] / (4.184 * 100.0)
                     assert (
                         abs(k_got - expected["k"]) < 1e-3 or abs(k_got - k_kcal) < 1e-2
@@ -364,9 +362,7 @@ class TestXMLForceFieldReader:
                         < 1e-6
                     )
                 if expected["k"] is not None:
-                    k_got = found.params.kwargs.get(
-                        "k0", found.params.kwargs.get("k", 0)
-                    )
+                    k_got = found.params.kwargs.get("k", 0)
                     k_kcal = expected["k"] / 4.184
                     assert (
                         abs(k_got - expected["k"]) < 1e-3 or abs(k_got - k_kcal) < 1e-2
@@ -497,10 +493,8 @@ class TestXMLForceFieldReader:
                         or abs(r0 - expected["length"] * 10.0) < 1e-5
                     )
                 if expected["k"] is not None:
-                    # OpenMM k is kJ/mol/nm²; molrs stores kcal/mol/Å² as k0.
-                    k_got = found.params.kwargs.get(
-                        "k0", found.params.kwargs.get("k", 0)
-                    )
+                    # OpenMM k is kJ/mol/nm²; molrs stores kcal/mol/Å² under `k`.
+                    k_got = found.params.kwargs.get("k", 0)
                     k_kcal = expected["k"] / (4.184 * 100.0)
                     assert (
                         abs(k_got - expected["k"]) < 1e-3 or abs(k_got - k_kcal) < 1e-2
@@ -563,10 +557,8 @@ class TestXMLForceFieldReader:
                         < 1e-6
                     )
                 if expected["k"] is not None:
-                    # OpenMM k is kJ/mol/rad²; molrs stores kcal/mol/rad² as k0.
-                    k_got = found.params.kwargs.get(
-                        "k0", found.params.kwargs.get("k", 0)
-                    )
+                    # OpenMM k is kJ/mol/rad²; molrs stores kcal/mol/rad² under `k`.
+                    k_got = found.params.kwargs.get("k", 0)
                     k_kcal = expected["k"] / 4.184
                     assert (
                         abs(k_got - expected["k"]) < 1e-3 or abs(k_got - k_kcal) < 1e-2

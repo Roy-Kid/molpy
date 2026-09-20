@@ -430,13 +430,13 @@ _PARAM_NAMES: dict[tuple[str, str], list[str]] = {
     ("bond", "harmonic"): ["k", "r0"],
     ("bond", "morse"): ["d0", "alpha", "r0"],
     ("angle", "harmonic"): ["k", "theta0"],
-    ("dihedral", "opls"): ["c1", "c2", "c3", "c4"],
-    ("dihedral", "periodic"): ["k", "n", "phi0"],
-    ("dihedral", "charmm"): ["k", "n", "phi0", "weight"],
+    ("dihedral", "opls"): ["k1", "k2", "k3", "k4"],
+    ("dihedral", "periodic"): ["k", "periodicity", "phase"],
+    ("dihedral", "charmm"): ["k", "periodicity", "phase", "weight"],
     ("dihedral", "multi/harmonic"): ["a1", "a2", "a3", "a4", "a5"],
     ("improper", "harmonic"): ["k", "chi0"],
-    ("improper", "periodic"): ["k", "n", "phi0"],
-    ("improper", "cvff"): ["k", "d", "n"],
+    ("improper", "periodic"): ["k", "periodicity", "phase"],
+    ("improper", "cvff"): ["k", "sign", "periodicity"],
     ("pair", "lj/cut/coul/cut"): ["epsilon", "sigma"],
     ("pair", "lj/cut/coul/long"): ["epsilon", "sigma"],
     ("pair", "buck"): ["a", "rho", "c"],
@@ -448,7 +448,10 @@ _PARAM_NAMES: dict[tuple[str, str], list[str]] = {
 #: radians throughout, and a reader normalizes at its own boundary — exactly as
 #: molrs's own LAMMPS force-field reader does (`readers/lammps.rs`, which calls
 #: `.to_radians()` on `theta0` and every dihedral phase).
-_DEGREE_PARAMS = frozenset({"theta0", "phi0", "chi0"})
+#: ``phase`` joins the reference angles: the canonical torsion phase is in
+#: radians internally and degrees at a moltemplate boundary, exactly as
+#: ``theta0`` / ``chi0`` are.
+_DEGREE_PARAMS = frozenset({"theta0", "phi0", "chi0", "phase"})
 
 
 def _to_internal_units(params: dict[str, float]) -> dict[str, float]:

@@ -22,9 +22,13 @@ def _format_pair_thole(typ) -> list[float]:
 
 
 def _format_pair_coul_tt(typ) -> list[float]:
-    """Tang−Toennies pair coefficients: b, n, c (LAMMPS ``pair_style coul/tt``)."""
+    """Tang−Toennies pair coefficients (LAMMPS ``pair_style coul/tt`` b, n, c).
+
+    The damping order is ``order`` internally: LAMMPS' positional ``n`` already
+    means a torsion multiplicity elsewhere (spec ff-params-01).
+    """
     kwargs = typ.params.kwargs
-    return [kwargs.get("b", 4.5), kwargs.get("n", 4), kwargs.get("c", 1.0)]
+    return [kwargs.get("b", 4.5), kwargs.get("order", 4), kwargs.get("c", 1.0)]
 
 
 class LammpsForceFieldFormatter(LammpsFieldFormatter, ForceFieldFormatter):
@@ -77,7 +81,7 @@ class LAMMPSForceFieldWriter:
             angle_types: Optional angle type-name whitelist.
             dihedral_types: Optional dihedral type-name whitelist.
             improper_types: Optional improper type-name whitelist.
-            skip_pair_style: If True, omit the ``pair_style`` line.
+            skip_pair_style: If True, omit ``pair_style`` and ``special_bonds``.
             skip_units: If True, omit the ``units`` line.
             units: Override constructor ``units`` for this write.
         """

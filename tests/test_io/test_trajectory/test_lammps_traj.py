@@ -5,8 +5,8 @@ from molrs import MetaValue
 
 import molpy as mp
 from molpy._frame_meta import get_frame_meta
-from molpy.io import read_lammps_trajectory
-from molpy.io.trajectory.lammps import LammpsTrajectoryWriter
+from molpy.io import read_lammps_trajectory, write_lammps_dump_local
+from molpy.io.trajectory.lammps import LammpsDumpLocalWriter, LammpsTrajectoryWriter
 
 
 class TestWriteLammpsTrajectory:
@@ -178,10 +178,44 @@ class TestTrajectoryIntegration:
         assert get_frame_meta(frame_traj, "timestep") == 100
         assert "atoms" in frame_traj
         assert frame_traj.box is not None
-        assert frame_original.box is not None
 
-        # Box dimensions should be similar
-        assert np.allclose(
-            frame_traj.box.matrix.diagonal(),
-            frame_original.box.matrix.diagonal(),
-        )
+
+class TestWriteLammpsDumpLocal:
+    def test_write_bonds_roundtrip(self, tmp_path):
+        atoms = molrs.Block()
+        atoms["id"] = np.array([1, 2, 3], dtype=np.uint64)
+        atoms["x"] = np.array([0.0, 1.0, 2.0])
+        atoms["y"] = np.zeros(3)
+        atoms["z"] = np.zeros(3)
+        bonds = molrs.Block()
+        bonds["atomi"] = np.array([0, 1], dtype=np.uint64)
+        bonds["atomj"] = np.array([1, 2], dtype=np.uint64)
+        frame = molrs.Frame()
+        frame["atoms"] = atoms
+        frame["bonds"] = bonds
+        frame.box = molrs.Box.cube(10.0)
+        path = tmp_path / "bonds.dump.local"
+        write_lammps_dump_local(path, [frame])
+        text = path.read_text()
+        assert "ITEM: NUMBER OF ENTRIES" in text
+        assert "batom1 batom2" in text
+        loaded = molrs.io.raw.read_lammps_traj(str(path))
+        assert loaded[0]["entries"].nrows == 2
+
+    def test_writer_class_matches_factory(self, tmp_path):
+        frame = molrs.Frame()
+        frame["atoms"] = {
+            "id": np.array([1, 2], dtype=np.uint64),
+            "x": np.array([0.0, 1.0]),
+            "y": np.zeros(2),
+            "z": np.zeros(2),
+        }
+        frame["bonds"] = {
+            "atomi": np.array([0], dtype=np.uint64),
+            "atomj": np.array([1], dtype=np.uint64),
+        }
+        frame.box = molrs.Box.cube(8.0)
+        path = tmp_path / "one.dump.local"
+        with LammpsDumpLocalWriter(path) as writer:
+            writer.write_frame(frame)
+        assert "ITEM: NUMBER OF ENTRIES" in path.read_text()

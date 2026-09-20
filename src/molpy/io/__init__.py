@@ -86,6 +86,7 @@ from .trajectory.base import (
 
 # 3. Trajectory Readers and Writers
 from .trajectory.lammps import (
+    LammpsDumpLocalWriter,
     LammpsTrajectoryWriter,
 )
 from .trajectory.xyz import XYZTrajectoryWriter
@@ -116,6 +117,7 @@ from .writers import (
     write_lammps_bond_react_system,
     write_lammps_system,
     write_lammps_trajectory,
+    write_lammps_dump_local,
     write_mol2,
     write_pdb,
     write_top,
@@ -173,6 +175,7 @@ __all__ = [
     "write_lammps_bond_react_system",
     "write_lammps_system",
     "write_lammps_trajectory",
+    "write_lammps_dump_local",
     "write_mol2",
     "write_pdb",
     "write_top",
@@ -222,6 +225,7 @@ __all__ = [
     "BaseTrajectoryReader",
     # Trajectory Writers
     "TrajectoryWriter",
+    "LammpsDumpLocalWriter",
     "LammpsTrajectoryWriter",
     "XYZTrajectoryWriter",
     # Log Readers

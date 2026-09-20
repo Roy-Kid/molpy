@@ -20,9 +20,11 @@ with identical atom/bond/angle/dihedral/improper counts.
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 from molpy.core.atomistic import Atomistic
+from molpy.parser.moltemplate.builder import _DEGREE_PARAMS, _PARAM_NAMES
 from molpy.core.forcefield import (
     AngleStyle,
     AngleType,
@@ -150,21 +152,21 @@ def _render_in_settings(ff: ForceField) -> list[str]:
             any_line = True
     for style in ff.get_styles(BondStyle):
         for bt in style.get_types(BondType):
-            params = _param_tokens(bt)
+            params = _param_tokens(bt, "bond", style.name)
             if params is None:
                 continue
             lines.append(f"    bond_coeff @bond:{bt.name} {style.name} {params}")
             any_line = True
     for style in ff.get_styles(AngleStyle):
         for at in style.get_types(AngleType):
-            params = _param_tokens(at)
+            params = _param_tokens(at, "angle", style.name)
             if params is None:
                 continue
             lines.append(f"    angle_coeff @angle:{at.name} {style.name} {params}")
             any_line = True
     for style in ff.get_styles(DihedralStyle):
         for dt in style.get_types(DihedralType):
-            params = _param_tokens(dt)
+            params = _param_tokens(dt, "dihedral", style.name)
             if params is None:
                 continue
             lines.append(
@@ -173,7 +175,7 @@ def _render_in_settings(ff: ForceField) -> list[str]:
             any_line = True
     for style in ff.get_styles(ImproperStyle):
         for it in style.get_types(ImproperType):
-            params = _param_tokens(it)
+            params = _param_tokens(it, "improper", style.name)
             if params is None:
                 continue
             lines.append(
@@ -196,8 +198,40 @@ def _pair_coeff_tokens(pt) -> str | None:
     return f"{_fmt(eps)} {_fmt(sig)}"
 
 
-def _param_tokens(t) -> str | None:
-    """Render a ``Type`` object's numeric parameters in a canonical order."""
+def _to_file_units(name: str, value: float) -> float:
+    """Undo the reader's normalization: reference angles are degrees in a file."""
+    return math.degrees(value) if name in _DEGREE_PARAMS else value
+
+
+def _param_tokens(t, kind: str, style_name: str) -> str | None:
+    """Render a ``Type`` object's numeric parameters in ``*_coeff`` order.
+
+    A ``*_coeff`` line is positional, so the order is the reader's own
+    ``_PARAM_NAMES`` table read backwards — one table, both directions, so a
+    rename cannot desynchronize them. The canonical names carry no positional
+    information of their own (``sign`` precedes ``periodicity`` for ``cvff`` and
+    follows it nowhere else), which is exactly why guessing an order from the
+    key names is not safe. Styles with no table fall back to the historical
+    best-effort ordering.
+    """
+    kwargs = dict(getattr(t.params, "kwargs", {}))
+    names = _PARAM_NAMES.get((kind, style_name))
+    if names is not None:
+        values = [kwargs.get(n) for n in names]
+        missing = [n for n, v in zip(names, values, strict=True) if v is None]
+        if missing:
+            # A positional line with a hole is not a shorter line, it is a wrong
+            # one: every later value shifts into the missing slot's meaning.
+            raise ValueError(
+                f"{kind}_coeff for style '{style_name}' type "
+                f"'{getattr(t, 'name', '?')}' is missing {missing}; "
+                f"'{style_name}' takes {list(names)} in that order"
+            )
+        return " ".join(
+            _fmt(_to_file_units(n, float(v)))
+            for n, v in zip(names, values, strict=True)
+        )
+
     preferred_order = (
         "k",
         "r0",
@@ -211,13 +245,13 @@ def _param_tokens(t) -> str | None:
         "k2",
         "k3",
         "k4",
-        "d",
-        "n",
+        "periodicity",
+        "phase",
+        "sign",
         "weight",
         "epsilon",
         "sigma",
     )
-    kwargs = dict(getattr(t.params, "kwargs", {}))
     remaining = set(kwargs) - {"name", "itom", "jtom", "ktom", "ltom"}
     order: list[str] = []
     for k in preferred_order:
@@ -231,7 +265,7 @@ def _param_tokens(t) -> str | None:
         if v is None:
             continue
         try:
-            parts.append(_fmt(float(v)))
+            parts.append(_fmt(_to_file_units(k, float(v))))
         except (TypeError, ValueError):
             continue
     return " ".join(parts) if parts else None
