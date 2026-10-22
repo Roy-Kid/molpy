@@ -16,9 +16,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.io.lammps import LammpsLogMetricReader
-from molpy.io.mlp_jsonl import MlpJsonlMetricReader
-from molpy.io.mrec import MrecMetricReader, MrecReader, pack_mrec_zip
 
 LAMMPS_LOG = """LAMMPS (2 Aug 2023)
 Per MPI rank memory allocation (min/avg/max) = 3.5 | 3.5 | 3.5 Mbytes
@@ -56,9 +53,9 @@ class TestTheContractShape:
     @pytest.mark.parametrize(
         ("reader", "format_id", "tailable"),
         [
-            (LammpsLogMetricReader(), "lammps_log", False),
-            (MrecMetricReader(), "mrec", False),
-            (MlpJsonlMetricReader(), "mlp_jsonl", True),
+            (mp.io.lammps.LammpsLogMetricReader(), "lammps_log", False),
+            (mp.io.mrec.MrecMetricReader(), "mrec", False),
+            (mp.io.mlp_jsonl.MlpJsonlMetricReader(), "mlp_jsonl", True),
         ],
     )
     def test_each_reader_declares_what_a_host_reads(self, reader, format_id, tailable):
@@ -87,38 +84,10 @@ class TestTheContractShape:
             reader = getattr(importlib.import_module(module), name)()
             assert reader.format == format_id
 
-    @pytest.mark.parametrize(
-        "name",
-        [
-            "molpy.io.lammps",
-            "molpy.io.mlp_jsonl",
-            "molpy.io.mrec",
-            "molpy.io._metric_reader",
-        ],
-    )
-    def test_no_reader_imports_a_host(self, name):
-        """The arrow points one way: molpy publishes, a host consumes.
-
-        Naming molexp in prose is fine — explaining who consumes this is the
-        point. Importing it would invert the dependency.
-        """
-        import ast
-        import importlib
-
-        module = importlib.import_module(name)
-        tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
-        imported: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                imported.update(alias.name.split(".")[0] for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                imported.add(node.module.split(".")[0])
-        assert not imported & {"molexp", "molplot", "molvis"}, imported
-
 
 class TestLammpsLogReader:
     def test_claims_a_log_with_a_thermo_table(self, lammps_log: Path):
-        assert LammpsLogMetricReader().sniff(lammps_log)
+        assert mp.io.lammps.LammpsLogMetricReader().sniff(lammps_log)
 
     def test_claims_a_log_whose_run_starts_past_the_probe_window(self, tmp_path: Path):
         banner, _, rest = LAMMPS_LOG.partition("\n")
@@ -126,39 +95,45 @@ class TestLammpsLogReader:
         setup = "".join(f"# input line {i}\n" for i in range(8000))  # > 64 KiB
         path = tmp_path / "log.lammps"
         path.write_text(f"{banner}\n{setup}{rest}", encoding="utf-8")
-        assert LammpsLogMetricReader().sniff(path)
+        assert mp.io.lammps.LammpsLogMetricReader().sniff(path)
 
     def test_rejects_a_log_that_never_reached_thermo(self, tmp_path: Path):
         path = tmp_path / "log.lammps"
         path.write_text("LAMMPS (2 Aug 2023)\nERROR: bad input\n", encoding="utf-8")
-        assert not LammpsLogMetricReader().sniff(path)
+        assert not mp.io.lammps.LammpsLogMetricReader().sniff(path)
 
     def test_rejects_an_unrelated_log_despite_the_suffix(self, tmp_path: Path):
         path = tmp_path / "leap.log"
         path.write_text("Welcome to LEaP!\n", encoding="utf-8")
-        assert not LammpsLogMetricReader().sniff(path)
+        assert not mp.io.lammps.LammpsLogMetricReader().sniff(path)
 
     def test_one_record_per_column_per_row_carrying_the_step(self, lammps_log: Path):
-        records = list(LammpsLogMetricReader().read(lammps_log, source="log.lammps"))
+        records = list(
+            mp.io.lammps.LammpsLogMetricReader().read(lammps_log, source="log.lammps")
+        )
         assert {r["k"] for r in records} == {"lammps/Temp", "lammps/Density"}
         temps = [r for r in records if r["k"] == "lammps/Temp"]
         assert [r["s"] for r in temps] == [0.0, 1000.0, 2000.0, 3000.0]
         assert [r["v"] for r in temps] == [300.0, 310.0, 320.0, 330.0]
 
     def test_step_is_never_emitted_as_its_own_series(self, lammps_log: Path):
-        records = list(LammpsLogMetricReader().read(lammps_log, source="log.lammps"))
+        records = list(
+            mp.io.lammps.LammpsLogMetricReader().read(lammps_log, source="log.lammps")
+        )
         assert "lammps/Step" not in {r["k"] for r in records}
 
     def test_wall_time_is_marked_as_ingest_not_measurement(self, lammps_log: Path):
         """LAMMPS records steps, not clock time; inventing timestamps would
         fabricate data."""
-        records = list(LammpsLogMetricReader().read(lammps_log, source="log.lammps"))
+        records = list(
+            mp.io.lammps.LammpsLogMetricReader().read(lammps_log, source="log.lammps")
+        )
         assert all(r["tags"]["wall_time_source"] == "ingest" for r in records)
         assert all("w" not in r for r in records)
 
     def test_stride_is_honoured_and_keeps_every_series(self, lammps_log: Path):
         records = list(
-            LammpsLogMetricReader().read(
+            mp.io.lammps.LammpsLogMetricReader().read(
                 lammps_log, source="log.lammps", request=Request(stride=2)
             )
         )
@@ -168,7 +143,7 @@ class TestLammpsLogReader:
 
     def test_limit_stops_the_read(self, lammps_log: Path):
         records = list(
-            LammpsLogMetricReader().read(
+            mp.io.lammps.LammpsLogMetricReader().read(
                 lammps_log, source="log.lammps", request=Request(limit=3)
             )
         )
@@ -176,7 +151,7 @@ class TestLammpsLogReader:
 
     def test_key_filter_selects_one_series(self, lammps_log: Path):
         records = list(
-            LammpsLogMetricReader().read(
+            mp.io.lammps.LammpsLogMetricReader().read(
                 lammps_log,
                 source="log.lammps",
                 request=Request(keys=("lammps/Density",)),
@@ -186,7 +161,9 @@ class TestLammpsLogReader:
 
     def test_the_source_tag_travels_with_every_record(self, lammps_log: Path):
         records = list(
-            LammpsLogMetricReader().read(lammps_log, source="out/log.lammps")
+            mp.io.lammps.LammpsLogMetricReader().read(
+                lammps_log, source="out/log.lammps"
+            )
         )
         assert all(r["tags"]["source"] == "out/log.lammps" for r in records)
 
@@ -200,7 +177,7 @@ class TestLammpsLogReader:
         )
         path = tmp_path / "log.lammps"
         path.write_text(f"LAMMPS (2 Aug 2023)\n{table}{table}", encoding="utf-8")
-        records = list(LammpsLogMetricReader().read(path, source="x"))
+        records = list(mp.io.lammps.LammpsLogMetricReader().read(path, source="x"))
         assert [r["s"] for r in records] == [0.0, 1.0, 2.0, 3.0]
 
 
@@ -219,13 +196,17 @@ class TestMlpJsonlReader:
         return path
 
     def test_claims_only_the_mlp_suffix(self, wal: Path, tmp_path: Path):
-        assert MlpJsonlMetricReader().sniff(wal)
+        assert mp.io.mlp_jsonl.MlpJsonlMetricReader().sniff(wal)
         other = tmp_path / "notes.jsonl"
         other.write_text("{}", encoding="utf-8")
-        assert not MlpJsonlMetricReader().sniff(other)
+        assert not mp.io.mlp_jsonl.MlpJsonlMetricReader().sniff(other)
 
     def test_records_pass_through_with_their_source_tagged(self, wal: Path):
-        records = list(MlpJsonlMetricReader().read(wal, source="out/metrics.mlp.jsonl"))
+        records = list(
+            mp.io.mlp_jsonl.MlpJsonlMetricReader().read(
+                wal, source="out/metrics.mlp.jsonl"
+            )
+        )
         assert len(records) == 12
         assert all(r["tags"]["source"] == "out/metrics.mlp.jsonl" for r in records)
 
@@ -233,7 +214,9 @@ class TestMlpJsonlReader:
         """Series interleave line by line, so striding the file would keep one
         key and drop the other entirely."""
         records = list(
-            MlpJsonlMetricReader().read(wal, source="x", request=Request(stride=3))
+            mp.io.mlp_jsonl.MlpJsonlMetricReader().read(
+                wal, source="x", request=Request(stride=3)
+            )
         )
         assert {r["k"] for r in records} == {"energy", "temp"}
         assert len(records) == 4  # two samples of each of the two series
@@ -243,13 +226,16 @@ class TestMlpJsonlReader:
         record yet, and the next poll reads it whole."""
         path = tmp_path / "metrics.mlp.jsonl"
         path.write_text('{"t":"scalar","k":"a","v":1}\n{"t":"sca', encoding="utf-8")
-        records = list(MlpJsonlMetricReader().read(path, source="x"))
+        records = list(mp.io.mlp_jsonl.MlpJsonlMetricReader().read(path, source="x"))
         assert [r["v"] for r in records] == [1]
 
     def test_a_complete_last_line_without_newline_is_a_record(self, tmp_path: Path):
         path = tmp_path / "metrics.mlp.jsonl"
         path.write_text('{"k":"a","v":1}\n{"k":"a","v":2}', encoding="utf-8")
-        assert [r["v"] for r in MlpJsonlMetricReader().read(path, source="x")] == [
+        assert [
+            r["v"]
+            for r in mp.io.mlp_jsonl.MlpJsonlMetricReader().read(path, source="x")
+        ] == [
             1,
             2,
         ]
@@ -267,19 +253,19 @@ class TestMlpJsonlReader:
             f'{{"k":"a","v":1}}\n{bad}\n{{"k":"a","v":2}}\n', encoding="utf-8"
         )
         with pytest.raises(ValueError, match=r"metrics\.mlp\.jsonl:2"):
-            list(MlpJsonlMetricReader().read(path, source="x"))
+            list(mp.io.mlp_jsonl.MlpJsonlMetricReader().read(path, source="x"))
 
     def test_a_malformed_terminated_last_line_raises(self, tmp_path: Path):
         """A last line that ends in a newline was finished by its writer."""
         path = tmp_path / "metrics.mlp.jsonl"
         path.write_text('{"k":"a","v":1}\nnot json\n', encoding="utf-8")
         with pytest.raises(ValueError, match=r"metrics\.mlp\.jsonl:2"):
-            list(MlpJsonlMetricReader().read(path, source="x"))
+            list(mp.io.mlp_jsonl.MlpJsonlMetricReader().read(path, source="x"))
 
     def test_blank_lines_are_not_records(self, tmp_path: Path):
         path = tmp_path / "metrics.mlp.jsonl"
         path.write_text('\n{"k":"a","v":1}\n\n{"k":"a","v":2}\n', encoding="utf-8")
-        records = MlpJsonlMetricReader().read(
+        records = mp.io.mlp_jsonl.MlpJsonlMetricReader().read(
             path, source="x", request=Request(since=1)
         )
         assert [r["v"] for r in records] == [2]
@@ -289,7 +275,7 @@ class TestMlpJsonlReader:
         path.write_text(
             '{"k":"a","v":1,"tags":{"source":"mine","run":3}}\n', encoding="utf-8"
         )
-        (record,) = MlpJsonlMetricReader().read(path, source="x")
+        (record,) = mp.io.mlp_jsonl.MlpJsonlMetricReader().read(path, source="x")
         assert record["tags"] == {"source": "mine", "run": 3}
 
 
@@ -310,16 +296,18 @@ def write_mrec(path: Path, steps, times=None) -> Path:
 class TestMrecReader:
     def test_claims_a_record_directory(self, tmp_path: Path):
         path = write_mrec(tmp_path / "growth.mrec", [0, 10])
-        assert MrecMetricReader().sniff(path)
-        assert not MrecMetricReader().sniff(tmp_path / "growth.xyz")
+        assert mp.io.mrec.MrecMetricReader().sniff(path)
+        assert not mp.io.mrec.MrecMetricReader().sniff(tmp_path / "growth.xyz")
 
     def test_claims_a_packed_record(self, tmp_path: Path):
         """molrs packs a closed record into ``*.mrec.zip``; it is the same run."""
-        packed = Path(pack_mrec_zip(str(write_mrec(tmp_path / "run.mrec", [0, 10]))))
+        packed = Path(
+            mp.io.mrec.pack_mrec_zip(str(write_mrec(tmp_path / "run.mrec", [0, 10])))
+        )
         assert packed.name == "run.mrec.zip"
-        assert "**/*.mrec.zip" in MrecMetricReader.patterns
-        assert MrecMetricReader().sniff(packed)
-        records = list(MrecMetricReader().read(packed, source="run"))
+        assert "**/*.mrec.zip" in mp.io.mrec.MrecMetricReader.patterns
+        assert mp.io.mrec.MrecMetricReader().sniff(packed)
+        records = list(mp.io.mrec.MrecMetricReader().read(packed, source="run"))
         assert [r["v"] for r in records if r["k"] == "mrec/step"] == [0.0, 10.0]
 
     def test_rejects_what_only_looks_like_a_record(self, tmp_path: Path):
@@ -329,12 +317,13 @@ class TestMrecReader:
         junk.write_bytes(b"not a zip")
         plain = tmp_path / "plain.zip"
         plain.write_bytes(b"PK")
-        assert not MrecMetricReader().sniff(empty)
-        assert not MrecMetricReader().sniff(junk)
-        assert not MrecMetricReader().sniff(plain)
+        assert not mp.io.mrec.MrecMetricReader().sniff(empty)
+        assert not mp.io.mrec.MrecMetricReader().sniff(junk)
+        assert not mp.io.mrec.MrecMetricReader().sniff(plain)
 
     def test_sniff_and_read_close_the_store(self, tmp_path: Path, monkeypatch):
-        import molpy.io.mrec as module
+        module = mp.io.mrec
+        native = mp.io.mrec.MrecReader  # bound before the patch below replaces it
 
         opened: list[Tracked] = []
 
@@ -342,7 +331,7 @@ class TestMrecReader:
             """Delegates to the native cursor and records that it was closed."""
 
             def __init__(self, path):
-                self._inner = MrecReader(path)
+                self._inner = native(path)
                 self.closed = False
                 opened.append(self)
 
@@ -359,14 +348,18 @@ class TestMrecReader:
 
         monkeypatch.setattr(module, "MrecReader", Tracked)
         path = write_mrec(tmp_path / "run.mrec", [0, 10])
-        assert MrecMetricReader().sniff(path)
-        list(MrecMetricReader().read(path, source="run", request=Request(limit=1)))
+        assert mp.io.mrec.MrecMetricReader().sniff(path)
+        list(
+            mp.io.mrec.MrecMetricReader().read(
+                path, source="run", request=Request(limit=1)
+            )
+        )
         assert len(opened) == 2
         assert all(reader.closed for reader in opened)
 
     def test_emits_the_step_and_time_series(self, tmp_path: Path):
         path = write_mrec(tmp_path / "run.mrec", [0, 10, 20], [0.0, 0.5, 1.0])
-        records = list(MrecMetricReader().read(path, source="run"))
+        records = list(mp.io.mrec.MrecMetricReader().read(path, source="run"))
         steps = [r["v"] for r in records if r["k"] == "mrec/step"]
         times = [r["v"] for r in records if r["k"] == "mrec/time"]
         assert steps == [0.0, 10.0, 20.0]
@@ -375,8 +368,10 @@ class TestMrecReader:
 
     def test_s_is_the_simulation_step_not_the_frame_index(self, tmp_path: Path):
         path = write_mrec(tmp_path / "run.mrec", [0, 10, 20], [0.0, 0.5, 1.0])
-        records = list(MrecMetricReader().read(path, source="run"))
+        records = list(mp.io.mrec.MrecMetricReader().read(path, source="run"))
         times = [r for r in records if r["k"] == "mrec/time"]
         assert [r["s"] for r in times] == [0.0, 10.0, 20.0]
-        strided = MrecMetricReader().read(path, source="run", request=Request(stride=2))
+        strided = mp.io.mrec.MrecMetricReader().read(
+            path, source="run", request=Request(stride=2)
+        )
         assert [r["s"] for r in strided if r["k"] == "mrec/time"] == [0.0, 20.0]

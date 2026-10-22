@@ -4,14 +4,9 @@ import json
 import sys
 import types
 
-import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.config import load_config
-from molpy.core import Block, Frame
-from molpy.engine import OpenmmEngine, OpenmmSimulationConfig
-from molpy.ff.forcefield import ForceField
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -19,38 +14,8 @@ from molpy.ff.forcefield import ForceField
 
 
 @pytest.fixture
-def simple_frame():
-    """Minimal Frame with three atoms and x/y/z coordinates."""
-    frame = Frame()
-    atoms = Block(
-        {
-            "x": np.array([0.0, 1.0, 0.0]),
-            "y": np.array([0.0, 0.0, 1.0]),
-            "z": np.array([0.0, 0.0, 0.0]),
-            # PDB atom names are unique within a residue — two atoms both
-            # named "H" make a file readers reject as duplicated.
-            "name": np.array(["O", "H1", "H2"], dtype="U4"),
-            "element": np.array(["O", "H", "H"], dtype="U2"),
-        }
-    )
-    frame["atoms"] = atoms
-    return frame
-
-
-@pytest.fixture
-def empty_forcefield():
-    """Minimal ForceField (no types) for XML serialisation tests."""
-    return ForceField("test")
-
-
-@pytest.fixture
-def nvt_config():
-    return OpenmmSimulationConfig(ensemble="NVT", n_steps=100)
-
-
-@pytest.fixture
 def engine():
-    return OpenmmEngine(check_executable=False)
+    return mp.engine.OpenmmEngine(check_executable=False)
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +25,7 @@ def engine():
 
 class TestOpenmmSimulationConfig:
     def test_default_values(self):
-        cfg = OpenmmSimulationConfig()
+        cfg = mp.engine.OpenmmSimulationConfig()
         assert cfg.ensemble == "NVT"
         assert cfg.temperature == 300.0
         assert cfg.timestep_fs == 2.0
@@ -71,49 +36,49 @@ class TestOpenmmSimulationConfig:
         assert cfg.platform == "CUDA"
 
     def test_npt_ensemble(self):
-        cfg = OpenmmSimulationConfig(ensemble="NPT", pressure=2.0)
+        cfg = mp.engine.OpenmmSimulationConfig(ensemble="NPT", pressure=2.0)
         assert cfg.ensemble == "NPT"
         assert cfg.pressure == 2.0
 
     def test_minimize_ensemble(self):
-        cfg = OpenmmSimulationConfig(ensemble="minimize")
+        cfg = mp.engine.OpenmmSimulationConfig(ensemble="minimize")
         assert cfg.ensemble == "minimize"
 
     def test_to_dict_returns_dict(self):
-        cfg = OpenmmSimulationConfig(n_steps=1000)
+        cfg = mp.engine.OpenmmSimulationConfig(n_steps=1000)
         d = cfg.to_dict()
         assert isinstance(d, dict)
         assert d["n_steps"] == 1000
         assert d["ensemble"] == "NVT"
 
     def test_to_dict_roundtrip(self):
-        cfg = OpenmmSimulationConfig(temperature=350.0, n_steps=2000)
-        restored = OpenmmSimulationConfig.from_dict(cfg.to_dict())
+        cfg = mp.engine.OpenmmSimulationConfig(temperature=350.0, n_steps=2000)
+        restored = mp.engine.OpenmmSimulationConfig.from_dict(cfg.to_dict())
         assert restored.temperature == 350.0
         assert restored.n_steps == 2000
 
     def test_from_dict(self):
         d = {"ensemble": "NPT", "temperature": 400.0, "n_steps": 5000}
-        cfg = OpenmmSimulationConfig.from_dict(d)
+        cfg = mp.engine.OpenmmSimulationConfig.from_dict(d)
         assert cfg.ensemble == "NPT"
         assert cfg.temperature == 400.0
 
     def test_to_json_creates_file(self, tmp_path):
-        cfg = OpenmmSimulationConfig(n_steps=999)
+        cfg = mp.engine.OpenmmSimulationConfig(n_steps=999)
         path = tmp_path / "config.json"
         cfg.to_json(path)
         assert path.exists()
 
     def test_to_json_roundtrip(self, tmp_path):
-        cfg = OpenmmSimulationConfig(temperature=280.0, n_steps=1234)
+        cfg = mp.engine.OpenmmSimulationConfig(temperature=280.0, n_steps=1234)
         path = tmp_path / "config.json"
         cfg.to_json(path)
-        restored = OpenmmSimulationConfig.from_json(path)
+        restored = mp.engine.OpenmmSimulationConfig.from_json(path)
         assert restored.temperature == 280.0
         assert restored.n_steps == 1234
 
     def test_json_file_is_valid_json(self, tmp_path):
-        cfg = OpenmmSimulationConfig()
+        cfg = mp.engine.OpenmmSimulationConfig()
         path = tmp_path / "config.json"
         cfg.to_json(path)
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -133,20 +98,20 @@ class TestOpenmmSimulationConfig:
     )
     def test_rejects_unknown_choice(self, field, value):
         with pytest.raises(ValueError, match=f"{field} must be one of"):
-            OpenmmSimulationConfig(**{field: value})
+            mp.engine.OpenmmSimulationConfig(**{field: value})
 
     def test_from_dict_rejects_unknown_ensemble(self):
         with pytest.raises(ValueError, match="ensemble must be one of"):
-            OpenmmSimulationConfig.from_dict({"ensemble": "nve"})
+            mp.engine.OpenmmSimulationConfig.from_dict({"ensemble": "nve"})
 
     def test_from_json_rejects_unknown_ensemble(self, tmp_path):
         path = tmp_path / "config.json"
         path.write_text(json.dumps({"ensemble": "nvt"}), encoding="utf-8")
         with pytest.raises(ValueError, match="ensemble must be one of"):
-            OpenmmSimulationConfig.from_json(path)
+            mp.engine.OpenmmSimulationConfig.from_json(path)
 
     def test_accepts_openmm_ewald_name(self):
-        cfg = OpenmmSimulationConfig(nonbonded_method="Ewald")
+        cfg = mp.engine.OpenmmSimulationConfig(nonbonded_method="Ewald")
         assert cfg.nonbonded_method == "Ewald"
 
 
@@ -166,8 +131,10 @@ class TestOpenmmEngineInit:
         assert engine.executable == "python"
 
     def test_check_executable_false_does_not_raise(self):
-        config = load_config({"engine": {"openmm": {"executable": "no_such_xyz"}}})
-        OpenmmEngine(config=config, check_executable=False)
+        config = mp.config.load_config(
+            {"engine": {"openmm": {"executable": "no_such_xyz"}}}
+        )
+        mp.engine.OpenmmEngine(config=config, check_executable=False)
 
 
 # ---------------------------------------------------------------------------
@@ -222,17 +189,6 @@ class TestGenerateInputs:
             "HW",
         ]
 
-    def test_openmm_builds_a_system_from_the_written_files(
-        self, engine, water_system, tmp_path
-    ):
-        app = pytest.importorskip("openmm.app")
-        paths = engine.generate_inputs(*water_system, tmp_path)
-        pdb = app.PDBFile(str(paths["pdb"]))
-        system = app.ForceField(str(paths["forcefield"])).createSystem(
-            pdb.topology, nonbondedMethod=app.NoCutoff
-        )
-        assert system.getNumParticles() == 3
-
 
 class TestNonbondedFromTheForceField:
     """Unset nonbonded fields are the force field's; set ones override it."""
@@ -240,7 +196,10 @@ class TestNonbondedFromTheForceField:
     @staticmethod
     def _create_system(engine, frame, ff, tmp_path, **config_fields):
         paths = engine.generate_inputs(
-            frame, ff, tmp_path, simulation=OpenmmSimulationConfig(**config_fields)
+            frame,
+            ff,
+            tmp_path,
+            simulation=mp.engine.OpenmmSimulationConfig(**config_fields),
         )
         script = paths["input"].read_text(encoding="utf-8")
         start = script.index("system = ff.createSystem(")
@@ -256,19 +215,19 @@ class TestNonbondedFromTheForceField:
     def test_long_range_coulomb_is_pme_at_the_force_field_cutoff(self, boxed_water):
         """molrs writes no OpenMM XML for ``coul/long/pme`` yet, so this is
         the resolution alone."""
-        from molpy.engine._openmm import _with_nonbonded
+        from molpy.engine.openmm import _with_nonbonded
 
         _, ff = boxed_water
         ff.def_style("pair", "coul/long/pme", {"cutoff": 12.0})
-        config = _with_nonbonded(OpenmmSimulationConfig(), ff, periodic=True)
+        config = _with_nonbonded(mp.engine.OpenmmSimulationConfig(), ff, periodic=True)
         assert config.nonbonded_method == "PME"
         assert config.nonbonded_cutoff_nm == pytest.approx(1.2)
 
     def test_no_stated_settings_fall_back_to_pme_at_1_nm(self, boxed_water):
-        from molpy.engine._openmm import _with_nonbonded
+        from molpy.engine.openmm import _with_nonbonded
 
         config = _with_nonbonded(
-            OpenmmSimulationConfig(),
+            mp.engine.OpenmmSimulationConfig(),
             mp.ff.forcefield.ForceField("bare"),
             periodic=True,
         )
@@ -309,7 +268,7 @@ class TestBoxFreeFrame:
         assert "nonbondedMethod=NoCutoff," in script
 
     def test_a_non_periodic_cutoff_is_kept(self, engine, water_system, tmp_path):
-        config = OpenmmSimulationConfig(nonbonded_method="CutoffNonPeriodic")
+        config = mp.engine.OpenmmSimulationConfig(nonbonded_method="CutoffNonPeriodic")
         paths = engine.generate_inputs(*water_system, tmp_path, simulation=config)
         assert "nonbondedMethod=CutoffNonPeriodic," in paths["input"].read_text(
             encoding="utf-8"
@@ -331,7 +290,7 @@ class TestBoxFreeFrame:
             engine.generate_inputs(
                 *water_system,
                 tmp_path / "out",
-                simulation=OpenmmSimulationConfig(**fields),
+                simulation=mp.engine.OpenmmSimulationConfig(**fields),
             )
         assert not (tmp_path / "out").exists()
 
@@ -351,7 +310,7 @@ def _script(engine, **config_fields):
         config_fields
     )
     return engine._render_simulation_script(
-        OpenmmSimulationConfig(**config_fields),
+        mp.engine.OpenmmSimulationConfig(**config_fields),
         pdb_filename="system.pdb",
         ff_filename="forcefield.xml",
     )

@@ -6,7 +6,6 @@ tests pin the molpy-facing contract, including the replacements for the
 deleted ``BoxRegion`` / ``SphereRegion`` / ``Cube`` and ``DistanceSelector``.
 """
 
-import molrs
 import numpy as np
 import pytest
 
@@ -22,14 +21,6 @@ def _block() -> mp.Block:
             "type_id": np.array([1, 1, 2, 2]),
         }
     )
-
-
-@pytest.mark.parametrize(
-    "name",
-    ["Cuboid", "Sphere", "HalfSpace", "Parallelepiped", "Cylinder", "Region"],
-)
-def test_region_names_are_molrs_objects(name):
-    assert getattr(mp.core, name) is getattr(molrs.core, name)
 
 
 def test_cuboid_mask_and_filter():

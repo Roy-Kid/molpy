@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import molpy as mp
-from molpy.core import Atomistic
-from molpy.io.lammps import BondReactTemplate
 
 
 def _forcefield() -> mp.ff.forcefield.ForceField:
@@ -26,7 +24,7 @@ def _forcefield() -> mp.ff.forcefield.ForceField:
 
 def _system_frame() -> mp.Frame:
     """A c3-c3 dimer: the system itself never uses ``oh`` or ``c3-oh``."""
-    mol = Atomistic()
+    mol = mp.Atomistic()
     a = mol.add_atom(
         atomic_number=6,
         type="c3",
@@ -54,16 +52,16 @@ def _system_frame() -> mp.Frame:
     return frame
 
 
-def _template() -> BondReactTemplate:
+def _template() -> mp.io.lammps.BondReactTemplate:
     """c3 + oh → c3-oh: the new bond type exists only in the post template."""
-    pre = Atomistic()
+    pre = mp.Atomistic()
     c_pre = pre.add_atom(
         atomic_number=6, type="c3", x=0.0, y=0.0, z=0.0, charge=0.0, react_id=1
     )
     o_pre = pre.add_atom(
         atomic_number=8, type="oh", x=3.0, y=0.0, z=0.0, charge=0.0, react_id=2
     )
-    post = Atomistic()
+    post = mp.Atomistic()
     c_post = post.add_atom(
         atomic_number=6, type="c3", x=0.0, y=0.0, z=0.0, charge=0.0, react_id=1
     )
@@ -71,7 +69,7 @@ def _template() -> BondReactTemplate:
         atomic_number=8, type="oh", x=1.41, y=0.0, z=0.0, charge=0.0, react_id=2
     )
     post.add_bond(c_post, o_post, type="c3-oh")
-    return BondReactTemplate(
+    return mp.io.lammps.BondReactTemplate(
         pre=pre,
         post=post,
         initiator_atoms=[c_pre, o_pre],

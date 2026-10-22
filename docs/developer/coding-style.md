@@ -56,16 +56,21 @@ Keep functions under 50 lines and focused on one task. Keep files under 800 line
 
 Use `snake_case` for functions and variables, `PascalCase` for classes, `UPPER_CASE` for constants. Canonical data-field names such as `element`, `charge`, and `mol_id` are defined in [Naming Conventions](../tutorials/naming-conventions.md); do not introduce local variants in developer docs or extension examples. Use MolPy-specific terms precisely: `topology` means the bond graph (not "connections"), `atom type` means the force field identifier (not "kind").
 
-molpy follows molrs's naming rules (`tests/test_public_paths.py` checks the module and class names):
+molpy follows molrs's naming rules:
+
+- **No module name starts with `_`.** What is public is what an `__all__`
+  lists; a module no `__all__` lists (`molpy.engine.lammps`) is an
+  implementation module, reached through its package's names
+  (`mp.engine.LammpsEngine`).
 
 - **A name states its job.** No module is named after a container word —
   `data`, `base`, `types`, `common`, `utils`, `helpers`, `env` — public or
   private: the bundled files are `molpy.resources`, the engine base class lives
-  in `engine/_engine.py`, the wrapper environment in `wrapper/_environment.py`.
+  in `engine/engine.py`, a tool's environment in `tool/environment.py`.
   Classes and functions follow (`EnvironmentSpec`, `tool_settings`,
   `TypeAssignment`, `source_forcefield`).
 - **Acronyms are cased as words**: `LammpsEngine`, `OpenmmEngine`,
-  `TleapWrapper`, `SmilesIr`, `CgBond`, `Rdf`, `Msd`,
+  `SmilesIr`, `CgBond`, `Rdf`, `Msd`,
   `Lbfgs`, `PairLjCut`. numpy's `DType` and `HBond` (H is the element) keep
   their spelling.
 - **Counts are `n_*`** (numpy / freud): `n_atoms`, `n_pairs`, `n_rings()`,

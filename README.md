@@ -66,7 +66,7 @@ promoted to the root, as the same objects.
 | **`compute`** | Analysis — `Rdf`, `Msd`, conductivity, order parameters, Voronoi, dielectric and vibrational spectra, time-correlation functions, … (native kernels) |
 | **`io`** | Read/write — PDB, GRO, LAMMPS data, XYZ, AMBER, SMILES / CGsmiles, trajectories, `*.mrec` records, … |
 | **`engine`** | MD input generation & run management — LAMMPS, GROMACS, OpenMM, CP2K |
-| **`wrapper` · `adapter`** | External CLIs (Antechamber, tleap, …) and optional RDKit in-memory bridge |
+| **`tool`** | The external programs molpy runs (engines, the AmberTools pipeline): settings, environment, `ToolError` |
 
 ## Install
 
@@ -81,9 +81,8 @@ pip install molcrafts-molpy
 Core dependencies: NumPy and
 [molrs](https://github.com/MolCrafts/molrs) on molpy's own major.minor line
 (molpy X.Y.* needs `molcrafts-molrs>=X.Y.0,<X.(Y+1)`; `import molpy` checks it)
-plus the MolCrafts logging/config packages. Optional: RDKit (adapter example),
-AmberTools (AM1-BCC charges and AMBER polymer chains; GAFF typing itself is
-native).
+plus the MolCrafts logging/config packages. Optional: AmberTools (AM1-BCC
+charges and AMBER polymer chains; GAFF typing itself is native).
 
 > **Nightly builds.** Bleeding-edge snapshots are published to the separate
 > project `molcrafts-molpy-nightly` (versioned `X.Y.Z.devN`) on every push to

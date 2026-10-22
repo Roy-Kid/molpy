@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from molpy.builder import SpaceGroup
-from molpy.builder._symmetry import parse_triplet
+from molpy.builder.symmetry import parse_triplet
+import molpy as mp
 
 #: Generators of Fm-3m (No. 225): the two F-centring translations, then 2z, 2y,
 #: 3[111], 2[110] and the inversion, which generate m-3m (order 48).
@@ -21,11 +21,11 @@ FM3M_GENERATORS = [
 
 class TestSpaceGroup:
     def test_identity_generator_has_order_one(self):
-        group = SpaceGroup.from_generators(["x,y,z"])
+        group = mp.builder.SpaceGroup.from_generators(["x,y,z"])
         assert group.order == 1
 
     def test_fm3m_closes_to_order_192(self):
-        assert SpaceGroup.from_generators(FM3M_GENERATORS).order == 192
+        assert mp.builder.SpaceGroup.from_generators(FM3M_GENERATORS).order == 192
 
     def test_r3_closes_to_order_9(self):
         """R3 (hexagonal axes): a 3-fold axis and the (2/3, 1/3, 1/3) centring.
@@ -33,25 +33,25 @@ class TestSpaceGroup:
         Composing 1/3 and 2/3 gives 0.9999999999999999, which must key as the
         lattice translation 0, not as a new operator.
         """
-        group = SpaceGroup.from_generators(["-y,x-y,z", "x+2/3,y+1/3,z+1/3"])
+        group = mp.builder.SpaceGroup.from_generators(["-y,x-y,z", "x+2/3,y+1/3,z+1/3"])
         assert group.order == 9
 
     def test_six_fold_screw_closes_to_order_6(self):
-        assert SpaceGroup.from_generators(["-x+y,-x,z+1/6"]).order == 6
+        assert mp.builder.SpaceGroup.from_generators(["-x+y,-x,z+1/6"]).order == 6
 
     def test_closed_translations_lie_in_unit_interval(self):
-        group = SpaceGroup.from_generators(["-y,x-y,z", "x+2/3,y+1/3,z+1/3"])
+        group = mp.builder.SpaceGroup.from_generators(["-y,x-y,z", "x+2/3,y+1/3,z+1/3"])
         for _, t in group.operators:
             assert np.all((t >= 0.0) & (t < 1.0))
 
     def test_from_triplets_accepts_cif_meta_tuple(self):
-        group = SpaceGroup.from_triplets(("x,y,z", "-x,-y,-z"))
+        group = mp.builder.SpaceGroup.from_triplets(("x,y,z", "-x,-y,-z"))
         assert group.order == 2
 
 
 @pytest.fixture(scope="module")
 def fm3m():
-    return SpaceGroup.from_generators(FM3M_GENERATORS)
+    return mp.builder.SpaceGroup.from_generators(FM3M_GENERATORS)
 
 
 class TestEquivalentPositions:
@@ -73,7 +73,7 @@ class TestEquivalentPositions:
         assert np.all((images >= 0.0) & (images < 1.0))
 
     def test_images_within_symprec_of_one_wrap_to_zero(self):
-        group = SpaceGroup.from_triplets(["x,y,z", "x+2/3,y+1/3,z+1/3"])
+        group = mp.builder.SpaceGroup.from_triplets(["x,y,z", "x+2/3,y+1/3,z+1/3"])
         images = group.equivalent_positions([1 / 3, 2 / 3, 2 / 3])
         assert len(images) == 2
         assert np.all(images < 1.0)

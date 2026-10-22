@@ -26,14 +26,14 @@ from molrs.io.lammps import *  # noqa: F403
 from molrs.io.lammps import LammpsLog, is_lammps_log
 from molrs.io.lammps import __all__ as _native
 
-from molpy.io import _metric_reader
+from molpy.io import metric_reader
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
     from typing import Any
 
-    from molpy.io._metric_reader import ReadRequest
+    from molpy.io.metric_reader import ReadRequest
 
 # Whether a text is a LAMMPS run is molrs's call (``is_lammps_log``: the
 # ``Per MPI rank memory allocation`` line that opens every thermo section, so a
@@ -67,7 +67,7 @@ class LammpsLogMetricReader:
     def sniff(self, path: Path) -> bool:
         if not path.is_file() or path.suffix not in _LOG_SUFFIXES:
             return False
-        head = _metric_reader.head(path)
+        head = metric_reader.head(path)
         if not head:
             return False
         if is_lammps_log(head.decode("utf-8", errors="replace")):
@@ -76,7 +76,7 @@ class LammpsLogMetricReader:
             return False
         # Banner present but the run starts past the probe window: read on, a
         # bounded window rather than the whole file.
-        text = _metric_reader.head(path, len(head) + _SCAN_BYTES)
+        text = metric_reader.head(path, len(head) + _SCAN_BYTES)
         return is_lammps_log(text.decode("utf-8", errors="replace"))
 
     def read(
@@ -94,9 +94,7 @@ class LammpsLogMetricReader:
         from molrs.io import read_lammps_log
 
         parsed = read_lammps_log(path)
-        yield from _metric_reader.apply_request(
-            request, _thermo_records(parsed, source)
-        )
+        yield from metric_reader.apply_request(request, _thermo_records(parsed, source))
 
 
 def _thermo_records(parsed: LammpsLog, source: str) -> Iterator[dict[str, Any]]:

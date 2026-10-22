@@ -18,20 +18,21 @@ same objects) and the version metadata.
 | `molpy` (root) | The subsystems below; the promoted core data classes (`Frame`, `Block`, `Trajectory`, `Box`, `MolGraph`, `Atomistic`, `CoarseGrain`, the entity classes, `Element`, `Topology`); `__version__` / `release_date` and the `version` module (with `check_molrs_version`) |
 | `core` | Mirrors `molrs.core` — `Frame`, `Block`, `Trajectory`, the graph hierarchy (`MolGraph`, `Atomistic`, `CoarseGrain`), `Box`, regions, neighbour search and units, flat, with the vocabularies `keys`, `schema` and `constants` as submodules; plus molpy's selectors and `TrajectorySplitter` with its strategies |
 | `perceive`, `optimize`, `conformer`, `stream` | Mirror the molrs subsystems of the same names: perception, `Lbfgs`, conformers, frame streaming |
-| `ff` | Mirrors `molrs.ff` submodule by submodule: `forcefield` (the `ForceField` data model), `potential` (the kernels: `Potentials`, `WeightedTerms`, `PairLjCut`), `compile` (`PotentialCompiler`, `ExplicitTerms`: a force field bound to its kernels), `typifier` (GAFF natively as `AtdTypifier` + `GaffTypifier`; + molpy's AmberTools `AntechamberTypifier` / `TleapTypifier`, for frcmod parameters on top of the leaprc and antechamber's other charge methods, which share the private `molpy._ambertools` pipeline with `AmberPolymerBuilder`; a native GAFF force field merges with that builder's prmtop one), `charge` (+ molpy's `Am1BccModel`: sqm's AM1 charges, corrected natively), `ir`, `style_registry` (registering styles and categories from Python), `params`, `clpol_scaling` |
+| `ff` | Mirrors `molrs.ff` submodule by submodule: `forcefield` (the `ForceField` data model), `potential` (the kernels: `Potentials`, `WeightedTerms`, `PairLjCut`), `compile` (`PotentialCompiler`, `ExplicitTerms`: a force field bound to its kernels), `typifier` (GAFF natively as `AtdTypifier` + `GaffTypifier`; + molpy's AmberTools `AntechamberTypifier` / `TleapTypifier`, for frcmod parameters on top of the leaprc and antechamber's other charge methods, which share the private `molpy.tool.ambertools` pipeline with `AmberPolymerBuilder`; a native GAFF force field merges with that builder's prmtop one), `charge` (+ molpy's `Am1BccModel`: sqm's AM1 charges, corrected natively), `ir`, `style_registry` (registering styles and categories from Python), `params`, `clpol_scaling` |
 | `io` | Mirrors `molrs.io`: every file reader and writer (structure, trajectory and force-field files, SMILES, `*.mrec` records, frame bytes, LAMMPS logs) as one door per format, `read_<fmt>[_<what>]` / `write_<fmt>[_<what>]`, and one submodule per format that owns classes (`smiles`, `cgsmiles`, `lammps`, `mrec`, `pdb`, `xyz`, `gro`, `dcd`, `trr`, `xtc`); molpy's metric readers, published in the `molcrafts.metric_readers` entry-point group, are `io.lammps.LammpsLogMetricReader`, `io.mrec.MrecMetricReader` and `io.mlp_jsonl.MlpJsonlMetricReader` |
 | `builder` | Mirrors `molrs.builder` (assembly, `Coarsener`, graphene and nanotubes); plus polymer planning, crystals, virtual sites, `PackingTemplate`, `AmberPolymerBuilder` |
 | `compute`, `md`, `op` | Mirror `molrs.compute` (every analysis, one `Correlator` engine under the time correlations, the fits and spectra), `molrs.md`, `molrs.op` |
 | `engine` | External engines: one `generate_inputs` each for LAMMPS, GROMACS and OpenMM, `run`, `Script` |
-| `wrapper` | Subprocess boundaries to external CLI tools (antechamber, parmchk2, prepgen, tleap, sander) |
-| `adapter` | Optional in-memory bridge (RDKit worked example) |
+| `tool` | The one core every external program shares (`Tool`, `ToolError`, `EnvironmentSpec`); the AmberTools pipeline (antechamber, parmchk2, prepgen, tleap) behind the AmberTools typifiers and `AmberPolymerBuilder` lives under it, in `molpy.tool.ambertools` |
 | `resources` | Bundled package files: force-field files |
 
-The modules behind `engine`, `wrapper`, `adapter`, `builder` and molpy's additions to `core` are private
-(`molpy.engine._lammps`, …): each name has one public path, its subpackage
-(`mp.engine.LammpsEngine`).
+The modules behind `engine`, `tool`, `builder` and molpy's additions to `core`
+(`molpy.engine.lammps`, …) are implementation modules: they are not in their
+subpackage's `__all__`, so each name has one public path, its subpackage
+(`mp.engine.LammpsEngine`). No module name starts with `_`; `__all__`, not a
+name prefix, says what is public.
 
-`compute`, `io`, and `engine` operate on the tabular layer (`Frame`/`Block`); `builder` and `ff.typifier` operate on the graph layer (`Atomistic`). `wrapper` and `adapter` sit at the outer edge and never leak external types into the data model.
+`compute`, `io`, and `engine` operate on the tabular layer (`Frame`/`Block`); `builder` and `ff.typifier` operate on the graph layer (`Atomistic`). `tool` sits at the outer edge and never leaks external types into the data model.
 
 ## The graph layer: live handle views over molrs
 
@@ -90,7 +91,7 @@ Assembly is one native call and never types anything:
 |---|---|---|
 | an analysis operation | plug-in interface | [Adding a Compute Operation](extending-compute.md) |
 | a file format | plug-in interface | [Adding an I/O Format](extending-io.md) |
-| an external tool integration | plug-in interface | [Adding a Wrapper or Adapter](extending-integration.md) |
+| an external program (a new engine) | plug-in interface | [Adding a New Engine](../user-guide/12_engine.md#adding-a-new-engine-takes-a-table-and-two-methods) |
 | an entity/link/struct type | core internals — open an issue first | [Extending the Data Model](extending-core.md) |
 | a graph typifier / force-field overlay | typifier internals — open an issue first | [Extending Typifiers](extending-typifiers.md) |
 | an interaction style / category | plug-in interface (`mp.ff.style_registry.StyleDeclaration`) | [Extending the Force Field](extending-forcefield.md) |

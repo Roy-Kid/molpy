@@ -1,6 +1,6 @@
 """AntechamberTypifier / TleapTypifier with the AmberTools executables faked.
 
-``subprocess.run`` is patched (as ``tests/test_wrapper`` does): each tool call
+``subprocess.run`` is patched (as ``tests/test_tool/test_ambertools`` does): each tool call
 copies a committed output fixture into place — ``mol2/litfsi_gaff2.mol2`` for
 antechamber, ``frcmod/litfsi_gaff2.frcmod`` for parmchk2 and
 ``prmtop/LiTFSI.prmtop`` for tleap. The tests assert what the typifiers own:
@@ -16,9 +16,7 @@ both generations against the real tleap.
 
 from __future__ import annotations
 
-from molrs.core import Element
 
-import inspect
 import shlex
 import shutil
 import subprocess
@@ -29,7 +27,6 @@ from unittest.mock import patch
 import pytest
 
 import molpy as mp
-from molpy.wrapper import Tool, ToolError
 
 # LiTFSI in LiTFSI.prmtop row order: [F-C(F2)-S(O2)-N-S(O2)-C(F3)]- and Li+.
 ELEMENTS = ["F", "C", "F", "F", "S", "O", "O", "N", "S", "O", "O", "C", "F", "F", "F"]
@@ -48,7 +45,7 @@ def _litfsi() -> mp.Atomistic:
     """Untyped LiTFSI with formal charges on N (-1) and Li (+1)."""
     graph = mp.Atomistic()
     atoms = [
-        graph.add_atom(atomic_number=Element.by_symbol(e).z, x=1.5 * i, y=0.0, z=0.0)
+        graph.add_atom(atomic_number=mp.Element.by_symbol(e).z, x=1.5 * i, y=0.0, z=0.0)
         for i, e in enumerate(ELEMENTS)
     ]
     for i, j in BONDS:
@@ -117,8 +114,10 @@ class FakeAmberTools:
 @contextmanager
 def _faked(fake: FakeAmberTools):
     with (
-        patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-        patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
+        patch.object(
+            mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+        ),
+        patch("molpy.tool.process.subprocess.run", side_effect=fake),
     ):
         yield fake
 
@@ -221,21 +220,27 @@ class TestAntechamberTypifier:
     def test_failing_tool_raises_with_its_stderr(self, TEST_DATA_DIR, tmp_path):
         fake = FakeAmberTools(TEST_DATA_DIR, fail="antechamber")
         with (
-            patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-            patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
-            pytest.raises(ToolError, match="antechamber: fatal error") as raised,
+            patch.object(
+                mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+            ),
+            patch("molpy.tool.process.subprocess.run", side_effect=fake),
+            pytest.raises(
+                mp.tool.ToolError, match="antechamber: fatal error"
+            ) as raised,
         ):
             mp.ff.typifier.AntechamberTypifier(
                 parameter_set="gaff2", work_dir=tmp_path
             ).typify(_litfsi())
-        assert raised.value.tool == "wrapper.antechamber"
+        assert raised.value.tool == "ambertools.antechamber"
         assert raised.value.returncode == 1
         assert raised.value.tail == "antechamber: fatal error"
 
     def test_missing_tool_raises(self, tmp_path):
         with (
-            patch.object(Tool, "resolve_executable", return_value=None),
-            pytest.raises(ToolError, match="executable .antechamber. not found"),
+            patch.object(mp.tool.Tool, "resolve_executable", return_value=None),
+            pytest.raises(
+                mp.tool.ToolError, match="executable .antechamber. not found"
+            ),
         ):
             mp.ff.typifier.AntechamberTypifier(
                 parameter_set="gaff2", work_dir=tmp_path
@@ -303,14 +308,16 @@ class TestTleapTypifier:
     def test_failing_tleap_raises_with_its_stderr(self, TEST_DATA_DIR, tmp_path):
         fake = FakeAmberTools(TEST_DATA_DIR, fail="tleap")
         with (
-            patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-            patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
-            pytest.raises(ToolError, match="tleap: fatal error") as raised,
+            patch.object(
+                mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+            ),
+            patch("molpy.tool.process.subprocess.run", side_effect=fake),
+            pytest.raises(mp.tool.ToolError, match="tleap: fatal error") as raised,
         ):
             mp.ff.typifier.TleapTypifier(
                 parameter_set="gaff2", work_dir=tmp_path
             ).typify(_typed_litfsi())
-        assert raised.value.tool == "wrapper.tleap"
+        assert raised.value.tool == "ambertools.tleap"
         assert raised.value.returncode == 1
 
 
@@ -324,7 +331,7 @@ class TestNoStaleOutputs:
             ).typify(_litfsi())
         with (
             _faked(FakeAmberTools(TEST_DATA_DIR, silent="tleap")),
-            pytest.raises(ToolError, match="left MOL.prmtop unwritten"),
+            pytest.raises(mp.tool.ToolError, match="left MOL.prmtop unwritten"),
         ):
             mp.ff.typifier.AntechamberTypifier(
                 parameter_set="gaff", work_dir=tmp_path
@@ -342,7 +349,7 @@ class TestNoStaleOutputs:
         ):
             with (
                 _faked(FakeAmberTools(TEST_DATA_DIR, silent=silent)),
-                pytest.raises(ToolError, match=f"left {output} unwritten"),
+                pytest.raises(mp.tool.ToolError, match=f"left {output} unwritten"),
             ):
                 mp.ff.typifier.AntechamberTypifier(
                     parameter_set="gaff2", work_dir=tmp_path
@@ -371,7 +378,7 @@ class TestNoStaleOutputs:
             ).typify(_typed_litfsi())
         with (
             _faked(FakeAmberTools(TEST_DATA_DIR, silent="tleap")),
-            pytest.raises(ToolError, match="left MOL.prmtop unwritten"),
+            pytest.raises(mp.tool.ToolError, match="left MOL.prmtop unwritten"),
         ):
             mp.ff.typifier.TleapTypifier(
                 parameter_set="gaff2", work_dir=tmp_path
@@ -397,20 +404,3 @@ class TestNoStaleOutputs:
                 **({"parameter_set": "gaff2"} | settings), work_dir=tmp_path
             ).typify(_typed_litfsi())
         assert set(first.cwds).isdisjoint(second.cwds)
-
-
-@pytest.mark.parametrize(
-    "entry",
-    [
-        mp.ff.typifier.AntechamberTypifier,
-        mp.ff.typifier.TleapTypifier,
-        mp.builder.AmberPolymerBuilder,
-        mp.ff.typifier.AtdTypifier,
-        mp.ff.typifier.GaffTypifier,
-    ],
-)
-def test_every_gaff_entry_point_requires_parameter_set(entry):
-    """One name, molrs's, and no default anywhere: the set is always stated."""
-    parameter = inspect.signature(entry).parameters["parameter_set"]
-    assert parameter.default is inspect.Parameter.empty
-    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY

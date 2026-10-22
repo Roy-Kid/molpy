@@ -25,9 +25,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.io.lammps import LammpsLogMetricReader
-from molpy.io.mlp_jsonl import MlpJsonlMetricReader
-from molpy.io.mrec import MrecMetricReader, pack_mrec_zip
 
 STEPS = list(range(0, 1100, 100))  # 11 samples, split over two LAMMPS runs
 TEMPS = [300.0 + i for i in range(len(STEPS))]
@@ -120,7 +117,7 @@ def write_mrec(tmp_path: Path) -> Path:
 
 
 def write_mrec_zip(tmp_path: Path) -> Path:
-    return Path(pack_mrec_zip(str(write_mrec(tmp_path))))
+    return Path(mp.io.mrec.pack_mrec_zip(str(write_mrec(tmp_path))))
 
 
 def write_jsonl_mirror(tmp_path: Path, records: Iterable[dict[str, Any]]) -> Path:
@@ -148,10 +145,10 @@ def write_jsonl(tmp_path: Path) -> Path:
 
 
 READERS = {
-    "lammps_log": (LammpsLogMetricReader(), write_lammps),
-    "mrec": (MrecMetricReader(), write_mrec),
-    "mrec_zip": (MrecMetricReader(), write_mrec_zip),
-    "mlp_jsonl": (MlpJsonlMetricReader(), write_jsonl),
+    "lammps_log": (mp.io.lammps.LammpsLogMetricReader(), write_lammps),
+    "mrec": (mp.io.mrec.MrecMetricReader(), write_mrec),
+    "mrec_zip": (mp.io.mrec.MrecMetricReader(), write_mrec_zip),
+    "mlp_jsonl": (mp.io.mlp_jsonl.MlpJsonlMetricReader(), write_jsonl),
 }
 
 
@@ -199,7 +196,9 @@ def test_equivalent_data_reads_the_same_in_every_format(
     native = write(tmp_path)
     mirror = write_jsonl_mirror(tmp_path, reader.read(native, source="src"))
     from_native = reader.read(native, source="src", request=request_)
-    from_mirror = MlpJsonlMetricReader().read(mirror, source="src", request=request_)
+    from_mirror = mp.io.mlp_jsonl.MlpJsonlMetricReader().read(
+        mirror, source="src", request=request_
+    )
     assert plotted(from_native) == plotted(from_mirror)
 
 
@@ -207,7 +206,7 @@ def test_since_is_a_raw_index_not_a_strided_one(tmp_path: Path):
     """``since=3`` skips three raw records — a row and a half of a two-column
     table — whatever the stride; the stride then counts per series from there."""
     path = write_lammps(tmp_path)
-    records = LammpsLogMetricReader().read(
+    records = mp.io.lammps.LammpsLogMetricReader().read(
         path, source="src", request=Request(since=3, stride=2, limit=4)
     )
     assert plotted(records) == [

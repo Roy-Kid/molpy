@@ -10,16 +10,14 @@ from pathlib import Path
 
 
 import molpy as mp
-from molpy.builder import DrudeBuilder
-from molpy.core import Atomistic
 
 
-def _ntf2_polarized(test_data_dir: Path) -> Atomistic:
+def _ntf2_polarized(test_data_dir: Path) -> mp.Atomistic:
     """CL&P-typed [NTf2]- (atoms named by element, spread along x), Drude-polarized."""
     frame = mp.io.read_mol2(test_data_dir / "mol2" / "ntf2_clp_typed.mol2")
     frame["atoms"]["element"] = frame["atoms"]["name"]
     mp.Element.fill_atomic_numbers(frame)
-    pol = DrudeBuilder().apply(Atomistic.from_frame(frame))
+    pol = mp.builder.DrudeBuilder().apply(mp.Atomistic.from_frame(frame))
     for i, atom in enumerate(pol.atoms, start=1):
         atom["id"] = i
         atom["mol_id"] = 1
@@ -59,7 +57,7 @@ def test_data_writer_writes_drude_springs_as_bonds(tmp_path, TEST_DATA_DIR):
 
 def test_data_writer_no_drude_comment_for_plain_system(tmp_path):
     """A non-polarizable frame (no element ``D``) gets no fix-drude comment."""
-    asm = Atomistic()
+    asm = mp.Atomistic()
     asm.add_atom(
         id=1,
         mol_id=1,

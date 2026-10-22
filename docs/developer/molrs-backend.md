@@ -206,5 +206,4 @@ mol_3d, report = mp.conformer.Conformer(add_hydrogens=True, seed=42).generate(mo
 `generate` returns the new structure and a report of what each stage did; the
 input is untouched.
 
-RDKit's embedder (`molpy.adapter.generate_3d`) remains available as an optional
-external backend, but the molrs pipeline is the default trunk.
+The molrs pipeline is the only embedder.

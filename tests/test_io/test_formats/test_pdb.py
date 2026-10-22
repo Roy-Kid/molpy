@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.core import Block, Frame, MetaValue
 
 
 class TestWritePdb:
@@ -19,16 +18,16 @@ class TestWritePdb:
             "z": np.array([7.0, 8.0]),
         }
         del columns[missing]
-        frame = Frame()
-        frame["atoms"] = Block(columns)
+        frame = mp.Frame()
+        frame["atoms"] = mp.Block(columns)
 
         with pytest.raises(OSError, match=f"Missing '{missing}' column"):
             mp.io.write_pdb(tmp_path / "test.pdb", frame)
 
     def test_valid_minimal_frame(self, tmp_path):
         """Test that minimal valid frame (only x, y, z) writes correctly."""
-        frame = Frame()
-        atoms = Block(
+        frame = mp.Frame()
+        atoms = mp.Block(
             {
                 "x": np.array([1.0, 2.0, 3.0]),
                 "y": np.array([4.0, 5.0, 6.0]),
@@ -37,7 +36,7 @@ class TestWritePdb:
             }
         )
         frame["atoms"] = atoms
-        frame.meta = {"elements": MetaValue("string", "C C H")}
+        frame.meta = {"elements": mp.core.MetaValue("string", "C C H")}
 
         mp.io.write_pdb(tmp_path / "test.pdb", frame)
 
@@ -61,8 +60,8 @@ class TestWritePdb:
 
     def test_a_missing_element_is_rejected(self, tmp_path):
         """The PDB writer requires an explicit element column."""
-        frame = Frame()
-        frame["atoms"] = Block(
+        frame = mp.Frame()
+        frame["atoms"] = mp.Block(
             {
                 "x": np.array([1.0, 2.0]),
                 "y": np.array([1.0, 2.0]),
@@ -70,14 +69,14 @@ class TestWritePdb:
                 "id": np.array([1, 2]),
             }
         )
-        frame.meta = {"elements": MetaValue("string", "C O")}
+        frame.meta = {"elements": mp.core.MetaValue("string", "C O")}
         with pytest.raises(OSError, match="no string 'element' column"):
             mp.io.write_pdb(tmp_path / "test.pdb", frame)
 
     def test_elements_from_atom_data(self, tmp_path):
         """Test that elements are extracted from atom data if metadata not available."""
-        frame = Frame()
-        atoms = Block(
+        frame = mp.Frame()
+        atoms = mp.Block(
             {
                 "x": np.array([1.0, 2.0]),
                 "y": np.array([1.0, 2.0]),
@@ -98,8 +97,8 @@ class TestWritePdb:
 
     def test_atom_ids_from_field(self, tmp_path):
         """Test that atom IDs are correctly used from id field."""
-        frame = Frame()
-        atoms = Block(
+        frame = mp.Frame()
+        atoms = mp.Block(
             {
                 "x": np.array([1.0, 2.0]),
                 "y": np.array([1.0, 2.0]),
@@ -109,7 +108,7 @@ class TestWritePdb:
             }
         )
         frame["atoms"] = atoms
-        frame.meta = {"elements": MetaValue("string", "C H")}
+        frame.meta = {"elements": mp.core.MetaValue("string", "C H")}
 
         mp.io.write_pdb(tmp_path / "test.pdb", frame)
 
@@ -122,8 +121,8 @@ class TestWritePdb:
 
     def test_atom_ids_default_to_index(self, tmp_path):
         """Test that atom IDs default to index+1 if id field missing."""
-        frame = Frame()
-        atoms = Block(
+        frame = mp.Frame()
+        atoms = mp.Block(
             {
                 "x": np.array([1.0, 2.0, 3.0]),
                 "y": np.array([1.0, 2.0, 3.0]),
@@ -132,7 +131,7 @@ class TestWritePdb:
             }
         )
         frame["atoms"] = atoms
-        frame.meta = {"elements": MetaValue("string", "C C H")}
+        frame.meta = {"elements": mp.core.MetaValue("string", "C C H")}
 
         mp.io.write_pdb(tmp_path / "test.pdb", frame)
 

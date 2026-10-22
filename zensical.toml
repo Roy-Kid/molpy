@@ -37,7 +37,6 @@ nav = [
       { "Force Field" = "tutorials/04_force_field.md" },
       { "Trajectory" = "tutorials/05_trajectory.md" },
       { "Selector" = "tutorials/06_selector.md" },
-      { "Wrapper and Adapter" = "tutorials/07_wrapper_and_adapter.md" },
       { "Coarse-Grained Structure" = "tutorials/08_coarsegrain.md" },
       { "Units" = "tutorials/09_units.md" },
     ] },
@@ -147,8 +146,7 @@ nav = [
     { "Potentials" = "api/potential.md" },
     # I/O and integration
     { "I/O" = "api/io.md" },
-    { "Adapter" = "api/adapter.md" },
-    { "Wrapper" = "api/wrapper.md" },
+    { "Tool" = "api/tool.md" },
     # High-level operations
     { "Engine" = "api/engine.md" },
     { "Config" = "api/config.md" },
@@ -173,7 +171,6 @@ nav = [
     { "Extending MolPy" = [
       { "Adding a Compute Operation" = "developer/extending-compute.md" },
       { "Adding an I/O Format" = "developer/extending-io.md" },
-      { "Adding a Wrapper or Adapter" = "developer/extending-integration.md" },
       { "Extending Typifiers" = "developer/extending-typifiers.md" },
       { "Extending the Data Model" = "developer/extending-core.md" },
       { "Extending the Force Field" = "developer/extending-forcefield.md" },

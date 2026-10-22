@@ -80,11 +80,8 @@ Quick definitions for MolPy's core terminology. Each entry links to the page tha
 **Selector**
 : A composable predicate that filters atoms in a `Block` by element, type, coordinate range, or distance. Combinable with `&`, `|`, `~`. See [Selector](06_selector.md).
 
-**Wrapper**
-: Runs an external executable (antechamber, tleap, …) as a subprocess and captures its results. Crosses an execution boundary. Packing uses molpack in-process, not a wrapper. See [Wrapper and Adapter](07_wrapper_and_adapter.md).
-
-**Adapter**
-: Translates between MolPy objects and another library's in-memory objects (RDKit, OpenBabel). Crosses a representation boundary. See [Wrapper and Adapter](07_wrapper_and_adapter.md).
+**Tool**
+: An external program molpy runs as a subprocess (an engine, or an AmberTools program such as antechamber or tleap), resolved from molpy's configuration; every failure is an `mp.tool.ToolError`. Packing uses molpack in-process, not a tool. See [Tool](../api/tool.md).
 
 ### Naming conventions
 

@@ -14,14 +14,14 @@ from __future__ import annotations
 import json as _json
 from typing import TYPE_CHECKING
 
-from molpy.io import _metric_reader
+from molpy.io import metric_reader
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from pathlib import Path
     from typing import Any
 
-    from molpy.io._metric_reader import ReadRequest
+    from molpy.io.metric_reader import ReadRequest
 
 
 class MlpJsonlMetricReader:
@@ -65,7 +65,7 @@ class MlpJsonlMetricReader:
             ValueError: A line other than a torn tail is not a metric record.
         """
         with path.open(encoding="utf-8") as handle:
-            yield from _metric_reader.apply_request(
+            yield from metric_reader.apply_request(
                 request, _line_records(handle, path, source)
             )
 

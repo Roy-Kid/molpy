@@ -17,8 +17,6 @@ import copy
 import pytest
 
 import molpy as mp
-from molpy.core import Atomistic, RelationRef
-from molpy.io.lammps import BondReactTemplate
 
 # ===================================================================
 # Deterministic reaction builder (helpers, not tests)
@@ -32,13 +30,13 @@ LEAVING = (6, 12)  # one hydrogen on each initiator
 EDGES = (1, 11)  # carbons whose remaining hydrogens lie outside the template
 
 
-def _canonical_link_type(link: RelationRef) -> str:
+def _canonical_link_type(link: mp.core.RelationRef) -> str:
     """Orientation-independent topology type name from endpoint atom types."""
     names = tuple(str(ep["type"]) for ep in link.endpoints)
     return "-".join(min(names, names[::-1]))
 
 
-def _assign_link_types(struct: Atomistic) -> None:
+def _assign_link_types(struct: mp.Atomistic) -> None:
     """Deterministically (re)type every bond/angle/dihedral in ``struct``."""
     for link in struct.bonds:
         link["type"] = _canonical_link_type(link)
@@ -48,7 +46,7 @@ def _assign_link_types(struct: Atomistic) -> None:
         link["type"] = _canonical_link_type(link)
 
 
-def _build_reaction(test_data_dir: Path) -> BondReactTemplate:
+def _build_reaction(test_data_dir: Path) -> mp.io.lammps.BondReactTemplate:
     """Deterministic C-C coupling template, built as data rather than run by an engine.
 
     A bond/react template *is* a description of an edit: the radius-2 environment
@@ -60,7 +58,7 @@ def _build_reaction(test_data_dir: Path) -> BondReactTemplate:
     frame["atoms"]["atomic_number"] = [
         mp.Element.by_symbol(name).z for name in frame["atoms"]["name"]
     ]
-    pre = Atomistic.from_frame(frame)
+    pre = mp.Atomistic.from_frame(frame)
     pre.generate_topology(gen_angle=True, gen_dihedral=True, clear_existing=True)
     by_react_id = {a["react_id"]: a for a in pre.atoms}
 
@@ -78,7 +76,7 @@ def _build_reaction(test_data_dir: Path) -> BondReactTemplate:
     # build an angle on a deleted atom ("Angle atoms 2 3 9 missing").
     post.generate_topology(gen_angle=True, gen_dihedral=True, clear_existing=True)
 
-    template = BondReactTemplate(
+    template = mp.io.lammps.BondReactTemplate(
         pre=pre,
         post=post,
         initiator_atoms=[by_react_id[react_id] for react_id in INITIATORS],
@@ -105,11 +103,10 @@ class TestWriteBondReactMap:
 
     def _write_map(
         self, tmp_path: Path, test_data_dir: Path
-    ) -> tuple[str, BondReactTemplate]:
-        from molpy.io import write_lammps_bond_react_map
+    ) -> tuple[str, mp.io.lammps.BondReactTemplate]:
 
         template = _build_reaction(test_data_dir)
-        write_lammps_bond_react_map(tmp_path / "rxn1.map", template)
+        mp.io.write_lammps_bond_react_map(tmp_path / "rxn1.map", template)
         content = (tmp_path / "rxn1.map").read_text(encoding="utf-8")
         return content, template
 
@@ -161,17 +158,16 @@ class TestWriteBondReactMap:
 
     def test_map_mismatched_pre_post_raises(self, tmp_path: Path) -> None:
         """Post missing one react_id must raise ValueError, not write silently."""
-        from molpy.io import write_lammps_bond_react_map
 
-        pre = Atomistic()
+        pre = mp.Atomistic()
         a1 = pre.add_atom(atomic_number=6, type="c3", react_id=1)
         a2 = pre.add_atom(atomic_number=6, type="c3", react_id=2)
         pre.add_bond(a1, a2, type="c3-c3")
 
-        post = Atomistic()
+        post = mp.Atomistic()
         post.add_atom(atomic_number=6, type="c3", react_id=1)
 
-        template = BondReactTemplate(
+        template = mp.io.lammps.BondReactTemplate(
             pre=pre,
             post=post,
             initiator_atoms=[a1, a2],
@@ -179,4 +175,4 @@ class TestWriteBondReactMap:
             deleted_atoms=[],
         )
         with pytest.raises(ValueError):
-            write_lammps_bond_react_map(tmp_path / "bad.map", template)
+            mp.io.write_lammps_bond_react_map(tmp_path / "bad.map", template)

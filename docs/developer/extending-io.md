@@ -32,7 +32,7 @@ assert (
 )
 ```
 
-No molpy wrapper coerces paths, re-raises native errors under another type or
+No molpy function coerces paths, re-raises native errors under another type or
 buffers frames for the native writer: the native doors accept `str` and
 `os.PathLike`, take any sequence of frames and report an unreadable file as
 `OSError`.

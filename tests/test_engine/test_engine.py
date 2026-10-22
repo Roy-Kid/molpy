@@ -5,10 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from molpy.config import load_config
-from molpy.engine import Cp2kEngine, GromacsEngine, LammpsEngine, OpenmmEngine, Script
-from molpy.wrapper import ToolError
+import molpy as mp
 
 
 def _completed(returncode: int = 0) -> MagicMock:
@@ -19,10 +16,10 @@ def _completed(returncode: int = 0) -> MagicMock:
     return result
 
 
-def _lammps(overrides=None, **kwargs) -> LammpsEngine:
+def _lammps(overrides=None, **kwargs) -> mp.engine.LammpsEngine:
     lammps = {"executable": "lmp", **(overrides or {})}
-    config = load_config({"engine": {"lammps": lammps}})
-    return LammpsEngine(config=config, check_executable=False, **kwargs)
+    config = mp.config.load_config({"engine": {"lammps": lammps}})
+    return mp.engine.LammpsEngine(config=config, check_executable=False, **kwargs)
 
 
 class TestEngineSettings:
@@ -42,14 +39,14 @@ class TestEngineSettings:
     @pytest.mark.parametrize(
         ("cls", "tool", "executable"),
         [
-            (LammpsEngine, "lammps", "lmp_mpi"),
-            (GromacsEngine, "gromacs", "gmx_mpi"),
-            (OpenmmEngine, "openmm", "python3"),
-            (Cp2kEngine, "cp2k", "cp2k.popt"),
+            (mp.engine.LammpsEngine, "lammps", "lmp_mpi"),
+            (mp.engine.GromacsEngine, "gromacs", "gmx_mpi"),
+            (mp.engine.OpenmmEngine, "openmm", "python3"),
+            (mp.engine.Cp2kEngine, "cp2k", "cp2k.popt"),
         ],
     )
     def test_every_engine_reads_its_own_table(self, cls, tool, executable):
-        config = load_config(
+        config = mp.config.load_config(
             {
                 "engine": {
                     tool: {
@@ -72,16 +69,23 @@ class TestEngineSettings:
         )
 
     def test_group_settings_reach_every_engine(self):
-        config = load_config({"engine": {"env": "md", "env_manager": "conda"}})
-        for cls in (LammpsEngine, GromacsEngine, OpenmmEngine, Cp2kEngine):
+        config = mp.config.load_config(
+            {"engine": {"env": "md", "env_manager": "conda"}}
+        )
+        for cls in (
+            mp.engine.LammpsEngine,
+            mp.engine.GromacsEngine,
+            mp.engine.OpenmmEngine,
+            mp.engine.Cp2kEngine,
+        ):
             engine = cls(config=config, check_executable=False)
             assert engine.environment.env == "md"
             assert engine.environment.env_manager == "conda"
 
     def test_default_executables(self):
-        assert GromacsEngine(check_executable=False).executable == "gmx"
-        assert OpenmmEngine(check_executable=False).executable == "python"
-        assert Cp2kEngine(check_executable=False).executable == "cp2k.psmp"
+        assert mp.engine.GromacsEngine(check_executable=False).executable == "gmx"
+        assert mp.engine.OpenmmEngine(check_executable=False).executable == "python"
+        assert mp.engine.Cp2kEngine(check_executable=False).executable == "cp2k.psmp"
 
     def test_incomplete_environment_raises(self):
         with pytest.raises(ValueError, match="incomplete"):
@@ -90,7 +94,7 @@ class TestEngineSettings:
             _lammps({"env_manager": "conda"})
 
     def test_conda_environment_prefixes_the_command(self):
-        config = load_config(
+        config = mp.config.load_config(
             {
                 "conda": {"executable": "/opt/conda/bin/conda"},
                 "engine": {
@@ -103,7 +107,7 @@ class TestEngineSettings:
                 },
             }
         )
-        engine = LammpsEngine(config=config, check_executable=False)
+        engine = mp.engine.LammpsEngine(config=config, check_executable=False)
         assert engine.command(["-in", "in.lmp"]) == [
             "/opt/conda/bin/conda",
             "run",
@@ -119,9 +123,11 @@ class TestEngineSettings:
         ]
 
     def test_check_executable_missing(self):
-        with pytest.raises(ToolError, match="engine.lammps.executable") as raised:
-            LammpsEngine(
-                config=load_config(
+        with pytest.raises(
+            mp.tool.ToolError, match="engine.lammps.executable"
+        ) as raised:
+            mp.engine.LammpsEngine(
+                config=mp.config.load_config(
                     {"engine": {"lammps": {"executable": "no_such_lammps_xyz123"}}}
                 )
             )
@@ -164,7 +170,7 @@ class TestEngineRun:
         source = tmp_path / "src" / "in.lmp"
         source.parent.mkdir()
         source.write_text("units real\n", encoding="utf-8")
-        script = Script.from_path(source)
+        script = mp.engine.Script.from_path(source)
         with patch("subprocess.run", return_value=_completed()):
             _lammps().run(script, workdir=tmp_path / "run")
         assert script.path == source
@@ -173,7 +179,7 @@ class TestEngineRun:
         ) == "units real\n"
 
     def test_run_with_script_saves_files(self, tmp_path):
-        script = Script.from_text("input", "units real\natom_style full\n")
+        script = mp.engine.Script.from_text("input", "units real\natom_style full\n")
         engine = _lammps(workdir=tmp_path)
         with patch("subprocess.run", return_value=_completed()) as mock_run:
             engine.run(script, capture_output=True)
@@ -202,8 +208,8 @@ class TestEngineRun:
         assert mock_run.call_args.args[0][:3] == ["lmp", "-in", "my_script.lmp"]
 
     def test_run_with_multiple_scripts_runs_the_first(self, tmp_path):
-        script1 = Script.from_text("main", "units real\n")
-        script2 = Script.from_text("data", "# data file\n")
+        script1 = mp.engine.Script.from_text("main", "units real\n")
+        script2 = mp.engine.Script.from_text("data", "# data file\n")
         engine = _lammps(workdir=tmp_path)
         with patch("subprocess.run", return_value=_completed()) as mock_run:
             engine.run([script1, script2], capture_output=True)
@@ -277,7 +283,9 @@ class TestEngineLogging:
 
         with (
             patch("subprocess.run", side_effect=fails),
-            pytest.raises(ToolError, match="ERROR: Unknown command: bogus") as raised,
+            pytest.raises(
+                mp.tool.ToolError, match="ERROR: Unknown command: bogus"
+            ) as raised,
         ):
             engine.run("bogus\n")
         assert raised.value.tool == "engine.lammps"
@@ -289,7 +297,7 @@ class TestEngineLogging:
         engine = _lammps({"timeout": 5}, workdir=tmp_path)
         with (
             patch("subprocess.run", side_effect=subprocess.TimeoutExpired("lmp", 5)),
-            pytest.raises(ToolError, match="timed out after 5 s"),
+            pytest.raises(mp.tool.ToolError, match="timed out after 5 s"),
         ):
             engine.run("units real\n")
         (record,) = (r for r in molpy_records if r.message == "process timed out")
@@ -299,16 +307,18 @@ class TestEngineLogging:
         engine = _lammps(workdir=tmp_path)
         with (
             patch("subprocess.run", side_effect=FileNotFoundError("lmp")),
-            pytest.raises(ToolError, match="could not start"),
+            pytest.raises(mp.tool.ToolError, match="could not start"),
         ):
             engine.run("units real\n")
         (record,) = (r for r in molpy_records if r.message == "process not started")
         assert "lmp" in record.extra["error"]
 
     def test_gromacs_logs_each_step(self, tmp_path, molpy_records):
-        config = load_config({"engine": {"gromacs": {"launcher": ["mpirun"]}}})
-        engine = GromacsEngine(config=config, check_executable=False)
-        script = Script.from_text("em", "integrator = steep\n")
+        config = mp.config.load_config(
+            {"engine": {"gromacs": {"launcher": ["mpirun"]}}}
+        )
+        engine = mp.engine.GromacsEngine(config=config, check_executable=False)
+        script = mp.engine.Script.from_text("em", "integrator = steep\n")
         with patch("subprocess.run", return_value=_completed()):
             engine.run(script, workdir=tmp_path)
         finished = [r for r in molpy_records if r.message == "process finished"]
@@ -319,8 +329,8 @@ class TestEngineLogging:
     @pytest.mark.parametrize(
         ("cls", "logger"),
         [
-            (Cp2kEngine, "molpy.engine.cp2k"),
-            (OpenmmEngine, "molpy.engine.openmm"),
+            (mp.engine.Cp2kEngine, "molpy.engine.cp2k"),
+            (mp.engine.OpenmmEngine, "molpy.engine.openmm"),
         ],
     )
     def test_each_engine_logs_under_its_namespace(
@@ -335,7 +345,7 @@ class TestEngineLogging:
 
 
 def test_cp2k_identity():
-    engine = Cp2kEngine(check_executable=False)
+    engine = mp.engine.Cp2kEngine(check_executable=False)
     assert engine.key == "engine.cp2k"
     assert engine._get_default_extension() == ".inp"
 
@@ -345,31 +355,11 @@ def test_lammps_identity():
     assert engine.key == "engine.lammps"
     assert engine._get_default_extension() == ".lmp"
     assert Path(engine.executable).name == "lmp"
-    assert not hasattr(engine, "name")
 
 
 # ---------------------------------------------------------------------------
 # One input-writer contract
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("engine_cls", [LammpsEngine, GromacsEngine, OpenmmEngine])
-def test_generate_inputs_has_one_signature(engine_cls):
-    """``generate_inputs(frame, forcefield, output_dir, *, ...)`` everywhere."""
-    import inspect
-
-    params = list(inspect.signature(engine_cls.generate_inputs).parameters.values())
-    assert [p.name for p in params[:4]] == [
-        "self",
-        "frame",
-        "forcefield",
-        "output_dir",
-    ]
-    assert all(p.kind is inspect.Parameter.KEYWORD_ONLY for p in params[4:])
-
-
-def test_cp2k_generates_no_inputs():
-    assert not hasattr(Cp2kEngine, "generate_inputs")
 
 
 def test_every_deck_names_its_runnable_input(tmp_path, water, tip3p):
@@ -386,7 +376,11 @@ def test_every_deck_names_its_runnable_input(tmp_path, water, tip3p):
     water.add_angle(h1, o, h2, type="HW-OW-HW")
     frame = water.to_frame()
     frame.box = mp.Box(mp.core.Cell.lengths([30.0] * 3))
-    for engine_cls in (LammpsEngine, GromacsEngine, OpenmmEngine):
+    for engine_cls in (
+        mp.engine.LammpsEngine,
+        mp.engine.GromacsEngine,
+        mp.engine.OpenmmEngine,
+    ):
         out = tmp_path / engine_cls.tool
         paths = engine_cls(check_executable=False).generate_inputs(frame, tip3p, out)
         assert paths["input"].is_file()

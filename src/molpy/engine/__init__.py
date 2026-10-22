@@ -31,24 +31,25 @@ field's own, stated on its pair styles; an explicit argument overrides them.
 
 Scripts are :class:`Script` values (a name, its text and an optional path)::
 
-    from molpy.engine import LammpsEngine, Script
-    engine = LammpsEngine()
+    import molpy as mp
+    engine = mp.engine.LammpsEngine()
     paths = engine.generate_inputs(frame, ff, "./calc")
-    result = engine.run(Script.from_path(paths["input"]), workdir="./calc")
+    result = engine.run(mp.engine.Script.from_path(paths["input"]), workdir="./calc")
 
 Each engine's executable, environment, launcher, environment variables and
 time limit are its ``engine.<name>`` settings in molpy's configuration
 (:mod:`molpy.config`), and each logs to ``molpy.engine.<name>``
 (:mod:`mollog`): ``lammps``, ``gromacs``, ``openmm``, ``cp2k``. Every
-failure is a :class:`molpy.wrapper.ToolError`.
+failure is a :class:`molpy.tool.ToolError`, the one failure of every
+external program molpy runs (:mod:`molpy.tool`).
 """
 
-from molpy.engine._cp2k import Cp2kEngine
-from molpy.engine._engine import Engine
-from molpy.engine._gromacs import GromacsEngine
-from molpy.engine._lammps import LammpsEngine
-from molpy.engine._openmm import OpenmmEngine, OpenmmSimulationConfig
-from molpy.engine._script import Script
+from molpy.engine.cp2k import Cp2kEngine
+from molpy.engine.engine import Engine
+from molpy.engine.gromacs import GromacsEngine
+from molpy.engine.lammps import LammpsEngine
+from molpy.engine.openmm import OpenmmEngine, OpenmmSimulationConfig
+from molpy.engine.script import Script
 
 __all__ = [
     "Cp2kEngine",

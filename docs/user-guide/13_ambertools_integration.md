@@ -20,10 +20,10 @@ Type TFSI natively with AM1-BCC charges, build GAFF PEO chains from one antecham
     which tleap # should print a path
     ```
 
-    `Am1BccModel`, `AmberPolymerBuilder` and MolPy's AmberTools typifiers activate the conda environment automatically when running commands, so you do not need to keep it active in your shell. Which environment they activate is a setting of molpy's configuration, shared by every AmberTools program (`[wrapper]`; see [Configure and Log a Run](14_configure_and_log.md)). Put it in `molpy.toml` next to your scripts:
+    `Am1BccModel`, `AmberPolymerBuilder` and MolPy's AmberTools typifiers activate the conda environment automatically when running commands, so you do not need to keep it active in your shell. Which environment they activate is a setting of molpy's configuration, shared by every AmberTools program (`[ambertools]`; see [Configure and Log a Run](14_configure_and_log.md)). Put it in `molpy.toml` next to your scripts:
 
     ```toml
-    [wrapper]
+    [ambertools]
     env = "AmberTools25"
     env_manager = "conda"
     ```
@@ -302,8 +302,4 @@ read back from tleap's prmtop, is kept for what it alone does:
 | Force field merge conflict | Every component names the same `parameter_set`; a type you define yourself (Li⁺) does not reuse a GAFF type name |
 | Packing fails | Increase box size or reduce molecule count |
 
-The raw subprocess wrappers (`AntechamberWrapper`, `Parmchk2Wrapper`,
-`TleapWrapper`, …) stay in `molpy.wrapper` for scripts that drive the
-executables directly.
-
-See also: [Force Field Typification](06_typifier.md), [Wrapper and Adapter](../tutorials/07_wrapper_and_adapter.md).
+See also: [Force Field Typification](06_typifier.md), [Tool](../api/tool.md).

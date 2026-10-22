@@ -33,7 +33,6 @@ Ordered from plug-in interfaces (implement a subclass, register a handler) to co
 
 - [Adding a Compute Operation](extending-compute.md) — the `Compute` protocol for reusable analysis operations
 - [Adding an I/O Format](extending-io.md) — native `read_X` / `write_X` doors re-exported on `mp.io`, and when molpy adds a function of its own
-- [Adding a Wrapper or Adapter](extending-integration.md) — subprocess wrapper conventions and in-memory adapter patterns
 - [Extending Typifiers](extending-typifiers.md) — the `assign` → `TypeAssignment` contract, matcher boundaries, and where a typifier lives (native vs. tool-driven)
 - [Extending the Data Model](extending-core.md) — why a new node or relation kind is a molrs change, and what Python may add on top
 - [Extending the Force Field](extending-forcefield.md) — a new style or category registered from Python, no rebuild

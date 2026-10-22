@@ -53,7 +53,7 @@ top of the leaprc (`TleapTypifier`) and antechamber's other charge methods
 `estimated` parameter `GaffTypifier` puts on a term it estimated, so such a
 molecule is exported through `AntechamberTypifier` for now. Every GAFF entry
 point takes the same required `parameter_set` (`"gaff"` or `"gaff2"`, no
-default). The AmberTools typifiers shell out through `molpy.wrapper`; see
+default). The AmberTools typifiers shell out through [`mp.tool`](tool.md); see
 [Optional external tools](../getting-started/external-tools.md#ambertools-gaff-parameters).
 A GAFF polymer is not typed by joining typed monomers (each join folds the
 leaving group's charge onto its anchor): build it with

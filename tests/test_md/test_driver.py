@@ -1,16 +1,13 @@
 """``mp.md`` is ``molrs.md``: the phase driver runs a frame through molpy names.
 
-The driver's behaviour is molrs's and tested there; this pins the mirror and
-one step of the seam molpy users call.
+The driver's behaviour is molrs's and tested there; this pins one step of the
+seam molpy users call (the mirror's identity is ``test_public_paths.py``'s).
 """
 
-import molrs
 import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.ff.potential import PairLjCut
-from molpy.md import MD, NeighborList, VelocityVerlet
 
 
 def _pair() -> mp.Frame:
@@ -27,17 +24,12 @@ def _pair() -> mp.Frame:
     return frame
 
 
-def test_the_md_names_are_molrs_objects():
-    for name in molrs.md.__all__:
-        assert getattr(mp.md, name) is getattr(molrs.md, name)
-
-
 def test_one_step_writes_energy_and_forces_onto_the_frame():
     frame = _pair()
-    sim = MD()
-    sim.set_integrator(VelocityVerlet(0.001))
-    sim.set_neighbor(NeighborList(2.5, 0.5))
-    sim.set_evaluator(PairLjCut(1.0, 1.0, 2.5))
+    sim = mp.md.MD()
+    sim.set_integrator(mp.md.VelocityVerlet(0.001))
+    sim.set_neighbor(mp.md.NeighborList(2.5, 0.5))
+    sim.set_evaluator(mp.ff.potential.PairLjCut(1.0, 1.0, 2.5))
     sim.run(frame, 1)
     assert np.isfinite(frame.meta["energy"]) and frame.meta["energy"] != 0.0
     assert np.isfinite(np.asarray(frame["atoms"]["fx"])).all()
@@ -46,4 +38,4 @@ def test_one_step_writes_energy_and_forces_onto_the_frame():
 @pytest.mark.parametrize("dt", [0.0, -1.0, np.nan, np.inf])
 def test_a_non_positive_timestep_is_refused(dt):
     with pytest.raises(ValueError, match="dt"):
-        VelocityVerlet(dt)
+        mp.md.VelocityVerlet(dt)

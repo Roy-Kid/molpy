@@ -101,7 +101,6 @@ LAMMPS / GROMACS / PDB / *.mrec files
 | **ForceField & Typifier** | A parameter catalog (styles + type tables) and the rule engine that assigns types onto a structure | [Force Field](04_force_field.md) |
 | **Trajectory** | An ordered sequence of `Frame` objects | [Trajectory](05_trajectory.md) |
 | **Selector** | Composable, predicate-based atom filters over `Block` columns | [Selector](06_selector.md) |
-| **Wrapper & Adapter** | Subprocess execution boundaries and in-memory representation bridges to external tools | [Wrapper and Adapter](07_wrapper_and_adapter.md) |
 | **CoarseGrain** | `Bead` / `CgBond` graph for coarse-grained models | [Coarse-Grained Structure](08_coarsegrain.md) |
 | **Units** | Unit-system presets and explicit quantity conversion | [Units](09_units.md) |
 

@@ -1,17 +1,14 @@
 import numpy as np
 
 import molpy as mp
-from molpy.core import MetaValue
-from molpy.io import write_lammps_dump_local
-from molpy.io.lammps import LammpsDumpReader, LammpsDumpWriter
 
 
 def read_lammps_dump_trajectory(path):
-    return LammpsDumpReader(path)
+    return mp.io.lammps.LammpsDumpReader(path)
 
 
 def write_lammps_dump_trajectory(path, frames):
-    with LammpsDumpWriter(path) as writer:
+    with mp.io.lammps.LammpsDumpWriter(path) as writer:
         for frame in frames:
             writer.write(frame)
 
@@ -33,7 +30,7 @@ class TestWriteLammpsTrajectory:
                 "z": [0.0, 0.0, 0.0],
             }
             frame["atoms"] = atoms_data
-            frame.meta = {"timestep": MetaValue("i64", i * 100)}
+            frame.meta = {"timestep": mp.core.MetaValue("i64", i * 100)}
             frame.box = mp.Box(mp.core.Cell.matrix(np.eye(3) * 10.0))
             frames.append(frame)
 
@@ -73,7 +70,7 @@ class TestWriteLammpsTrajectory:
             "vz": [0.0, 0.0, 0.0, 0.0],
         }
         frame["atoms"] = atoms_data
-        frame.meta = {"timestep": MetaValue("i64", 1000)}
+        frame.meta = {"timestep": mp.core.MetaValue("i64", 1000)}
         frame.box = mp.Box(mp.core.Cell.matrix(np.diag([5.0, 5.0, 5.0])))
 
         tmp_file = tmp_path / "test.dump"
@@ -112,7 +109,7 @@ class TestTrajectoryIntegration:
             "q": [-0.8476, 0.4238, 0.4238],
         }
         frame["atoms"] = atoms_data
-        frame.meta = {"timestep": MetaValue("i64", 0)}
+        frame.meta = {"timestep": mp.core.MetaValue("i64", 0)}
         frame.box = mp.Box(mp.core.Cell.matrix(np.diag([10.0, 10.0, 10.0])))
 
         # Write as trajectory
@@ -141,7 +138,7 @@ class TestTrajectoryIntegration:
             "z": [0.0, 0.0],
         }
         frame_original["atoms"] = atoms_data
-        frame_original.meta = {"timestep": MetaValue("i64", 100)}
+        frame_original.meta = {"timestep": mp.core.MetaValue("i64", 100)}
         frame_original.box = mp.Box(mp.core.Cell.matrix(np.eye(3) * 5.0))
 
         # Write as trajectory and read back
@@ -172,7 +169,7 @@ class TestWriteLammpsDumpLocal:
         frame["bonds"] = bonds
         frame.box = mp.Box(mp.core.Cell.lengths([10.0] * 3))
         path = tmp_path / "bonds.dump.local"
-        write_lammps_dump_local(path, [frame])
+        mp.io.write_lammps_dump_local(path, [frame])
         text = path.read_text(encoding="utf-8")
         assert "ITEM: NUMBER OF ENTRIES" in text
         assert "batom1 batom2" in text

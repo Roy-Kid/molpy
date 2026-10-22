@@ -5,13 +5,11 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from pathlib import Path
-
-from molpy.ff.forcefield import AngleType, AtomType, BondType
-from molpy.io.amber import AmberPrmtopForcefieldReader
+import molpy as mp
 
 
 def read_prmtop_system(path):
-    return AmberPrmtopForcefieldReader().read_system(path)
+    return mp.io.amber.AmberPrmtopForcefieldReader().read_system(path)
 
 
 @pytest.fixture
@@ -118,9 +116,9 @@ def test_prmtop_forcefield_structure(litfsi_prmtop):
     ff, _ = read_prmtop_system(litfsi_prmtop)
     assert ff.units == "real"
     assert ff.get_styles("atom")
-    assert len(ff.get_types(AtomType)) > 0
-    assert len(ff.get_types(BondType)) > 0
-    assert len(ff.get_types(AngleType)) > 0
+    assert len(ff.get_types(mp.ff.forcefield.AtomType)) > 0
+    assert len(ff.get_types(mp.ff.forcefield.BondType)) > 0
+    assert len(ff.get_types(mp.ff.forcefield.AngleType)) > 0
 
 
 def test_prmtop_nonexistent_file():

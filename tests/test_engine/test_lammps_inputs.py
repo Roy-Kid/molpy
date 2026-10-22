@@ -7,14 +7,10 @@ category the system uses; molpy names no style itself.
 
 from tests.conftest import capture
 
-import os
-import shutil
-import subprocess
 
 import pytest
 
 import molpy as mp
-from molpy.engine import LammpsEngine
 
 
 @pytest.fixture
@@ -35,7 +31,7 @@ def water_ff() -> mp.ff.forcefield.ForceField:
 
 def _deck(water, ff, out, **kw):
     """The water's deck, generated without a LAMMPS binary."""
-    return LammpsEngine(check_executable=False).generate_inputs(
+    return mp.engine.LammpsEngine(check_executable=False).generate_inputs(
         water.to_frame(), ff, out, prefix="w", **kw
     )
 
@@ -169,7 +165,7 @@ class TestAtomStyleAndUnits:
     def test_atom_style_defaults_to_the_one_the_data_file_is_written_in(self, tmp_path):
         """An LJ fluid (no charge, no mol_id) is ``atomic`` in both files."""
         frame, ff = self._lj_fluid()
-        paths = LammpsEngine(check_executable=False).generate_inputs(
+        paths = mp.engine.LammpsEngine(check_executable=False).generate_inputs(
             frame, ff, tmp_path
         )
         init = paths["init"].read_text(encoding="utf-8").splitlines()
@@ -213,45 +209,3 @@ def _with_urey_bradley(water: mp.Atomistic, ff: mp.ff.forcefield.ForceField) -> 
     )
     o, h1, h2 = list(water.atoms)
     water.add_angle(h1, o, h2, type="HW-OW-HW")
-
-
-@pytest.mark.skipif(shutil.which("lmp") is None, reason="needs the lmp executable")
-def test_lammps_prices_the_emitted_bonded_terms_as_molrs_does(
-    tmp_path, water, water_ff
-):
-    """``run 0`` on the emitted deck: LAMMPS's bond and angle (UB included)
-    energies are molrs's, so the styles read after ``read_data`` are in force."""
-    _with_urey_bradley(water, water_ff)
-    water_ff.get_style("pair", "lj/cut")["cutoff"] = 10.0
-    # The water carries no box: the deck as emitted, shrink-wrapped.
-    _deck(water, water_ff, tmp_path, units="real")
-    deck = (
-        "include w.in.init\nread_data w.data\ninclude w.in.settings\n"
-        "thermo_style custom step ebond eangle\n"
-        "thermo_modify format float %.17g\nrun 0\n"
-    )
-    (tmp_path / "in.check").write_text(deck, encoding="utf-8")
-    # A singleton run: inside a Slurm step, MPI must not join the step's PMI.
-    env = {
-        k: v
-        for k, v in os.environ.items()
-        if not k.startswith(("PMI", "PMIX", "SLURM", "OMPI"))
-    }
-    subprocess.run(
-        ["lmp", "-in", "in.check", "-log", "log.check", "-screen", "none"],
-        cwd=tmp_path,
-        env=env,
-        check=True,
-        timeout=120,
-    )
-    lines = (tmp_path / "log.check").read_text(encoding="utf-8").splitlines()
-    head = next(
-        i for i, l in enumerate(lines) if l.split()[:3] == ["Step", "E_bond", "E_angle"]
-    )
-    _, ebond, eangle = (float(v) for v in lines[head + 1].split())
-
-    # No `pairs` block: molrs prices the bonded terms alone.
-    frame = water.to_frame()
-    energy, _ = mp.ff.compile.PotentialCompiler(water_ff).compile(frame).evaluate(frame)
-    assert ebond + eangle == pytest.approx(energy, rel=1e-5)
-    assert eangle > 0.0

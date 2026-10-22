@@ -27,7 +27,7 @@ from molrs.io.mrec import *  # noqa: F403
 from molrs.io.mrec import MrecReader
 from molrs.io.mrec import __all__ as _native
 
-from molpy.io import _metric_reader
+from molpy.io import metric_reader
 
 # The star import bound molrs's ``validation`` module; loading molpy's mirror
 # rebinds the attribute, so ``molpy.io.mrec.validation`` also imports by name.
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any
 
-    from molpy.io._metric_reader import ReadRequest
+    from molpy.io.metric_reader import ReadRequest
 
 
 _PACKED_SUFFIX = ".mrec.zip"
@@ -87,7 +87,7 @@ class MrecMetricReader:
         """
         with MrecReader(path) as reader:
             columns = {name: getattr(reader, name) for name in ("step", "time")}
-        yield from _metric_reader.apply_request(
+        yield from metric_reader.apply_request(
             request, _series_records(columns, source)
         )
 

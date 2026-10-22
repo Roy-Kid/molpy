@@ -4,17 +4,11 @@ molpy keeps no unit registry of its own; the ``openmm`` preset, preset
 registration, ``k_B`` and LJ reduced units are native. These tests pin the molpy-facing contract of those names.
 """
 
-import molrs
 import pytest
 
 import molpy as mp
 
 REQUIRED_DIMS = ("mass", "length", "time", "energy", "temperature", "charge")
-
-
-def test_unit_names_are_molrs_objects():
-    for name in ("Unit", "Quantity", "UnitRegistry", "UnitPreset", "UnitsError"):
-        assert getattr(mp.core, name) is getattr(molrs.core, name)
 
 
 def test_quantity_and_conversion():

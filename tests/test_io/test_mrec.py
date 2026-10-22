@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 
 import molpy as mp
-from molpy.core import Block, Frame, Trajectory
 
 _N_ATOMS = 3
 _ATOM_X = (0.0, 1.0, 0.5)
@@ -15,17 +14,17 @@ _ATOM_Y = (0.25, 0.0, 2.0)
 _ATOM_Z = (0.0, 4.0, 0.125)
 
 
-def _coords_frame() -> Frame:
-    atoms = Block()
+def _coords_frame() -> mp.Frame:
+    atoms = mp.Block()
     atoms["x"] = np.array(_ATOM_X, dtype=np.float64)
     atoms["y"] = np.array(_ATOM_Y, dtype=np.float64)
     atoms["z"] = np.array(_ATOM_Z, dtype=np.float64)
-    frame = Frame()
+    frame = mp.Frame()
     frame["atoms"] = atoms
     return frame
 
 
-def _assert_coords(frame: Frame) -> None:
+def _assert_coords(frame: mp.Frame) -> None:
     atoms = frame["atoms"]
     assert atoms.n_rows == _N_ATOMS
     np.testing.assert_array_equal(
@@ -42,7 +41,7 @@ def _assert_coords(frame: Frame) -> None:
 class TestFrameSequence:
     def test_read_frame(self, tmp_path: Path) -> None:
         path = tmp_path / "traj.mrec"
-        mp.io.write_mrec(path, trajectory=Trajectory([_coords_frame()]))
+        mp.io.write_mrec(path, trajectory=mp.Trajectory([_coords_frame()]))
         reader = mp.io.mrec.MrecReader(path)
         _assert_coords(reader[0])
 
@@ -68,7 +67,7 @@ class TestWriteSystem:
 class TestWriteTrajectory:
     def test_round_trips_coordinates(self, tmp_path: Path) -> None:
         path = tmp_path / "traj.mrec"
-        mp.io.write_mrec(path, trajectory=Trajectory([_coords_frame()]))
+        mp.io.write_mrec(path, trajectory=mp.Trajectory([_coords_frame()]))
         loaded = mp.io.mrec.MrecReader(path).to_trajectory()
         assert len(loaded) == 1
         _assert_coords(loaded[0])

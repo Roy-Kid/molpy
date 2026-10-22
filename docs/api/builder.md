@@ -7,7 +7,7 @@ polymer planning layer, crystals, virtual sites, `PackingTemplate`, and the
 AmberTools polymer builder, which makes a GAFF chain without the assembler:
 prepgen cuts one antechamber-typed oligomer and tleap `sequence` joins the
 residues. Every name has one path, `mp.builder.<Name>`; the modules behind it
-are private.
+are implementation modules, outside `mp.builder.__all__`.
 
 ## Quick reference
 

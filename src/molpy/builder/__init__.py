@@ -24,15 +24,16 @@ molpy adds:
 * :class:`PackingTemplate` — a built molecule's frame plus its hydrogen
   indices, for a packer's per-atom settings.
 
-Every name has this one path; the modules behind it are private.
+Every name has this one path; the modules behind it are implementation
+modules, outside ``__all__``.
 """
 
 from molrs.builder import *  # noqa: F403
 from molrs.builder import __all__ as _native
 
-from molpy.builder._crystal import Lattice, Site
-from molpy.builder._packing import PackingTemplate
-from molpy.builder._polymer import (
+from molpy.builder.crystal import Lattice, Site
+from molpy.builder.packing import PackingTemplate
+from molpy.builder.polymer import (
     AlternatingSequenceGenerator,
     AmberBuildResult,
     AmberCut,
@@ -52,8 +53,8 @@ from molpy.builder._polymer import (
     UniformPolydisperse,
     WeightedSequenceGenerator,
 )
-from molpy.builder._symmetry import SpaceGroup
-from molpy.builder._virtualsite import DrudeBuilder, Tip4pBuilder, VirtualSiteBuilder
+from molpy.builder.symmetry import SpaceGroup
+from molpy.builder.virtualsite import DrudeBuilder, Tip4pBuilder, VirtualSiteBuilder
 
 __all__ = [
     # Native builders (molrs.builder)

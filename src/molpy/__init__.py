@@ -11,8 +11,8 @@ the root holds three kinds of name and nothing else:
   :mod:`molpy.perceive`, :mod:`molpy.optimize`, :mod:`molpy.conformer`,
   :mod:`molpy.builder`, :mod:`molpy.compute`, :mod:`molpy.md`,
   :mod:`molpy.op` and :mod:`molpy.stream`; and molpy's own
-  :mod:`molpy.engine`, :mod:`molpy.adapter`, :mod:`molpy.config`,
-  :mod:`molpy.resources` and :mod:`molpy.wrapper` (imported explicitly);
+  :mod:`molpy.engine`, :mod:`molpy.tool`, :mod:`molpy.config` and
+  :mod:`molpy.resources`;
 * **the core data classes a user handles directly**, promoted from
   :mod:`molpy.core` as the same objects (``mp.Frame is mp.core.Frame is
   molrs.core.Frame``): ``Frame``, ``Block``, ``Trajectory``, ``Box``,
@@ -26,9 +26,11 @@ the root holds three kinds of name and nothing else:
   :mod:`molpy.version` module that holds them with
   :func:`~molpy.version.check_molrs_version`.
 
-The modules behind molpy's own additions are private, so each of their names
-has one path (``mp.engine.LammpsEngine``). Subsystems load lazily on first
-attribute access (PEP 562).
+The modules behind molpy's own additions (``molpy.engine.lammps``, …) are
+implementation modules, outside every ``__all__``, so each of their names has
+one path (``mp.engine.LammpsEngine``). No module name starts with ``_``:
+``__all__``, not a name prefix, says what is public. Subsystems load lazily on
+first attribute access (PEP 562).
 """
 
 # Import version first: version.py runs the molcrafts-molrs compatibility check
@@ -46,7 +48,6 @@ from typing import TYPE_CHECKING as _TYPE_CHECKING
 
 if _TYPE_CHECKING:
     from molpy import (
-        adapter,
         builder,
         compute,
         config,
@@ -61,15 +62,15 @@ if _TYPE_CHECKING:
         perceive,
         resources,
         stream,
+        tool,
     )
 
 # Submodules are loaded lazily (PEP 562) so that importing a single
 # subpackage (e.g. ``molpy.io``) does not eagerly initialize the
-# whole io/engine/adapter surface. ``molpy.io`` et al. still work as
+# whole io/engine surface. ``molpy.io`` et al. still work as
 # attribute accesses and ``import molpy.io`` works as usual.
 _LAZY_SUBMODULES = frozenset(
     {
-        "adapter",
         "builder",
         "compute",
         "config",
@@ -84,6 +85,7 @@ _LAZY_SUBMODULES = frozenset(
         "optimize",
         "perceive",
         "stream",
+        "tool",
     }
 )
 
@@ -124,7 +126,6 @@ from molpy.core import (
 )
 
 __all__ = [
-    "adapter",
     "builder",
     "compute",
     "config",
@@ -139,6 +140,7 @@ __all__ = [
     "optimize",
     "perceive",
     "stream",
+    "tool",
     # promoted core data classes
     "Angle",
     "Atom",

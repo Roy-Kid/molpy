@@ -246,7 +246,7 @@ if result.stderr:
     print(result.stderr[:500])
 ```
 
-`check=True` (the default) makes `run()` raise `molpy.wrapper.ToolError` on a non-zero exit code. The error carries the tool (`error.tool == "engine.lammps"`), the exit code (`error.returncode`) and the tail of the program's stderr or, when nothing was captured, its log file (`error.tail` — `log.lammps` for LAMMPS, `cp2k.out` for CP2K). A missing executable, a program that cannot start and a timeout raise the same error. Set `check=False` during automated parameter scans where you want to continue after a failed run and inspect the log file yourself.
+`check=True` (the default) makes `run()` raise `molpy.tool.ToolError` on a non-zero exit code. The error carries the tool (`error.tool == "engine.lammps"`), the exit code (`error.returncode`) and the tail of the program's stderr or, when nothing was captured, its log file (`error.tail` — `log.lammps` for LAMMPS, `cp2k.out` for CP2K). A missing executable, a program that cannot start and a timeout raise the same error. Set `check=False` during automated parameter scans where you want to continue after a failed run and inspect the log file yourself.
 
 ### Executables, launchers and environments are configuration
 
@@ -283,7 +283,7 @@ result = LammpsEngine(config=config).run(script, workdir="./smoke")
 
 [Configure and Log a Run](14_configure_and_log.md) has the four layers
 (package defaults, `~/.molcrafts/molpy/config/config.toml`, `molpy.toml`,
-the run), the keys every engine and wrapper reads, and the log records each
+the run), the keys every engine and AmberTools program reads, and the log records each
 run leaves.
 
 ### Conda environment activation
@@ -341,7 +341,7 @@ Use generate-only when you are submitting to a cluster scheduler, when you want 
 
 ## Adding a new engine takes a table and two methods
 
-Every engine subclasses `Engine`, names its configuration table in `tool`, and implements two methods: `_get_default_extension()`, the file extension of an unpathed input script, and `_execute(run_dir, input_file, *, capture_output, check)`, which builds the command with `self.command(...)` and starts it with `self.run_command(...)`. The shared tool core (`molpy.wrapper.Tool`) resolves the settings, environment, executable, launcher, environment variables, time limit and logger; `Engine.run` writes the scripts. An engine that writes its own input set adds one `generate_inputs`, calling molrs's writers for every file it does not template itself. Its settings are the `[engine.<tool>]` table of any configuration layer — molpy accepts a table for any engine name — and its default executable is `_default_executable()` (the built-in engines state theirs in `molpy.config.DEFAULTS`).
+Every engine subclasses `Engine`, names its configuration table in `tool`, and implements two methods: `_get_default_extension()`, the file extension of an unpathed input script, and `_execute(run_dir, input_file, *, capture_output, check)`, which builds the command with `self.command(...)` and starts it with `self.run_command(...)`. The shared tool core (`molpy.tool.Tool`) resolves the settings, environment, executable, launcher, environment variables, time limit and logger; `Engine.run` writes the scripts. An engine that writes its own input set adds one `generate_inputs`, calling molrs's writers for every file it does not template itself. Its settings are the `[engine.<tool>]` table of any configuration layer — molpy accepts a table for any engine name — and its default executable is `_default_executable()` (the built-in engines state theirs in `molpy.config.DEFAULTS`).
 
 ```python
 from pathlib import Path
@@ -368,7 +368,7 @@ class NamdEngine(Engine):
         )
 ```
 
-`command` prepends the conda wrapper and the launcher; `run_command` applies the environment variables and the time limit, logs the run, and raises `ToolError` on failure.
+`command` prepends the conda prefix and the launcher; `run_command` applies the environment variables and the time limit, logs the run, and raises `ToolError` on failure.
 
 ---
 

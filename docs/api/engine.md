@@ -24,13 +24,13 @@ no inputs.
   `env_vars` and `timeout` are its `[engine.<name>]` settings in molpy's
   configuration, falling back to `[engine]` ([`molpy.config`](config.md));
   the constructor takes `config`, `workdir` and `check_executable`; they are
-  resolved by the shared `molpy.wrapper.Tool` core
+  resolved by the shared [`mp.tool.Tool`](tool.md) core
 - `run(scripts, *, workdir, capture_output, check)` writes the scripts (the
   first is the input) and runs the engine; it keeps no state and does not
   change the scripts. `check=True` is the default. GROMACS's `run` also takes
   `structure=`, the coordinates `grompp -c` reads: `<prefix>.gro` by default,
   the previous stage's output (`"em.gro"`) for a later stage
-- Every failure is a `molpy.wrapper.ToolError` carrying `tool`
+- Every failure is an [`mp.tool.ToolError`](tool.md) carrying `tool`
   (`"engine.lammps"`), `returncode` and `tail` — the program's stderr or, when
   nothing was captured, its log (`log.lammps`, `cp2k.out`, GROMACS's
   `<stem>.log`)

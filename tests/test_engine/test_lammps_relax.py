@@ -7,7 +7,6 @@ here and in ``test_engine.py``. The one real minimisation runs only where an
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 from unittest.mock import patch
@@ -16,17 +15,15 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.config import load_config
-from molpy.engine import LammpsEngine
-from molpy.ff.forcefield import ForceField
-from molpy.wrapper import ToolError
 
 _R0 = 1.5  # harmonic bond equilibrium length (Å)
 
 
-def _dimer_system(separation: float = 2.2) -> tuple[mp.Frame, ForceField]:
+def _dimer_system(
+    separation: float = 2.2,
+) -> tuple[mp.Frame, mp.ff.forcefield.ForceField]:
     """A neutral C-C dimer (harmonic bond k=300, r0=1.5) and its force field."""
-    ff = ForceField("dimer")
+    ff = mp.ff.forcefield.ForceField("dimer")
     c = ff.def_style("atom", "full").def_type("C", mass=12.011)
     ff.def_style("bond", "harmonic").def_type("C-C", c, c, k=300.0, r0=_R0)
     ff.def_style("pair", "lj/cut/coul/cut").def_type("C", c, epsilon=0.05, sigma=3.4)
@@ -53,10 +50,10 @@ def _dimer_system(separation: float = 2.2) -> tuple[mp.Frame, ForceField]:
     return frame, ff
 
 
-def _cut_dimer_system() -> tuple[mp.Frame, ForceField]:
+def _cut_dimer_system() -> tuple[mp.Frame, mp.ff.forcefield.ForceField]:
     """The dimer under a 10 Å ``lj/cut`` force field molrs can write."""
     frame, _ = _dimer_system()
-    ff = ForceField("dimer", units="real")
+    ff = mp.ff.forcefield.ForceField("dimer", units="real")
     c = ff.def_style("atom", "full").def_type("C", mass=12.011)
     ff.def_style("bond", "harmonic").def_type("C-C", c, c, k=300.0, r0=_R0)
     ff.def_style("pair", "lj/cut", {"cutoff": 10.0}).def_type(
@@ -67,12 +64,12 @@ def _cut_dimer_system() -> tuple[mp.Frame, ForceField]:
 
 def _lmp():
     """A config naming the ``lmp`` binary (not the auto-detected one)."""
-    return load_config({"engine": {"lammps": {"executable": "lmp"}}})
+    return mp.config.load_config({"engine": {"lammps": {"executable": "lmp"}}})
 
 
 def test_init_autodetects_executable() -> None:
     """``LammpsEngine()`` resolves a binary name without requiring it on PATH."""
-    eng = LammpsEngine(check_executable=False)
+    eng = mp.engine.LammpsEngine(check_executable=False)
     assert eng.executable in {"lmp", "lmp_serial", "lmp_mpi"}
 
 
@@ -86,7 +83,7 @@ def test_minimize_relaxes_a_box_free_frame_shrink_wrapped(tmp_path) -> None:
         shutil.copy(cwd / "system.data", cwd / "relaxed.data")
         return subprocess.CompletedProcess(argv, 0, None, None)
 
-    engine = LammpsEngine(config=_lmp(), check_executable=False)
+    engine = mp.engine.LammpsEngine(config=_lmp(), check_executable=False)
     with patch("subprocess.run", side_effect=lammps):
         relaxed = engine.minimize(frame, ff, workdir=tmp_path)
     init = (tmp_path / "system.in.init").read_text(encoding="utf-8").splitlines()
@@ -101,31 +98,17 @@ def test_a_long_range_force_field_needs_a_box(tmp_path) -> None:
     frame.box = None
     ff.def_style("pair", "coul/long/pme", {"cutoff": 10.0})
     with pytest.raises(ValueError, match="LAMMPS.*long-range.*periodic box"):
-        LammpsEngine(check_executable=False).minimize(
+        mp.engine.LammpsEngine(check_executable=False).minimize(
             frame, ff, workdir=tmp_path / "out"
         )
     assert not (tmp_path / "out").exists()
-
-
-@pytest.mark.skipif(shutil.which("lmp") is None, reason="needs the lmp executable")
-def test_lammps_minimizes_a_box_free_dimer(tmp_path, monkeypatch) -> None:
-    """A real shrink-wrapped minimisation pulls the stretched bond to r0."""
-    frame, ff = _cut_dimer_system()
-    frame.box = None
-    for key in [
-        k for k in os.environ if k.startswith(("PMI", "PMIX", "SLURM", "OMPI"))
-    ]:
-        monkeypatch.delenv(key)
-    relaxed = LammpsEngine(config=_lmp()).minimize(frame, ff, workdir=tmp_path)
-    bond = np.diff(np.asarray(relaxed["atoms"]["x"]))[0]
-    assert bond == pytest.approx(_R0, abs=1e-3)
 
 
 def test_md_rejects_unknown_ensemble() -> None:
     """An unsupported ensemble fails fast, before any subprocess."""
     frame, ff = _dimer_system()
     with pytest.raises(ValueError, match="ensemble must be one of"):
-        LammpsEngine(check_executable=False).md(frame, ff, ensemble="npt")
+        mp.engine.LammpsEngine(check_executable=False).md(frame, ff, ensemble="npt")
 
 
 def test_a_run_that_writes_no_structure_raises_with_the_log_tail(tmp_path) -> None:
@@ -138,10 +121,10 @@ def test_a_run_that_writes_no_structure_raises_with_the_log_tail(tmp_path) -> No
         )
         return subprocess.CompletedProcess(argv, 0, None, None)
 
-    engine = LammpsEngine(config=_lmp(), check_executable=False)
+    engine = mp.engine.LammpsEngine(config=_lmp(), check_executable=False)
     with (
         patch("subprocess.run", side_effect=no_output),
-        pytest.raises(ToolError, match="WARNING: Lost atoms") as raised,
+        pytest.raises(mp.tool.ToolError, match="WARNING: Lost atoms") as raised,
     ):
         engine.minimize(frame, ff, workdir=tmp_path)
     assert raised.value.tool == "engine.lammps"

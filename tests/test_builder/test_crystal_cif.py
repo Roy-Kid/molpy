@@ -8,8 +8,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.builder import Lattice
-from molpy.core import keys
 
 TRICLINIC_FRACTIONAL = np.array([[0.10, 0.20, 0.30], [0.25, 0.35, 0.15]])
 
@@ -62,7 +60,7 @@ def _sorted_rows(points: np.ndarray) -> np.ndarray:
 class TestFromCif:
     def test_nacl_fm3m_fills_eight_atoms_per_cell(self, TEST_DATA_DIR):
         frame = mp.io.read_cif(TEST_DATA_DIR / "cif" / "nacl_fm3m.cif")
-        lattice = Lattice.from_cif(frame)
+        lattice = mp.builder.Lattice.from_cif(frame)
 
         assert len(lattice.basis) == 8
         species = [site.species for site in lattice.basis]
@@ -92,7 +90,7 @@ class TestFromCif:
         so a transposed cell matrix (rows taken for columns) fails here.
         """
         frame = mp.io.read_cif(TEST_DATA_DIR / "cif" / "triclinic_p1bar.cif")
-        structure = Lattice.from_cif(frame).build(repeats=(1, 1, 1))
+        structure = mp.builder.Lattice.from_cif(frame).build(repeats=(1, 1, 1))
 
         rows = _cell_matrix(5.0, 6.0, 7.0, 80.0, 95.0, 110.0)
         images = np.vstack([TRICLINIC_FRACTIONAL, 1.0 - TRICLINIC_FRACTIONAL])
@@ -112,16 +110,16 @@ class TestFromCif:
         frame = mp.io.read_cif(
             _write(tmp_path, MINIMAL_CIF.format(symops="", occupancy="1.0"))
         )
-        assert keys.SYMOPS.key not in frame.meta
+        assert mp.core.keys.SYMOPS.key not in frame.meta
 
         with pytest.raises(ValueError, match="symops"):
-            Lattice.from_cif(frame)
+            mp.builder.Lattice.from_cif(frame)
 
     def test_explicit_p1_symops_are_honoured(self, tmp_path):
         frame = mp.io.read_cif(
             _write(tmp_path, MINIMAL_CIF.format(symops=P1_LOOP, occupancy="1.0"))
         )
-        lattice = Lattice.from_cif(frame)
+        lattice = mp.builder.Lattice.from_cif(frame)
 
         assert [s.label for s in lattice.basis] == ["Cu1_0"]
 
@@ -134,10 +132,10 @@ class TestFromCif:
             "element": np.array(["Cu"]),
             "name": np.array(["Cu1"]),
         }
-        frame.meta[keys.SYMOPS.key] = ("x,y,z",)
+        frame.meta[mp.core.keys.SYMOPS.key] = ("x,y,z",)
 
         with pytest.raises(ValueError, match="box"):
-            Lattice.from_cif(frame)
+            mp.builder.Lattice.from_cif(frame)
 
     def test_partial_occupancy_is_rejected(self, tmp_path):
         frame = mp.io.read_cif(
@@ -145,4 +143,4 @@ class TestFromCif:
         )
 
         with pytest.raises(ValueError, match=r"Cu1.*partial occupancy"):
-            Lattice.from_cif(frame)
+            mp.builder.Lattice.from_cif(frame)

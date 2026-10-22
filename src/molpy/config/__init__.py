@@ -1,7 +1,8 @@
-"""Layered configuration for molpy's engines and wrappers (molcfg).
+"""Layered configuration for the external programs molpy runs (molcfg).
 
-Every setting an engine (:mod:`molpy.engine`) or a wrapper
-(:mod:`molpy.wrapper`) reads from outside its arguments — which executable
+Every setting an engine (:mod:`molpy.engine`) or an AmberTools program (the
+pipeline behind :mod:`molpy.ff.typifier` and
+:class:`molpy.builder.AmberPolymerBuilder`) reads from outside its arguments — which executable
 to run, the conda / venv environment it lives in, its launcher, its
 environment variables and its time limit — resolves here, through four
 :mod:`molcfg` layers, later winning:
@@ -24,7 +25,7 @@ Each value remembers the layer it came from (:meth:`molcfg.Config.meta`), and
     settings.sources["launcher"]  # ('run', 'engine.lammps.launcher')
 """
 
-from molpy.config._config import (
+from molpy.config.settings import (
     DEFAULTS,
     LAYERS,
     PROJECT_CONFIG_NAME,

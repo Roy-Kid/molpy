@@ -13,6 +13,6 @@ correction, so types and bonded terms stay native.
 from molrs.ff.charge import *  # noqa: F403
 from molrs.ff.charge import __all__ as _native
 
-from molpy.ff._ambertools import Am1BccModel
+from molpy.ff.ambertools import Am1BccModel
 
 __all__ = [*_native, "Am1BccModel"]

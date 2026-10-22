@@ -91,7 +91,7 @@ at build time). After editing one, regenerate its page with
 ## External tools
 
 LAMMPS and AmberTools are optional for *using* MolPy offline recipes; packing uses molpack (`pip install molcrafts-molpack`).
-they are **not** part of the unit suite. Wrappers and engines are tested with
+they are **not** part of the unit suite. Engines and the AmberTools programs are tested with
 mocks and script literals. Doc blocks that would shell out declare
 `# docs: skip`.
 

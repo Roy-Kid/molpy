@@ -59,10 +59,7 @@ Defining the class registers the style; `Fene.unregister()` takes it out
 again. The record carries the expression, so a process that registered
 nothing reads `chain.mrec` back with
 `mp.io.mrec.MrecFile(Path("chain.mrec")).forcefield().to_forcefield()` and
-prices it identically. molpy's test suite runs this snippet as written
-(`tests/test_ff/test_user_style.py`), and proves the energy and forces
-equal the analytic FENE sum and that a fresh process prices the record bit for
-bit.
+prices it identically.
 
 ## The pieces
 

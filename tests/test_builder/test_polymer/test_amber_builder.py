@@ -19,8 +19,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.builder import AmberCut, AmberPieces, AmberPolymerBuilder
-from molpy.wrapper import Tool, ToolError
 
 
 def _inpcrd(path: Path, n_atoms: int = 16) -> None:
@@ -121,19 +119,19 @@ def _ether() -> mp.Atomistic:
     return graph
 
 
-def _cuts() -> dict[str, dict[str, AmberCut]]:
+def _cuts() -> dict[str, dict[str, mp.builder.AmberCut]]:
     """The omit lists and connection atoms are the caller's, written through."""
     return {
         "EO": {
-            "head": AmberCut(tail="C4", post_tail="O5", omit=("C1",)),
-            "chain": AmberCut(
+            "head": mp.builder.AmberCut(tail="C4", post_tail="O5", omit=("C1",)),
+            "chain": mp.builder.AmberCut(
                 head="O2",
                 tail="C4",
                 pre_head_type="c3",
                 post_tail_type="os",
                 omit=("C1", "O5", "C6"),
             ),
-            "tail": AmberCut(head="O2", pre_head="C1", omit=("C6",)),
+            "tail": mp.builder.AmberCut(head="O2", pre_head="C1", omit=("C6",)),
         }
     }
 
@@ -161,8 +159,10 @@ def _controls(work: Path, label: str = "EO") -> dict[str, str]:
 def tools(TEST_DATA_DIR: Path):
     fake = _FakeTools(TEST_DATA_DIR / "prmtop" / "LiTFSI.prmtop")
     with (
-        patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-        patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
+        patch.object(
+            mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+        ),
+        patch("molpy.tool.process.subprocess.run", side_effect=fake),
         patch(
             "molrs.builder.Assembler.assemble", side_effect=AssertionError("no link")
         ),
@@ -174,13 +174,13 @@ def _build(work: Path, sites: str = "{[#EO]|3}", **kwargs) -> mp.Frame:
     options = {"parameter_set": "gaff", "work_dir": work} | kwargs
     library = options.pop("library", {"EO": _ether()})
     cuts = options.pop("cuts", _cuts())
-    builder = AmberPolymerBuilder(library, cuts, **options)
+    builder = mp.builder.AmberPolymerBuilder(library, cuts, **options)
     return builder.assemble(mp.io.cgsmiles.read_cgsmiles(sites).to_coarsegrain())
 
 
 class TestAmberPieces:
     def test_pieces_name_the_peo_junction_without_atom_indices(self):
-        oligomer, cuts = AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
+        oligomer, cuts = mp.builder.AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
         assert oligomer.n_atoms == 30
         assert cuts["head"].tail == "C3"
         assert cuts["chain"].head == "O2"
@@ -193,7 +193,7 @@ class TestAmberPieces:
         assert cuts["tail"].pre_head == "C5"
 
     def test_each_residue_omits_exactly_the_other_two_monomers(self):
-        oligomer, cuts = AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
+        oligomer, cuts = mp.builder.AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
         names = {str(atom["name"]) for atom in oligomer.atoms}
         kept = {variant: names - set(cut.omit) for variant, cut in cuts.items()}
         assert kept["head"] | kept["chain"] | kept["tail"] == names
@@ -204,10 +204,10 @@ class TestAmberPieces:
 
     def test_each_piece_is_a_smiles_of_its_own(self):
         with pytest.raises(mp.io.smiles.SmilesError, match="unmatched ring closure"):
-            AmberPieces("C1OC", "C1O", "C").oligomer(seed=1)
+            mp.builder.AmberPieces("C1OC", "C1O", "C").oligomer(seed=1)
 
     def test_pieces_feed_the_builder(self, tools, tmp_path):
-        oligomer, cuts = AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
+        oligomer, cuts = mp.builder.AmberPieces("COCC", "OCC", "OCCOC").oligomer(seed=1)
         result = _build(
             tmp_path, "{[#PEO]|4}", library={"PEO": oligomer}, cuts={"PEO": cuts}
         )
@@ -336,7 +336,9 @@ class TestCache:
         _build(tmp_path)
         before = len(tools.calls)
         cuts = _cuts()
-        cuts["EO"]["tail"] = AmberCut(head="O2", pre_head="C1", omit=("C6", "H16"))
+        cuts["EO"]["tail"] = mp.builder.AmberCut(
+            head="O2", pre_head="C1", omit=("C6", "H16")
+        )
         _build(tmp_path, cuts=cuts)
         assert tools.names()[before:] == ["prepgen", "tleap"]
         assert _omit_names(_controls(tmp_path)["tail"]) == ["C6", "H16"]
@@ -382,15 +384,17 @@ class TestGropobOligomer:
         tail_methyl = ("C7", "H15", "H16", "H17")
         cuts = {
             "PEO": {
-                "head": AmberCut(tail="C6", post_tail="C7", omit=tail_methyl),
-                "chain": AmberCut(
+                "head": mp.builder.AmberCut(
+                    tail="C6", post_tail="C7", omit=tail_methyl
+                ),
+                "chain": mp.builder.AmberCut(
                     head="C1",
                     tail="C6",
                     pre_head="C3",
                     post_tail="C7",
                     omit=head_methyl + tail_methyl,
                 ),
-                "tail": AmberCut(head="C1", pre_head="C3", omit=head_methyl),
+                "tail": mp.builder.AmberCut(head="C1", pre_head="C3", omit=head_methyl),
             }
         }
         _build(tmp_path, "{[#PEO]|5}", library={"PEO": oligomer}, cuts=cuts)
@@ -416,7 +420,7 @@ class TestRefused:
         for bead in beads[1:]:
             sites.add_bond(beads[0], bead)
         with pytest.raises(ValueError, match="linear"):
-            AmberPolymerBuilder(
+            mp.builder.AmberPolymerBuilder(
                 {"EO": _ether()}, _cuts(), parameter_set="gaff", work_dir=tmp_path
             ).assemble(sites)
 
@@ -426,7 +430,7 @@ class TestRefused:
         for left, right in zip(beads, beads[1:] + beads[:1], strict=True):
             sites.add_bond(left, right)
         with pytest.raises(ValueError, match="linear"):
-            AmberPolymerBuilder(
+            mp.builder.AmberPolymerBuilder(
                 {"EO": _ether()}, _cuts(), parameter_set="gaff", work_dir=tmp_path
             ).assemble(sites)
 
@@ -435,7 +439,7 @@ class TestRefused:
             _build(tmp_path, "{[#EO]}")
 
     def test_not_a_site_graph(self, tmp_path):
-        builder = AmberPolymerBuilder(
+        builder = mp.builder.AmberPolymerBuilder(
             {"EO": _ether()}, _cuts(), parameter_set="gaff", work_dir=tmp_path
         )
         with pytest.raises(TypeError, match="coarse-grain site graph"):
@@ -457,20 +461,30 @@ class TestRefused:
         [
             (
                 "middle",
-                AmberCut(head="O2", tail="C4"),
+                mp.builder.AmberCut(head="O2", tail="C4"),
                 ValueError,
                 "head, chain or tail",
             ),
             (
                 "head",
-                AmberCut(tail="C4", pre_head_type="c3"),
+                mp.builder.AmberCut(tail="C4", pre_head_type="c3"),
                 ValueError,
                 "no PRE_HEAD",
             ),
-            ("tail", AmberCut(head="O2", post_tail="C1"), ValueError, "no POST_TAIL"),
-            ("chain", AmberCut(head="O2"), ValueError, "needs a tail atom"),
-            ("tail", AmberCut(), ValueError, "needs a head atom"),
-            ("head", AmberCut(tail="C4", omit=("X9",)), ValueError, r"\['X9'\]"),
+            (
+                "tail",
+                mp.builder.AmberCut(head="O2", post_tail="C1"),
+                ValueError,
+                "no POST_TAIL",
+            ),
+            ("chain", mp.builder.AmberCut(head="O2"), ValueError, "needs a tail atom"),
+            ("tail", mp.builder.AmberCut(), ValueError, "needs a head atom"),
+            (
+                "head",
+                mp.builder.AmberCut(tail="C4", omit=("X9",)),
+                ValueError,
+                r"\['X9'\]",
+            ),
             ("head", {"tail": "C4"}, TypeError, "must be AmberCut"),
         ],
     )
@@ -478,14 +492,14 @@ class TestRefused:
         self, tools, tmp_path, variant, cut, error, match
     ):
         with pytest.raises(error, match=match):
-            AmberPolymerBuilder(
+            mp.builder.AmberPolymerBuilder(
                 {"EO": _ether()}, {"EO": {variant: cut}}, parameter_set="gaff"
             )
         assert tools.calls == []
 
     def test_bead_types_that_share_a_residue_name(self):
         with pytest.raises(ValueError, match="tleap residue 'HPE'"):
-            AmberPolymerBuilder(
+            mp.builder.AmberPolymerBuilder(
                 {"PEO": _ether(), "PEOX": _ether()}, {}, parameter_set="gaff"
             )
 
@@ -494,17 +508,21 @@ class TestRefused:
         for atom in ether.atoms:
             atom["name"] = "C"
         with pytest.raises(ValueError, match="repeats Amber atom name 'C'"):
-            AmberPolymerBuilder({"EO": ether}, {}, parameter_set="gaff")
+            mp.builder.AmberPolymerBuilder({"EO": ether}, {}, parameter_set="gaff")
 
     def test_a_template_that_is_not_atomistic(self):
         with pytest.raises(TypeError, match="must be Atomistic"):
-            AmberPolymerBuilder({"EO": mp.CoarseGrain()}, {}, parameter_set="gaff")  # type: ignore[dict-item]
+            mp.builder.AmberPolymerBuilder(
+                {"EO": mp.CoarseGrain()}, {}, parameter_set="gaff"
+            )  # type: ignore[dict-item]
 
     def test_unnamed_atoms_get_element_and_row(self):
         graph = mp.conformer.Conformer(seed=1).generate(
             mp.io.smiles.read_smiles("CO").to_atomistic()
         )[0]
-        builder = AmberPolymerBuilder({"MO": graph}, {}, parameter_set="gaff")
+        builder = mp.builder.AmberPolymerBuilder(
+            {"MO": graph}, {}, parameter_set="gaff"
+        )
         names = [str(atom["name"]) for atom in builder.library["MO"].atoms]
         assert names[:2] == ["C1", "O2"]
         assert all(atom.get("name") is None for atom in graph.atoms)
@@ -513,35 +531,43 @@ class TestRefused:
 class TestToolFailures:
     def test_missing_tool(self, tmp_path):
         with (
-            patch.object(Tool, "resolve_executable", return_value=None),
-            pytest.raises(ToolError, match="executable .antechamber. not found"),
+            patch.object(mp.tool.Tool, "resolve_executable", return_value=None),
+            pytest.raises(
+                mp.tool.ToolError, match="executable .antechamber. not found"
+            ),
         ):
             _build(tmp_path)
 
     def test_failing_prepgen_carries_its_stdout(self, TEST_DATA_DIR, tmp_path):
         fake = _FakeTools(TEST_DATA_DIR / "prmtop" / "LiTFSI.prmtop", fail="prepgen")
         with (
-            patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-            patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
-            pytest.raises(ToolError, match="prepgen: cannot do it"),
+            patch.object(
+                mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+            ),
+            patch("molpy.tool.process.subprocess.run", side_effect=fake),
+            pytest.raises(mp.tool.ToolError, match="prepgen: cannot do it"),
         ):
             _build(tmp_path)
 
     def test_failing_tleap_leaves_no_chain_to_reuse(self, TEST_DATA_DIR, tmp_path):
         prmtop = TEST_DATA_DIR / "prmtop" / "LiTFSI.prmtop"
         with (
-            patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
+            patch.object(
+                mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+            ),
             patch(
-                "molpy.wrapper._process.subprocess.run",
+                "molpy.tool.process.subprocess.run",
                 side_effect=_FakeTools(prmtop, fail="tleap"),
             ),
-            pytest.raises(ToolError, match="tleap exited with status 1"),
+            pytest.raises(mp.tool.ToolError, match="tleap exited with status 1"),
         ):
             _build(tmp_path)
         fake = _FakeTools(prmtop)
         with (
-            patch.object(Tool, "resolve_executable", return_value="/amber/bin/tool"),
-            patch("molpy.wrapper._process.subprocess.run", side_effect=fake),
+            patch.object(
+                mp.tool.Tool, "resolve_executable", return_value="/amber/bin/tool"
+            ),
+            patch("molpy.tool.process.subprocess.run", side_effect=fake),
         ):
             _build(tmp_path)
         assert fake.names() == ["tleap"]

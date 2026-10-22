@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from types import ModuleType
 
-import molrs
 import pytest
 
-import molpy
+import molpy as mp
 
 
 def test_unregistered_name_raises_attribute_error() -> None:
@@ -17,33 +16,24 @@ def test_unregistered_name_raises_attribute_error() -> None:
     rather than falling through to an import attempt.
     """
     with pytest.raises(AttributeError, match="not_a_submodule"):
-        molpy.not_a_submodule
+        getattr(mp, "not_a_submodule")
 
 
-# --- The module map: molpy is a thin layer over molrs -------------------------
-
-#: The molrs subsystems with a molpy module of the same name; molpy may add
-#: names there (``mp.builder`` its crystals and polymers, ``mp.core`` its
-#: selectors, …).
-MIRRORED = tuple(
-    sorted(n for n in molrs.__all__ if isinstance(getattr(molrs, n), ModuleType))
-)
-
-
-# Each mirror keeping every native name by identity is test_public_paths's
-# ``test_every_molrs_subsystem_has_its_molpy_module``.
-
-
-def test_only_promoted_core_classes_are_on_the_root() -> None:
-    for name in set(dir(molpy)) & {
-        n for sub in MIRRORED for n in getattr(molrs, sub).__all__
-    }:
-        obj = getattr(molpy, name)
-        if isinstance(obj, ModuleType):
+def test_every_exported_name_resolves() -> None:
+    """Every name an ``__all__`` lists, from ``mp`` down, is there to take."""
+    missing: list[str] = []
+    seen: set[str] = set()
+    queue: list[tuple[str, ModuleType]] = [("mp", mp)]
+    while queue:
+        path, module = queue.pop()
+        if module.__name__ in seen:
             continue
-        assert obj is getattr(molpy.core, name), name
-
-
-def test_every_root_name_resolves() -> None:
-    for name in molpy.__all__:
-        assert hasattr(molpy, name), name
+        seen.add(module.__name__)
+        for name in getattr(module, "__all__", ()):
+            if not hasattr(module, name):
+                missing.append(f"{path}.{name}")
+                continue
+            value = getattr(module, name)
+            if isinstance(value, ModuleType):
+                queue.append((f"{path}.{name}", value))
+    assert not missing

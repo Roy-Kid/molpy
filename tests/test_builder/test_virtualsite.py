@@ -13,9 +13,6 @@ from pathlib import Path
 import pytest
 
 import molpy as mp
-from molpy.builder import DrudeBuilder, Tip4pBuilder, VirtualSiteBuilder
-from molpy.core import UnitRegistry
-from molpy.ff.params import clpol_polarizability
 
 #: 4πε₀ in e² / (kJ/mol·Å): the paduagroup/clandpol polarizer's value.
 FOUR_PI_EPS0 = 0.0007197587
@@ -58,26 +55,26 @@ def _rows(struct, block):
 class TestVirtualSiteBuilder:
     def test_builder_is_an_abstract_transform(self):
         with pytest.raises(TypeError):
-            VirtualSiteBuilder()
+            mp.builder.VirtualSiteBuilder()
 
 
 class TestDrudeBuilder:
     def test_is_a_virtual_site_transform(self):
-        assert issubclass(DrudeBuilder, VirtualSiteBuilder)
+        assert issubclass(mp.builder.DrudeBuilder, mp.builder.VirtualSiteBuilder)
 
 
 class TestTip4pBuilder:
     def test_is_a_virtual_site_transform(self):
-        assert issubclass(Tip4pBuilder, VirtualSiteBuilder)
+        assert issubclass(mp.builder.Tip4pBuilder, mp.builder.VirtualSiteBuilder)
 
 
 def test_builders_are_subclasses():
-    assert issubclass(DrudeBuilder, VirtualSiteBuilder)
-    assert issubclass(Tip4pBuilder, VirtualSiteBuilder)
+    assert issubclass(mp.builder.DrudeBuilder, mp.builder.VirtualSiteBuilder)
+    assert issubclass(mp.builder.Tip4pBuilder, mp.builder.VirtualSiteBuilder)
 
 
 def test_the_clpol_table_is_molrs_s():
-    table = clpol_polarizability()
+    table = mp.ff.params.clpol_polarizability()
     assert table["CR"]["k_D"] == 4184.0 and table["CR"]["alpha"] > 0
     assert table["HC"]["k_D"] == 0.0
 
@@ -87,7 +84,7 @@ def _atoms_by_row(struct):
 
 
 def test_drude_shell_is_typed_from_core(cation):
-    out = DrudeBuilder().apply(cation)
+    out = mp.builder.DrudeBuilder().apply(cation)
     atoms = _atoms_by_row(out)
     rows = _rows(out, "drudes")
     assert rows
@@ -99,7 +96,7 @@ def test_drude_shell_is_typed_from_core(cation):
 
 
 def test_drude_shell_prefix_is_configurable(cation):
-    out = DrudeBuilder(drude_prefix="DP_").apply(cation)
+    out = mp.builder.DrudeBuilder(drude_prefix="DP_").apply(cation)
     assert all(s.get("type").startswith("DP_") for s in _drudes(out))
 
 
@@ -107,7 +104,7 @@ def test_drude_apply_does_not_mutate_input(cation):
     struct = cation
     n_before = len(list(struct.atoms))
     q_before = sum(a.get("charge") for a in struct.atoms)
-    out = DrudeBuilder().apply(struct)
+    out = mp.builder.DrudeBuilder().apply(struct)
     assert out is not struct
     assert len(list(struct.atoms)) == n_before
     assert sum(a.get("charge") for a in struct.atoms) == q_before
@@ -116,7 +113,7 @@ def test_drude_apply_does_not_mutate_input(cation):
 
 def test_drude_count_matches_heavy_atoms_no_hydrogen(cation):
     struct = cation
-    out = DrudeBuilder().apply(struct)
+    out = mp.builder.DrudeBuilder().apply(struct)
     heavy = [a for a in struct.atoms if a.get("atomic_number") != 1]
     assert len(_drudes(out)) == len(heavy)
     for a in out.atoms:
@@ -126,7 +123,7 @@ def test_drude_count_matches_heavy_atoms_no_hydrogen(cation):
 
 def test_drude_springs_are_drudes_rows_not_bonds(cation):
     """The core–shell spring is a molrs ``drudes`` row, never a ``bonds`` row."""
-    out = DrudeBuilder().apply(cation)
+    out = mp.builder.DrudeBuilder().apply(cation)
     rows = _rows(out, "drudes")
     assert len(rows) == len(_drudes(out))
     assert {r["style"] for r in rows} == {"harmonic"}
@@ -139,8 +136,8 @@ def test_drude_springs_are_drudes_rows_not_bonds(cation):
 def test_drude_spring_force_constant(cation):
     """alpha.ff's k_D is kJ/mol/Å² in the ½k r² form; molrs's
     ``drude/harmonic`` is ``k*r^2`` in kcal/mol, so k = k_D / 2 in kcal."""
-    out = DrudeBuilder().apply(cation)
-    kcal_per_kj = UnitRegistry().factor("kJ", "kcal")
+    out = mp.builder.DrudeBuilder().apply(cation)
+    kcal_per_kj = mp.core.UnitRegistry().factor("kJ", "kcal")
     rows = _rows(out, "drudes")
     assert all(r["k"] == pytest.approx(4184.0 / 2 * kcal_per_kj) for r in rows)
     assert rows[0]["k"] == pytest.approx(500.0)
@@ -148,8 +145,8 @@ def test_drude_spring_force_constant(cation):
 
 def test_drude_rows_carry_alpha_and_thole(cation):
     """CL&Pol's ``a_thole`` survives as the ``drudes`` row's ``thole``."""
-    out = DrudeBuilder().apply(cation)
-    table = clpol_polarizability()
+    out = mp.builder.DrudeBuilder().apply(cation)
+    table = mp.ff.params.clpol_polarizability()
     atoms = _atoms_by_row(out)
     rows = _rows(out, "drudes")
     assert rows
@@ -162,7 +159,7 @@ def test_drude_rows_carry_alpha_and_thole(cation):
 def test_drude_shell_has_no_ad_hoc_columns_or_element(cation):
     """Spring data lives on the ``drudes`` row; a shell is marked by ``vsite``,
     not by a non-IUPAC ``element``."""
-    out = DrudeBuilder().apply(cation)
+    out = mp.builder.DrudeBuilder().apply(cation)
     assert _drudes(out)
     for shell in _drudes(out):
         assert "k_D" not in shell and "alpha" not in shell
@@ -170,8 +167,8 @@ def test_drude_shell_has_no_ad_hoc_columns_or_element(cation):
 
 
 def test_alpha_recovered_from_drude_params(cation):
-    out = DrudeBuilder().apply(cation)
-    kcal_per_kj = UnitRegistry().factor("kJ", "kcal")
+    out = mp.builder.DrudeBuilder().apply(cation)
+    kcal_per_kj = mp.core.UnitRegistry().factor("kJ", "kcal")
     atoms = _atoms_by_row(out)
     rows = _rows(out, "drudes")
     assert rows
@@ -180,18 +177,18 @@ def test_alpha_recovered_from_drude_params(cation):
         k_d = 2.0 * row["k"] / kcal_per_kj
         assert q_d**2 / (FOUR_PI_EPS0 * k_d) == pytest.approx(row["alpha"], rel=1e-7)
         assert row["alpha"] > 0
-    assert clpol_polarizability()["CR"]["alpha"] == 1.122
+    assert mp.ff.params.clpol_polarizability()["CR"]["alpha"] == 1.122
 
 
 def test_cation_charge_conserved(cation):
-    out = DrudeBuilder().apply(cation)
+    out = mp.builder.DrudeBuilder().apply(cation)
     total = sum(a.get("charge") for a in out.atoms)
     assert math.isclose(total, 1.0, abs_tol=1e-9)
 
 
 def test_drude_accepts_read_clpol_alpha_rows(cation, tmp_path):
     """``mp.io.read_clpol_alpha`` returns a list of rows; the builder takes it."""
-    table = clpol_polarizability()
+    table = mp.ff.params.clpol_polarizability()
     lines = [
         f"{t} {p['m_D']} {p['q_D_sign']} {p['k_D']} {p['alpha']} {p['a_thole']}"
         for t, p in table.items()
@@ -200,17 +197,17 @@ def test_drude_accepts_read_clpol_alpha_rows(cation, tmp_path):
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     rows = mp.io.read_clpol_alpha(path)
     assert isinstance(rows, list)
-    from_rows = DrudeBuilder(rows).apply(cation)
-    default = DrudeBuilder().apply(cation)
+    from_rows = mp.builder.DrudeBuilder(rows).apply(cation)
+    default = mp.builder.DrudeBuilder().apply(cation)
     assert _rows(from_rows, "drudes") == _rows(default, "drudes")
 
 
 def test_drude_later_row_wins(cation):
     """A type given twice keeps the file's last word (``read_clpol_alpha``)."""
-    table = clpol_polarizability()
+    table = mp.ff.params.clpol_polarizability()
     rows = [{"type_name": t, **p} for t, p in table.items()]
     rows.append({**rows[[r["type_name"] for r in rows].index("CR")], "a_thole": 1.5})
-    out = DrudeBuilder(rows).apply(cation)
+    out = mp.builder.DrudeBuilder(rows).apply(cation)
     atoms = _atoms_by_row(out)
     tholes = {atoms[r["atomi"]].get("type"): r["thole"] for r in _rows(out, "drudes")}
     assert tholes["CR"] == 1.5
@@ -223,12 +220,12 @@ def test_drude_rejects_untyped_graph():
     h = asm.add_atom(atomic_number=1, charge=0.0, x=1.0, y=0.0, z=0.0)
     asm.add_bond(c, h)
     with pytest.raises(ValueError, match="type"):
-        DrudeBuilder().apply(asm)
+        mp.builder.DrudeBuilder().apply(asm)
 
 
 def test_drude_rejects_incomplete_table_row():
     with pytest.raises(ValueError, match="a_thole"):
-        DrudeBuilder(
+        mp.builder.DrudeBuilder(
             {"CR": {"m_D": 0.4, "q_D_sign": -1.0, "k_D": 4184.0, "alpha": 1.0}}
         )
 
@@ -243,7 +240,7 @@ def test_tip4p_msite_placement_and_charge_transfer():
     water, o = _water()
     q_o = o.get("charge")
     n_bonds_before = len(list(water.bonds))
-    out = Tip4pBuilder().apply(water)
+    out = mp.builder.Tip4pBuilder().apply(water)
     m = _msite(out)
     assert math.isclose(m.get("x"), 0.0, abs_tol=1e-9)
     assert m.get("y") > 0.0
@@ -258,7 +255,7 @@ def test_tip4p_records_average3_construction():
     """The M-site is tied to O, H, H by a ``virtual_sites`` ``average3`` row
     whose weights reproduce its position."""
     water, _ = _water()
-    out = Tip4pBuilder().apply(water)
+    out = mp.builder.Tip4pBuilder().apply(water)
     atoms = _atoms_by_row(out)
     (row,) = _rows(out, "virtual_sites")
     assert row["style"] == "average3"
@@ -284,7 +281,9 @@ def test_tip4p_uses_minimum_image_across_the_box():
     h2 = asm.add_atom(atomic_number=1, charge=0.4, x=0.857, y=5.586, z=5.0)
     asm.add_bond(o, h1)
     asm.add_bond(o, h2)
-    out = Tip4pBuilder(box=mp.Box(mp.core.Cell.lengths([10.0] * 3))).apply(asm)
+    out = mp.builder.Tip4pBuilder(box=mp.Box(mp.core.Cell.lengths([10.0] * 3))).apply(
+        asm
+    )
     m = _msite(out)
     assert m.get("x") == pytest.approx(0.1, abs=1e-9)
     assert m.get("y") == pytest.approx(5.0 + 0.1546)
@@ -298,7 +297,7 @@ def test_tip4p_finds_hydrogens_by_adjacency():
     o = asm.add_atom(atomic_number=8, charge=-0.4, x=0.0, y=0.0, z=0.0)
     h = asm.add_atom(atomic_number=1, charge=0.4, x=0.96, y=0.0, z=0.0)
     asm.add_bond(o, h)
-    out = Tip4pBuilder().apply(asm)
+    out = mp.builder.Tip4pBuilder().apply(asm)
     assert not [a for a in out.atoms if a.get("vsite") == "massless"]
     assert _rows(out, "virtual_sites") == []
 
@@ -307,4 +306,4 @@ def test_drude_rejects_uncharged_host():
     asm = mp.Atomistic()
     asm.add_atom(atomic_number=6, type="CR", x=0.0, y=0.0, z=0.0)
     with pytest.raises(ValueError, match="charge"):
-        DrudeBuilder().apply(asm)
+        mp.builder.DrudeBuilder().apply(asm)

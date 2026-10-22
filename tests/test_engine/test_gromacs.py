@@ -7,8 +7,6 @@ import subprocess
 import pytest
 
 import molpy as mp
-from molpy.config import load_config
-from molpy.engine import GromacsEngine
 
 #: The GROMACS driver to check the written inputs with, if one is installed.
 GMX = shutil.which("gmx") or shutil.which("gmx_d")
@@ -36,7 +34,7 @@ def system(water, tip3p):
 
 def test_writes_coordinates_topology_and_mdps(tmp_path, system):
     frame, ff = system
-    engine = GromacsEngine(prefix="w", check_executable=False)
+    engine = mp.engine.GromacsEngine(prefix="w", check_executable=False)
     paths = engine.generate_inputs(frame, ff, tmp_path, temperature=280.0)
     assert {key: p.name for key, p in paths.items()} == {
         "input": "em.mdp",
@@ -78,7 +76,9 @@ def test_mdp_nonbonded_settings_are_the_force_fields(tmp_path, system):
     frame, ff = system
     ff.get_style("pair", "lj/cut")["cutoff"] = 10.0
     ff.def_style("pair", "coul/cut", {"cutoff": 9.0})
-    paths = GromacsEngine(check_executable=False).generate_inputs(frame, ff, tmp_path)
+    paths = mp.engine.GromacsEngine(check_executable=False).generate_inputs(
+        frame, ff, tmp_path
+    )
     for stage in ("input", "nvt"):
         assert _nonbonded(_mdp(paths[stage])) == {
             "coulombtype": "Cut-off",
@@ -92,7 +92,9 @@ def test_a_single_stated_cutoff_is_both(tmp_path, system):
     frame, ff = system
     ff.get_style("pair", "lj/cut")["cutoff"] = 11.0
     ff.def_style("pair", "coul/cut")
-    paths = GromacsEngine(check_executable=False).generate_inputs(frame, ff, tmp_path)
+    paths = mp.engine.GromacsEngine(check_executable=False).generate_inputs(
+        frame, ff, tmp_path
+    )
     assert _nonbonded(_mdp(paths["input"])) == {
         "coulombtype": "Cut-off",
         "rcoulomb": "1.1",
@@ -103,7 +105,7 @@ def test_a_single_stated_cutoff_is_both(tmp_path, system):
 
 def test_unstated_settings_fall_back_and_overrides_win(tmp_path, system):
     frame, ff = system  # lj/cut with no cutoff, no Coulomb style
-    engine = GromacsEngine(check_executable=False)
+    engine = mp.engine.GromacsEngine(check_executable=False)
     paths = engine.generate_inputs(frame, ff, tmp_path / "default")
     assert _nonbonded(_mdp(paths["input"])) == {
         "coulombtype": "PME",
@@ -127,7 +129,7 @@ def test_a_box_free_frame_is_refused_before_any_file(tmp_path, system):
     frame, ff = system
     frame.box = None
     with pytest.raises(ValueError, match="GROMACS.*needs a periodic box"):
-        GromacsEngine(check_executable=False).generate_inputs(
+        mp.engine.GromacsEngine(check_executable=False).generate_inputs(
             frame, ff, tmp_path / "out"
         )
     assert not (tmp_path / "out").exists()
@@ -136,8 +138,6 @@ def test_a_box_free_frame_is_refused_before_any_file(tmp_path, system):
 def test_run_grompps_then_mdruns_the_input_mdp(tmp_path, system, monkeypatch):
     import subprocess
 
-    from molpy.engine import Script
-
     calls = []
 
     def fake_run(cmd, **kwargs):
@@ -145,10 +145,12 @@ def test_run_grompps_then_mdruns_the_input_mdp(tmp_path, system, monkeypatch):
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    config = load_config({"engine": {"gromacs": {"launcher": ["mpirun", "-np", "4"]}}})
-    engine = GromacsEngine(config=config, check_executable=False)
+    config = mp.config.load_config(
+        {"engine": {"gromacs": {"launcher": ["mpirun", "-np", "4"]}}}
+    )
+    engine = mp.engine.GromacsEngine(config=config, check_executable=False)
     paths = engine.generate_inputs(*system, tmp_path)
-    engine.run(Script.from_path(paths["input"]), workdir=tmp_path)
+    engine.run(mp.engine.Script.from_path(paths["input"]), workdir=tmp_path)
     assert calls == [
         [
             "gmx",
@@ -170,7 +172,6 @@ def test_a_later_stage_starts_from_the_previous_stages_output(
     tmp_path, system, monkeypatch
 ):
     """NVT after EM grompp's the minimised em.gro, not the initial gro."""
-    from molpy.engine import Script
 
     calls = []
 
@@ -179,10 +180,12 @@ def test_a_later_stage_starts_from_the_previous_stages_output(
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    engine = GromacsEngine(check_executable=False)
+    engine = mp.engine.GromacsEngine(check_executable=False)
     paths = engine.generate_inputs(*system, tmp_path)
-    engine.run(Script.from_path(paths["input"]), workdir=tmp_path)
-    engine.run(Script.from_path(paths["nvt"]), workdir=tmp_path, structure="em.gro")
+    engine.run(mp.engine.Script.from_path(paths["input"]), workdir=tmp_path)
+    engine.run(
+        mp.engine.Script.from_path(paths["nvt"]), workdir=tmp_path, structure="em.gro"
+    )
     grompps = [cmd for cmd in calls if cmd[1] == "grompp"]
     assert [cmd[cmd.index("-c") + 1] for cmd in grompps] == ["system.gro", "em.gro"]
     assert [cmd[cmd.index("-o") + 1] for cmd in grompps] == ["em.tpr", "nvt.tpr"]
@@ -190,7 +193,9 @@ def test_a_later_stage_starts_from_the_previous_stages_output(
 
 
 def test_grompp_accepts_the_generated_inputs(tmp_path, system):
-    paths = GromacsEngine(check_executable=False).generate_inputs(*system, tmp_path)
+    paths = mp.engine.GromacsEngine(check_executable=False).generate_inputs(
+        *system, tmp_path
+    )
     top = paths["top"].read_text(encoding="utf-8")
     assert "[ moleculetype ]" in top
     assert "[ molecules ]" in top

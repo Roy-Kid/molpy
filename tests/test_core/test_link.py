@@ -1,14 +1,13 @@
 import pytest
-
-from molpy.core import Atomistic, BondNumber, BondOrder
+import molpy as mp
 
 
 def test_relation_endpoints_are_live_and_immutable() -> None:
-    graph = Atomistic()
+    graph = mp.Atomistic()
     a = graph.add_atom(id=1, atomic_number=6)
     b = graph.add_atom(id=2, atomic_number=6)
     link = graph.add_bond(a, b)
-    graph.set_bond_class(link, BondOrder.Single, BondNumber.Single)
+    graph.set_bond_class(link, mp.core.BondOrder.Single, mp.core.BondNumber.Single)
 
     assert link.endpoints == (a, b)
     assert link["bond_type"] == 1
@@ -16,7 +15,6 @@ def test_relation_endpoints_are_live_and_immutable() -> None:
 
 
 def test_relation_has_no_detached_form() -> None:
-    from molpy.core import Bond
 
     with pytest.raises(TypeError):
-        Bond(object(), object())  # type: ignore[call-arg]
+        mp.Bond(object(), object())  # type: ignore[call-arg]

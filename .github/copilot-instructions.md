@@ -7,7 +7,7 @@
 ## Repo layout (what to touch)
 
 - Source: `src/molpy/` (package uses `src/` layout)
-- Tests: `tests/` (pytest unit suite only — mock wrappers/engines; no third-party binaries)
+- Tests: `tests/` (pytest unit suite only — mock engines and AmberTools programs; no third-party binaries, no skipped tests)
 - Docs: `docs/` + `zensical.toml` (Zensical; notebooks pre-rendered to Markdown via `scripts/render_notebooks.py`)
 - CI/release: `.github/workflows/`
 
@@ -21,9 +21,8 @@
 ## Project-specific patterns
 
 - The package root (`src/molpy/__init__.py`) holds the subsystem modules (`mp.core`, `mp.io`, `mp.ff`, …, each mirroring molrs by identity), the core data classes promoted from `mp.core` (`mp.Frame`, `mp.Atomistic`, `mp.Box`, …) and the version metadata; keep it import-safe (avoid importing optional deps unguarded).
-- Optional integrations should be import-guarded (pattern: `src/molpy/adapter/__init__.py` catches `ModuleNotFoundError` only when `exc.name == "rdkit"`, and its names raise `ImportError` on use).
 - Doc blocks that shell out must start with `# docs: skip — <reason>`.
-- Names follow molrs's rules (`tests/test_public_paths.py` checks them): no module named after a container word (`data`, `base`, `types`, `common`, `utils`, `helpers`, `env`; e.g. `molpy.resources`, `engine/_engine.py`); acronyms cased as words (`LammpsEngine`, `TleapWrapper`, `Rdf`, `Lbfgs`; numpy's `DType` and `HBond` are kept); counts are `n_*`; file I/O is one door per format on `mp.io` (`read_pdb`, `read_smiles_str`, `read_mrec_frame`), never an extension-dispatched `read_frame`.
+- Names follow molrs's rules: no module named after a container word (`data`, `base`, `types`, `common`, `utils`, `helpers`, `env`; e.g. `molpy.resources`, `engine/engine.py`); acronyms cased as words (`LammpsEngine`, `OpenmmEngine`, `Rdf`, `Lbfgs`; numpy's `DType` and `HBond` are kept); counts are `n_*`; file I/O is one door per format on `mp.io` (`read_pdb`, `read_smiles_str`, `read_mrec_frame`), never an extension-dispatched `read_frame`.
 - Data-driven tests read the small fixture files committed under `tests/tests-data/` through the `TEST_DATA_DIR` fixture.
 
 ## Hard restrictions (must follow)

@@ -38,8 +38,8 @@ from molrs.core import __all__ as _native
 for _vocabulary in ("constants", "keys", "schema"):
     _import_module(f"{__name__}.{_vocabulary}")
 
-from molpy.core._selector import AtomIndexSelector, ColumnSelector, MaskPredicate
-from molpy.core._splitter import (
+from molpy.core.selector import AtomIndexSelector, ColumnSelector, MaskPredicate
+from molpy.core.splitter import (
     CustomStrategy,
     FrameIntervalStrategy,
     SplitStrategy,

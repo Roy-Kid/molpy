@@ -12,7 +12,6 @@ import numpy as np
 import pytest
 
 import molpy as mp
-from molpy.core import MetaValue
 
 # Inline TIP3P water molecule (LAMMPS JSON molecule schema). Used as input for
 # JSON-format reader tests — no external .json fixture file.
@@ -360,10 +359,10 @@ class TestWriteLammpsMolecule:
 
         frame.meta = {
             **frame.meta,
-            "custom_field": MetaValue("i64", 42),
-            "total_mass": MetaValue("f64", 18.015),
-            "center_of_mass": MetaValue("f64x3", [0.0, 0.0, 0.0]),
-            "inertia": MetaValue("f64x6", [1.0, 2.0, 3.0, 0.0, 0.0, 0.0]),
+            "custom_field": mp.core.MetaValue("i64", 42),
+            "total_mass": mp.core.MetaValue("f64", 18.015),
+            "center_of_mass": mp.core.MetaValue("f64x3", [0.0, 0.0, 0.0]),
+            "inertia": mp.core.MetaValue("f64x6", [1.0, 2.0, 3.0, 0.0, 0.0, 0.0]),
         }
 
         # Write JSON format

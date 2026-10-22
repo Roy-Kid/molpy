@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from molpy.io._metric_reader import apply_request
+from molpy.io.metric_reader import apply_request
 
 
 @dataclass

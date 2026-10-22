@@ -52,7 +52,6 @@ chain and the molecules it is mixed with always name the same set:
 | `molpy.ff.typifier.AntechamberTypifier` | antechamber (types + charges, any `-c` method) → parmchk2 → tleap for one complete molecule; net charge from the atoms' formal charges. For a charge method the native route lacks, and for exporting an estimated GAFF term while molrs's writers refuse it |
 | `molpy.ff.typifier.TleapTypifier` | tleap only, for a finished graph whose atoms already carry AMBER types and charges, with parameters of your own (`forcefield=`) loaded as a frcmod on top of the leaprc; a graph with ports is refused |
 | `molpy.builder.AmberPolymerBuilder` | antechamber + parmchk2 on an oligomer, prepgen per residue (`AmberCut`), tleap `sequence` over a linear site graph; `AmberPieces` writes the oligomer and cuts from three SMILES |
-| `molpy.wrapper` (`AntechamberWrapper`, `Parmchk2Wrapper`, `PrepgenWrapper`, `TleapWrapper`, `SanderWrapper`) | Thin subprocess wrappers |
 
 Install AmberTools in its own conda env (example):
 
@@ -66,12 +65,12 @@ Name the env once, in molpy's configuration — `molpy.toml` in your project
 directory (or `~/.molcrafts/molpy/config/config.toml` for every project):
 
 ```toml
-[wrapper]
+[ambertools]
 env = "AmberTools25"
 env_manager = "conda"
 ```
 
-Every AmberTools program (antechamber, parmchk2, prepgen, tleap, sander) then
+Every AmberTools program (antechamber, parmchk2, prepgen, tleap) then
 runs through `conda run -n AmberTools25`; see
 [Configure and Log a Run](../user-guide/14_configure_and_log.md) for the
 layers and the per-program tables.
@@ -102,13 +101,9 @@ End-to-end recipes that use this path:
 
 - [AmberTools electrolyte workflow](../user-guide/13_ambertools_integration.md)
 
-Unit tests never shell out to antechamber/tleap — wrappers are mocked under
-`tests/test_wrapper`, the typifiers and `Am1BccModel` under `tests/test_ff`,
-and the shared pipeline under `tests/test_ambertools`. With AmberTools
-installed, `tests/test_ambertools/test_real_programs.py` checks both routes
-against the real programs, and that a natively typed molecule merges with an
-`AmberPolymerBuilder` chain and minimises with it in LAMMPS (`lmp`) and
-passes GROMACS `grompp`, where those are installed. Offline recipes in the user guide mark those blocks with
+Unit tests never shell out to antechamber/tleap — the programs and the
+shared pipeline are mocked under `tests/test_tool/test_ambertools`, the
+typifiers and `Am1BccModel` under `tests/test_ff`. Offline recipes in the user guide mark those blocks with
 `# docs: skip` so the doc gate does not re-run them.
 
 ## MD engines (input decks and optional run)
@@ -148,4 +143,3 @@ These are Python package groups, not scientific executables:
 ## See also
 
 - [Installation](installation.md)
-- [Wrapper and Adapter](../tutorials/07_wrapper_and_adapter.md) — how wrappers differ from adapters
